@@ -1,0 +1,166 @@
+import { RenderPass } from '../render_pass.js';
+import type { RenderContext } from '../render_context.js';
+import type { LightingPass } from './lighting_pass.js';
+import type { GBuffer } from '../gbuffer.js';
+import type { Mat4 } from '../../math/mat4.js';
+import { HDR_FORMAT } from './lighting_pass.js';
+import taaWgsl from '../../shaders/taa.wgsl?raw';
+
+// invViewProj (mat4) + prevViewProj (mat4) = 128 bytes
+const TAA_UNIFORM_SIZE = 128;
+
+export class TAAPass extends RenderPass {
+  readonly name = 'TAAPass';
+
+  private _resolved: GPUTexture;
+  readonly resolvedView: GPUTextureView;
+  private _history: GPUTexture;
+
+  private _pipeline: GPURenderPipeline;
+  private _uniformBuffer: GPUBuffer;
+  private _uniformBG: GPUBindGroup;
+  private _textureBG: GPUBindGroup;
+
+  private readonly _width: number;
+  private readonly _height: number;
+
+  private constructor(
+    resolved: GPUTexture,
+    resolvedView: GPUTextureView,
+    history: GPUTexture,
+    pipeline: GPURenderPipeline,
+    uniformBuffer: GPUBuffer,
+    uniformBG: GPUBindGroup,
+    textureBG: GPUBindGroup,
+    width: number,
+    height: number,
+  ) {
+    super();
+    this._resolved = resolved;
+    this.resolvedView = resolvedView;
+    this._history = history;
+    this._pipeline = pipeline;
+    this._uniformBuffer = uniformBuffer;
+    this._uniformBG = uniformBG;
+    this._textureBG = textureBG;
+    this._width = width;
+    this._height = height;
+  }
+
+  static create(ctx: RenderContext, lightingPass: LightingPass, gbuffer: GBuffer): TAAPass {
+    const { device, width, height } = ctx;
+
+    const resolved = device.createTexture({
+      label: 'TAA Resolved',
+      size: { width, height },
+      format: HDR_FORMAT,
+      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC,
+    });
+
+    const history = device.createTexture({
+      label: 'TAA History',
+      size: { width, height },
+      format: HDR_FORMAT,
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+    });
+
+    const resolvedView = resolved.createView();
+    const historyView  = history.createView();
+
+    const uniformBuffer = device.createBuffer({
+      label: 'TAAUniformBuffer',
+      size: TAA_UNIFORM_SIZE,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+
+    const uniformBGL = device.createBindGroupLayout({
+      label: 'TAAUniformBGL',
+      entries: [
+        { binding: 0, visibility: GPUShaderStage.FRAGMENT, buffer: { type: 'uniform' } },
+      ],
+    });
+
+    const textureBGL = device.createBindGroupLayout({
+      label: 'TAATextureBGL',
+      entries: [
+        { binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } },
+        { binding: 1, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } },
+        { binding: 2, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'depth' } },
+        { binding: 3, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } },
+      ],
+    });
+
+    const linearSampler = device.createSampler({
+      label: 'TAALinearSampler',
+      magFilter: 'linear', minFilter: 'linear',
+      addressModeU: 'clamp-to-edge', addressModeV: 'clamp-to-edge',
+    });
+
+    const uniformBG = device.createBindGroup({
+      layout: uniformBGL,
+      entries: [{ binding: 0, resource: { buffer: uniformBuffer } }],
+    });
+
+    const textureBG = device.createBindGroup({
+      layout: textureBGL,
+      entries: [
+        { binding: 0, resource: lightingPass.hdrView },
+        { binding: 1, resource: historyView },
+        { binding: 2, resource: gbuffer.depthView },
+        { binding: 3, resource: linearSampler },
+      ],
+    });
+
+    const shader = device.createShaderModule({ label: 'TAAShader', code: taaWgsl });
+    const pipeline = device.createRenderPipeline({
+      label: 'TAAPipeline',
+      layout: device.createPipelineLayout({ bindGroupLayouts: [uniformBGL, textureBGL] }),
+      vertex: { module: shader, entryPoint: 'vs_main' },
+      fragment: { module: shader, entryPoint: 'fs_main', targets: [{ format: HDR_FORMAT }] },
+      primitive: { topology: 'triangle-list' },
+    });
+
+    return new TAAPass(
+      resolved, resolvedView, history,
+      pipeline, uniformBuffer, uniformBG, textureBG,
+      width, height,
+    );
+  }
+
+  updateCamera(ctx: RenderContext, invViewProj: Mat4, prevViewProj: Mat4): void {
+    const data = new Float32Array(TAA_UNIFORM_SIZE / 4);
+    data.set(invViewProj.data,  0);
+    data.set(prevViewProj.data, 16);
+    ctx.queue.writeBuffer(this._uniformBuffer, 0, data.buffer as ArrayBuffer);
+  }
+
+  execute(encoder: GPUCommandEncoder, _ctx: RenderContext): void {
+    const pass = encoder.beginRenderPass({
+      label: 'TAAPass',
+      colorAttachments: [{
+        view: this.resolvedView,
+        clearValue: [0, 0, 0, 1],
+        loadOp: 'clear',
+        storeOp: 'store',
+      }],
+    });
+    pass.setPipeline(this._pipeline);
+    pass.setBindGroup(0, this._uniformBG);
+    pass.setBindGroup(1, this._textureBG);
+    pass.draw(3);
+    pass.end();
+
+    // Copy resolved → history so next frame can reproject into it
+    encoder.copyTextureToTexture(
+      { texture: this._resolved },
+      { texture: this._history },
+      { width: this._width, height: this._height },
+    );
+  }
+
+  destroy(): void {
+    this._resolved.destroy();
+    this._history.destroy();
+    this._uniformBuffer.destroy();
+  }
+}

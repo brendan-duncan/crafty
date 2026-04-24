@@ -1,0 +1,120 @@
+import { RenderPass } from '../render_pass.js';
+import type { RenderContext } from '../render_context.js';
+import type { Texture } from '../../assets/texture.js';
+import type { Mat4 } from '../../math/mat4.js';
+import { HDR_FORMAT } from './lighting_pass.js';
+import skyWgsl from '../../shaders/sky.wgsl?raw';
+
+// invViewProj (mat4x4 = 64 bytes) + cameraPos (vec3 = 12 bytes) + pad (4 bytes) = 80 bytes
+const SKY_UNIFORM_SIZE = 80;
+
+export class SkyPass extends RenderPass {
+  readonly name = 'SkyPass';
+
+  private _pipeline: GPURenderPipeline;
+  private _uniformBuffer: GPUBuffer;
+  private _uniformBG: GPUBindGroup;
+  private _textureBG: GPUBindGroup;
+  private _hdrView: GPUTextureView;
+
+  private constructor(
+    pipeline: GPURenderPipeline,
+    uniformBuffer: GPUBuffer,
+    uniformBG: GPUBindGroup,
+    textureBG: GPUBindGroup,
+    hdrView: GPUTextureView,
+  ) {
+    super();
+    this._pipeline = pipeline;
+    this._uniformBuffer = uniformBuffer;
+    this._uniformBG = uniformBG;
+    this._textureBG = textureBG;
+    this._hdrView = hdrView;
+  }
+
+  static create(ctx: RenderContext, hdrView: GPUTextureView, skyTexture: Texture): SkyPass {
+    const { device } = ctx;
+
+    const uniformBuffer = device.createBuffer({
+      label: 'SkyUniformBuffer',
+      size: SKY_UNIFORM_SIZE,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+
+    const uniformBGL = device.createBindGroupLayout({
+      label: 'SkyUniformBGL',
+      entries: [
+        { binding: 0, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, buffer: { type: 'uniform' } },
+      ],
+    });
+
+    const textureBGL = device.createBindGroupLayout({
+      label: 'SkyTextureBGL',
+      entries: [
+        { binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } },
+        { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } },
+      ],
+    });
+
+    const sampler = device.createSampler({
+      label: 'SkySampler',
+      magFilter: 'linear', minFilter: 'linear',
+      addressModeU: 'repeat', addressModeV: 'clamp-to-edge',
+    });
+
+    const uniformBG = device.createBindGroup({
+      layout: uniformBGL,
+      entries: [{ binding: 0, resource: { buffer: uniformBuffer } }],
+    });
+
+    const textureBG = device.createBindGroup({
+      layout: textureBGL,
+      entries: [
+        { binding: 0, resource: skyTexture.view },
+        { binding: 1, resource: sampler },
+      ],
+    });
+
+    const shader = device.createShaderModule({ label: 'SkyShader', code: skyWgsl });
+    const pipeline = device.createRenderPipeline({
+      label: 'SkyPipeline',
+      layout: device.createPipelineLayout({ bindGroupLayouts: [uniformBGL, textureBGL] }),
+      vertex: { module: shader, entryPoint: 'vs_main' },
+      fragment: { module: shader, entryPoint: 'fs_main', targets: [{ format: HDR_FORMAT }] },
+      primitive: { topology: 'triangle-list' },
+    });
+
+    return new SkyPass(pipeline, uniformBuffer, uniformBG, textureBG, hdrView);
+  }
+
+  updateCamera(ctx: RenderContext, invViewProj: Mat4, cameraPos: { x: number; y: number; z: number }, exposure = 0.2): void {
+    const data = new Float32Array(SKY_UNIFORM_SIZE / 4);
+    data.set(invViewProj.data, 0);
+    data[16] = cameraPos.x;
+    data[17] = cameraPos.y;
+    data[18] = cameraPos.z;
+    data[19] = exposure;
+    ctx.queue.writeBuffer(this._uniformBuffer, 0, data.buffer as ArrayBuffer);
+  }
+
+  execute(encoder: GPUCommandEncoder, _ctx: RenderContext): void {
+    const pass = encoder.beginRenderPass({
+      label: 'SkyPass',
+      colorAttachments: [{
+        view: this._hdrView,
+        clearValue: [0, 0, 0, 1],
+        loadOp: 'clear',
+        storeOp: 'store',
+      }],
+    });
+    pass.setPipeline(this._pipeline);
+    pass.setBindGroup(0, this._uniformBG);
+    pass.setBindGroup(1, this._textureBG);
+    pass.draw(3);
+    pass.end();
+  }
+
+  destroy(): void {
+    this._uniformBuffer.destroy();
+  }
+}
