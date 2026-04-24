@@ -12,3 +12,4 @@ export { TonemapPass } from './passes/tonemap_pass.js';
 export { DofPass } from './passes/dof_pass.js';
 export { SSAOPass } from './passes/ssao_pass.js';
 export { DebugLightPass } from './passes/debug_light_pass.js';
+export { ParticlePass } from './passes/particle_pass.js';

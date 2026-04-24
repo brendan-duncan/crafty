@@ -11,7 +11,8 @@ import merAtlasUrl    from '../assets/cube_textures/simple_block_atlas_mer.png?u
 import heightAtlasUrl from '../assets/cube_textures/simple_block_atlas_heightmap.png?url';
 import { Mat4, Vec3, Quaternion } from '../src/math/index.js';
 import { GameObject, Scene, Camera, DirectionalLight, MeshRenderer, CameraControls } from '../src/engine/index.js';
-import { RenderContext, RenderGraph, GBuffer, ShadowPass, SkyPass, GeometryPass, LightingPass, TAAPass, SSAOPass, DofPass, BloomPass, TonemapPass, DebugLightPass } from '../src/renderer/index.js';
+import { RenderContext, RenderGraph, GBuffer, ShadowPass, SkyPass, GeometryPass, LightingPass, TAAPass, SSAOPass, DofPass, BloomPass, TonemapPass, DebugLightPass, ParticlePass } from '../src/renderer/index.js';
+import type { ParticleGraphConfig } from '../src/particles/index.js';
 import { Mesh, BlockTexture } from '../src/assets/index.js';
 import { parseHdr, createHdrTexture } from '../src/assets/hdr_loader.js';
 import { computeIbl } from '../src/assets/ibl.js';
@@ -155,6 +156,12 @@ async function main() {
   }));
   scene.add(sphereGO);
 
+  const fireEmitterGO = new GameObject('FireEmitter');
+  fireEmitterGO.position.set(3, 0, 2);
+
+  const sparksEmitterGO = new GameObject('SparksEmitter');
+  sparksEmitterGO.position.set(-3, 0, 2);
+
   const sunGO = new GameObject('Sun');
   const sun = sunGO.addComponent(new DirectionalLight(new Vec3(0.3, -1, 0.5), Vec3.one(), 3, 3));
   scene.add(sunGO);
@@ -183,8 +190,52 @@ async function main() {
   let bloomPass      : BloomPass      | null = null;
   let debugLightPass!: DebugLightPass;
   let tonemapPass!   : TonemapPass;
+  let firePass       : ParticlePass   | null = null;
+  let sparksPass     : ParticlePass   | null = null;
   let graph!: RenderGraph;
   let prevViewProj: Mat4 | null = null;
+
+  const fireConfig: ParticleGraphConfig = {
+    emitter: {
+      maxParticles: 2000,
+      spawnRate: 200,
+      lifetime: [1.5, 3.0],
+      shape: { kind: 'cone', radius: 0.1, angle: Math.PI / 8 },
+      initialSpeed: [1.5, 3.0],
+      initialColor: [1.0, 0.45, 0.05, 1.0],
+      initialSize: [0.08, 0.18],
+      roughness: 0.9,
+      metallic: 0.0,
+    },
+    modifiers: [
+      { type: 'gravity',            strength: -2.0 },
+      { type: 'drag',               coefficient: 1.5 },
+      { type: 'color_over_lifetime', startColor: [1.0, 0.45, 0.05, 1.0], endColor: [0.3, 0.05, 0.0, 0.0] },
+      { type: 'size_over_lifetime',  start: 0.15, end: 0.02 },
+    ],
+    renderer: { type: 'sprites', blendMode: 'additive', billboard: 'camera' },
+  };
+
+  const sparksConfig: ParticleGraphConfig = {
+    emitter: {
+      maxParticles: 5000,
+      spawnRate: 80,
+      lifetime: [2.0, 5.0],
+      shape: { kind: 'sphere', radius: 0.05, solidAngle: Math.PI },
+      initialSpeed: [2.0, 6.0],
+      initialColor: [0.6, 0.8, 1.0, 1.0],
+      initialSize: [0.04, 0.08],
+      roughness: 0.2,
+      metallic: 0.8,
+    },
+    modifiers: [
+      { type: 'gravity',   strength: 4.0 },
+      { type: 'drag',      coefficient: 0.3 },
+      { type: 'curl_noise', scale: 0.8, strength: 1.5, timeScale: 0.4 },
+      { type: 'color_over_lifetime', startColor: [0.6, 0.8, 1.0, 1.0], endColor: [0.1, 0.15, 0.4, 0.0] },
+    ],
+    renderer: { type: 'sprites', blendMode: 'additive', billboard: 'camera' },
+  };
 
   function buildRenderTargets(): void {
     gbuffer?.destroy();
@@ -194,11 +245,15 @@ async function main() {
     lightingPass?.destroy();
     debugLightPass?.destroy();
     taaPass?.destroy();
-    dofPass?.destroy();   dofPass   = null;
-    bloomPass?.destroy(); bloomPass = null;
+    dofPass?.destroy();    dofPass    = null;
+    bloomPass?.destroy();  bloomPass  = null;
+    firePass?.destroy();   firePass   = null;
+    sparksPass?.destroy(); sparksPass = null;
 
     gbuffer      = GBuffer.create(ctx);
     geometryPass = GeometryPass.create(ctx, gbuffer);
+    firePass     = ParticlePass.create(ctx, fireConfig,   gbuffer);
+    sparksPass   = ParticlePass.create(ctx, sparksConfig, gbuffer);
     ssaoPass     = SSAOPass.create(ctx, gbuffer);
     lightingPass = LightingPass.create(ctx, gbuffer, shadowPass, ibl, ssaoPass.aoView);
     skyPass      = SkyPass.create(ctx, lightingPass.hdrView, skyTexture);
@@ -220,6 +275,8 @@ async function main() {
     graph = new RenderGraph();
     graph.addPass(shadowPass);
     graph.addPass(geometryPass);
+    graph.addPass(firePass);
+    graph.addPass(sparksPass);
     graph.addPass(ssaoPass);
     graph.addPass(skyPass);
     graph.addPass(lightingPass);
@@ -353,6 +410,9 @@ async function main() {
 
     geometryPass.setDrawItems(drawItems);
     geometryPass.updateCamera(ctx, view, proj, jitVP, invVP, camPos, camera.near, camera.far);
+
+    firePass?.update(ctx, dt, view, proj, vp, invVP, camPos, camera.near, camera.far, fireEmitterGO.localToWorld());
+    sparksPass?.update(ctx, dt, view, proj, vp, invVP, camPos, camera.near, camera.far, sparksEmitterGO.localToWorld());
 
     lightingPass.updateCamera(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far);
     lightingPass.updateLight(ctx, sun.direction, sun.color, sun.intensity, cascades, effects.shadows, effects.shd_dbg);
