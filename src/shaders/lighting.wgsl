@@ -16,14 +16,17 @@ struct CameraUniforms {
 }
 
 struct LightUniforms {
-  direction      : vec3<f32>,
-  intensity      : f32,
-  color          : vec3<f32>,
-  cascadeCount   : u32,
-  cascadeMatrices: array<mat4x4<f32>, 4>,
-  cascadeSplits  : vec4<f32>,
-  shadowsEnabled : u32,
-  debugCascades  : u32,
+  direction         : vec3<f32>,
+  intensity         : f32,
+  color             : vec3<f32>,
+  cascadeCount      : u32,
+  cascadeMatrices   : array<mat4x4<f32>, 4>,
+  cascadeSplits     : vec4<f32>,
+  shadowsEnabled    : u32,
+  debugCascades     : u32,
+  cloudShadowOrigin : vec2<f32>,  // world-space XZ centre of cloud shadow map
+  cloudShadowExtent : f32,        // half-size in world units (covers ±extent)
+  _cloudShadowPad   : f32,
 }
 
 @group(0) @binding(0) var<uniform> camera: CameraUniforms;
@@ -35,6 +38,7 @@ struct LightUniforms {
 @group(1) @binding(3) var shadowMap         : texture_depth_2d_array;
 @group(1) @binding(4) var shadowSampler     : sampler_comparison;
 @group(1) @binding(5) var gbufferSampler    : sampler;
+@group(1) @binding(6) var cloudShadowTex    : texture_2d<f32>;
 
 // IBL textures
 @group(2) @binding(0) var irradiance_tex  : texture_2d<f32>;
@@ -276,7 +280,20 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
   // Offset shadow test position along the surface normal to avoid coplanar self-shadowing.
   let shadow_pos = world_pos + N * 0.03;
   let shad = shadow_factor(shadow_pos, NdotL, view_depth);
-  let direct = (diffuse_brdf + specular_brdf) * light.color * light.intensity * NdotL * shad;
+
+  // Cloud shadow — sample top-down transmittance map; default 1.0 when extent is zero
+  let cloud_ext = max(light.cloudShadowExtent, 0.001);
+  let cloud_uv  = clamp(
+    (world_pos.xz - light.cloudShadowOrigin) / (cloud_ext * 2.0) + 0.5,
+    vec2<f32>(0.0), vec2<f32>(1.0),
+  );
+  let cloud_shadow = select(
+    textureSampleLevel(cloudShadowTex, gbufferSampler, cloud_uv, 0.0).r,
+    1.0,
+    light.cloudShadowExtent <= 0.0,
+  );
+
+  let direct = (diffuse_brdf + specular_brdf) * light.color * light.intensity * NdotL * shad * cloud_shadow;
 
   // === IBL (ambient / sky reflections) ================================
   let Fi    = fresnel_schlick_roughness(NdotV, F0, roughness);

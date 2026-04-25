@@ -25,7 +25,7 @@ export type ModifierNode =
                                    endColor:   [number, number, number, number] };
 
 export type RenderNode =
-  | { type: 'sprites'; blendMode: 'additive' | 'alpha'; billboard: 'camera' | 'velocity' }
+  | { type: 'sprites'; blendMode: 'additive' | 'alpha'; billboard: 'camera' | 'velocity'; renderTarget?: 'gbuffer' | 'hdr' }
   | { type: 'points' };
 
 export interface EventNode {

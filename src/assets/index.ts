@@ -8,3 +8,5 @@ export { GltfLoader } from './gltf_loader.js';
 export type { TextureType } from './texture.js';
 export type { BlockID } from './block_texture.js';
 export type { GltfModel, GltfMeshData } from './gltf_loader.js';
+export { createCloudNoiseTextures } from './cloud_noise.js';
+export type { CloudNoiseTextures } from './cloud_noise.js';

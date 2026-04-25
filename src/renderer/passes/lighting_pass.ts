@@ -11,8 +11,9 @@ export const HDR_FORMAT: GPUTextureFormat = 'rgba16float';
 
 // CameraUniforms: 4 mat4 (256 bytes) + vec3+f32 near (16 bytes) + f32 far + pad (8 bytes) = 280 bytes
 const CAMERA_SIZE = 64 * 4 + 16 + 16;
-// LightUniforms: dir(3)+intensity(1)+color(3)+cascadeCount(1)+4*mat4(256)+cascadeSplits(4)+shadowsEnabled(1)+pad(3) = 320 bytes
-const LIGHT_SIZE = 320;
+// LightUniforms: dir(3)+intensity(1)+color(3)+cascadeCount(1)+4*mat4(256)+cascadeSplits(4)+
+//   shadowsEnabled(1)+debugCascades(1)+cloudShadowOrigin(2)+cloudShadowExtent(1)+pad(1) = 336 bytes
+const LIGHT_SIZE = 336;
 
 export class LightingPass extends RenderPass {
   readonly name = 'LightingPass';
@@ -27,6 +28,7 @@ export class LightingPass extends RenderPass {
   private _aoBindGroup: GPUBindGroup;
   private _cameraBuffer: GPUBuffer;
   private _lightBuffer: GPUBuffer;
+  private _defaultCloudShadow: GPUTexture | null;
 
   private constructor(
     hdrTexture: GPUTexture,
@@ -38,6 +40,7 @@ export class LightingPass extends RenderPass {
     aoBindGroup: GPUBindGroup,
     cameraBuffer: GPUBuffer,
     lightBuffer: GPUBuffer,
+    defaultCloudShadow: GPUTexture | null,
   ) {
     super();
     this.hdrTexture = hdrTexture;
@@ -49,9 +52,10 @@ export class LightingPass extends RenderPass {
     this._aoBindGroup = aoBindGroup;
     this._cameraBuffer = cameraBuffer;
     this._lightBuffer = lightBuffer;
+    this._defaultCloudShadow = defaultCloudShadow;
   }
 
-  static create(ctx: RenderContext, gbuffer: GBuffer, shadowPass: ShadowPass, ibl: IblTextures, aoView: GPUTextureView): LightingPass {
+  static create(ctx: RenderContext, gbuffer: GBuffer, shadowPass: ShadowPass, ibl: IblTextures, aoView: GPUTextureView, cloudShadowView?: GPUTextureView): LightingPass {
     const { device, width, height } = ctx;
 
     const hdrTexture = device.createTexture({
@@ -106,8 +110,19 @@ export class LightingPass extends RenderPass {
         { binding: 3, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'depth', viewDimension: '2d-array' } },
         { binding: 4, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'comparison' } },
         { binding: 5, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } },
+        { binding: 6, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } },
       ],
     });
+
+    // Default 1×1 white cloud shadow texture — transmittance 1.0 = no shadow
+    const defaultCloudShadow = device.createTexture({
+      label: 'DefaultCloudShadow', size: { width: 1, height: 1 },
+      format: 'r8unorm',
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+    });
+    device.queue.writeTexture({ texture: defaultCloudShadow }, new Uint8Array([255]),
+      { bytesPerRow: 1 }, { width: 1, height: 1 });
+    const resolvedCloudShadowView = cloudShadowView ?? defaultCloudShadow.createView();
 
     const iblBGL = device.createBindGroupLayout({
       label: 'LightIBLBGL',
@@ -151,6 +166,7 @@ export class LightingPass extends RenderPass {
         { binding: 3, resource: shadowPass.shadowMapView },
         { binding: 4, resource: comparisonSampler },
         { binding: 5, resource: linearSampler },
+        { binding: 6, resource: resolvedCloudShadowView },
       ],
     });
 
@@ -190,6 +206,7 @@ export class LightingPass extends RenderPass {
       hdrTexture, hdrView, pipeline,
       sceneBindGroup, gbufferBindGroup, iblBindGroup, aoBindGroup,
       cameraBuffer, lightBuffer,
+      cloudShadowView ? null : defaultCloudShadow,
     );
   }
 
@@ -221,7 +238,18 @@ export class LightingPass extends RenderPass {
     // o=76, offset 304: shadowsEnabled | o=77, offset 308: debugCascades
     new Uint32Array(data.buffer)[o]   = shadowsEnabled ? 1 : 0;
     new Uint32Array(data.buffer)[o+1] = debugCascades  ? 1 : 0;
+    // o=78..81 (offset 312..324): cloud shadow params — written by updateCloudShadow()
     ctx.queue.writeBuffer(this._lightBuffer, 0, data.buffer as ArrayBuffer);
+  }
+
+  // Must be called after updateLight() each frame (updateLight overwrites the whole buffer).
+  updateCloudShadow(ctx: RenderContext, originX: number, originZ: number, extent: number): void {
+    const data = new Float32Array(4);
+    data[0] = originX;
+    data[1] = originZ;
+    data[2] = extent;
+    // data[3] = 0 (pad)
+    ctx.queue.writeBuffer(this._lightBuffer, 312, data.buffer as ArrayBuffer);
   }
 
   execute(encoder: GPUCommandEncoder, _ctx: RenderContext): void {
@@ -244,5 +272,6 @@ export class LightingPass extends RenderPass {
     this.hdrTexture.destroy();
     this._cameraBuffer.destroy();
     this._lightBuffer.destroy();
+    this._defaultCloudShadow?.destroy();
   }
 }

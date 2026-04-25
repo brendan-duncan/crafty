@@ -6,6 +6,8 @@ import type { ParticleGraphConfig } from '../../particles/particle_types.js';
 import type { Mat4 } from '../../math/mat4.js';
 import compactWgsl from '../../shaders/particles/particle_compact.wgsl?raw';
 import renderWgsl from '../../shaders/particles/particle_render.wgsl?raw';
+import renderForwardWgsl from '../../shaders/particles/particle_render_forward.wgsl?raw';
+import { HDR_FORMAT } from './lighting_pass.js';
 
 const PARTICLE_STRIDE  = 64;
 const COMPUTE_UNI_SIZE = 80;   // ComputeUniforms: 20 × f32
@@ -17,6 +19,8 @@ export class ParticlePass extends RenderPass {
   readonly name = 'ParticlePass';
 
   private readonly _gbuffer        : GBuffer;
+  private readonly _hdrView        : GPUTextureView | undefined;
+  private readonly _isForward      : boolean;
   private readonly _maxParticles   : number;
   private readonly _config         : ParticleGraphConfig;
 
@@ -40,7 +44,7 @@ export class ParticlePass extends RenderPass {
   private readonly _compactUniBG   : GPUBindGroup;
   private readonly _renderDataBG   : GPUBindGroup;
   private readonly _cameraRenderBG : GPUBindGroup;
-  private readonly _renderParamsBG : GPUBindGroup;
+  private readonly _renderParamsBG : GPUBindGroup | undefined;
 
   private _spawnAccum  = 0;
   private _spawnOffset = 0;
@@ -50,6 +54,8 @@ export class ParticlePass extends RenderPass {
 
   private constructor(
     gbuffer: GBuffer,
+    hdrView: GPUTextureView | undefined,
+    isForward: boolean,
     config: ParticleGraphConfig,
     maxParticles: number,
     particleBuffer: GPUBuffer,
@@ -70,10 +76,12 @@ export class ParticlePass extends RenderPass {
     compactUniBG: GPUBindGroup,
     renderDataBG: GPUBindGroup,
     cameraRenderBG: GPUBindGroup,
-    renderParamsBG: GPUBindGroup,
+    renderParamsBG: GPUBindGroup | undefined,
   ) {
     super();
     this._gbuffer         = gbuffer;
+    this._hdrView         = hdrView;
+    this._isForward       = isForward;
     this._config          = config;
     this._maxParticles    = maxParticles;
     this._particleBuffer  = particleBuffer;
@@ -97,8 +105,9 @@ export class ParticlePass extends RenderPass {
     this._renderParamsBG  = renderParamsBG;
   }
 
-  static create(ctx: RenderContext, config: ParticleGraphConfig, gbuffer: GBuffer): ParticlePass {
+  static create(ctx: RenderContext, config: ParticleGraphConfig, gbuffer: GBuffer, hdrView?: GPUTextureView): ParticlePass {
     const { device } = ctx;
+    const isForward = config.renderer.type === 'sprites' && config.renderer.renderTarget === 'hdr';
     const maxParticles = config.emitter.maxParticles;
 
     // ---- Buffers ---------------------------------------------------------------
@@ -303,35 +312,69 @@ export class ParticlePass extends RenderPass {
       compute: { module: compactModule, entryPoint: 'cs_write_indirect' },
     });
 
-    const renderModule = device.createShaderModule({ label: 'ParticleRender', code: renderWgsl });
-    const renderLayout = device.createPipelineLayout({
-      bindGroupLayouts: [renderDataBGL, cameraRenderBGL, renderParamsBGL],
-    });
-    const renderPipeline = device.createRenderPipeline({
-      label: 'ParticleRenderPipeline',
-      layout: renderLayout,
-      vertex:   { module: renderModule, entryPoint: 'vs_main' },
-      fragment: {
-        module: renderModule,
-        entryPoint: 'fs_main',
-        targets: [
-          { format: 'rgba8unorm'  },
-          { format: 'rgba16float' },
-        ],
-      },
-      depthStencil: { format: 'depth32float', depthWriteEnabled: true, depthCompare: 'less' },
-      primitive: { topology: 'triangle-list', cullMode: 'none' },
-    });
+    let renderPipeline: GPURenderPipeline;
+    if (isForward) {
+      // Forward HDR pipeline: alpha blend, no depth write.
+      // 'velocity' billboard = velocity-aligned streak (rain).
+      // 'camera' billboard   = camera-facing soft disc (snow, smoke).
+      const billboard = config.renderer.type === 'sprites' ? config.renderer.billboard : 'camera';
+      const vsEntry = billboard === 'camera' ? 'vs_camera' : 'vs_main';
+      const fsEntry = billboard === 'camera' ? 'fs_snow'   : 'fs_main';
+      const renderModule = device.createShaderModule({ label: 'ParticleRenderForward', code: renderForwardWgsl });
+      const renderLayout = device.createPipelineLayout({
+        bindGroupLayouts: [renderDataBGL, cameraRenderBGL],
+      });
+      renderPipeline = device.createRenderPipeline({
+        label: 'ParticleForwardPipeline',
+        layout: renderLayout,
+        vertex:   { module: renderModule, entryPoint: vsEntry },
+        fragment: {
+          module: renderModule,
+          entryPoint: fsEntry,
+          targets: [{
+            format: HDR_FORMAT,
+            blend: {
+              color: { srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha', operation: 'add' },
+              alpha: { srcFactor: 'one',        dstFactor: 'one-minus-src-alpha', operation: 'add' },
+            },
+          }],
+        },
+        depthStencil: { format: 'depth32float', depthWriteEnabled: false, depthCompare: 'less' },
+        primitive: { topology: 'triangle-list', cullMode: 'none' },
+      });
+    } else {
+      // GBuffer pipeline: camera-facing billboard, writes albedo+normal, depth write on.
+      const renderModule = device.createShaderModule({ label: 'ParticleRender', code: renderWgsl });
+      const renderLayout = device.createPipelineLayout({
+        bindGroupLayouts: [renderDataBGL, cameraRenderBGL, renderParamsBGL],
+      });
+      renderPipeline = device.createRenderPipeline({
+        label: 'ParticleRenderPipeline',
+        layout: renderLayout,
+        vertex:   { module: renderModule, entryPoint: 'vs_main' },
+        fragment: {
+          module: renderModule,
+          entryPoint: 'fs_main',
+          targets: [
+            { format: 'rgba8unorm'  },
+            { format: 'rgba16float' },
+          ],
+        },
+        depthStencil: { format: 'depth32float', depthWriteEnabled: true, depthCompare: 'less' },
+        primitive: { topology: 'triangle-list', cullMode: 'none' },
+      });
+    }
 
     return new ParticlePass(
-      gbuffer, config, maxParticles,
+      gbuffer, hdrView, isForward, config, maxParticles,
       particleBuffer, aliveList, counterBuffer, indirectBuffer,
       computeUniforms, renderUniforms, cameraBuffer,
       spawnPipeline, updatePipeline, compactPipeline, indirectPipeline,
       renderPipeline,
       computeDataBG, computeUniBG,
       compactDataBG, compactUniBG,
-      renderDataBG, cameraRenderBG, renderParamsBG,
+      renderDataBG, cameraRenderBG,
+      isForward ? undefined : renderParamsBG,
     );
   }
 
@@ -438,24 +481,44 @@ export class ParticlePass extends RenderPass {
 
     compute.end();
 
-    // ---- Render: billboard quads → GBuffer -------------------------------------
-    const pass = encoder.beginRenderPass({
-      label: 'ParticleGBufferPass',
-      colorAttachments: [
-        { view: this._gbuffer.albedoRoughnessView, loadOp: 'load', storeOp: 'store' },
-        { view: this._gbuffer.normalMetallicView,  loadOp: 'load', storeOp: 'store' },
-      ],
-      depthStencilAttachment: {
-        view: this._gbuffer.depthView,
-        depthLoadOp: 'load', depthStoreOp: 'store',
-      },
-    });
-    pass.setPipeline(this._renderPipeline);
-    pass.setBindGroup(0, this._renderDataBG);
-    pass.setBindGroup(1, this._cameraRenderBG);
-    pass.setBindGroup(2, this._renderParamsBG);
-    pass.drawIndirect(this._indirectBuffer, 0);
-    pass.end();
+    // ---- Render: billboard quads -------------------------------------------
+    if (this._isForward) {
+      // Forward HDR pass: alpha-blended, reads GBuffer depth (no write).
+      const pass = encoder.beginRenderPass({
+        label: 'ParticleForwardPass',
+        colorAttachments: [
+          { view: this._hdrView!, loadOp: 'load', storeOp: 'store' },
+        ],
+        depthStencilAttachment: {
+          view: this._gbuffer.depthView,
+          depthReadOnly: true,
+        },
+      });
+      pass.setPipeline(this._renderPipeline);
+      pass.setBindGroup(0, this._renderDataBG);
+      pass.setBindGroup(1, this._cameraRenderBG);
+      pass.drawIndirect(this._indirectBuffer, 0);
+      pass.end();
+    } else {
+      // GBuffer pass: opaque particles write to albedo+normal.
+      const pass = encoder.beginRenderPass({
+        label: 'ParticleGBufferPass',
+        colorAttachments: [
+          { view: this._gbuffer.albedoRoughnessView, loadOp: 'load', storeOp: 'store' },
+          { view: this._gbuffer.normalMetallicView,  loadOp: 'load', storeOp: 'store' },
+        ],
+        depthStencilAttachment: {
+          view: this._gbuffer.depthView,
+          depthLoadOp: 'load', depthStoreOp: 'store',
+        },
+      });
+      pass.setPipeline(this._renderPipeline);
+      pass.setBindGroup(0, this._renderDataBG);
+      pass.setBindGroup(1, this._cameraRenderBG);
+      pass.setBindGroup(2, this._renderParamsBG!);
+      pass.drawIndirect(this._indirectBuffer, 0);
+      pass.end();
+    }
   }
 
   destroy(): void {

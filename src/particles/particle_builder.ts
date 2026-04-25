@@ -194,7 +194,9 @@ fn cs_main(@builtin(global_invocation_id) gid: vec3<u32>) {
   if (gid.x >= uniforms.spawn_count) { return; }
 
   let idx  = (uniforms.spawn_offset + gid.x) % uniforms.max_particles;
-  let seed = pcg_hash(gid.x + uniforms.frame_seed);
+  // Use the globally unique cumulative spawn index as the seed so consecutive frames
+  // never collide on gid.x + frame_seed = (gid.x+1) + (frame_seed-1).
+  let seed = pcg_hash(uniforms.spawn_offset + gid.x);
 
   let speed = rand_range(${speedMin}, ${speedMax}, seed + 1u);
 

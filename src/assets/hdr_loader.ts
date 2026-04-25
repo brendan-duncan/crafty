@@ -1,3 +1,4 @@
+import rgbeDecodeWgsl from '../shaders/rgbe_decode.wgsl?raw';
 import { Texture } from './texture.js';
 
 export interface HdrData {
@@ -118,50 +119,95 @@ export function parseHdr(buffer: ArrayBuffer): HdrData {
   return { width, height, data };
 }
 
-function encodeF16(v: number): number {
-  const u32 = new Uint32Array(new Float32Array([v]).buffer)[0];
-  const sign = (u32 >> 31) & 1;
-  const exp  = (u32 >> 23) & 0xff;
-  const man  = u32 & 0x7fffff;
-  if (exp === 0xff) return (sign << 15) | 0x7c00 | (man ? 1 : 0);
-  if (exp === 0)    return (sign << 15);
-  const e16 = exp - 127 + 15;
-  if (e16 >= 0x1f) return (sign << 15) | 0x7c00;
-  if (e16 <= 0)    return (sign << 15);
-  return (sign << 15) | (e16 << 10) | (man >> 13);
+// ---- RGBE decode pipeline cache (compiled once per device) -------------------
+
+interface DecodeResources {
+  pipeline : GPUComputePipeline;
+  srcBGL   : GPUBindGroupLayout;
+  dstBGL   : GPUBindGroupLayout;
 }
 
-export function createHdrTexture(device: GPUDevice, hdr: HdrData): Texture {
+const _decodeCache = new WeakMap<GPUDevice, DecodeResources>();
+
+function getOrCreateDecodeResources(device: GPUDevice): DecodeResources {
+  const cached = _decodeCache.get(device);
+  if (cached) return cached;
+
+  const srcBGL = device.createBindGroupLayout({
+    label: 'RgbeSrcBGL',
+    entries: [{
+      binding: 0, visibility: GPUShaderStage.COMPUTE,
+      texture: { sampleType: 'uint' },
+    }],
+  });
+
+  const dstBGL = device.createBindGroupLayout({
+    label: 'RgbeDstBGL',
+    entries: [{
+      binding: 0, visibility: GPUShaderStage.COMPUTE,
+      storageTexture: { access: 'write-only', format: 'rgba16float', viewDimension: '2d' },
+    }],
+  });
+
+  const layout   = device.createPipelineLayout({ bindGroupLayouts: [srcBGL, dstBGL] });
+  const module   = device.createShaderModule({ label: 'RgbeDecode', code: rgbeDecodeWgsl });
+  const pipeline = device.createComputePipeline({
+    label: 'RgbeDecodePipeline', layout,
+    compute: { module, entryPoint: 'cs_decode' },
+  });
+
+  const res = { pipeline, srcBGL, dstBGL };
+  _decodeCache.set(device, res);
+  return res;
+}
+
+// Uploads raw RGBE bytes as rgba8uint and decodes to rgba16float on the GPU.
+// Returns only after the decode dispatch has completed.
+export async function createHdrTexture(device: GPUDevice, hdr: HdrData): Promise<Texture> {
   const { width, height, data } = hdr;
-  const f16 = new Uint16Array(width * height * 4);
+  const { pipeline, srcBGL, dstBGL } = getOrCreateDecodeResources(device);
 
-  for (let i = 0; i < width * height; i++) {
-    const r = data[i * 4 + 0];
-    const g = data[i * 4 + 1];
-    const b = data[i * 4 + 2];
-    const e = data[i * 4 + 3];
-    if (e === 0) {
-      f16[i * 4 + 0] = f16[i * 4 + 1] = f16[i * 4 + 2] = 0;
-    } else {
-      const scale = Math.pow(2, e - 136);
-      f16[i * 4 + 0] = encodeF16(r * scale);
-      f16[i * 4 + 1] = encodeF16(g * scale);
-      f16[i * 4 + 2] = encodeF16(b * scale);
-    }
-    f16[i * 4 + 3] = encodeF16(1.0);
-  }
-
-  const tex = device.createTexture({
-    label: 'Sky HDR Texture',
+  // Upload raw RGBE as rgba8uint — no per-pixel Math.pow on the CPU.
+  const srcTex = device.createTexture({
+    label: 'Sky RGBE Raw',
     size: { width, height },
-    format: 'rgba16float',
+    format: 'rgba8uint',
     usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
   });
   device.queue.writeTexture(
-    { texture: tex },
-    f16,
-    { bytesPerRow: width * 8 },
+    { texture: srcTex },
+    data,
+    { bytesPerRow: width * 4 },
     { width, height },
   );
-  return new Texture(tex, '2d');
+
+  const dstTex = device.createTexture({
+    label: 'Sky HDR Texture',
+    size: { width, height },
+    format: 'rgba16float',
+    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING,
+  });
+
+  const srcBG = device.createBindGroup({
+    layout: srcBGL,
+    entries: [{ binding: 0, resource: srcTex.createView() }],
+  });
+  const dstBG = device.createBindGroup({
+    layout: dstBGL,
+    entries: [{ binding: 0, resource: dstTex.createView() }],
+  });
+
+  const encoder = device.createCommandEncoder({ label: 'RgbeDecodeEncoder' });
+  const pass    = encoder.beginComputePass({ label: 'RgbeDecodePass' });
+  pass.setPipeline(pipeline);
+  pass.setBindGroup(0, srcBG);
+  pass.setBindGroup(1, dstBG);
+  pass.dispatchWorkgroups(Math.ceil(width / 8), Math.ceil(height / 8));
+  pass.end();
+  device.queue.submit([encoder.finish()]);
+
+  await device.queue.onSubmittedWorkDone();
+  srcTex.destroy();
+
+  return new Texture(dstTex, '2d');
 }
