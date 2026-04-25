@@ -2,6 +2,7 @@ import { GameObject } from './game_object.js';
 import { Camera } from './components/camera.js';
 import { DirectionalLight } from './components/directional_light.js';
 import { MeshRenderer } from './components/mesh_renderer.js';
+import { Component } from './component.js';
 
 export class Scene {
   readonly gameObjects: GameObject[] = [];
@@ -40,6 +41,15 @@ export class Scene {
     for (const go of this.gameObjects) {
       const mr = go.getComponent(MeshRenderer);
       if (mr) result.push(mr);
+    }
+    return result;
+  }
+
+  getComponents<T extends Component>(ctor: new (...args: never[]) => T): T[] {
+    const result: T[] = [];
+    for (const go of this.gameObjects) {
+      const c = go.getComponent(ctor);
+      if (c) result.push(c);
     }
     return result;
   }

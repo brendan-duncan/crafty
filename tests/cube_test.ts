@@ -9,11 +9,13 @@ import colorAtlasUrl  from '../assets/cube_textures/simple_block_atlas.png?url';
 import normalAtlasUrl from '../assets/cube_textures/simple_block_atlas_normal.png?url';
 import merAtlasUrl    from '../assets/cube_textures/simple_block_atlas_mer.png?url';
 import heightAtlasUrl from '../assets/cube_textures/simple_block_atlas_heightmap.png?url';
+import foxUrl         from '../assets/fox.glb?url';
 import { Mat4, Vec3, Quaternion } from '../src/math/index.js';
-import { GameObject, Scene, Camera, DirectionalLight, MeshRenderer, CameraControls } from '../src/engine/index.js';
-import { RenderContext, RenderGraph, GBuffer, ShadowPass, SkyPass, GeometryPass, LightingPass, TAAPass, SSAOPass, DofPass, BloomPass, TonemapPass, DebugLightPass, ParticlePass } from '../src/renderer/index.js';
+import { GameObject, Scene, Camera, DirectionalLight, MeshRenderer, CameraControls, AnimatedModel } from '../src/engine/index.js';
+import { RenderContext, RenderGraph, GBuffer, ShadowPass, SkyPass, GeometryPass, SkinnedGeometryPass, LightingPass, TAAPass, SSAOPass, DofPass, BloomPass, TonemapPass, DebugLightPass, ParticlePass } from '../src/renderer/index.js';
 import type { ParticleGraphConfig } from '../src/particles/index.js';
-import { Mesh, BlockTexture } from '../src/assets/index.js';
+import { Mesh, BlockTexture, GltfLoader } from '../src/assets/index.js';
+import type { GltfModel } from '../src/assets/index.js';
 import { parseHdr, createHdrTexture } from '../src/assets/hdr_loader.js';
 import { computeIbl } from '../src/assets/ibl.js';
 import type { DrawItem } from '../src/renderer/passes/geometry_pass.js';
@@ -156,6 +158,22 @@ async function main() {
   }));
   scene.add(sphereGO);
 
+  // Load fox GLB asynchronously; added to scene once ready
+  let foxModel: GltfModel | null = null;
+  let foxAnimated: AnimatedModel | null = null;
+  GltfLoader.load(device, foxUrl).then(model => {
+    foxModel = model;
+    console.log(foxModel);
+    if (!model.skin || model.meshes.length === 0) return;
+    const foxGO = new GameObject('Fox');
+    foxGO.position.set(0, 0, 2);
+    foxGO.scale.set(1, 1, 1);
+    foxAnimated = foxGO.addComponent(new AnimatedModel(model));
+    const firstClip = model.clips[0]?.name;
+    if (firstClip) foxAnimated.play(firstClip, true);
+    scene.add(foxGO);
+  }).catch(err => console.error('fox.glb load failed:', err));
+
   const fireEmitterGO = new GameObject('FireEmitter');
   fireEmitterGO.position.set(3, 0, 2);
 
@@ -186,12 +204,13 @@ async function main() {
   let skyPass!: SkyPass;
   let lightingPass!: LightingPass;
   let taaPass!: TAAPass;
-  let dofPass        : DofPass        | null = null;
-  let bloomPass      : BloomPass      | null = null;
-  let debugLightPass!: DebugLightPass;
-  let tonemapPass!   : TonemapPass;
-  let firePass       : ParticlePass   | null = null;
-  let sparksPass     : ParticlePass   | null = null;
+  let dofPass             : DofPass             | null = null;
+  let bloomPass           : BloomPass           | null = null;
+  let debugLightPass!     : DebugLightPass;
+  let tonemapPass!        : TonemapPass;
+  let firePass            : ParticlePass        | null = null;
+  let sparksPass          : ParticlePass        | null = null;
+  let skinnedGeometryPass : SkinnedGeometryPass | null = null;
   let graph!: RenderGraph;
   let prevViewProj: Mat4 | null = null;
 
@@ -245,15 +264,17 @@ async function main() {
     lightingPass?.destroy();
     debugLightPass?.destroy();
     taaPass?.destroy();
-    dofPass?.destroy();    dofPass    = null;
-    bloomPass?.destroy();  bloomPass  = null;
-    firePass?.destroy();   firePass   = null;
-    sparksPass?.destroy(); sparksPass = null;
+    dofPass?.destroy();             dofPass             = null;
+    bloomPass?.destroy();           bloomPass           = null;
+    firePass?.destroy();            firePass            = null;
+    sparksPass?.destroy();          sparksPass          = null;
+    skinnedGeometryPass?.destroy(); skinnedGeometryPass = null;
 
-    gbuffer      = GBuffer.create(ctx);
-    geometryPass = GeometryPass.create(ctx, gbuffer);
-    firePass     = ParticlePass.create(ctx, fireConfig,   gbuffer);
-    sparksPass   = ParticlePass.create(ctx, sparksConfig, gbuffer);
+    gbuffer             = GBuffer.create(ctx);
+    geometryPass        = GeometryPass.create(ctx, gbuffer);
+    skinnedGeometryPass = SkinnedGeometryPass.create(ctx, gbuffer);
+    firePass            = ParticlePass.create(ctx, fireConfig,   gbuffer);
+    sparksPass          = ParticlePass.create(ctx, sparksConfig, gbuffer);
     ssaoPass     = SSAOPass.create(ctx, gbuffer);
     lightingPass = LightingPass.create(ctx, gbuffer, shadowPass, ibl, ssaoPass.aoView);
     skyPass      = SkyPass.create(ctx, lightingPass.hdrView, skyTexture);
@@ -275,6 +296,7 @@ async function main() {
     graph = new RenderGraph();
     graph.addPass(shadowPass);
     graph.addPass(geometryPass);
+    graph.addPass(skinnedGeometryPass!);
     graph.addPass(firePass);
     graph.addPass(sparksPass);
     graph.addPass(ssaoPass);
@@ -410,6 +432,21 @@ async function main() {
 
     geometryPass.setDrawItems(drawItems);
     geometryPass.updateCamera(ctx, view, proj, jitVP, invVP, camPos, camera.near, camera.far);
+
+    if (skinnedGeometryPass && foxModel) {
+      const skinnedItems = scene.getComponents(AnimatedModel).map(am => {
+        const world = am.gameObject.localToWorld();
+        return am.model.meshes.map(md => ({
+          mesh: md.skinnedMesh,
+          modelMatrix: world,
+          normalMatrix: world.normalMatrix(),
+          material: md.material,
+          jointMatrices: am.jointMatrices,
+        }));
+      }).flat();
+      skinnedGeometryPass.setDrawItems(skinnedItems);
+      skinnedGeometryPass.updateCamera(ctx, view, proj, jitVP, invVP, camPos, camera.near, camera.far);
+    }
 
     firePass?.update(ctx, dt, view, proj, vp, invVP, camPos, camera.near, camera.far, fireEmitterGO.localToWorld());
     sparksPass?.update(ctx, dt, view, proj, vp, invVP, camPos, camera.near, camera.far, sparksEmitterGO.localToWorld());
