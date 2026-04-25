@@ -221,7 +221,7 @@ export class LightingPass extends RenderPass {
     ctx.queue.writeBuffer(this._cameraBuffer, 0, data.buffer as ArrayBuffer);
   }
 
-  updateLight(ctx: RenderContext, dir: { x: number; y: number; z: number }, color: { x: number; y: number; z: number }, intensity: number, cascades: CascadeData[], shadowsEnabled = true, debugCascades = false): void {
+  updateLight(ctx: RenderContext, dir: { x: number; y: number; z: number }, color: { x: number; y: number; z: number }, intensity: number, cascades: CascadeData[], shadowsEnabled = true, debugCascades = false, shadowSoftness = 0.02): void {
     const data = new Float32Array(LIGHT_SIZE / 4);
     let o = 0;
     data[o++] = dir.x; data[o++] = dir.y; data[o++] = dir.z;
@@ -238,17 +238,19 @@ export class LightingPass extends RenderPass {
     // o=76, offset 304: shadowsEnabled | o=77, offset 308: debugCascades
     new Uint32Array(data.buffer)[o]   = shadowsEnabled ? 1 : 0;
     new Uint32Array(data.buffer)[o+1] = debugCascades  ? 1 : 0;
-    // o=78..81 (offset 312..324): cloud shadow params — written by updateCloudShadow()
+    // o=78..80 (offsets 312..320): cloud shadow params — written by updateCloudShadow()
+    // o=81 (offset 324): shadowSoftness — PCSS light-size factor
+    data[81] = shadowSoftness;
     ctx.queue.writeBuffer(this._lightBuffer, 0, data.buffer as ArrayBuffer);
   }
 
   // Must be called after updateLight() each frame (updateLight overwrites the whole buffer).
+  // Writes only 3 floats (12 bytes) to avoid clobbering shadowSoftness at offset 324.
   updateCloudShadow(ctx: RenderContext, originX: number, originZ: number, extent: number): void {
-    const data = new Float32Array(4);
+    const data = new Float32Array(3);
     data[0] = originX;
     data[1] = originZ;
     data[2] = extent;
-    // data[3] = 0 (pad)
     ctx.queue.writeBuffer(this._lightBuffer, 312, data.buffer as ArrayBuffer);
   }
 

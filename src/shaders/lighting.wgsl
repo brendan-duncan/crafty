@@ -1,6 +1,27 @@
 // Deferred PBR lighting pass — fullscreen triangle, reads GBuffer + shadow maps + IBL.
 
 const PI: f32 = 3.14159265358979323846;
+const SHADOW_MAP_SIZE: f32 = 2048.0;
+
+const POISSON16 = array<vec2<f32>, 16>(
+  vec2<f32>(-0.94201624, -0.39906216), vec2<f32>( 0.94558609, -0.76890725),
+  vec2<f32>(-0.09418410, -0.92938870), vec2<f32>( 0.34495938,  0.29387760),
+  vec2<f32>(-0.91588581,  0.45771432), vec2<f32>(-0.81544232, -0.87912464),
+  vec2<f32>(-0.38277543,  0.27676845), vec2<f32>( 0.97484398,  0.75648379),
+  vec2<f32>( 0.44323325, -0.97511554), vec2<f32>( 0.53742981, -0.47373420),
+  vec2<f32>(-0.26496911, -0.41893023), vec2<f32>( 0.79197514,  0.19090188),
+  vec2<f32>(-0.24188840,  0.99706507), vec2<f32>(-0.81409955,  0.91437590),
+  vec2<f32>( 0.19984126,  0.78641367), vec2<f32>( 0.14383161, -0.14100790),
+);
+
+fn ign(pixel: vec2<f32>) -> f32 {
+  return fract(52.9829189 * fract(0.06711056 * pixel.x + 0.00583715 * pixel.y));
+}
+
+fn rotate2d(v: vec2<f32>, a: f32) -> vec2<f32> {
+  let s = sin(a); let c = cos(a);
+  return vec2<f32>(c*v.x - s*v.y, s*v.x + c*v.y);
+}
 
 // Number of pre-filtered roughness levels — must match IBL_LEVELS in ibl.ts
 const IBL_LEVELS: i32 = 5;
@@ -26,7 +47,7 @@ struct LightUniforms {
   debugCascades     : u32,
   cloudShadowOrigin : vec2<f32>,  // world-space XZ centre of cloud shadow map
   cloudShadowExtent : f32,        // half-size in world units (covers ±extent)
-  _cloudShadowPad   : f32,
+  shadowSoftness    : f32,        // PCSS light-size factor (~0.02)
 }
 
 @group(0) @binding(0) var<uniform> camera: CameraUniforms;
@@ -74,20 +95,37 @@ fn reconstruct_world_pos(uv: vec2<f32>, depth: f32) -> vec3<f32> {
 
 // === Shadow ===========================================================
 
-fn pcf_shadow(cascade: u32, sc: vec3<f32>, bias: f32) -> f32 {
-  let texel = vec2<f32>(1.0 / 2048.0);
+fn pcf_shadow(cascade: u32, sc: vec3<f32>, bias: f32, kernel_radius: f32) -> f32 {
+  let texel = vec2<f32>(kernel_radius / SHADOW_MAP_SIZE);
+  let angle = ign(sc.xy * SHADOW_MAP_SIZE) * 6.28318530;
   var s = 0.0;
-  for (var dy = -1; dy <= 1; dy++) {
-    for (var dx = -1; dx <= 1; dx++) {
-      // Clamp UV so PCF taps at the edge of the atlas don't sample the cleared
-      // border (depth=1) and average the shadow toward lit.
-      let uv = clamp(sc.xy + vec2<f32>(f32(dx), f32(dy)) * texel,
-                     vec2<f32>(0.0), vec2<f32>(1.0));
-      s += textureSampleCompareLevel(shadowMap, shadowSampler,
-        uv, i32(cascade), sc.z - bias);
+  for (var i = 0; i < 16; i++) {
+    let offset = rotate2d(POISSON16[i], angle) * texel;
+    let uv = clamp(sc.xy + offset, vec2<f32>(0.0), vec2<f32>(1.0));
+    s += textureSampleCompareLevel(shadowMap, shadowSampler, uv, i32(cascade), sc.z - bias);
+  }
+  return s / 16.0;
+}
+
+// Returns average blocker depth, or -1.0 if receiver is fully lit.
+fn pcss_blocker_search(cascade: u32, sc: vec3<f32>, search_radius: f32) -> f32 {
+  let texel = vec2<f32>(search_radius / SHADOW_MAP_SIZE);
+  let angle = ign(sc.xy * SHADOW_MAP_SIZE) * 6.28318530;
+  var total = 0.0;
+  var count = 0.0;
+  for (var i = 0; i < 8; i++) {
+    let offset = rotate2d(POISSON16[i], angle) * texel;
+    let uv = clamp(sc.xy + offset, vec2<f32>(0.0), vec2<f32>(1.0));
+    let tc = clamp(vec2<i32>(uv * SHADOW_MAP_SIZE),
+                   vec2<i32>(0), vec2<i32>(i32(SHADOW_MAP_SIZE) - 1));
+    let d = textureLoad(shadowMap, tc, i32(cascade), 0);
+    if (d < sc.z) {
+      total += d;
+      count += 1.0;
     }
   }
-  return s / 9.0;
+  if (count == 0.0) { return -1.0; }
+  return total / count;
 }
 
 // Returns shadow-space coords for cascade c.  xy in [0,1], z in [0,1] when in-frustum.
@@ -118,7 +156,15 @@ fn shadow_factor(world_pos: vec3<f32>, NdotL: f32, view_depth: f32) -> f32 {
 
   let sc0 = cascade_coords(cascade, world_pos);
   if (!in_cascade(sc0)) { return 1.0; }
-  let s0 = pcf_shadow(cascade, sc0, bias);
+
+  // PCSS: blocker search → penumbra width → scaled PCF kernel.
+  var kernel = 2.0;
+  let avg_blocker = pcss_blocker_search(cascade, sc0, 8.0);
+  if (avg_blocker >= 0.0) {
+    let penumbra = light.shadowSoftness * (sc0.z - avg_blocker) / max(avg_blocker, 0.001);
+    kernel = clamp(penumbra * SHADOW_MAP_SIZE, 1.0, 16.0);
+  }
+  let s0 = pcf_shadow(cascade, sc0, bias, kernel);
 
   let next = cascade + 1u;
   if (next < light.cascadeCount) {
@@ -130,7 +176,13 @@ fn shadow_factor(world_pos: vec3<f32>, NdotL: f32, view_depth: f32) -> f32 {
       // Only blend toward the next cascade if this position is actually inside it;
       // blending toward an OOB cascade would mix toward depth=1 (fully lit).
       if (in_cascade(sc1)) {
-        return mix(s0, pcf_shadow(next, sc1, bias), t);
+        var kernel1 = 2.0;
+        let ab1 = pcss_blocker_search(next, sc1, 8.0);
+        if (ab1 >= 0.0) {
+          let pen1 = light.shadowSoftness * (sc1.z - ab1) / max(ab1, 0.001);
+          kernel1 = clamp(pen1 * SHADOW_MAP_SIZE, 1.0, 16.0);
+        }
+        return mix(s0, pcf_shadow(next, sc1, bias, kernel1), t);
       }
     }
   }

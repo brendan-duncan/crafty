@@ -1,5 +1,6 @@
 // Tonemapping pass — HDR rgba16float → swapchain format.
 // Uses ACES filmic approximation (optional).
+// Reads a linear exposure multiplier written each frame by AutoExposurePass.
 
 struct TonemapParams {
   aces_enabled: u32,
@@ -7,10 +8,18 @@ struct TonemapParams {
   hdr_canvas  : u32,
 }
 
-@group(0) @binding(0) var hdrTex    : texture_2d<f32>;
-@group(0) @binding(1) var hdrSampler: sampler;
-@group(0) @binding(2) var<uniform> params: TonemapParams;
-@group(0) @binding(3) var aoTex     : texture_2d<f32>;
+struct ExposureBuffer {
+  value : f32,
+  _pad0 : f32,
+  _pad1 : f32,
+  _pad2 : f32,
+}
+
+@group(0) @binding(0) var                      hdrTex      : texture_2d<f32>;
+@group(0) @binding(1) var                      hdrSampler  : sampler;
+@group(0) @binding(2) var<uniform>             params      : TonemapParams;
+@group(0) @binding(3) var                      aoTex       : texture_2d<f32>;
+@group(0) @binding(4) var<storage, read>       exposure_buf: ExposureBuffer;
 
 struct VertexOutput {
   @builtin(position) clip_pos: vec4<f32>,
@@ -43,7 +52,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let ao = textureLoad(aoTex, coord, 0).r;
     return vec4<f32>(ao, ao, ao, 1.0);
   }
-  let scene = textureSample(hdrTex, hdrSampler, in.uv).rgb;
+  let scene = textureSample(hdrTex, hdrSampler, in.uv).rgb * exposure_buf.value;
   // HDR mode: skip ACES so values >1 are preserved; gamma-encode for the display.
   // On HDR displays those values appear brighter than SDR white; on SDR they clip to white.
   if (params.hdr_canvas != 0u) {

@@ -16,7 +16,12 @@ export class TonemapPass extends RenderPass {
     this._paramsBuffer = paramsBuffer;
   }
 
-  static create(ctx: RenderContext, hdrView: GPUTextureView, aoView: GPUTextureView): TonemapPass {
+  static create(
+    ctx            : RenderContext,
+    hdrView        : GPUTextureView,
+    aoView         : GPUTextureView,
+    exposureBuffer : GPUBuffer,
+  ): TonemapPass {
     const { device, format } = ctx;
 
     const bgl = device.createBindGroupLayout({
@@ -26,6 +31,7 @@ export class TonemapPass extends RenderPass {
         { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } },
         { binding: 2, visibility: GPUShaderStage.FRAGMENT, buffer: { type: 'uniform' } },
         { binding: 3, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } },
+        { binding: 4, visibility: GPUShaderStage.FRAGMENT, buffer: { type: 'read-only-storage' } },
       ],
     });
 
@@ -46,6 +52,7 @@ export class TonemapPass extends RenderPass {
         { binding: 1, resource: sampler },
         { binding: 2, resource: { buffer: paramsBuffer } },
         { binding: 3, resource: aoView },
+        { binding: 4, resource: { buffer: exposureBuffer } },
       ],
     });
 

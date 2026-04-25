@@ -12,7 +12,7 @@ import heightAtlasUrl from '../assets/cube_textures/simple_block_atlas_heightmap
 import foxUrl         from '../assets/fox.glb?url';
 import { Mat4, Vec3, Quaternion } from '../src/math/index.js';
 import { GameObject, Scene, Camera, DirectionalLight, MeshRenderer, CameraControls, AnimatedModel } from '../src/engine/index.js';
-import { RenderContext, RenderGraph, GBuffer, ShadowPass, SkyPass, GeometryPass, SkinnedGeometryPass, LightingPass, TAAPass, SSAOPass, DofPass, BloomPass, TonemapPass, DebugLightPass, ParticlePass, CloudPass, CloudShadowPass } from '../src/renderer/index.js';
+import { RenderContext, RenderGraph, GBuffer, ShadowPass, SkyPass, GeometryPass, SkinnedGeometryPass, LightingPass, TAAPass, SSAOPass, DofPass, BloomPass, TonemapPass, DebugLightPass, ParticlePass, CloudPass, CloudShadowPass, AutoExposurePass } from '../src/renderer/index.js';
 import type { CloudSettings } from '../src/renderer/index.js';
 import type { ParticleGraphConfig } from '../src/particles/index.js';
 import { Mesh, BlockTexture, GltfLoader, createCloudNoiseTextures } from '../src/assets/index.js';
@@ -230,6 +230,7 @@ async function main() {
   let sparksPass          : ParticlePass        | null = null;
   let rainPass            : ParticlePass        | null = null;
   let snowPass            : ParticlePass        | null = null;
+  let autoExposurePass    : AutoExposurePass    | null = null;
   let skinnedGeometryPass : SkinnedGeometryPass | null = null;
   let graph!: RenderGraph;
   let prevViewProj: Mat4 | null = null;
@@ -333,6 +334,7 @@ async function main() {
     sparksPass?.destroy();          sparksPass          = null;
     rainPass?.destroy();            rainPass            = null;
     snowPass?.destroy();            snowPass            = null;
+    autoExposurePass?.destroy();    autoExposurePass    = null;
     skinnedGeometryPass?.destroy(); skinnedGeometryPass = null;
 
     gbuffer             = GBuffer.create(ctx);
@@ -365,7 +367,8 @@ async function main() {
       ? (bloomPass = BloomPass.create(ctx, postInput), bloomPass.resultView)
       : postInput;
 
-    tonemapPass = TonemapPass.create(ctx, tonemapInput, ssaoPass.aoView);
+    autoExposurePass = AutoExposurePass.create(ctx, lightingPass.hdrTexture);
+    tonemapPass = TonemapPass.create(ctx, tonemapInput, ssaoPass.aoView, autoExposurePass.exposureBuffer);
 
     graph = new RenderGraph();
     graph.addPass(shadowPass);
@@ -384,6 +387,7 @@ async function main() {
     graph.addPass(taaPass);
     if (dofPass)   graph.addPass(dofPass);
     if (bloomPass) graph.addPass(bloomPass);
+    graph.addPass(autoExposurePass);
     graph.addPass(tonemapPass);
 
     camera.aspect = ctx.width / ctx.height;
@@ -461,13 +465,27 @@ async function main() {
   });
   resizeObserver.observe(canvas);
 
+  const fpsEl = document.createElement('div');
+  fpsEl.style.cssText = [
+    'position:fixed', 'top:12px', 'right:12px',
+    'font-family:ui-monospace,monospace', 'font-size:13px',
+    'color:#ff0', 'background:rgba(0,0,0,0.45)',
+    'padding:4px 8px', 'border-radius:4px', 'pointer-events:none',
+  ].join(';');
+  document.body.appendChild(fpsEl);
+
   let lastTime = 0;
+  let smoothFps = 0;
   let angle = 0;
   let frameIndex = 0;
 
   function frame(time: number) {
     const dt = (time - lastTime) / 1000;
     lastTime = time;
+    if (dt > 0) {
+      smoothFps += (1 / dt - smoothFps) * 0.1;
+      fpsEl.textContent = `${smoothFps.toFixed(0)} fps`;
+    }
     angle += dt;
 
     cubeGOs.forEach((go, i) => {
@@ -572,6 +590,7 @@ async function main() {
       debugLightPass.update(ctx, vp, coneModel, [1.0, 0.9, 0.3, 1.0]);
     }
 
+    autoExposurePass?.update(ctx, dt);
     taaPass.updateCamera(ctx, invVP, prevViewProj ?? vp);
 
     prevViewProj = vp;

@@ -35,26 +35,46 @@ export class DirectionalLight extends Component {
       const lightDir = this.direction.normalize();
       const lightView = Mat4.lookAt(center.sub(lightDir), center, new Vec3(0, 1, 0));
 
-      let minX = Infinity, maxX = -Infinity;
-      let minY = Infinity, maxY = -Infinity;
-      let minZ = Infinity, maxZ = -Infinity;
+      // Sphere-fit: the bounding sphere radius is constant regardless of camera
+      // rotation, so the cascade frustum size never changes → no shadow swimming.
+      const shadowMapSize = 2048;
+      let radius = 0;
+      for (const c of corners) {
+        radius = Math.max(radius, c.sub(center).length());
+      }
+      // Round radius up to a texel boundary to eliminate sub-texel drift on resize.
+      const texelWorldSize = (2 * radius) / shadowMapSize;
+      radius = Math.ceil(radius / texelWorldSize) * texelWorldSize;
 
+      // Z range still comes from the actual corners, plus padding for off-frustum casters.
+      let minZ = Infinity, maxZ = -Infinity;
       for (const c of corners) {
         const lc = lightView.transformPoint(c);
-        minX = Math.min(minX, lc.x); maxX = Math.max(maxX, lc.x);
-        minY = Math.min(minY, lc.y); maxY = Math.max(maxY, lc.y);
         minZ = Math.min(minZ, lc.z); maxZ = Math.max(maxZ, lc.z);
       }
-
-      // Extend z range symmetrically to capture shadow casters outside the frustum.
-      // minZ is the far end (most negative), maxZ is the near end (least negative).
-      // We extend both: push minZ further negative (cover distant casters) and
-      // push maxZ toward positive (cover casters behind the light camera, e.g. sky objects).
       const zPadding = (maxZ - minZ) * 4.0;
       minZ -= zPadding;
       maxZ += zPadding;
 
-      const lightProj = Mat4.orthographic(minX, maxX, minY, maxY, -maxZ, -minZ);
+      let lightProj = Mat4.orthographic(-radius, radius, -radius, radius, -maxZ, -minZ);
+
+      // Texel snap: project a fixed world-space reference point (origin) through
+      // the cascade VP, round its shadow-map UV to the nearest texel, then apply
+      // the correction as a clip-space translation. This anchors the shadow map
+      // to the world grid so it doesn't crawl as the camera moves.
+      const tempVP = lightProj.multiply(lightView);
+      const p = tempVP.transformPoint(Vec3.zero()); // w=1 for ortho
+      // Match cascade_coords WGSL: shadowUV.y = 0.5 - ndcY*0.5
+      const su = p.x * 0.5 + 0.5;
+      const sv = 0.5 - p.y * 0.5;
+      const snapSu = Math.round(su * shadowMapSize) / shadowMapSize;
+      const snapSv = Math.round(sv * shadowMapSize) / shadowMapSize;
+      // Convert UV delta back to NDC delta (note Y sign reversal from the flip)
+      const dndcX =  (snapSu - su) * 2;
+      const dndcY = -(snapSv - sv) * 2;
+      lightProj.set(3, 0, lightProj.get(3, 0) + dndcX);
+      lightProj.set(3, 1, lightProj.get(3, 1) + dndcY);
+
       cascades.push({ lightViewProj: lightProj.multiply(lightView), splitFar: farSplit });
     }
 
