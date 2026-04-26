@@ -92,6 +92,22 @@ fn curl_noise(p: vec3<f32>) -> vec3<f32> {
 
   return vec3<f32>(px.x - py.z, py.x - pz.z, pz.x - px.z) / (2.0 * e);
 }
+
+// FBM curl noise: sums octaves at increasing frequencies / decreasing amplitudes.
+// Normalized so output magnitude matches single-octave curl_noise.
+fn curl_noise_fbm(p: vec3<f32>, octaves: i32) -> vec3<f32> {
+  var result    = vec3<f32>(0.0);
+  var freq      = 1.0;
+  var amp       = 0.5;
+  var total_amp = 0.0;
+  for (var o = 0; o < octaves; o++) {
+    result    += curl_noise(p * freq) * amp;
+    total_amp += amp;
+    freq      *= 2.0;
+    amp       *= 0.5;
+  }
+  return result / total_amp;
+}
 `;
 
 // ---- Spawn shape code snippets --------------------------------------------------
@@ -146,11 +162,35 @@ function modifierWgsl(mod: ModifierNode): string {
       const [fx, fy, fz] = mod.direction.map(v => v.toFixed(6));
       return `p.velocity += vec3<f32>(${fx}, ${fy}, ${fz}) * ${mod.strength.toFixed(6)} * uniforms.dt;`;
     }
-    case 'curl_noise':
+    case 'swirl_force': {
+      const spd = mod.speed.toFixed(6);
+      const str = mod.strength.toFixed(6);
+      return `{
+  let swirl_angle = uniforms.time * ${spd};
+  p.velocity += vec3<f32>(cos(swirl_angle), 0.0, sin(swirl_angle)) * ${str} * uniforms.dt;
+}`;
+    }
+    case 'vortex': {
+      const str = mod.strength.toFixed(6);
+      // Solid-body rotation in XZ around the emitter's world position.
+      // radial = offset from axis; tangent = 90° CCW rotation of radial.
+      // Force ∝ radius → constant angular acceleration, gentle near centre.
+      return `{
+  let vx_radial = p.position.xz - uniforms.world_pos.xz;
+  p.velocity += vec3<f32>(-vx_radial.y, 0.0, vx_radial.x) * ${str} * uniforms.dt;
+}`;
+    }
+    case 'curl_noise': {
+      const octaves = mod.octaves ?? 1;
+      const fn = octaves > 1 ? `curl_noise_fbm(cn_pos, ${octaves})` : `curl_noise(cn_pos)`;
       return `{
   let cn_pos = p.position * ${mod.scale.toFixed(6)} + uniforms.time * ${mod.timeScale.toFixed(6)};
-  p.velocity += curl_noise(cn_pos) * ${mod.strength.toFixed(6)} * uniforms.dt;
+  p.velocity += ${fn} * ${mod.strength.toFixed(6)} * uniforms.dt;
 }`;
+    }
+    case 'size_random':
+      // Stable per-slot random: same particle slot always gets the same size.
+      return `p.size = rand_range(${mod.min.toFixed(6)}, ${mod.max.toFixed(6)}, pcg_hash(idx * 2654435761u));`;
     case 'size_over_lifetime':
       return `p.size = mix(${mod.start.toFixed(6)}, ${mod.end.toFixed(6)}, t);`;
     case 'color_over_lifetime': {

@@ -19,7 +19,10 @@ export type ModifierNode =
   | { type: 'gravity';             strength: number }
   | { type: 'drag';                coefficient: number }
   | { type: 'force';               direction: [number, number, number]; strength: number }
-  | { type: 'curl_noise';          scale: number; strength: number; timeScale: number }
+  | { type: 'swirl_force';         speed: number; strength: number }
+  | { type: 'vortex';              strength: number }
+  | { type: 'curl_noise';          scale: number; strength: number; timeScale: number; octaves?: number }
+  | { type: 'size_random';         min: number; max: number }
   | { type: 'size_over_lifetime';  start: number; end: number }
   | { type: 'color_over_lifetime'; startColor: [number, number, number, number];
                                    endColor:   [number, number, number, number] };

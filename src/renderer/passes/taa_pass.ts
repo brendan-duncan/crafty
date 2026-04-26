@@ -15,6 +15,7 @@ export class TAAPass extends RenderPass {
   private _resolved: GPUTexture;
   readonly resolvedView: GPUTextureView;
   private _history: GPUTexture;
+  private _historyView: GPUTextureView;
 
   private _pipeline: GPURenderPipeline;
   private _uniformBuffer: GPUBuffer;
@@ -24,10 +25,13 @@ export class TAAPass extends RenderPass {
   private readonly _width: number;
   private readonly _height: number;
 
+  get historyView(): GPUTextureView { return this._historyView; }
+
   private constructor(
     resolved: GPUTexture,
     resolvedView: GPUTextureView,
     history: GPUTexture,
+    historyView: GPUTextureView,
     pipeline: GPURenderPipeline,
     uniformBuffer: GPUBuffer,
     uniformBG: GPUBindGroup,
@@ -39,6 +43,7 @@ export class TAAPass extends RenderPass {
     this._resolved = resolved;
     this.resolvedView = resolvedView;
     this._history = history;
+    this._historyView = historyView;
     this._pipeline = pipeline;
     this._uniformBuffer = uniformBuffer;
     this._uniformBG = uniformBG;
@@ -121,7 +126,7 @@ export class TAAPass extends RenderPass {
     });
 
     return new TAAPass(
-      resolved, resolvedView, history,
+      resolved, resolvedView, history, historyView,
       pipeline, uniformBuffer, uniformBG, textureBG,
       width, height,
     );

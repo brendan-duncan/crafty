@@ -25,10 +25,18 @@ export class LightingPass extends RenderPass {
   private _sceneBindGroup: GPUBindGroup;
   private _gbufferBindGroup: GPUBindGroup;
   private _iblBindGroup: GPUBindGroup;
-  private _aoBindGroup: GPUBindGroup;
+  private _aoBindGroup: GPUBindGroup;    // group 3: AO + SSGI combined
   private _cameraBuffer: GPUBuffer;
   private _lightBuffer: GPUBuffer;
   private _defaultCloudShadow: GPUTexture | null;
+  private _defaultSsgi: GPUTexture | null;
+
+  // Retained for updateSSGI() bind group recreation
+  private _device: GPUDevice;
+  private _aoBGL: GPUBindGroupLayout;
+  private _aoView: GPUTextureView;
+  private _aoSampler: GPUSampler;
+  private _ssgiSampler: GPUSampler;
 
   private constructor(
     hdrTexture: GPUTexture,
@@ -41,6 +49,12 @@ export class LightingPass extends RenderPass {
     cameraBuffer: GPUBuffer,
     lightBuffer: GPUBuffer,
     defaultCloudShadow: GPUTexture | null,
+    defaultSsgi: GPUTexture | null,
+    device: GPUDevice,
+    aoBGL: GPUBindGroupLayout,
+    aoView: GPUTextureView,
+    aoSampler: GPUSampler,
+    ssgiSampler: GPUSampler,
   ) {
     super();
     this.hdrTexture = hdrTexture;
@@ -53,6 +67,12 @@ export class LightingPass extends RenderPass {
     this._cameraBuffer = cameraBuffer;
     this._lightBuffer = lightBuffer;
     this._defaultCloudShadow = defaultCloudShadow;
+    this._defaultSsgi = defaultSsgi;
+    this._device = device;
+    this._aoBGL = aoBGL;
+    this._aoView = aoView;
+    this._aoSampler = aoSampler;
+    this._ssgiSampler = ssgiSampler;
   }
 
   static create(ctx: RenderContext, gbuffer: GBuffer, shadowPass: ShadowPass, ibl: IblTextures, aoView: GPUTextureView, cloudShadowView?: GPUTextureView): LightingPass {
@@ -89,6 +109,16 @@ export class LightingPass extends RenderPass {
     });
     const lutSampler = device.createSampler({
       label: 'IBLLutSampler',
+      magFilter: 'linear', minFilter: 'linear',
+      addressModeU: 'clamp-to-edge', addressModeV: 'clamp-to-edge',
+    });
+    const aoSampler = device.createSampler({
+      label: 'AoSampler',
+      magFilter: 'linear', minFilter: 'linear',
+      addressModeU: 'clamp-to-edge', addressModeV: 'clamp-to-edge',
+    });
+    const ssgiSampler = device.createSampler({
+      label: 'SsgiSampler',
       magFilter: 'linear', minFilter: 'linear',
       addressModeU: 'clamp-to-edge', addressModeV: 'clamp-to-edge',
     });
@@ -135,18 +165,22 @@ export class LightingPass extends RenderPass {
       ],
     });
 
+    // Group 3: AO (binding 0–1) + SSGI (binding 2–3) — merged to stay within 4-group limit
     const aoBGL = device.createBindGroupLayout({
       label: 'LightAoBGL',
       entries: [
         { binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } },
         { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } },
+        { binding: 2, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } },
+        { binding: 3, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } },
       ],
     });
 
-    const aoSampler = device.createSampler({
-      label: 'AoSampler',
-      magFilter: 'linear', minFilter: 'linear',
-      addressModeU: 'clamp-to-edge', addressModeV: 'clamp-to-edge',
+    // Default 1×1 black SSGI texture — zero indirect until SSGIPass is wired in
+    const defaultSsgi = device.createTexture({
+      label: 'DefaultSsgi', size: { width: 1, height: 1 },
+      format: HDR_FORMAT,
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
     });
 
     const sceneBindGroup = device.createBindGroup({
@@ -186,6 +220,8 @@ export class LightingPass extends RenderPass {
       entries: [
         { binding: 0, resource: aoView },
         { binding: 1, resource: aoSampler },
+        { binding: 2, resource: defaultSsgi.createView() },
+        { binding: 3, resource: ssgiSampler },
       ],
     });
 
@@ -207,7 +243,21 @@ export class LightingPass extends RenderPass {
       sceneBindGroup, gbufferBindGroup, iblBindGroup, aoBindGroup,
       cameraBuffer, lightBuffer,
       cloudShadowView ? null : defaultCloudShadow,
+      defaultSsgi, device, aoBGL, aoView, aoSampler, ssgiSampler,
     );
+  }
+
+  // Wire in the live SSGIPass result; recreates the combined AO+SSGI bind group.
+  updateSSGI(ssgiView: GPUTextureView): void {
+    this._aoBindGroup = this._device.createBindGroup({
+      label: 'LightAoBG', layout: this._aoBGL,
+      entries: [
+        { binding: 0, resource: this._aoView },
+        { binding: 1, resource: this._aoSampler },
+        { binding: 2, resource: ssgiView },
+        { binding: 3, resource: this._ssgiSampler },
+      ],
+    });
   }
 
   updateCamera(ctx: RenderContext, view: Mat4, proj: Mat4, viewProj: Mat4, invViewProj: Mat4, camPos: { x: number; y: number; z: number }, near: number, far: number): void {
@@ -275,5 +325,6 @@ export class LightingPass extends RenderPass {
     this._cameraBuffer.destroy();
     this._lightBuffer.destroy();
     this._defaultCloudShadow?.destroy();
+    this._defaultSsgi?.destroy();
   }
 }

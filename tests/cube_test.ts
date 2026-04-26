@@ -12,7 +12,7 @@ import heightAtlasUrl from '../assets/cube_textures/simple_block_atlas_heightmap
 import foxUrl         from '../assets/fox.glb?url';
 import { Mat4, Vec3, Quaternion } from '../src/math/index.js';
 import { GameObject, Scene, Camera, DirectionalLight, MeshRenderer, CameraControls, AnimatedModel } from '../src/engine/index.js';
-import { RenderContext, RenderGraph, GBuffer, ShadowPass, SkyPass, GeometryPass, SkinnedGeometryPass, LightingPass, TAAPass, SSAOPass, DofPass, BloomPass, TonemapPass, DebugLightPass, ParticlePass, CloudPass, CloudShadowPass, AutoExposurePass } from '../src/renderer/index.js';
+import { RenderContext, RenderGraph, GBuffer, ShadowPass, SkyPass, GeometryPass, SkinnedGeometryPass, LightingPass, TAAPass, SSAOPass, SSGIPass, DofPass, BloomPass, TonemapPass, DebugLightPass, ParticlePass, CloudPass, CloudShadowPass, AutoExposurePass } from '../src/renderer/index.js';
 import type { CloudSettings } from '../src/renderer/index.js';
 import type { ParticleGraphConfig } from '../src/particles/index.js';
 import { Mesh, BlockTexture, GltfLoader, createCloudNoiseTextures } from '../src/assets/index.js';
@@ -209,7 +209,7 @@ async function main() {
   cameraControls.attach(canvas);
 
   // --- Effect toggles ---
-  const effects = { ssao: true, shadows: true, dof: true, bloom: true, aces: true, ao_dbg: false, shd_dbg: false, hdr: true, clouds: true };
+  const effects = { ssao: true, ssgi: true, shadows: true, dof: true, bloom: true, aces: true, ao_dbg: false, shd_dbg: false, hdr: true, clouds: true };
 
   // --- Renderer ---
   const shadowPass = ShadowPass.create(ctx, 3);
@@ -230,6 +230,7 @@ async function main() {
   let sparksPass          : ParticlePass        | null = null;
   let rainPass            : ParticlePass        | null = null;
   let snowPass            : ParticlePass        | null = null;
+  let ssgiPass            : SSGIPass            | null = null;
   let autoExposurePass    : AutoExposurePass    | null = null;
   let skinnedGeometryPass : SkinnedGeometryPass | null = null;
   let graph!: RenderGraph;
@@ -290,10 +291,11 @@ async function main() {
       metallic: 0.0,
     },
     modifiers: [
-      { type: 'gravity',    strength: 1.5 },
-      { type: 'drag',       coefficient: 0.3 },
-      { type: 'curl_noise', scale: 0.25, strength: 0.35, timeScale: 0.06 },
-      // No alpha fade — flakes stay opaque until the depth test hides them at ground level.
+      { type: 'gravity',    strength: 1.2 },
+      { type: 'drag',       coefficient: 0.35 },
+      { type: 'size_random', min: 0.02, max: 0.18 },
+      { type: 'vortex',     strength: 0.08 },
+      { type: 'curl_noise', scale: 0.15, strength: 1.2, timeScale: 0.06, octaves: 3 },
     ],
     renderer: { type: 'sprites', blendMode: 'alpha', billboard: 'camera', renderTarget: 'hdr' },
   };
@@ -334,6 +336,7 @@ async function main() {
     sparksPass?.destroy();          sparksPass          = null;
     rainPass?.destroy();            rainPass            = null;
     snowPass?.destroy();            snowPass            = null;
+    ssgiPass?.destroy();            ssgiPass            = null;
     autoExposurePass?.destroy();    autoExposurePass    = null;
     skinnedGeometryPass?.destroy(); skinnedGeometryPass = null;
 
@@ -356,7 +359,9 @@ async function main() {
     snowPass       = ParticlePass.create(ctx, snowConfig, gbuffer, lightingPass.hdrView);
     debugLightPass = DebugLightPass.create(ctx, lightingPass.hdrView, gbuffer.depthView);
     debugLightPass.setMesh(coneMesh);
-    taaPass          = TAAPass.create(ctx, lightingPass, gbuffer);
+    taaPass  = TAAPass.create(ctx, lightingPass, gbuffer);
+    ssgiPass = SSGIPass.create(ctx, gbuffer, taaPass.historyView);
+    lightingPass.updateSSGI(ssgiPass.resultView);
 
     // Wire post-process chain according to current toggle state
     const postInput = effects.dof
@@ -377,6 +382,7 @@ async function main() {
     graph.addPass(firePass);
     graph.addPass(sparksPass);
     graph.addPass(ssaoPass);
+    graph.addPass(ssgiPass!);
     if (cloudShadowPass) graph.addPass(cloudShadowPass);
     if (cloudPass)       graph.addPass(cloudPass);
     if (skyPass)         graph.addPass(skyPass);
@@ -446,6 +452,7 @@ async function main() {
   // SSAO is toggled without a rebuild — strength=0 makes it fully transparent
   const effectsPanel = createControlPanel(effects, (key) => {
     if (key === 'ssao')    return; // handled per-frame via updateParams
+    if (key === 'ssgi')    return; // handled per-frame via updateSettings
     if (key === 'shadows') return; // handled per-frame via updateLight
     if (key === 'aces')    return; // handled per-frame via updateParams
     if (key === 'ao_dbg')  return; // handled per-frame via updateParams
@@ -567,8 +574,9 @@ async function main() {
     lightingPass.updateCloudShadow(ctx, 0, 0, 60);
 
     ssaoPass.updateCamera(ctx, view, proj, invProj);
-    // Strength 0 = no occlusion (effectively bypasses SSAO without a rebuild)
     ssaoPass.updateParams(ctx, 1.0, 0.005, effects.ssao ? 2.0 : 0.0);
+    ssgiPass?.updateSettings({ strength: effects.ssgi ? 1.0 : 0.0 });
+    ssgiPass?.updateCamera(ctx, view, proj, invProj, invVP, prevViewProj ?? vp, camPos);
     tonemapPass.updateParams(ctx, effects.aces, effects.ao_dbg, effects.hdr);
 
     // Cone at 7 units "behind" the sun, oriented so local +Y points in sun.direction.

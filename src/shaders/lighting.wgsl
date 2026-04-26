@@ -68,9 +68,11 @@ struct LightUniforms {
 @group(2) @binding(3) var equirect_sampler: sampler; // repeat U, clamp V
 @group(2) @binding(4) var lut_sampler     : sampler; // clamp both
 
-// SSAO
-@group(3) @binding(0) var ao_tex : texture_2d<f32>;
-@group(3) @binding(1) var ao_samp: sampler;
+// SSAO + SSGI (combined group 3)
+@group(3) @binding(0) var ao_tex   : texture_2d<f32>;
+@group(3) @binding(1) var ao_samp  : sampler;
+@group(3) @binding(2) var ssgi_tex : texture_2d<f32>;
+@group(3) @binding(3) var ssgi_samp: sampler;
 
 struct VertexOutput {
   @builtin(position) clip_pos: vec4<f32>,
@@ -362,7 +364,12 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
   let specular_ibl = prefiltered * (Fi * brdf.x + brdf.y);
 
   let ao    = textureSampleLevel(ao_tex, ao_samp, in.uv, 0.0).r;
-  let color = direct + (diffuse_ibl + specular_ibl) * ao;
+
+  // SSGI: one-bounce diffuse indirect from screen-space ray march
+  let ssgi_irr    = textureSampleLevel(ssgi_tex, ssgi_samp, in.uv, 0.0).rgb;
+  let ssgi_contrib = ssgi_irr * albedo * (1.0 - metallic);
+
+  let color = direct + (diffuse_ibl + specular_ibl) * ao + ssgi_contrib;
 
   if (light.debugCascades != 0u) {
     let cascade = select_cascade(view_depth);

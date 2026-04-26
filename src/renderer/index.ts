@@ -16,6 +16,8 @@ export { LightingPass } from './passes/lighting_pass.js';
 export { TonemapPass } from './passes/tonemap_pass.js';
 export { DofPass } from './passes/dof_pass.js';
 export { SSAOPass } from './passes/ssao_pass.js';
+export { SSGIPass } from './passes/ssgi_pass.js';
+export type { SSGISettings } from './passes/ssgi_pass.js';
 export { DebugLightPass } from './passes/debug_light_pass.js';
 export { ParticlePass } from './passes/particle_pass.js';
 export { AutoExposurePass } from './passes/auto_exposure_pass.js';
