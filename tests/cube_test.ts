@@ -123,7 +123,7 @@ async function main() {
 
   const planeGO = new GameObject('Plane');
   planeGO.position.set(0, 0, 0);
-  const planeMesh = Mesh.createPlane(device, 20, 20, 4, 4);
+  const planeMesh = Mesh.createPlane(device, 100, 100, 4, 4);
   const [planeUvOx, planeUvOy, planeUvSx, planeUvSy] = blockTex.uvTransform(2);
   planeGO.addComponent(new MeshRenderer(planeMesh, {
     albedo: [1, 1, 1, 1],
@@ -191,7 +191,7 @@ async function main() {
   }).catch(err => console.error('fox.glb load failed:', err));
 
   const fireEmitterGO = new GameObject('FireEmitter');
-  fireEmitterGO.position.set(3, 0, 2);
+  fireEmitterGO.position.set(5, 0, 5);
 
   const sparksEmitterGO = new GameObject('SparksEmitter');
   sparksEmitterGO.position.set(-3, 0, 2);
@@ -209,7 +209,7 @@ async function main() {
   cameraControls.attach(canvas);
 
   // --- Effect toggles ---
-  const effects = { ssao: true, ssgi: true, shadows: true, dof: true, bloom: true, aces: true, ao_dbg: false, shd_dbg: false, hdr: true, clouds: true };
+  const effects = { ssao: true, ssgi: true, shadows: true, dof: true, bloom: true, aces: true, ao_dbg: false, shd_dbg: false, hdr: true, clouds: false };
 
   // --- Renderer ---
   const shadowPass = ShadowPass.create(ctx, 3);
@@ -494,6 +494,9 @@ async function main() {
       fpsEl.textContent = `${smoothFps.toFixed(0)} fps`;
     }
     angle += dt;
+
+    fireEmitterGO.position.set(5 + Math.cos(angle) * 2, 0, 5 + Math.sin(angle) * 2);
+    sparksEmitterGO.position.set(-3 + Math.cos(angle * 1.5) * 1.5, 0, 2 + Math.sin(angle * 1.5) * 1.5);
 
     cubeGOs.forEach((go, i) => {
       go.rotation = Quaternion.fromAxisAngle(Vec3.up(), angle * cubeConfigs[i].speed);

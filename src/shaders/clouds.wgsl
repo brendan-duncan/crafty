@@ -76,7 +76,7 @@ fn equirect_uv(dir: vec3<f32>) -> vec2<f32> {
 }
 
 fn remap(v: f32, lo: f32, hi: f32, a: f32, b: f32) -> f32 {
-  return clamp(a + (v - lo) / max(hi - lo, 0.0001) * (b - a), a, b);
+  return a + saturate((v - lo) / max(hi - lo, 0.0001)) * (b - a);
 }
 
 // Cumulus height profile: rises quickly at base, fades at top.
@@ -117,14 +117,23 @@ fn sample_density(p: vec3<f32>) -> f32 {
   return max(0.0, cov - (1.0 - cov) * detail * 0.3) * cloud.density;
 }
 
-// March 8 steps toward the sun and return transmittance (Beer's law)
+// Base-noise-only density for light marching — no detail read, faster.
+fn sample_density_coarse(p: vec3<f32>) -> f32 {
+  let base_uv = (p + vec3<f32>(cloud.windOffset.x, 0.0, cloud.windOffset.y)) * 0.04;
+  let base = textureSampleLevel(base_noise, noise_samp, base_uv, 0.0);
+  let pw  = base.r * 0.625 + (1.0 - base.g) * 0.25 + (1.0 - base.b) * 0.125;
+  let hg  = height_gradient(p.y);
+  return saturate(remap(pw, 1.0 - cloud.coverage, 1.0, 0.0, 1.0)) * hg * cloud.density;
+}
+
+// March 4 steps toward the sun using coarse density (no detail noise).
 fn light_march(p: vec3<f32>, sun_dir: vec3<f32>) -> f32 {
-  let step_size = (cloud.cloudTop - cloud.cloudBase) / 8.0;
+  let step_size = (cloud.cloudTop - cloud.cloudBase) / 4.0;
   var opt_depth = 0.0;
-  for (var i = 0; i < 8; i++) {
+  for (var i = 0; i < 4; i++) {
     let sp = p + sun_dir * (f32(i) + 0.5) * step_size;
     if (sp.y < cloud.cloudBase || sp.y > cloud.cloudTop) { continue; }
-    opt_depth += sample_density(sp) * step_size;
+    opt_depth += sample_density_coarse(sp) * step_size;
   }
   return exp(-opt_depth * cloud.extinction);
 }
@@ -171,13 +180,15 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     return vec4<f32>(sky_color, 1.0);
   }
 
-  let t_start = slab.x;
   // Cap at 200 units so horizontal rays don't produce astronomically large step sizes.
   let t_end   = min(min(slab.y, geo_dist), 200.0);
-  if (t_end <= t_start) { return vec4<f32>(sky_color, 1.0); }
+  if (t_end <= slab.x) { return vec4<f32>(sky_color, 1.0); }
 
-  // Primary ray march (64 steps)
-  let step_size  = (t_end - t_start) / 64.0;
+  // Primary ray march (32 steps with per-pixel IGN jitter for TAA-friendly integration).
+  let step_size  = (t_end - slab.x) / 32.0;
+  let coord      = vec2<i32>(in.clip_pos.xy);
+  let jitter     = fract(52.9829189 * fract(0.06711056 * f32(coord.x) + 0.00583715 * f32(coord.y)));
+  let t_start    = slab.x + jitter * step_size;
   let L          = normalize(-light.direction);
   let cos_theta  = dot(ray_dir, L);
   let phase      = dual_phase(cos_theta, cloud.anisotropy);
@@ -185,8 +196,9 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
   var cloud_color = vec3<f32>(0.0);
   var total_trans = 1.0;
 
-  for (var i = 0; i < 64; i++) {
-    let t = t_start + (f32(i) + 0.5) * step_size;
+  for (var i = 0; i < 32; i++) {
+    let t = t_start + f32(i) * step_size;
+    if (t >= t_end) { break; }
     let p = camera.position + ray_dir * t;
 
     let dens = sample_density(p);

@@ -55,9 +55,11 @@ fn cs_irradiance(@builtin(global_invocation_id) gid: vec3<u32>) {
   let size = textureDimensions(out_tex);
   if (gid.x >= size.x || gid.y >= size.y) { return; }
 
-  let phi   = (f32(gid.x) + 0.5) / f32(size.x) * 2.0 * PI;
-  let theta = (f32(gid.y) + 0.5) / f32(size.y) * PI;
-  let N     = vec3<f32>(sin(theta)*cos(phi), cos(theta), sin(theta)*sin(phi));
+  // phi_eq is the inverse of equirect_uv's atan2(-z,x)/(2π)+0.5, so that
+  // textureStore at (gid.x,gid.y) is read back at equirect_uv(N).
+  let phi_eq = ((f32(gid.x) + 0.5) / f32(size.x) - 0.5) * 2.0 * PI;
+  let theta  = (f32(gid.y) + 0.5) / f32(size.y) * PI;
+  let N      = vec3<f32>(sin(theta)*cos(phi_eq), cos(theta), -sin(theta)*sin(phi_eq));
   let TBN   = tangent_frame(N);
 
   var rgb = vec3<f32>(0.0);
@@ -84,9 +86,9 @@ fn cs_prefilter(@builtin(global_invocation_id) gid: vec3<u32>) {
   let size = textureDimensions(out_tex);
   if (gid.x >= size.x || gid.y >= size.y) { return; }
 
-  let phi   = (f32(gid.x) + 0.5) / f32(size.x) * 2.0 * PI;
-  let theta = (f32(gid.y) + 0.5) / f32(size.y) * PI;
-  let N     = vec3<f32>(sin(theta)*cos(phi), cos(theta), sin(theta)*sin(phi));
+  let phi_eq = ((f32(gid.x) + 0.5) / f32(size.x) - 0.5) * 2.0 * PI;
+  let theta  = (f32(gid.y) + 0.5) / f32(size.y) * PI;
+  let N      = vec3<f32>(sin(theta)*cos(phi_eq), cos(theta), -sin(theta)*sin(phi_eq));
   let TBN   = tangent_frame(N);
 
   let a  = params.roughness * params.roughness;
