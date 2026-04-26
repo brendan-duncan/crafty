@@ -5,6 +5,7 @@ import type { Camera } from './camera.js';
 export interface CascadeData {
   lightViewProj: Mat4;
   splitFar: number;
+  depthRange: number;  // light-space Z depth (maxZ - minZ after padding)
 }
 
 export class DirectionalLight extends Component {
@@ -75,7 +76,7 @@ export class DirectionalLight extends Component {
       lightProj.set(3, 0, lightProj.get(3, 0) + dndcX);
       lightProj.set(3, 1, lightProj.get(3, 1) + dndcY);
 
-      cascades.push({ lightViewProj: lightProj.multiply(lightView), splitFar: farSplit });
+      cascades.push({ lightViewProj: lightProj.multiply(lightView), splitFar: farSplit, depthRange: maxZ - minZ });
     }
 
     return cascades;

@@ -12,8 +12,9 @@ export const HDR_FORMAT: GPUTextureFormat = 'rgba16float';
 // CameraUniforms: 4 mat4 (256 bytes) + vec3+f32 near (16 bytes) + f32 far + pad (8 bytes) = 280 bytes
 const CAMERA_SIZE = 64 * 4 + 16 + 16;
 // LightUniforms: dir(3)+intensity(1)+color(3)+cascadeCount(1)+4*mat4(256)+cascadeSplits(4)+
-//   shadowsEnabled(1)+debugCascades(1)+cloudShadowOrigin(2)+cloudShadowExtent(1)+pad(1) = 336 bytes
-const LIGHT_SIZE = 336;
+//   shadowsEnabled(1)+debugCascades(1)+cloudShadowOrigin(2)+cloudShadowExtent(1)+shadowSoftness(1)+
+//   cascadeDepthRanges(4) = 352 bytes
+const LIGHT_SIZE = 352;
 
 export class LightingPass extends RenderPass {
   readonly name = 'LightingPass';
@@ -291,6 +292,11 @@ export class LightingPass extends RenderPass {
     // o=78..80 (offsets 312..320): cloud shadow params — written by updateCloudShadow()
     // o=81 (offset 324): shadowSoftness — PCSS light-size factor
     data[81] = shadowSoftness;
+    // floats 82-83 (offsets 328-335): implicit WGSL padding before vec4 alignment
+    // floats 84-87 (offsets 336-351): cascadeDepthRanges — vec4<f32> requires 16-byte align
+    for (let i = 0; i < 4; i++) {
+      data[84 + i] = i < cascades.length ? cascades[i].depthRange : 1.0;
+    }
     ctx.queue.writeBuffer(this._lightBuffer, 0, data.buffer as ArrayBuffer);
   }
 

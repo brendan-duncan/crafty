@@ -46,8 +46,10 @@ struct LightUniforms {
   shadowsEnabled    : u32,
   debugCascades     : u32,
   cloudShadowOrigin : vec2<f32>,  // world-space XZ centre of cloud shadow map
-  cloudShadowExtent : f32,        // half-size in world units (covers ±extent)
-  shadowSoftness    : f32,        // PCSS light-size factor (~0.02)
+  cloudShadowExtent  : f32,        // half-size in world units (covers ±extent)
+  shadowSoftness     : f32,        // PCSS light-size factor (~0.02)
+  _pad_light         : vec2<f32>,  // padding to align cascadeDepthRanges to 16 bytes (offset 336)
+  cascadeDepthRanges : vec4<f32>,  // light-space Z depth per cascade (for adaptive bias)
 }
 
 @group(0) @binding(0) var<uniform> camera: CameraUniforms;
@@ -153,8 +155,9 @@ fn select_cascade(view_depth: f32) -> u32 {
 
 fn shadow_factor(world_pos: vec3<f32>, NdotL: f32, view_depth: f32) -> f32 {
   if (light.shadowsEnabled == 0u) { return 1.0; }
-  let bias    = max(0.005 * (1.0 - NdotL), 0.001);
-  let cascade = select_cascade(view_depth);
+  let cascade    = select_cascade(view_depth);
+  let depth_range = light.cascadeDepthRanges[cascade];
+  let bias       = max(0.05 * (1.0 - NdotL), 0.01) / max(depth_range, 1.0);
 
   let sc0 = cascade_coords(cascade, world_pos);
   if (!in_cascade(sc0)) { return 1.0; }
