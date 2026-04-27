@@ -1,0 +1,300 @@
+import { Vec3 } from '../math/index.js';
+import { Chunk, ChunkMesh } from './chunk.js';
+import { BlockType, isBlockWater, isBlockProp } from './block_type.js';
+
+export interface RaycastResult {
+  blockType: number;
+  position: Vec3;
+  face: Vec3;
+  chunk: Chunk;
+  relativePosition: Vec3;
+}
+
+export class World {
+  static readonly MAX_CHUNKS = 1024;
+
+  seed: number;
+  renderDistanceH = 8;
+  renderDistanceV = 4;
+  time = 0;
+
+  onChunkAdded?: (chunk: Chunk, mesh: ChunkMesh) => void;
+  onChunkUpdated?: (chunk: Chunk, mesh: ChunkMesh) => void;
+  onChunkRemoved?: (chunk: Chunk) => void;
+
+  private _chunks = new Map<string, Chunk>();
+
+  constructor(seed: number) {
+    this.seed = seed;
+  }
+
+  get chunkCount(): number { return this._chunks.size; }
+  get chunks(): IterableIterator<Chunk> { return this._chunks.values(); }
+
+  static normalizeChunkPosition(wx: number, wy: number, wz: number): [number, number, number] {
+    return [
+      Math.floor(wx / Chunk.CHUNK_WIDTH),
+      Math.floor(wy / Chunk.CHUNK_HEIGHT),
+      Math.floor(wz / Chunk.CHUNK_DEPTH),
+    ];
+  }
+
+  private static _key(cx: number, cy: number, cz: number): string {
+    return `${cx},${cy},${cz}`;
+  }
+
+  getChunk(wx: number, wy: number, wz: number): Chunk | undefined {
+    const [cx, cy, cz] = World.normalizeChunkPosition(wx, wy, wz);
+    return this._chunks.get(World._key(cx, cy, cz));
+  }
+
+  chunkExists(wx: number, wy: number, wz: number): boolean {
+    return this.getChunk(wx, wy, wz) !== undefined;
+  }
+
+  getBlockType(wx: number, wy: number, wz: number): number {
+    const chunk = this.getChunk(wx, wy, wz);
+    if (!chunk) return BlockType.NONE;
+    const rx = Math.round(wx) - chunk.globalPosition.x;
+    const ry = Math.round(wy) - chunk.globalPosition.y;
+    const rz = Math.round(wz) - chunk.globalPosition.z;
+    return chunk.getBlock(rx, ry, rz);
+  }
+
+  // "A Fast Voxel Traversal Algorithm for Ray Tracing" — Amanatides & Woo
+  getBlockByRay(from: Vec3, dir: Vec3, maxSteps: number): RaycastResult | null {
+    const BIG = Number.MAX_VALUE;
+    let px = Math.floor(from.x);
+    let py = Math.floor(from.y);
+    let pz = Math.floor(from.z);
+
+    const dxi = 1.0 / dir.x, dyi = 1.0 / dir.y, dzi = 1.0 / dir.z;
+    const sx = dir.x > 0 ? 1 : -1;
+    const sy = dir.y > 0 ? 1 : -1;
+    const sz = dir.z > 0 ? 1 : -1;
+
+    const dtx = Math.min(dxi * sx, BIG);
+    const dty = Math.min(dyi * sy, BIG);
+    const dtz = Math.min(dzi * sz, BIG);
+    let tx = Math.abs((px + Math.max(sx, 0) - from.x) * dxi);
+    let ty = Math.abs((py + Math.max(sy, 0) - from.y) * dyi);
+    let tz = Math.abs((pz + Math.max(sz, 0) - from.z) * dzi);
+
+    let cmpx = 0, cmpy = 0, cmpz = 0;
+
+    for (let i = 0; i < maxSteps; i++) {
+      if (i > 0) {
+        const chunk = this.getChunk(px, py, pz);
+        if (chunk) {
+          const rx = px - chunk.globalPosition.x;
+          const ry = py - chunk.globalPosition.y;
+          const rz = pz - chunk.globalPosition.z;
+          const blockType = chunk.getBlock(rx, ry, rz);
+          if (blockType !== BlockType.NONE && !isBlockWater(blockType)) {
+            return {
+              blockType,
+              position: new Vec3(px, py, pz),
+              face: new Vec3(-cmpx * sx, -cmpy * sy, -cmpz * sz),
+              chunk,
+              relativePosition: new Vec3(rx, ry, rz),
+            };
+          }
+        }
+      }
+
+      // step(a, b) = a <= b ? 1 : 0; advance the axis with the smallest t
+      cmpx = (tx <= tz ? 1 : 0) * (tx <= ty ? 1 : 0);
+      cmpy = (ty <= tx ? 1 : 0) * (ty <= tz ? 1 : 0);
+      cmpz = (tz <= ty ? 1 : 0) * (tz <= tx ? 1 : 0);
+      tx += dtx * cmpx;
+      ty += dty * cmpy;
+      tz += dtz * cmpz;
+      px += sx * cmpx;
+      py += sy * cmpy;
+      pz += sz * cmpz;
+    }
+
+    return null;
+  }
+
+  addBlock(gX: number, gY: number, gZ: number, faceX: number, faceY: number, faceZ: number, blockType: number): boolean {
+    if (blockType === BlockType.NONE) return false;
+
+    const hitChunk = this.getChunk(gX, gY, gZ);
+    if (!hitChunk) return false;
+
+    if (isBlockProp(this.getBlockType(gX, gY, gZ))) return false;
+
+    const newX = gX + faceX;
+    const newY = gY + faceY;
+    const newZ = gZ + faceZ;
+
+    const existing = this.getBlockType(newX, newY, newZ);
+    if (existing !== BlockType.NONE && !isBlockWater(existing)) return false;
+
+    let targetChunk = this.getChunk(newX, newY, newZ);
+    if (!targetChunk) {
+      const [cx, cy, cz] = World.normalizeChunkPosition(newX, newY, newZ);
+      targetChunk = new Chunk(cx * Chunk.CHUNK_WIDTH, cy * Chunk.CHUNK_HEIGHT, cz * Chunk.CHUNK_DEPTH);
+      this._insertChunk(targetChunk);
+    }
+
+    const rx = newX - targetChunk.globalPosition.x;
+    const ry = newY - targetChunk.globalPosition.y;
+    const rz = newZ - targetChunk.globalPosition.z;
+
+    targetChunk.setBlock(rx, ry, rz, blockType);
+    this._updateChunk(targetChunk);
+    return true;
+  }
+
+  mineBlock(gX: number, gY: number, gZ: number): boolean {
+    const chunk = this.getChunk(gX, gY, gZ);
+    if (!chunk) return false;
+
+    const rx = gX - chunk.globalPosition.x;
+    const ry = gY - chunk.globalPosition.y;
+    const rz = gZ - chunk.globalPosition.z;
+
+    const blockType = chunk.getBlock(rx, ry, rz);
+    if (blockType === BlockType.NONE || isBlockWater(blockType)) return false;
+
+    chunk.setBlock(rx, ry, rz, BlockType.NONE);
+    this._updateChunk(chunk);
+    return true;
+  }
+
+  generate(xChunks: number, yChunks: number, zChunks: number): void {
+    for (let x = 0; x < xChunks; x++) {
+      for (let z = 0; z < zChunks; z++) {
+        for (let y = 0; y < yChunks; y++) {
+          const chunk = new Chunk(
+            x * Chunk.CHUNK_WIDTH,
+            y * Chunk.CHUNK_HEIGHT,
+            z * Chunk.CHUNK_DEPTH,
+          );
+          chunk.generateBlocks(this.seed);
+          if (chunk.aliveBlocks > 0) {
+            this._insertChunk(chunk);
+            this.onChunkAdded?.(chunk, chunk.generateVertices());
+          }
+        }
+      }
+    }
+  }
+
+  update(playerPos: Vec3, dt: number): void {
+    this.time += dt;
+    this._removeDistantChunks(playerPos);
+    this._createNearbyChunk(playerPos);
+  }
+
+  deleteChunk(chunk: Chunk): void {
+    const [cx, cy, cz] = World.normalizeChunkPosition(
+      chunk.globalPosition.x, chunk.globalPosition.y, chunk.globalPosition.z,
+    );
+    this._chunks.delete(World._key(cx, cy, cz));
+    chunk.isDeleted = true;
+    this.onChunkRemoved?.(chunk);
+  }
+
+  calcWaterLevel(wx: number, wy: number, wz: number): number {
+    const chunk = this.getChunk(wx, wy, wz);
+    if (!chunk || chunk.waterBlocks <= 0) return 0;
+
+    let level = this._calcWaterLevelInChunk(chunk, wy);
+
+    for (let i = 1; i <= 4; i++) {
+      const above = this.getChunk(wx, wy + i * Chunk.CHUNK_HEIGHT, wz);
+      if (!above) break;
+      const [nx, , nz] = World.normalizeChunkPosition(wx, wy, wz);
+      const rx = nx * Chunk.CHUNK_WIDTH - above.globalPosition.x;
+      const rz = nz * Chunk.CHUNK_DEPTH - above.globalPosition.z;
+      if (above.waterBlocks > 0 && isBlockWater(above.getBlock(rx, 0, rz))) {
+        level += this._calcWaterLevelInChunk(above, wy);
+      } else {
+        break;
+      }
+    }
+
+    return level;
+  }
+
+  private _calcWaterLevelInChunk(chunk: Chunk, wy: number): number {
+    const base = chunk.globalPosition.y;
+    const H = Chunk.CHUNK_HEIGHT;
+    let level = 0;
+    if (wy <= base + H * 0.8) level++;
+    if (wy <= base + H * 0.7) level++;
+    if (wy <= base + H * 0.6) level++;
+    if (wy <= base + H * 0.5) level++;
+    return level;
+  }
+
+  private _insertChunk(chunk: Chunk): void {
+    const [cx, cy, cz] = World.normalizeChunkPosition(
+      chunk.globalPosition.x, chunk.globalPosition.y, chunk.globalPosition.z,
+    );
+    this._chunks.set(World._key(cx, cy, cz), chunk);
+    chunk.isDeleted = false;
+  }
+
+  private _updateChunk(chunk: Chunk): void {
+    this.onChunkUpdated?.(chunk, chunk.generateVertices());
+  }
+
+  private _getRenderBounds(playerPos: Vec3): [number, number, number, number, number, number] {
+    const [cpx, cpy, cpz] = World.normalizeChunkPosition(playerPos.x, playerPos.y, playerPos.z);
+    return [
+      cpx - this.renderDistanceH, cpy - this.renderDistanceV, cpz - this.renderDistanceH,
+      cpx + this.renderDistanceH, cpy + this.renderDistanceV, cpz + this.renderDistanceH,
+    ];
+  }
+
+  private _createNearbyChunk(playerPos: Vec3): void {
+    if (this._chunks.size >= World.MAX_CHUNKS) return;
+    const [minX, minY, minZ, maxX, maxY, maxZ] = this._getRenderBounds(playerPos);
+    for (let x = minX; x < maxX; x++) {
+      for (let y = minY; y < maxY; y++) {
+        for (let z = minZ; z < maxZ; z++) {
+          const wx = x * Chunk.CHUNK_WIDTH;
+          const wy = y * Chunk.CHUNK_HEIGHT;
+          const wz = z * Chunk.CHUNK_DEPTH;
+          if (!this.chunkExists(wx, wy, wz)) {
+            this._createChunkAt(x, y, z);
+            return; // one chunk per frame to avoid stalls
+          }
+        }
+      }
+    }
+  }
+
+  private _removeDistantChunks(playerPos: Vec3): void {
+    const [minX, minY, minZ, maxX, maxY, maxZ] = this._getRenderBounds(playerPos);
+    const toDelete: Chunk[] = [];
+    for (const chunk of this._chunks.values()) {
+      const [cx, cy, cz] = World.normalizeChunkPosition(
+        chunk.globalPosition.x, chunk.globalPosition.y, chunk.globalPosition.z,
+      );
+      if (cx < minX || cx >= maxX || cy < minY || cy >= maxY || cz < minZ || cz >= maxZ) {
+        toDelete.push(chunk);
+      }
+    }
+    for (const chunk of toDelete) {
+      this.deleteChunk(chunk);
+    }
+  }
+
+  private _createChunkAt(cx: number, cy: number, cz: number): void {
+    const chunk = new Chunk(
+      cx * Chunk.CHUNK_WIDTH,
+      cy * Chunk.CHUNK_HEIGHT,
+      cz * Chunk.CHUNK_DEPTH,
+    );
+    chunk.generateBlocks(this.seed);
+    if (chunk.aliveBlocks > 0) {
+      this._insertChunk(chunk);
+      this.onChunkAdded?.(chunk, chunk.generateVertices());
+    }
+  }
+}

@@ -57,7 +57,7 @@ export class Skeleton {
       local[0]  = (1 - (yy + zz)) * sx; local[1]  = (xy + wz) * sx;       local[2]  = (xz - wy) * sx; local[3]  = 0;
       local[4]  = (xy - wz) * sy;       local[5]  = (1 - (xx + zz)) * sy; local[6]  = (yz + wx) * sy; local[7]  = 0;
       local[8]  = (xz + wy) * sz;       local[9]  = (yz - wx) * sz;       local[10] = (1 - (xx + yy)) * sz; local[11] = 0;
-      local[12] = tx;                   local[13] = ty;                    local[14] = tz;            local[15] = 1;
+      local[12] = tx;                   local[13] = ty;                   local[14] = tz;            local[15] = 1;
 
       const pi = this.parentIndices[j];
       const gj = global.subarray(j * 16, j * 16 + 16);
@@ -78,7 +78,9 @@ function mat4Mul(a: Float32Array, b: Float32Array, out: Float32Array): void {
   for (let col = 0; col < 4; col++) {
     for (let row = 0; row < 4; row++) {
       let sum = 0;
-      for (let k = 0; k < 4; k++) sum += a[k * 4 + row] * b[col * 4 + k];
+      for (let k = 0; k < 4; k++) {
+        sum += a[k * 4 + row] * b[col * 4 + k];
+      }
       out[col * 4 + row] = sum;
     }
   }

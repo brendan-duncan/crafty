@@ -69,9 +69,9 @@ export class DofPass extends RenderPass {
       label: 'DofUniforms', size: UNIFORM_SIZE,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
-    // Defaults: focusDist=6.5, focusRange=4.0, bokehRadius=6.0, near=0.1, far=100
+    // Defaults: focusDist=30, focusRange=60, bokehRadius=6, near=0.1, far=1000
     device.queue.writeBuffer(uniformBuffer, 0,
-      new Float32Array([6.5, 4.0, 6.0, 0.1, 100.0, 0, 0, 0]).buffer as ArrayBuffer);
+      new Float32Array([30.0, 60.0, 6.0, 0.1, 1000.0, 0, 0, 0]).buffer as ArrayBuffer);
 
     const sampler = device.createSampler({
       label: 'DofSampler',
@@ -158,16 +158,16 @@ export class DofPass extends RenderPass {
     );
   }
 
-  // focusDistance : linear depth of the sharp focus plane (world units, same as near/far)
-  // focusRange    : half-distance on each side of focus that ramps blur from 0 to max
+  // focusDistance : nearest depth that starts to blur (world units) — everything closer is sharp
+  // focusRange    : distance over which blur ramps from 0 to max beyond focusDistance
   // bokehRadius   : max blur in half-res texels
   updateParams(
     ctx: RenderContext,
-    focusDistance = 6.5,
-    focusRange = 4.0,
+    focusDistance = 30.0,
+    focusRange = 60.0,
     bokehRadius = 6.0,
     near = 0.1,
-    far  = 100.0,
+    far  = 1000.0,
   ): void {
     ctx.device.queue.writeBuffer(this._uniformBuffer, 0,
       new Float32Array([focusDistance, focusRange, bokehRadius, near, far, 0, 0, 0]).buffer as ArrayBuffer);

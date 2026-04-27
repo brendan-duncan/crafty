@@ -83,7 +83,7 @@ export class LightingPass extends RenderPass {
       label: 'HDR Texture',
       size: { width, height },
       format: HDR_FORMAT,
-      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC,
     });
     const hdrView = hdrTexture.createView();
 

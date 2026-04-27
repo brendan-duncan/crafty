@@ -176,7 +176,7 @@ export async function createHdrTexture(device: GPUDevice, hdr: HdrData): Promise
   });
   device.queue.writeTexture(
     { texture: srcTex },
-    data,
+    data.buffer as ArrayBuffer,
     { bytesPerRow: width * 4 },
     { width, height },
   );

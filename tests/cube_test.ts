@@ -11,8 +11,8 @@ import merAtlasUrl    from '../assets/cube_textures/simple_block_atlas_mer.png?u
 import heightAtlasUrl from '../assets/cube_textures/simple_block_atlas_heightmap.png?url';
 import foxUrl         from '../assets/fox.glb?url';
 import { Mat4, Vec3, Quaternion } from '../src/math/index.js';
-import { GameObject, Scene, Camera, DirectionalLight, MeshRenderer, CameraControls, AnimatedModel } from '../src/engine/index.js';
-import { RenderContext, RenderGraph, GBuffer, ShadowPass, SkyPass, GeometryPass, SkinnedGeometryPass, LightingPass, TAAPass, SSAOPass, SSGIPass, DofPass, BloomPass, TonemapPass, DebugLightPass, ParticlePass, CloudPass, CloudShadowPass, AutoExposurePass } from '../src/renderer/index.js';
+import { GameObject, Scene, Camera, DirectionalLight, MeshRenderer, CameraControls, AnimatedModel, PointLight, SpotLight } from '../src/engine/index.js';
+import { RenderContext, RenderGraph, GBuffer, ShadowPass, SkyPass, GeometryPass, SkinnedGeometryPass, LightingPass, TAAPass, SSAOPass, SSGIPass, DofPass, BloomPass, TonemapPass, DebugLightPass, ParticlePass, CloudPass, CloudShadowPass, AutoExposurePass, PointSpotShadowPass, PointSpotLightPass } from '../src/renderer/index.js';
 import type { CloudSettings } from '../src/renderer/index.js';
 import type { ParticleGraphConfig } from '../src/particles/index.js';
 import { Mesh, BlockTexture, GltfLoader, createCloudNoiseTextures } from '../src/assets/index.js';
@@ -23,7 +23,11 @@ import type { DrawItem } from '../src/renderer/passes/geometry_pass.js';
 
 function halton(index: number, base: number): number {
   let result = 0, f = 1;
-  while (index > 0) { f /= base; result += f * (index % base); index = Math.floor(index / base); }
+  while (index > 0) {
+    f /= base; 
+    result += f * (index % base); 
+    index = Math.floor(index / base); 
+  }
   return result;
 }
 
@@ -117,6 +121,7 @@ async function main() {
 
   const blockTex = await BlockTexture.load(device, colorAtlasUrl, normalAtlasUrl, merAtlasUrl, heightAtlasUrl);
   const coneMesh = Mesh.createCone(device, 0.25, 0.6, 16);
+  const debugSphereMesh = Mesh.createSphere(device, 0.15, 8, 8);
 
   // --- Scene setup ---
   const scene = new Scene();
@@ -131,7 +136,7 @@ async function main() {
     metallic: 1.0,
     uvOffset: [planeUvOx, planeUvOy],
     uvScale:  [planeUvSx, planeUvSy],
-    uvTile:   [20, 20],  // 1 tile per world unit across the 20×20 plane
+    uvTile:   [40, 40],  // 1 tile per world unit across the 20×20 plane
     albedoMap: blockTex.colorAtlas,
     normalMap: blockTex.normalAtlas,
     merMap:    blockTex.merAtlas,
@@ -170,7 +175,7 @@ async function main() {
   sphereGO.addComponent(new MeshRenderer(sphereMesh, {
     albedo:   [1, 1, 1, 1],
     metallic: 1.0,
-    roughness: 0.02,
+    roughness: 0.0,
   }));
   scene.add(sphereGO);
 
@@ -182,7 +187,7 @@ async function main() {
     console.log(foxModel);
     if (!model.skin || model.meshes.length === 0) return;
     const foxGO = new GameObject('Fox');
-    foxGO.position.set(0, 0, 2);
+    foxGO.position.set(5, 0, 2);
     foxGO.scale.set(1, 1, 1);
     foxAnimated = foxGO.addComponent(new AnimatedModel(model));
     const firstClip = model.clips[0]?.name;
@@ -196,9 +201,54 @@ async function main() {
   const sparksEmitterGO = new GameObject('SparksEmitter');
   sparksEmitterGO.position.set(-3, 0, 2);
 
-  const sunGO = new GameObject('Sun');
-  const sun = sunGO.addComponent(new DirectionalLight(new Vec3(0.3, -1, 0.5), Vec3.one(), 3, 3));
-  scene.add(sunGO);
+  let sun: DirectionalLight | null = null;
+  /*const sunGO = new GameObject('Sun');
+  sun = sunGO.addComponent(new DirectionalLight(new Vec3(0.3, -1, 0.5), Vec3.one(), 3, 3));
+  scene.add(sunGO);*/
+
+  const torchGO = new GameObject('Torch');
+  torchGO.position.set(2, 1.5, 1);
+  const torchLight = torchGO.addComponent(new PointLight());
+  torchLight.color.set(1.0, 0.55, 0.15);
+  torchLight.intensity = 8.0;
+  torchLight.radius = 6.0;
+  torchLight.castShadow = true;
+  const torchDebugMR = torchGO.addComponent(new MeshRenderer(debugSphereMesh, {
+    albedo: [1.0, 0.55, 0.15, 1.0], roughness: 0.3, metallic: 0.0,
+  }));
+  torchDebugMR.castShadow = false;
+  scene.add(torchGO);
+
+  const spotGO = new GameObject('Spot');
+  spotGO.position.set(-2, 4, 0);
+  spotGO.rotation = Quaternion.fromAxisAngle(new Vec3(1, 0, 0), -Math.PI / 2);
+  const spotLight = spotGO.addComponent(new SpotLight());
+  spotLight.color.set(0.9, 0.95, 1.0);
+  spotLight.intensity = 25.0;
+  spotLight.range = 12.0;
+  spotLight.innerAngle = 12;
+  spotLight.outerAngle = 22;
+  spotLight.castShadow = true;
+  scene.add(spotGO);
+
+  // Debug cone: apex (+Y) at spotlight origin, base opening toward the light direction.
+  // R_X(+90°) maps cone +Y → +Z in spot-local space; spotGO.rotation takes +Z to the
+  // direction opposite the light (-Z local), so the base faces the light direction.
+  // The GO origin (base center, y=0) is placed coneHeight along the light direction so
+  // that adding the apex offset (height * apexWorldDir) lands back at spotGO.position.
+  const spotConeHeight = 1.5;
+  const spotConeRadius = Math.tan(spotLight.outerAngle * Math.PI / 180) * spotConeHeight;
+  const spotDebugMesh  = Mesh.createCone(device, spotConeRadius, spotConeHeight, 32);
+  const spotDebugGO    = new GameObject('SpotDebug');
+  const spotLightDir   = spotLight.worldDirection();
+  const spotBasePos    = spotGO.position.add(spotLightDir.scale(spotConeHeight));
+  spotDebugGO.position.set(spotBasePos.x, spotBasePos.y, spotBasePos.z);
+  spotDebugGO.rotation = spotGO.rotation.multiply(Quaternion.fromAxisAngle(new Vec3(1, 0, 0), Math.PI / 2));
+  const spotDebugMR = spotDebugGO.addComponent(new MeshRenderer(spotDebugMesh, {
+    albedo: [0.9, 0.95, 1.0, 1.0], roughness: 0.3, metallic: 0.0,
+  }));
+  spotDebugMR.castShadow = false;
+  scene.add(spotDebugGO);
 
   const cameraGO = new GameObject('Camera');
   cameraGO.position.set(0, 4, -8);
@@ -233,6 +283,8 @@ async function main() {
   let ssgiPass            : SSGIPass            | null = null;
   let autoExposurePass    : AutoExposurePass    | null = null;
   let skinnedGeometryPass : SkinnedGeometryPass | null = null;
+  let pointSpotShadowPass: PointSpotShadowPass | null = null;
+  let pointSpotLightPass : PointSpotLightPass  | null = null;
   let graph!: RenderGraph;
   let prevViewProj: Mat4 | null = null;
 
@@ -324,10 +376,12 @@ async function main() {
     gbuffer?.destroy();
     geometryPass?.destroy();
     ssaoPass?.destroy();
-    skyPass?.destroy();         skyPass         = null;
-    cloudShadowPass?.destroy(); cloudShadowPass = null;
-    cloudPass?.destroy();       cloudPass       = null;
+    skyPass?.destroy();               skyPass               = null;
+    cloudShadowPass?.destroy();       cloudShadowPass       = null;
+    cloudPass?.destroy();             cloudPass             = null;
     lightingPass?.destroy();
+    pointSpotShadowPass?.destroy();   pointSpotShadowPass   = null;
+    pointSpotLightPass?.destroy();    pointSpotLightPass    = null;
     debugLightPass?.destroy();
     taaPass?.destroy();
     dofPass?.destroy();             dofPass             = null;
@@ -355,6 +409,9 @@ async function main() {
       lightingPass = LightingPass.create(ctx, gbuffer, shadowPass, ibl, ssaoPass.aoView);
       skyPass      = SkyPass.create(ctx, lightingPass.hdrView, skyTexture);
     }
+    pointSpotShadowPass = PointSpotShadowPass.create(ctx);
+    pointSpotLightPass  = PointSpotLightPass.create(ctx, gbuffer, pointSpotShadowPass, lightingPass.hdrView);
+
     rainPass       = ParticlePass.create(ctx, rainConfig, gbuffer, lightingPass.hdrView);
     snowPass       = ParticlePass.create(ctx, snowConfig, gbuffer, lightingPass.hdrView);
     debugLightPass = DebugLightPass.create(ctx, lightingPass.hdrView, gbuffer.depthView);
@@ -377,6 +434,7 @@ async function main() {
 
     graph = new RenderGraph();
     graph.addPass(shadowPass);
+    graph.addPass(pointSpotShadowPass);
     graph.addPass(geometryPass);
     graph.addPass(skinnedGeometryPass!);
     graph.addPass(firePass);
@@ -387,6 +445,7 @@ async function main() {
     if (cloudPass)       graph.addPass(cloudPass);
     if (skyPass)         graph.addPass(skyPass);
     graph.addPass(lightingPass);
+    graph.addPass(pointSpotLightPass);
     graph.addPass(rainPass);
     graph.addPass(snowPass);
     graph.addPass(debugLightPass);
@@ -504,8 +563,10 @@ async function main() {
 
     cameraControls.update(cameraGO, dt);
 
-    const sunAngle = angle * 0.4;
-    sun.direction.set(Math.cos(sunAngle), -0.8, Math.sin(sunAngle));
+    if (sun) {
+      const sunAngle = angle * 0.4;
+      sun.direction.set(Math.cos(sunAngle), -0.8, Math.sin(sunAngle));
+    }
     scene.update(dt);
 
     const hi = (frameIndex % 16) + 1;
@@ -519,9 +580,10 @@ async function main() {
     const invVP   = vp.invert();
     const invProj = proj.invert();
     const camPos  = camera.position();
-    const cascades = sun.computeCascadeMatrices(camera);
+    const cascades = sun ? sun.computeCascadeMatrices(camera) : [];
 
-    const drawItems: DrawItem[] = scene.collectMeshRenderers().map(mr => {
+    const meshRenderers = scene.collectMeshRenderers();
+    const drawItems: DrawItem[] = meshRenderers.map(mr => {
       const world = mr.gameObject.localToWorld();
       return {
         mesh: mr.mesh,
@@ -531,15 +593,24 @@ async function main() {
       };
     });
 
-    shadowPass.setSceneSnapshot(drawItems.map(d => ({ mesh: d.mesh, modelMatrix: d.modelMatrix })));
-    shadowPass.updateScene(scene, camera, sun);
+    const shadowItems = meshRenderers
+      .filter(mr => mr.castShadow)
+      .map(mr => ({ mesh: mr.mesh, modelMatrix: mr.gameObject.localToWorld() }));
+    shadowPass.setSceneSnapshot(shadowItems);
+    if (sun) shadowPass.updateScene(scene, camera, sun);
+
+    const pointLights = scene.getComponents(PointLight);
+    const spotLights  = scene.getComponents(SpotLight);
+    pointSpotShadowPass?.update(pointLights, spotLights, shadowItems);
+    pointSpotLightPass?.updateCamera(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far);
+    pointSpotLightPass?.updateLights(ctx, pointLights, spotLights);
 
     if (effects.clouds) {
       cloudSettings.windOffset[0] += cloudWindSpeed * cloudWindDir[0] * dt;
       cloudSettings.windOffset[1] += cloudWindSpeed * cloudWindDir[1] * dt;
       cloudShadowPass?.update(ctx, cloudSettings, [0, 0], 60);
       cloudPass?.updateCamera(ctx, invVP, camPos, camera.near, camera.far);
-      cloudPass?.updateLight(ctx, sun.direction, sun.color, sun.intensity);
+      if (sun) cloudPass?.updateLight(ctx, sun.direction, sun.color, sun.intensity);
       cloudPass?.updateSettings(ctx, cloudSettings);
     } else {
       skyPass?.updateCamera(ctx, invVP, camPos);
@@ -573,7 +644,11 @@ async function main() {
     snowPass?.update(ctx, dt, view, proj, vp, invVP, camPos, camera.near, camera.far, snowMat);
 
     lightingPass.updateCamera(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far);
-    lightingPass.updateLight(ctx, sun.direction, sun.color, sun.intensity, cascades, effects.shadows, effects.shd_dbg);
+    if (sun) {
+      lightingPass.updateLight(ctx, sun.direction, sun.color, sun.intensity, cascades, effects.shadows, effects.shd_dbg);
+    } else {
+      lightingPass.updateLight(ctx, new Vec3(0, -1, 0), Vec3.one(), 0, [], false, false);
+    }
     lightingPass.updateCloudShadow(ctx, 0, 0, 60);
 
     ssaoPass.updateCamera(ctx, view, proj, invProj);
@@ -583,7 +658,7 @@ async function main() {
     tonemapPass.updateParams(ctx, effects.aces, effects.ao_dbg, effects.hdr);
 
     // Cone at 7 units "behind" the sun, oriented so local +Y points in sun.direction.
-    {
+    if (sun) {
       const d = new Vec3(sun.direction.x, sun.direction.y, sun.direction.z).normalize();
       const pos = d.scale(-20);
       // Apex is at local +Y; point it away from the scene so the base faces sun.direction.

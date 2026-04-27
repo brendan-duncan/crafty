@@ -40,7 +40,7 @@ fn linear_depth(ndc_depth: f32) -> f32 {
 fn compute_coc(lin_depth: f32) -> f32 {
   return clamp(
     (lin_depth - dof.focus_distance) / max(dof.focus_range, 0.001),
-    -1.0, 1.0
+    0.0, 1.0
   ) * dof.bokeh_radius;
 }
 

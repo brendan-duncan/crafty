@@ -96,7 +96,7 @@ function make3dTexture(device: GPUDevice, label: string, size: number, data: Uin
   });
   device.queue.writeTexture(
     { texture: tex },
-    data,
+    data.buffer as ArrayBuffer,
     { bytesPerRow: size * 4, rowsPerImage: size },
     { width: size, height: size, depthOrArrayLayers: size },
   );

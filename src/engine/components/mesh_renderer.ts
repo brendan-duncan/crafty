@@ -20,6 +20,7 @@ export interface Material {
 export class MeshRenderer extends Component {
   mesh: Mesh;
   material: Material;
+  castShadow = true;
 
   constructor(mesh: Mesh, material: Partial<Material> = {}) {
     super();

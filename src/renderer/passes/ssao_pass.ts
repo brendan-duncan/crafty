@@ -98,7 +98,7 @@ export class SSAOPass extends RenderPass {
     });
     device.queue.writeTexture(
       { texture: noiseTex },
-      generateNoise(),
+      generateNoise().buffer as ArrayBuffer,
       { bytesPerRow: 4 * 4, rowsPerImage: 4 },
       { width: 4, height: 4 },
     );
