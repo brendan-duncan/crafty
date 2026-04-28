@@ -52,7 +52,8 @@ const G_ATM          : f32       = 0.758;
 const BETA_R         : vec3<f32> = vec3<f32>(5.5e-6, 13.0e-6, 22.4e-6);
 const BETA_M_ATM     : f32       = 21.0e-6;
 const SUN_INTENSITY  : f32       = 20.0;
-const SUN_COS_THRESH : f32       = 0.99998;
+const SUN_COS_THRESH  : f32 = 0.999976;  // 10% larger angular radius than default
+const MOON_COS_THRESH : f32 = 0.999978;  //  5% larger angular radius than default
 
 fn ray_sphere(ro: vec3<f32>, rd: vec3<f32>, r: f32) -> vec2<f32> {
   let b = dot(ro, rd);
@@ -248,12 +249,18 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     geo_dist    = distance(geo_pos, camera.position);
   }
 
+  let moon_dir  = -sun_dir;
+  let night_t   = saturate((-sun_dir.y - 0.05) * 10.0);
+
   // Intersect ray with cloud slab
   let slab = ray_slab(camera.position, ray_dir, cloud.cloudBase, cloud.cloudTop);
   if (slab.x < 0.0 || slab.x > geo_dist) {
     var color = sky_color;
     if (dot(ray_dir, sun_dir) > SUN_COS_THRESH && geo_depth >= 1.0) {
       color += sky_transmittance(atm_ro, sun_dir) * 1000.0;
+    }
+    if (dot(ray_dir, moon_dir) > MOON_COS_THRESH && geo_depth >= 1.0) {
+      color += sky_transmittance(atm_ro, moon_dir) * vec3<f32>(0.85, 0.90, 1.0) * 15.0 * night_t;
     }
     return vec4<f32>(color, 1.0);
   }
@@ -300,6 +307,9 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
   var final_color = cloud_color + sky_color * total_trans;
   if (dot(ray_dir, sun_dir) > SUN_COS_THRESH && geo_depth >= 1.0) {
     final_color += sky_transmittance(atm_ro, sun_dir) * total_trans * 1000.0;
+  }
+  if (dot(ray_dir, moon_dir) > MOON_COS_THRESH && geo_depth >= 1.0) {
+    final_color += sky_transmittance(atm_ro, moon_dir) * total_trans * vec3<f32>(0.85, 0.90, 1.0) * 15.0 * night_t;
   }
   return vec4<f32>(final_color, 1.0);
 }

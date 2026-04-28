@@ -16,8 +16,9 @@ const BETA_R : vec3<f32> = vec3<f32>(5.5e-6, 13.0e-6, 22.4e-6);
 const BETA_M : f32 = 21.0e-6;
 // Solar irradiance at top of atmosphere (in renderer HDR units).
 const SUN_INTENSITY : f32 = 20.0;
-// Angular cosine threshold for the visible sun disk (solar radius ≈ 0.267°).
-const SUN_COS_THRESH : f32 = 0.99998;
+// Angular cosine thresholds for sun and moon disks.
+const SUN_COS_THRESH  : f32 = 0.999976;  // 10% larger angular radius than default
+const MOON_COS_THRESH : f32 = 0.999978;  //  5% larger angular radius than default
 
 struct Uniforms {
   invViewProj : mat4x4<f32>,
@@ -148,6 +149,14 @@ fn fs_main(in: VertOut) -> @location(0) vec4<f32> {
   // Sun disk: bright limb attenuated by atmosphere transmittance.
   if (dot(rd, u.sunDir) > SUN_COS_THRESH) {
     color += transmittance(ro, u.sunDir) * 1000.0;
+  }
+
+  // Moon disk: antipodal to the sun, fades in after sunset.
+  // SUN_COS_THRESH gives the same ~0.36° angular radius as the sun.
+  let moonDir = -u.sunDir;
+  if (dot(rd, moonDir) > MOON_COS_THRESH) {
+    let night_t = saturate((-u.sunDir.y - 0.05) * 10.0);
+    color += transmittance(ro, moonDir) * vec3<f32>(0.85, 0.90, 1.0) * 15.0 * night_t;
   }
 
   return vec4<f32>(color, 1.0);

@@ -536,100 +536,88 @@ export class Chunk {
   }
 
   _generateBlock(p_x: number, p_y: number, p_z: number, seed: number): number {
-    const surfaceHeight = this._calculateSurfaceHeight(p_x, p_y, p_z, seed);
-    let block = BlockType.NONE;
+    const biome = this._determineBiome(p_x, p_z, seed);
+    const surfaceHeight = this._calculateSurfaceHeight(p_x, p_y, p_z, seed, biome);
 
     if (p_y < surfaceHeight) {
-      block = BlockType.STONE;
+      return this._generateBlockBasedOnBiome(biome, p_x, p_y, p_z, surfaceHeight);
     } else if (p_y < Chunk.WATER_HEIGHT + 1) {
-      block = BlockType.WATER;
-    } else {
-      block = BlockType.NONE;
+      return BlockType.WATER;
     }
-
-    if (block == BlockType.STONE) {
-      let biome = this._determineBiome(p_x, p_y, p_z, seed);
-      biome = BiomeType.GrassyPlains;
-      block = this._generateBlockBasedOnBiome(biome, p_x, p_y, p_z, surfaceHeight);
-    }
-
-    return block;
+    return BlockType.NONE;
   }
 
   _generateBlockBasedOnBiome(biome: BiomeType, p_x: number, p_y: number, p_z: number, surfaceHeight: number): BlockType {
-    const noise_3d = Math.abs(perlinTurbulenceNoise3(p_x / 256.0, p_y / 256.0, p_z / 256.0, 2.0, 0.6, 1)) * 35;
-    const both = noise_3d;
+    const depth = Math.floor(surfaceHeight) - p_y; // 0 = surface block, 1 = one below, etc.
+    const aboveWater = surfaceHeight > Chunk.WATER_HEIGHT;
+
     switch (biome) {
-      case BiomeType.SnowyMountains: {
-        if (both > 50) {
-          return BlockType.SNOW;
-        } else if (both * 2 > 60) {
-          return BlockType.GRASS_SNOW;
-        }
-        break;
-      }
-      case BiomeType.SnowyPlains: {
-        if (both > 25) {
-          return BlockType.SNOW;
-        } else {
-          return BlockType.GRASS_SNOW;
-        }
-        break;
-      }
-      case BiomeType.RockyMountains: {
-        if (both > 5) {
-          return BlockType.STONE;
-        } else if (both > 4) {
-          return BlockType.SNOW;
-        } else {
-          return BlockType.DIRT;
-        }
+      case BiomeType.GrassyPlains: {
+        if (depth === 0) return aboveWater ? BlockType.GRASS : BlockType.DIRT;
+        if (depth <= 3)  return BlockType.DIRT;
+        return BlockType.STONE;
       }
       case BiomeType.Desert: {
-        return BlockType.SAND;
+        if (depth <= 3) return BlockType.SAND;
+        return BlockType.STONE;
       }
-      case BiomeType.GrassyPlains: {
-        const depth = Math.floor(surfaceHeight) - p_y; // 0 = top surface block
-        const aboveWater = surfaceHeight > Chunk.WATER_HEIGHT;
+      case BiomeType.SnowyPlains: {
+        if (depth === 0) return BlockType.GRASS_SNOW;
+        if (depth <= 2)  return BlockType.SNOW;
+        return BlockType.STONE;
+      }
+      case BiomeType.SnowyMountains: {
+        if (depth === 0) return BlockType.GRASS_SNOW;
+        if (depth <= 4)  return BlockType.SNOW;
+        return BlockType.STONE;
+      }
+      case BiomeType.RockyMountains: {
+        // Rare snow patches on exposed peaks
         if (depth === 0) {
-          return aboveWater ? BlockType.GRASS : BlockType.DIRT;
-        } else if (depth <= 3) {
-          return BlockType.DIRT;
-        } else {
-          return BlockType.STONE;
+          const patch = Math.abs(perlinTurbulenceNoise3(p_x / 64.0, p_y / 64.0, p_z / 64.0, 2.0, 0.6, 1));
+          if (aboveWater && patch < 0.12) return BlockType.SNOW;
         }
+        return BlockType.STONE;
       }
-      default: {
+      default:
         return BlockType.GRASS;
-      }
     }
-    return BlockType.GRASS;
   }
 
-  _determineBiome(p_x: number, p_y: number, p_z: number, seed: number): BiomeType {
-    const noise = Math.abs(perlinNoise3Seed(p_x / 512.0, p_y / 2048.0, p_z / 512.0, 0, 0, 0, seed) * 20);
+  // Biome is determined from 2D (x, z) position only — y has no influence.
+  // Uses three independent noise fields: temperature, moisture, and elevation.
+  _determineBiome(p_x: number, p_z: number, seed: number): BiomeType {
+    const temperature = perlinNoise3Seed(p_x / 512.0, 0, p_z / 512.0, 0, 0, 0, seed + 31337);
+    const moisture    = perlinNoise3Seed(p_x / 400.0, 0, p_z / 400.0, 0, 0, 0, seed + 99991);
+    const elevation   = Math.abs(perlinNoise3Seed(p_x / 800.0, 0, p_z / 800.0, 0, 0, 0, seed + 7919));
 
-    if (noise > 8.0) {
-      return BiomeType.RockyMountains;
-    } else if (noise > 4.0) {
-      return BiomeType.SnowyMountains;
-    } else if (noise > 2.8) {
-      return BiomeType.SnowyPlains;
-    } else if (noise > 0.5) {
-      return BiomeType.GrassyPlains;
+    if (elevation > 0.48) {
+      return temperature < 0.1 ? BiomeType.SnowyMountains : BiomeType.RockyMountains;
     }
+    if (temperature < -0.28) return BiomeType.SnowyPlains;
+    if (temperature > 0.32 && moisture < 0.0) return BiomeType.Desert;
     return BiomeType.GrassyPlains;
   }
 
-  _calculateSurfaceHeight(p_x: number, p_y: number, p_z: number, seed: number): number {
+  _calculateSurfaceHeight(p_x: number, p_y: number, p_z: number, seed: number, biome: BiomeType = BiomeType.GrassyPlains): number {
     this._calculateContinentalness(p_x, p_z);
 
-    const surfaceHeightMultiplier = Math.abs(perlinNoise3Seed(p_x / 1024.0, 0, p_z / 1024.0, 0, 0, 0, seed) * 450);
+    // Scale terrain amplitude and base offset per biome so each has a distinct feel.
+    let amplitudeScale = 1.0;
+    let baseOffset     = 0.0;
+    switch (biome) {
+      case BiomeType.SnowyMountains: amplitudeScale = 2.0; baseOffset = 16; break;
+      case BiomeType.RockyMountains: amplitudeScale = 1.7; baseOffset = 10; break;
+      case BiomeType.SnowyPlains:    amplitudeScale = 0.75; break;
+      case BiomeType.Desert:         amplitudeScale = 0.35; baseOffset = 2; break;
+      default:                       amplitudeScale = 1.0; break;
+    }
+
+    const surfaceHeightMultiplier = Math.abs(perlinNoise3Seed(p_x / 1024.0, 0, p_z / 1024.0, 0, 0, 0, seed) * 450) * amplitudeScale;
     let surfaceHeight = Math.abs(perlinNoise3Seed(p_x / 256.0, p_y / 512.0, p_z / 256.0, 0, 0, 0, seed) * surfaceHeightMultiplier);
     const flatness = perlinRidgeNoise3(p_x / 256.0, 0, p_z / 256.0, 2.0, 0.6, 1.2, 6) * 12;
 
-    surfaceHeight += flatness;
-
+    surfaceHeight += flatness + baseOffset;
     return surfaceHeight;
   }
 
