@@ -168,11 +168,11 @@ function applyJitter(vp: Mat4, jx: number, jy: number): Mat4 {
 function createControlPanel(
   effects: Record<string, boolean>,
   onChange: (key: string) => void,
+  container: HTMLElement,
 ): HTMLDivElement {
   const panel = document.createElement('div');
   panel.style.cssText = [
-    'position:fixed', 'top:12px', 'left:12px',
-    'display:flex', 'flex-direction:column', 'gap:6px',
+    'display:flex', 'flex-wrap:wrap', 'gap:8px', 'justify-content:center',
     'font-family:ui-monospace,monospace', 'font-size:13px',
     'user-select:none',
   ].join(';');
@@ -201,7 +201,7 @@ function createControlPanel(
     panel.appendChild(btn);
   }
 
-  document.body.appendChild(panel);
+  container.appendChild(panel);
   return panel;
 }
 
@@ -438,16 +438,6 @@ async function main(): Promise<void> {
 
   // --- UI ---
 
-  /*const hint = document.createElement('div');
-  hint.textContent = 'Click to look around  ·  WASD move  ·  Space / Shift up / down';
-  hint.style.cssText = [
-    'position:fixed', 'bottom:16px', 'left:50%', 'transform:translateX(-50%)',
-    'padding:6px 14px', 'border-radius:4px',
-    'background:rgba(0,0,0,0.55)', 'color:#ccc',
-    'font-family:ui-monospace,monospace', 'font-size:12px',
-    'pointer-events:none', 'transition:opacity 0.3s',
-  ].join(';');
-  document.body.appendChild(hint);*/
   const reticle = document.createElement('div');
   reticle.style.cssText = [
     'position:fixed', 'top:50%', 'left:50%',
@@ -471,6 +461,64 @@ async function main(): Promise<void> {
   ].join(';');
   document.body.appendChild(fpsEl);
 
+  // --- Menu overlay ---
+
+  const menuOverlay = document.createElement('div');
+  menuOverlay.style.cssText = [
+    'position:fixed', 'inset:0', 'z-index:100',
+    'background:rgba(0,0,0,0.78)',
+    'display:none', 'align-items:center', 'justify-content:center',
+    'font-family:ui-monospace,monospace',
+  ].join(';');
+  document.body.appendChild(menuOverlay);
+
+  const menuCard = document.createElement('div');
+  menuCard.style.cssText = [
+    'display:flex', 'flex-direction:column', 'align-items:center', 'gap:24px',
+    'padding:48px 56px',
+    'background:rgba(255,255,255,0.04)',
+    'border:1px solid rgba(255,255,255,0.12)',
+    'border-radius:12px',
+    'max-width:520px', 'width:90%',
+  ].join(';');
+  menuOverlay.appendChild(menuCard);
+
+  const menuTitle = document.createElement('h1');
+  menuTitle.textContent = 'CRAFTY';
+  menuTitle.style.cssText = [
+    'margin:0', 'font-size:52px', 'font-weight:900',
+    'color:#fff', 'letter-spacing:0.12em',
+    'text-shadow:0 0 48px rgba(100,200,255,0.45)',
+    'font-family:ui-monospace,monospace',
+  ].join(';');
+  menuCard.appendChild(menuTitle);
+
+  const resumeBtn = document.createElement('button');
+  resumeBtn.textContent = 'Resume';
+  resumeBtn.style.cssText = [
+    'padding:10px 40px', 'font-size:15px', 'font-family:ui-monospace,monospace',
+    'background:#1a3a1a', 'color:#5f5',
+    'border:1px solid #5f5', 'border-radius:6px',
+    'cursor:pointer', 'letter-spacing:0.06em',
+    'transition:background 0.15s',
+  ].join(';');
+  resumeBtn.addEventListener('mouseenter', () => { resumeBtn.style.background = '#243e24'; });
+  resumeBtn.addEventListener('mouseleave', () => { resumeBtn.style.background = '#1a3a1a'; });
+  resumeBtn.addEventListener('click', () => canvas.requestPointerLock());
+  menuCard.appendChild(resumeBtn);
+
+  const sep = document.createElement('div');
+  sep.style.cssText = 'width:100%;height:1px;background:rgba(255,255,255,0.12)';
+  menuCard.appendChild(sep);
+
+  const effectsLabel = document.createElement('div');
+  effectsLabel.textContent = 'EFFECTS';
+  effectsLabel.style.cssText = [
+    'color:rgba(255,255,255,0.35)', 'font-size:11px',
+    'letter-spacing:0.18em', 'align-self:flex-start',
+  ].join(';');
+  menuCard.appendChild(effectsLabel);
+
   createControlPanel(effects, (key) => {
     if (key === 'ssao')    return;
     if (key === 'ssgi')    return;
@@ -483,6 +531,42 @@ async function main(): Promise<void> {
     if (key === 'rain')     { buildRenderTargets(); return; }
     if (key === 'clouds')   { buildRenderTargets(); return; }
     buildRenderTargets();
+  }, menuCard);
+
+  const escHint = document.createElement('div');
+  escHint.textContent = 'ESC  ·  resume';
+  escHint.style.cssText = [
+    'color:rgba(255,255,255,0.25)', 'font-size:11px', 'letter-spacing:0.1em',
+  ].join(';');
+  menuCard.appendChild(escHint);
+
+  let menuOpenedAt = 0;
+
+  function openMenu(): void {
+    menuOpenedAt = performance.now();
+    menuOverlay.style.display = 'flex';
+    reticle.style.display = 'none';
+  }
+
+  function closeMenu(): void {
+    menuOverlay.style.display = 'none';
+    reticle.style.display = '';
+  }
+
+  document.addEventListener('pointerlockchange', () => {
+    if (document.pointerLockElement === canvas) closeMenu();
+    else openMenu();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'Escape' && menuOverlay.style.display !== 'none') {
+      // When ESC exits pointer lock, pointerlockchange and keydown can fire in either
+      // order. If pointerlockchange fires first the menu is already open when keydown
+      // arrives — the 200ms guard prevents that same ESC from immediately closing it.
+      if (performance.now() - menuOpenedAt < 200) return;
+      closeMenu();
+      canvas.requestPointerLock();
+    }
   });
 
   const resizeObserver = new ResizeObserver(() => {
@@ -591,7 +675,7 @@ async function main(): Promise<void> {
       0.03 + 0.52 * dayT,   // night: 0.03, noon: 0.55
       0.05 + 0.65 * dayT,   // night: 0.05, noon: 0.7
     ];
-    const cloudSettings = { cloudBase: 35, cloudTop: 55, coverage: 0.88, density: 1.0,
+    const cloudSettings = { cloudBase: 35, cloudTop: 55, coverage: 0.88, density: 4.0,
       windOffset: [cloudWindX, cloudWindZ] as [number, number],
       anisotropy: 0.85, extinction: 0.25, ambientColor: cloudAmbient, exposure: 1.0 };
     if (cloudShadowPass) cloudShadowPass.update(ctx, cloudSettings, [camPos.x, camPos.z], 128);

@@ -121,7 +121,7 @@ export class BlockHighlightPass extends RenderPass {
       depthStencilAttachment: {
         view        : this._depthView,
         depthLoadOp : 'load',
-        depthStoreOp: 'discard',
+        depthStoreOp: 'store',
       },
     });
 
