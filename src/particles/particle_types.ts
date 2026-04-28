@@ -25,7 +25,8 @@ export type ModifierNode =
   | { type: 'size_random';         min: number; max: number }
   | { type: 'size_over_lifetime';  start: number; end: number }
   | { type: 'color_over_lifetime'; startColor: [number, number, number, number];
-                                   endColor:   [number, number, number, number] };
+                                   endColor:   [number, number, number, number] }
+  | { type: 'block_collision' };
 
 export type RenderNode =
   | { type: 'sprites'; blendMode: 'additive' | 'alpha'; billboard: 'camera' | 'velocity'; renderTarget?: 'gbuffer' | 'hdr' }

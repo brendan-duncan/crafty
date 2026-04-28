@@ -5,7 +5,10 @@ import { RenderPass } from '../render_pass.js';
 import type { RenderContext } from '../render_context.js';
 import type { Chunk, ChunkMesh } from '../../block/chunk.js';
 import type { CascadeData } from '../../engine/components/directional_light.js';
-import shadowWgsl from '../../shaders/shadow.wgsl?raw';
+import type { BlockTexture } from '../../assets/block_texture.js';
+import { blockTextureOffsetData, BlockType, BLOCK_ATLAS_WIDTH_DIVIDED } from '../../block/block_type.js';
+import shadowWgsl      from '../../shaders/shadow.wgsl?raw';
+import chunkShadowWgsl from '../../shaders/chunk_shadow.wgsl?raw';
 
 const MAX_CASCADES    = 4;
 const BYTES_PER_VERT  = 5 * 4;  // [x,y,z,face,blockType] — shadow shader only reads xyz
@@ -22,33 +25,39 @@ interface ChunkShadowGpu {
 export class WorldShadowPass extends RenderPass {
   readonly name = 'WorldShadowPass';
 
-  private _device             : GPUDevice;
-  private _shadowMapArrayViews: GPUTextureView[];
-  private _pipeline           : GPURenderPipeline;
-  private _cascadeBGs         : GPUBindGroup[];
-  private _cascadeBuffers     : GPUBuffer[];
-  private _modelBGL           : GPUBindGroupLayout;
-  private _chunks             = new Map<Chunk, ChunkShadowGpu>();
-  private _cascades           : CascadeData[] = [];
+  private _device              : GPUDevice;
+  private _shadowMapArrayViews : GPUTextureView[];
+  private _pipeline            : GPURenderPipeline;
+  private _transparentPipeline : GPURenderPipeline;
+  private _cascadeBGs          : GPUBindGroup[];
+  private _cascadeBuffers      : GPUBuffer[];
+  private _modelBGL            : GPUBindGroupLayout;
+  private _atlasBG             : GPUBindGroup;
+  private _chunks              = new Map<Chunk, ChunkShadowGpu>();
+  private _cascades            : CascadeData[] = [];
 
   private constructor(
     device             : GPUDevice,
     shadowMapArrayViews: GPUTextureView[],
     pipeline           : GPURenderPipeline,
+    transparentPipeline: GPURenderPipeline,
     cascadeBGs         : GPUBindGroup[],
     cascadeBuffers     : GPUBuffer[],
     modelBGL           : GPUBindGroupLayout,
+    atlasBG            : GPUBindGroup,
   ) {
     super();
     this._device              = device;
     this._shadowMapArrayViews = shadowMapArrayViews;
     this._pipeline            = pipeline;
+    this._transparentPipeline = transparentPipeline;
     this._cascadeBGs          = cascadeBGs;
     this._cascadeBuffers      = cascadeBuffers;
     this._modelBGL            = modelBGL;
+    this._atlasBG             = atlasBG;
   }
 
-  static create(ctx: RenderContext, shadowMapArrayViews: GPUTextureView[], cascadeCount: number): WorldShadowPass {
+  static create(ctx: RenderContext, shadowMapArrayViews: GPUTextureView[], cascadeCount: number, blockTexture: BlockTexture): WorldShadowPass {
     const { device } = ctx;
 
     const cascadeBGL = device.createBindGroupLayout({
@@ -59,6 +68,14 @@ export class WorldShadowPass extends RenderPass {
       label: 'WorldShadowModelBGL',
       entries: [{ binding: 0, visibility: GPUShaderStage.VERTEX, buffer: { type: 'uniform' } }],
     });
+    const atlasBGL = device.createBindGroupLayout({
+      label: 'WorldShadowAtlasBGL',
+      entries: [
+        { binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } },
+        { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } },
+        { binding: 2, visibility: GPUShaderStage.FRAGMENT, buffer: { type: 'read-only-storage' } },
+      ],
+    });
 
     const cascadeBuffers: GPUBuffer[] = [];
     const cascadeBGs: GPUBindGroup[] = [];
@@ -68,15 +85,46 @@ export class WorldShadowPass extends RenderPass {
       cascadeBGs.push(device.createBindGroup({ label: `WorldShadowCascadeBG${i}`, layout: cascadeBGL, entries: [{ binding: 0, resource: { buffer: buf } }] }));
     }
 
-    const shader = device.createShaderModule({ label: 'WorldShadowShader', code: shadowWgsl });
-    const layout = device.createPipelineLayout({ bindGroupLayouts: [cascadeBGL, modelBGL] });
+    // Block data buffer: sideTile, bottomTile, topTile, pad per block type
+    const numBlocks    = BlockType.MAX as number;
+    const blockDataBuf = device.createBuffer({
+      label: 'WorldShadowBlockDataBuf',
+      size : Math.max(numBlocks * 16, 16),
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+    });
+    const COLS     = BLOCK_ATLAS_WIDTH_DIVIDED;
+    const blockArr = new Uint32Array(numBlocks * 4);
+    for (let bt = 0; bt < numBlocks; bt++) {
+      const tod = blockTextureOffsetData[bt];
+      if (tod) {
+        blockArr[bt * 4 + 0] = tod.sideFace.y   * COLS + tod.sideFace.x;
+        blockArr[bt * 4 + 1] = tod.bottomFace.y * COLS + tod.bottomFace.x;
+        blockArr[bt * 4 + 2] = tod.topFace.y    * COLS + tod.topFace.x;
+      }
+    }
+    device.queue.writeBuffer(blockDataBuf, 0, blockArr);
 
-    // Read only xyz (3×f32) from the 5-float chunk vertex; skip face+blockType via stride.
+    const atlasSampler = device.createSampler({
+      label: 'WorldShadowAtlasSampler',
+      magFilter: 'nearest', minFilter: 'nearest',
+    });
+    const atlasBG = device.createBindGroup({
+      label: 'WorldShadowAtlasBG', layout: atlasBGL,
+      entries: [
+        { binding: 0, resource: blockTexture.colorAtlas.view },
+        { binding: 1, resource: atlasSampler },
+        { binding: 2, resource: { buffer: blockDataBuf } },
+      ],
+    });
+
+    // Opaque pipeline: depth-only, no fragment shader, reads only xyz.
+    const opaqueShader = device.createShaderModule({ label: 'WorldShadowShader', code: shadowWgsl });
+    const opaqueLayout = device.createPipelineLayout({ bindGroupLayouts: [cascadeBGL, modelBGL] });
     const pipeline = device.createRenderPipeline({
       label   : 'WorldShadowPipeline',
-      layout,
+      layout  : opaqueLayout,
       vertex  : {
-        module: shader, entryPoint: 'vs_main',
+        module: opaqueShader, entryPoint: 'vs_main',
         buffers: [{
           arrayStride: BYTES_PER_VERT,
           attributes : [{ shaderLocation: 0, offset: 0, format: 'float32x3' }],
@@ -86,7 +134,29 @@ export class WorldShadowPass extends RenderPass {
       primitive   : { topology: 'triangle-list', cullMode: 'back' },
     });
 
-    return new WorldShadowPass(device, shadowMapArrayViews, pipeline, cascadeBGs, cascadeBuffers, modelBGL);
+    // Transparent pipeline: reads xyz + face + blockType, discards low-alpha texels.
+    const transpShader = device.createShaderModule({ label: 'WorldShadowTranspShader', code: chunkShadowWgsl });
+    const transpLayout = device.createPipelineLayout({ bindGroupLayouts: [cascadeBGL, modelBGL, atlasBGL] });
+    const transparentPipeline = device.createRenderPipeline({
+      label   : 'WorldShadowTransparentPipeline',
+      layout  : transpLayout,
+      vertex  : {
+        module: transpShader, entryPoint: 'vs_main',
+        buffers: [{
+          arrayStride: BYTES_PER_VERT,
+          attributes : [
+            { shaderLocation: 0, offset:  0, format: 'float32x3' },
+            { shaderLocation: 1, offset: 12, format: 'float32'   },
+            { shaderLocation: 2, offset: 16, format: 'float32'   },
+          ],
+        }],
+      },
+      fragment    : { module: transpShader, entryPoint: 'fs_alpha_test', targets: [] },
+      depthStencil: { format: 'depth32float', depthWriteEnabled: true, depthCompare: 'less' },
+      primitive   : { topology: 'triangle-list', cullMode: 'none' },
+    });
+
+    return new WorldShadowPass(device, shadowMapArrayViews, pipeline, transparentPipeline, cascadeBGs, cascadeBuffers, modelBGL, atlasBG);
   }
 
   // Feed cascade data from main.ts (same array returned by sun.computeCascadeMatrices).
@@ -137,19 +207,25 @@ export class WorldShadowPass extends RenderPass {
           depthStoreOp: 'store',
         },
       });
-      pass.setPipeline(this._pipeline);
       pass.setBindGroup(0, this._cascadeBGs[c]);
 
+      // Opaque geometry: depth-only pipeline, no fragment shader.
+      pass.setPipeline(this._pipeline);
       for (const gpu of this._chunks.values()) {
+        if (!gpu.opaqueBuffer || gpu.opaqueCount === 0) continue;
         pass.setBindGroup(1, gpu.modelBG);
-        if (gpu.opaqueBuffer && gpu.opaqueCount > 0) {
-          pass.setVertexBuffer(0, gpu.opaqueBuffer);
-          pass.draw(gpu.opaqueCount);
-        }
-        if (gpu.transparentBuffer && gpu.transparentCount > 0) {
-          pass.setVertexBuffer(0, gpu.transparentBuffer);
-          pass.draw(gpu.transparentCount);
-        }
+        pass.setVertexBuffer(0, gpu.opaqueBuffer);
+        pass.draw(gpu.opaqueCount);
+      }
+
+      // Transparent geometry: alpha-test pipeline, samples atlas to discard.
+      pass.setPipeline(this._transparentPipeline);
+      pass.setBindGroup(2, this._atlasBG);
+      for (const gpu of this._chunks.values()) {
+        if (!gpu.transparentBuffer || gpu.transparentCount === 0) continue;
+        pass.setBindGroup(1, gpu.modelBG);
+        pass.setVertexBuffer(0, gpu.transparentBuffer);
+        pass.draw(gpu.transparentCount);
       }
 
       pass.end();

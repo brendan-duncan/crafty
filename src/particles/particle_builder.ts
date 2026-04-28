@@ -198,6 +198,17 @@ function modifierWgsl(mod: ModifierNode): string {
       const [er, eg, eb, ea] = mod.endColor.map(v => v.toFixed(6));
       return `p.color = mix(vec4<f32>(${sr}, ${sg}, ${sb}, ${sa}), vec4<f32>(${er}, ${eg}, ${eb}, ${ea}), t);`;
     }
+    case 'block_collision':
+      return `{
+  let _bc_uv = (p.position.xz - vec2<f32>(hm.origin_x, hm.origin_z)) / (hm.extent * 2.0) + 0.5;
+  if (all(_bc_uv >= vec2<f32>(0.0)) && all(_bc_uv <= vec2<f32>(1.0))) {
+    let _bc_xi = clamp(u32(_bc_uv.x * f32(hm.resolution)), 0u, hm.resolution - 1u);
+    let _bc_zi = clamp(u32(_bc_uv.y * f32(hm.resolution)), 0u, hm.resolution - 1u);
+    if (p.position.y <= hm_data[_bc_zi * hm.resolution + _bc_xi]) {
+      particles[idx].life = -1.0; return;
+    }
+  }
+}`;
   }
 }
 
@@ -256,14 +267,33 @@ fn cs_main(@builtin(global_invocation_id) gid: vec3<u32>) {
 `;
 }
 
+export function hasBlockCollision(config: ParticleGraphConfig): boolean {
+  return config.modifiers.some(m => m.type === 'block_collision');
+}
+
+// ---- Heightmap bindings (injected when block_collision is present) ---------------
+
+const HEIGHTMAP_WGSL = /* wgsl */`
+struct HeightmapUniforms {
+  origin_x  : f32,
+  origin_z  : f32,
+  extent    : f32,
+  resolution: u32,
+}
+@group(2) @binding(0) var<storage, read> hm_data: array<f32>;
+@group(2) @binding(1) var<uniform>       hm     : HeightmapUniforms;
+`;
+
 // ---- Update compute shader ------------------------------------------------------
 
 export function buildUpdateShader(config: ParticleGraphConfig): string {
+  const hasBlockCollision = config.modifiers.some(m => m.type === 'block_collision');
   const modifierCode = config.modifiers.map(modifierWgsl).join('\n  ');
   const onDeathCode  = eventActionsWgsl(config.events, 'on_death');
 
   return /* wgsl */`
 ${PARTICLE_HEADER_WGSL}
+${hasBlockCollision ? HEIGHTMAP_WGSL : ''}
 
 @group(0) @binding(0) var<storage, read_write> particles  : array<Particle>;
 @group(0) @binding(1) var<storage, read_write> alive_list : array<u32>;

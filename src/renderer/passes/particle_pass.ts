@@ -1,7 +1,7 @@
 import { RenderPass } from '../render_pass.js';
 import type { RenderContext } from '../render_context.js';
 import type { GBuffer } from '../gbuffer.js';
-import { buildSpawnShader, buildUpdateShader } from '../../particles/particle_builder.js';
+import { buildSpawnShader, buildUpdateShader, hasBlockCollision } from '../../particles/particle_builder.js';
 import type { ParticleGraphConfig } from '../../particles/particle_types.js';
 import type { Mat4 } from '../../math/mat4.js';
 import compactWgsl from '../../shaders/particles/particle_compact.wgsl?raw';
@@ -9,11 +9,13 @@ import renderWgsl from '../../shaders/particles/particle_render.wgsl?raw';
 import renderForwardWgsl from '../../shaders/particles/particle_render_forward.wgsl?raw';
 import { HDR_FORMAT } from './lighting_pass.js';
 
-const PARTICLE_STRIDE  = 64;
-const COMPUTE_UNI_SIZE = 80;   // ComputeUniforms: 20 × f32
-const COMPACT_UNI_SIZE = 16;
-const RENDER_UNI_SIZE  = 16;
-const CAMERA_UNI_SIZE  = 288;
+const PARTICLE_STRIDE   = 64;
+const COMPUTE_UNI_SIZE  = 80;   // ComputeUniforms: 20 × f32
+const COMPACT_UNI_SIZE  = 16;
+const RENDER_UNI_SIZE   = 16;
+const CAMERA_UNI_SIZE   = 288;
+const HEIGHTMAP_UNI_SIZE = 16;  // HeightmapUniforms: origin_x, origin_z, extent, resolution
+const HEIGHTMAP_RES     = 128;  // Fixed heightmap resolution for block_collision
 
 export class ParticlePass extends RenderPass {
   readonly name = 'ParticlePass';
@@ -46,6 +48,11 @@ export class ParticlePass extends RenderPass {
   private readonly _cameraRenderBG : GPUBindGroup;
   private readonly _renderParamsBG : GPUBindGroup | undefined;
 
+  // block_collision heightmap (optional)
+  private readonly _heightmapDataBuf: GPUBuffer | undefined;
+  private readonly _heightmapUniBuf : GPUBuffer | undefined;
+  private          _heightmapBG     : GPUBindGroup | undefined;
+
   private _spawnAccum  = 0;
   private _spawnOffset = 0;
   private _spawnCount  = 0;
@@ -77,32 +84,38 @@ export class ParticlePass extends RenderPass {
     renderDataBG: GPUBindGroup,
     cameraRenderBG: GPUBindGroup,
     renderParamsBG: GPUBindGroup | undefined,
+    heightmapDataBuf: GPUBuffer | undefined,
+    heightmapUniBuf : GPUBuffer | undefined,
+    heightmapBG     : GPUBindGroup | undefined,
   ) {
     super();
-    this._gbuffer         = gbuffer;
-    this._hdrView         = hdrView;
-    this._isForward       = isForward;
-    this._config          = config;
-    this._maxParticles    = maxParticles;
-    this._particleBuffer  = particleBuffer;
-    this._aliveList       = aliveList;
-    this._counterBuffer   = counterBuffer;
-    this._indirectBuffer  = indirectBuffer;
-    this._computeUniforms = computeUniforms;
-    this._renderUniforms  = renderUniforms;
-    this._cameraBuffer    = cameraBuffer;
-    this._spawnPipeline   = spawnPipeline;
-    this._updatePipeline  = updatePipeline;
-    this._compactPipeline = compactPipeline;
+    this._gbuffer          = gbuffer;
+    this._hdrView          = hdrView;
+    this._isForward        = isForward;
+    this._config           = config;
+    this._maxParticles     = maxParticles;
+    this._particleBuffer   = particleBuffer;
+    this._aliveList        = aliveList;
+    this._counterBuffer    = counterBuffer;
+    this._indirectBuffer   = indirectBuffer;
+    this._computeUniforms  = computeUniforms;
+    this._renderUniforms   = renderUniforms;
+    this._cameraBuffer     = cameraBuffer;
+    this._spawnPipeline    = spawnPipeline;
+    this._updatePipeline   = updatePipeline;
+    this._compactPipeline  = compactPipeline;
     this._indirectPipeline = indirectPipeline;
-    this._renderPipeline  = renderPipeline;
-    this._computeDataBG   = computeDataBG;
-    this._computeUniBG    = computeUniBG;
-    this._compactDataBG   = compactDataBG;
-    this._compactUniBG    = compactUniBG;
-    this._renderDataBG    = renderDataBG;
-    this._cameraRenderBG  = cameraRenderBG;
-    this._renderParamsBG  = renderParamsBG;
+    this._renderPipeline   = renderPipeline;
+    this._computeDataBG    = computeDataBG;
+    this._computeUniBG     = computeUniBG;
+    this._compactDataBG    = compactDataBG;
+    this._compactUniBG     = compactUniBG;
+    this._renderDataBG     = renderDataBG;
+    this._cameraRenderBG   = cameraRenderBG;
+    this._renderParamsBG   = renderParamsBG;
+    this._heightmapDataBuf = heightmapDataBuf;
+    this._heightmapUniBuf  = heightmapUniBuf;
+    this._heightmapBG      = heightmapBG;
   }
 
   static create(ctx: RenderContext, config: ParticleGraphConfig, gbuffer: GBuffer, hdrView?: GPUTextureView): ParticlePass {
@@ -278,11 +291,49 @@ export class ParticlePass extends RenderPass {
       entries: [{ binding: 0, resource: { buffer: renderUniforms } }],
     });
 
+    // ---- block_collision heightmap resources -----------------------------------
+
+    let heightmapDataBuf: GPUBuffer | undefined;
+    let heightmapUniBuf : GPUBuffer | undefined;
+    let heightmapBG     : GPUBindGroup | undefined;
+    let heightmapBGL    : GPUBindGroupLayout | undefined;
+
+    if (hasBlockCollision(config)) {
+      heightmapDataBuf = device.createBuffer({
+        label: 'ParticleHeightmapData',
+        size: HEIGHTMAP_RES * HEIGHTMAP_RES * 4,
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+      });
+      heightmapUniBuf = device.createBuffer({
+        label: 'ParticleHeightmapUniforms',
+        size: HEIGHTMAP_UNI_SIZE,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+      });
+      heightmapBGL = device.createBindGroupLayout({
+        label: 'ParticleHeightmapBGL',
+        entries: [
+          { binding: 0, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'read-only-storage' } },
+          { binding: 1, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'uniform' } },
+        ],
+      });
+      heightmapBG = device.createBindGroup({
+        label: 'ParticleHeightmapBG',
+        layout: heightmapBGL,
+        entries: [
+          { binding: 0, resource: { buffer: heightmapDataBuf } },
+          { binding: 1, resource: { buffer: heightmapUniBuf  } },
+        ],
+      });
+    }
+
     // ---- Pipelines -------------------------------------------------------------
 
-    const computeLayout = device.createPipelineLayout({
+    const spawnLayout = device.createPipelineLayout({
       bindGroupLayouts: [computeDataBGL, computeUniBGL],
     });
+    const updateLayout = heightmapBGL
+      ? device.createPipelineLayout({ bindGroupLayouts: [computeDataBGL, computeUniBGL, heightmapBGL] })
+      : device.createPipelineLayout({ bindGroupLayouts: [computeDataBGL, computeUniBGL] });
     const compactComputeLayout = device.createPipelineLayout({
       bindGroupLayouts: [compactDataBGL, computeUniBGL],
     });
@@ -293,12 +344,12 @@ export class ParticlePass extends RenderPass {
 
     const spawnPipeline = device.createComputePipeline({
       label: 'ParticleSpawnPipeline',
-      layout: computeLayout,
+      layout: spawnLayout,
       compute: { module: spawnModule, entryPoint: 'cs_main' },
     });
     const updatePipeline = device.createComputePipeline({
       label: 'ParticleUpdatePipeline',
-      layout: computeLayout,
+      layout: updateLayout,
       compute: { module: updateModule, entryPoint: 'cs_main' },
     });
     const compactPipeline = device.createComputePipeline({
@@ -375,7 +426,21 @@ export class ParticlePass extends RenderPass {
       compactDataBG, compactUniBG,
       renderDataBG, cameraRenderBG,
       isForward ? undefined : renderParamsBG,
+      heightmapDataBuf, heightmapUniBuf, heightmapBG,
     );
+  }
+
+  // Upload a new heightmap. heights[z * HEIGHTMAP_RES + x] = top block Y at that cell.
+  // originX/Z: world-space XZ centre of the covered area. extent: half-size in blocks.
+  updateHeightmap(ctx: RenderContext, heights: Float32Array, originX: number, originZ: number, extent: number): void {
+    if (!this._heightmapDataBuf || !this._heightmapUniBuf) return;
+    ctx.queue.writeBuffer(this._heightmapDataBuf, 0, heights.buffer as ArrayBuffer);
+    const uni  = new Float32Array(3);
+    const uniU = new Uint32Array(uni.buffer);
+    uni[0] = originX; uni[1] = originZ; uni[2] = extent;
+    // Write first 3 floats then the u32 resolution separately to avoid aliasing.
+    ctx.queue.writeBuffer(this._heightmapUniBuf, 0, uni.buffer as ArrayBuffer);
+    ctx.queue.writeBuffer(this._heightmapUniBuf, 12, new Uint32Array([HEIGHTMAP_RES]));
   }
 
   update(
@@ -467,6 +532,7 @@ export class ParticlePass extends RenderPass {
     compute.setPipeline(this._updatePipeline);
     compute.setBindGroup(0, this._computeDataBG);
     compute.setBindGroup(1, this._computeUniBG);
+    if (this._heightmapBG) compute.setBindGroup(2, this._heightmapBG);
     compute.dispatchWorkgroups(Math.ceil(this._maxParticles / 64));
 
     // Compact: scan all slots, rebuild alive_list and indirect instanceCount.
@@ -529,5 +595,7 @@ export class ParticlePass extends RenderPass {
     this._computeUniforms.destroy();
     this._renderUniforms.destroy();
     this._cameraBuffer.destroy();
+    this._heightmapDataBuf?.destroy();
+    this._heightmapUniBuf?.destroy();
   }
 }

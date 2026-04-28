@@ -17,8 +17,9 @@ import {
   TAAPass, SSAOPass, SSGIPass, DofPass, BloomPass, TonemapPass,
   AutoExposurePass, PointSpotShadowPass, PointSpotLightPass,
   WorldGeometryPass, WaterPass, WorldShadowPass, UnderwaterPass,
-  BlockHighlightPass,
+  BlockHighlightPass, ParticlePass,
 } from '../../src/renderer/index.js';
+import type { ParticleGraphConfig } from '../../src/particles/index.js';
 import { Texture } from '../../src/assets/texture.js';
 import { parseHdr, createHdrTexture } from '../../src/assets/hdr_loader.js';
 import { BlockTexture } from '../../src/assets/block_texture.js';
@@ -125,8 +126,30 @@ async function main(): Promise<void> {
     }
   });
 
+  // --- Rain particle config ---
+  const rainConfig: ParticleGraphConfig = {
+    emitter: {
+      maxParticles: 30000,
+      spawnRate: 9000,
+      lifetime: [2.0, 3.5],
+      shape: { kind: 'box', halfExtents: [35, 0.1, 35] },
+      initialSpeed: [0, 0],
+      initialColor: [0.75, 0.88, 1.0, 0.55],
+      initialSize: [0.012, 0.02],
+      roughness: 0.1,
+      metallic: 0.0,
+    },
+    modifiers: [
+      { type: 'gravity', strength: 9.0 },
+      { type: 'drag', coefficient: 0.05 },
+      { type: 'color_over_lifetime', startColor: [0.75, 0.88, 1.0, 0.55], endColor: [0.75, 0.88, 1.0, 0.0] },
+      { type: 'block_collision' },
+    ],
+    renderer: { type: 'sprites', blendMode: 'alpha', billboard: 'velocity', renderTarget: 'hdr' },
+  };
+
   // --- Effect toggles ---
-  const effects = { ssao: true, ssgi: false, shadows: true, dof: true, bloom: true, aces: true, ao_dbg: false, shd_dbg: false, hdr: true, auto_exp: false };
+  const effects = { ssao: true, ssgi: false, shadows: true, dof: true, bloom: true, aces: true, ao_dbg: false, shd_dbg: false, hdr: true, auto_exp: false, rain: true };
 
   // --- Renderer ---
 
@@ -146,6 +169,7 @@ async function main(): Promise<void> {
   let taaPass!            : TAAPass;
   let dofPass             : DofPass        | null = null;
   let bloomPass           : BloomPass      | null = null;
+  let rainPass            : ParticlePass   | null = null;
   let underwaterPass!     : UnderwaterPass;
   let blockHighlightPass! : BlockHighlightPass;
   let autoExposurePass!   : AutoExposurePass;
@@ -165,6 +189,7 @@ async function main(): Promise<void> {
     taaPass?.destroy();
     dofPass?.destroy();        dofPass        = null;
     bloomPass?.destroy();      bloomPass      = null;
+    rainPass?.destroy();       rainPass       = null;
     underwaterPass?.destroy();
     blockHighlightPass?.destroy();
     autoExposurePass?.destroy();
@@ -183,7 +208,7 @@ async function main(): Promise<void> {
 
     if (!worldGeometryPass) {
       worldGeometryPass = WorldGeometryPass.create(ctx, gbuffer, blockTexture);
-      worldShadowPass   = WorldShadowPass.create(ctx, shadowPass.shadowMapArrayViews, 3);
+      worldShadowPass   = WorldShadowPass.create(ctx, shadowPass.shadowMapArrayViews, 3, blockTexture);
 
       const onAdded = (chunk: Chunk, mesh: ChunkMesh) => {
         chunkMeshCache.set(chunk, mesh);
@@ -255,6 +280,10 @@ async function main(): Promise<void> {
     graph.addPass(lightingPass);
     graph.addPass(pointSpotLightPass);
     graph.addPass(waterPass);
+    if (effects.rain) {
+      rainPass = ParticlePass.create(ctx, rainConfig, gbuffer, lightingPass.hdrView);
+      graph.addPass(rainPass);
+    }
     graph.addPass(taaPass);
     if (dofPass)   graph.addPass(dofPass);
     if (bloomPass) graph.addPass(bloomPass);
@@ -310,6 +339,7 @@ async function main(): Promise<void> {
     if (key === 'shd_dbg')  return;
     if (key === 'hdr')      return;
     if (key === 'auto_exp') { autoExposurePass.enabled = effects.auto_exp; return; }
+    if (key === 'rain')     { buildRenderTargets(); return; }
     buildRenderTargets();
   });
 
@@ -322,6 +352,29 @@ async function main(): Promise<void> {
     buildRenderTargets();
   });
   resizeObserver.observe(canvas);
+
+  // Build a 128×128 heightmap (top solid-block Y) centred on the camera.
+  const HM_RES    = 128;
+  const HM_EXTENT = 40.0;  // half-size in blocks — covers the rain emitter (halfExtents 35)
+  const hmData    = new Float32Array(HM_RES * HM_RES);
+  let   hmCamX    = NaN;
+  let   hmCamZ    = NaN;
+
+  function updateHeightmap(cx: number, cz: number): void {
+    if (Math.abs(cx - hmCamX) < 2 && Math.abs(cz - hmCamZ) < 2) return;
+    hmCamX = cx; hmCamZ = cz;
+    const step   = (HM_EXTENT * 2) / HM_RES;
+    const startX = cx - HM_EXTENT;
+    const startZ = cz - HM_EXTENT;
+    const maxY   = Math.ceil(cz) + 80;  // generous ceiling above terrain
+    for (let z = 0; z < HM_RES; z++) {
+      for (let x = 0; x < HM_RES; x++) {
+        hmData[z * HM_RES + x] = world.getTopBlockY(
+          Math.floor(startX + x * step), Math.floor(startZ + z * step), maxY,
+        );
+      }
+    }
+  }
 
   let lastTime  = 0;
   let smoothFps = 0;
@@ -408,6 +461,13 @@ async function main(): Promise<void> {
     const MAX_REACH = 4;
     targetBlock = hit && hit.position.sub(camPos).length() <= MAX_REACH ? hit.position : null;
     blockHighlightPass.update(ctx, vp, targetBlock);
+
+    if (rainPass) {
+      updateHeightmap(camPos.x, camPos.z);
+      rainPass.updateHeightmap(ctx, hmData, camPos.x, camPos.z, HM_EXTENT);
+      const rainMat = new Mat4([1,0,0,0, 0,1,0,0, 0,0,1,0, camPos.x, camPos.y + 8, camPos.z, 1]);
+      rainPass.update(ctx, dt, view, proj, vp, invVP, camPos, camera.near, camera.far, rainMat);
+    }
 
     dofPass?.updateParams(ctx, 8.0, 25.0, 6.0, camera.near, camera.far);
     underwaterPass.updateParams(ctx, camPos.y < 15.0, waterTime);

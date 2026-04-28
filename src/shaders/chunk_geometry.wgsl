@@ -133,6 +133,7 @@ fn shade(in: VertexOutput, uv: vec2<f32>) -> FragOutput {
 @fragment
 fn fs_opaque(in: VertexOutput) -> FragOutput {
   let uv = atlas_uv(in.world_pos, u32(in.face_f), u32(in.block_f));
+  if textureSample(color_atlas, atlas_samp, uv).a < 0.5 { discard; }
   return shade(in, uv);
 }
 

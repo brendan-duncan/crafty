@@ -63,6 +63,27 @@ export class World {
     return chunk.getBlock(rx, ry, rz);
   }
 
+  // Returns the Y coordinate of the first air block above the highest solid/water block
+  // in column (wx, wz), scanning down from maxY. Returns 0 if column is empty.
+  getTopBlockY(wx: number, wz: number, maxY: number): number {
+    const H = Chunk.CHUNK_HEIGHT;
+    const bx = Math.floor(wx);
+    const bz = Math.floor(wz);
+    for (let y = maxY; y >= 0; y -= H) {
+      const chunkTopY = Math.min(y, maxY);
+      const chunk = this.getChunk(bx, chunkTopY, bz);
+      if (!chunk) continue;
+      const rx = bx - chunk.globalPosition.x;
+      const rz = bz - chunk.globalPosition.z;
+      const startRY = Math.min(chunkTopY - chunk.globalPosition.y, H - 1);
+      for (let ry = startRY; ry >= 0; ry--) {
+        const bt = chunk.getBlock(rx, ry, rz);
+        if (bt !== BlockType.NONE && !isBlockProp(bt)) return chunk.globalPosition.y + ry + 1;
+      }
+    }
+    return 0;
+  }
+
   // "A Fast Voxel Traversal Algorithm for Ray Tracing" — Amanatides & Woo
   getBlockByRay(from: Vec3, dir: Vec3, maxSteps: number): RaycastResult | null {
     const BIG = Number.MAX_VALUE;
