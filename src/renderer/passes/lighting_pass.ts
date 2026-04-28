@@ -4,7 +4,6 @@ import type { GBuffer } from '../gbuffer.js';
 import type { ShadowPass } from './shadow_pass.js';
 import type { Mat4 } from '../../math/mat4.js';
 import type { CascadeData } from '../../engine/components/directional_light.js';
-import type { IblTextures } from '../../assets/ibl.js';
 import lightingWgsl from '../../shaders/lighting.wgsl?raw';
 
 export const HDR_FORMAT: GPUTextureFormat = 'rgba16float';
@@ -25,8 +24,7 @@ export class LightingPass extends RenderPass {
   private _pipeline: GPURenderPipeline;
   private _sceneBindGroup: GPUBindGroup;
   private _gbufferBindGroup: GPUBindGroup;
-  private _iblBindGroup: GPUBindGroup;
-  private _aoBindGroup: GPUBindGroup;    // group 3: AO + SSGI combined
+  private _aoBindGroup: GPUBindGroup;    // group 2: AO + SSGI combined
   private _cameraBuffer: GPUBuffer;
   private _lightBuffer: GPUBuffer;
   private _defaultCloudShadow: GPUTexture | null;
@@ -45,7 +43,6 @@ export class LightingPass extends RenderPass {
     pipeline: GPURenderPipeline,
     sceneBindGroup: GPUBindGroup,
     gbufferBindGroup: GPUBindGroup,
-    iblBindGroup: GPUBindGroup,
     aoBindGroup: GPUBindGroup,
     cameraBuffer: GPUBuffer,
     lightBuffer: GPUBuffer,
@@ -63,7 +60,6 @@ export class LightingPass extends RenderPass {
     this._pipeline = pipeline;
     this._sceneBindGroup = sceneBindGroup;
     this._gbufferBindGroup = gbufferBindGroup;
-    this._iblBindGroup = iblBindGroup;
     this._aoBindGroup = aoBindGroup;
     this._cameraBuffer = cameraBuffer;
     this._lightBuffer = lightBuffer;
@@ -76,7 +72,7 @@ export class LightingPass extends RenderPass {
     this._ssgiSampler = ssgiSampler;
   }
 
-  static create(ctx: RenderContext, gbuffer: GBuffer, shadowPass: ShadowPass, ibl: IblTextures, aoView: GPUTextureView, cloudShadowView?: GPUTextureView): LightingPass {
+  static create(ctx: RenderContext, gbuffer: GBuffer, shadowPass: ShadowPass, aoView: GPUTextureView, cloudShadowView?: GPUTextureView): LightingPass {
     const { device, width, height } = ctx;
 
     const hdrTexture = device.createTexture({
@@ -102,16 +98,6 @@ export class LightingPass extends RenderPass {
     });
     const linearSampler = device.createSampler({
       label: 'GBufferLinearSampler', magFilter: 'linear', minFilter: 'linear',
-    });
-    const equirectSampler = device.createSampler({
-      label: 'IBLEquirectSampler',
-      magFilter: 'linear', minFilter: 'linear',
-      addressModeU: 'repeat', addressModeV: 'clamp-to-edge',
-    });
-    const lutSampler = device.createSampler({
-      label: 'IBLLutSampler',
-      magFilter: 'linear', minFilter: 'linear',
-      addressModeU: 'clamp-to-edge', addressModeV: 'clamp-to-edge',
     });
     const aoSampler = device.createSampler({
       label: 'AoSampler',
@@ -155,18 +141,7 @@ export class LightingPass extends RenderPass {
       { bytesPerRow: 1 }, { width: 1, height: 1 });
     const resolvedCloudShadowView = cloudShadowView ?? defaultCloudShadow.createView();
 
-    const iblBGL = device.createBindGroupLayout({
-      label: 'LightIBLBGL',
-      entries: [
-        { binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } },
-        { binding: 1, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float', viewDimension: '2d-array' } },
-        { binding: 2, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } },
-        { binding: 3, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } },
-        { binding: 4, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } },
-      ],
-    });
-
-    // Group 3: AO (binding 0–1) + SSGI (binding 2–3) — merged to stay within 4-group limit
+    // Group 2: AO (binding 0–1) + SSGI (binding 2–3) — merged to stay within 4-group limit
     const aoBGL = device.createBindGroupLayout({
       label: 'LightAoBGL',
       entries: [
@@ -205,17 +180,6 @@ export class LightingPass extends RenderPass {
       ],
     });
 
-    const iblBindGroup = device.createBindGroup({
-      layout: iblBGL,
-      entries: [
-        { binding: 0, resource: ibl.irradianceView },
-        { binding: 1, resource: ibl.prefilteredView },
-        { binding: 2, resource: ibl.brdfLutView },
-        { binding: 3, resource: equirectSampler },
-        { binding: 4, resource: lutSampler },
-      ],
-    });
-
     const aoBindGroup = device.createBindGroup({
       label: 'LightAoBG', layout: aoBGL,
       entries: [
@@ -230,7 +194,7 @@ export class LightingPass extends RenderPass {
 
     const pipeline = device.createRenderPipeline({
       label: 'LightingPipeline',
-      layout: device.createPipelineLayout({ bindGroupLayouts: [sceneBGL, gbufferBGL, iblBGL, aoBGL] }),
+      layout: device.createPipelineLayout({ bindGroupLayouts: [sceneBGL, gbufferBGL, aoBGL] }),
       vertex: { module: shaderModule, entryPoint: 'vs_main' },
       fragment: {
         module: shaderModule, entryPoint: 'fs_main',
@@ -241,7 +205,7 @@ export class LightingPass extends RenderPass {
 
     return new LightingPass(
       hdrTexture, hdrView, pipeline,
-      sceneBindGroup, gbufferBindGroup, iblBindGroup, aoBindGroup,
+      sceneBindGroup, gbufferBindGroup, aoBindGroup,
       cameraBuffer, lightBuffer,
       cloudShadowView ? null : defaultCloudShadow,
       defaultSsgi, device, aoBGL, aoView, aoSampler, ssgiSampler,
@@ -320,8 +284,7 @@ export class LightingPass extends RenderPass {
     pass.setPipeline(this._pipeline);
     pass.setBindGroup(0, this._sceneBindGroup);
     pass.setBindGroup(1, this._gbufferBindGroup);
-    pass.setBindGroup(2, this._iblBindGroup);
-    pass.setBindGroup(3, this._aoBindGroup);
+    pass.setBindGroup(2, this._aoBindGroup);
     pass.draw(3);
     pass.end();
   }

@@ -11,10 +11,12 @@ const MAX_CASCADES    = 4;
 const BYTES_PER_VERT  = 5 * 4;  // [x,y,z,face,blockType] — shadow shader only reads xyz
 
 interface ChunkShadowGpu {
-  opaqueBuffer : GPUBuffer | null;
-  opaqueCount  : number;
-  modelBuffer  : GPUBuffer;  // 64-byte translation matrix (world offset)
-  modelBG      : GPUBindGroup;
+  opaqueBuffer      : GPUBuffer | null;
+  opaqueCount       : number;
+  transparentBuffer : GPUBuffer | null;
+  transparentCount  : number;
+  modelBuffer       : GPUBuffer;  // 64-byte translation matrix (world offset)
+  modelBG           : GPUBindGroup;
 }
 
 export class WorldShadowPass extends RenderPass {
@@ -118,6 +120,7 @@ export class WorldShadowPass extends RenderPass {
     const gpu = this._chunks.get(chunk);
     if (!gpu) return;
     gpu.opaqueBuffer?.destroy();
+    gpu.transparentBuffer?.destroy();
     gpu.modelBuffer.destroy();
     this._chunks.delete(chunk);
   }
@@ -138,10 +141,15 @@ export class WorldShadowPass extends RenderPass {
       pass.setBindGroup(0, this._cascadeBGs[c]);
 
       for (const gpu of this._chunks.values()) {
-        if (!gpu.opaqueBuffer || gpu.opaqueCount === 0) continue;
         pass.setBindGroup(1, gpu.modelBG);
-        pass.setVertexBuffer(0, gpu.opaqueBuffer);
-        pass.draw(gpu.opaqueCount);
+        if (gpu.opaqueBuffer && gpu.opaqueCount > 0) {
+          pass.setVertexBuffer(0, gpu.opaqueBuffer);
+          pass.draw(gpu.opaqueCount);
+        }
+        if (gpu.transparentBuffer && gpu.transparentCount > 0) {
+          pass.setVertexBuffer(0, gpu.transparentBuffer);
+          pass.draw(gpu.transparentCount);
+        }
       }
 
       pass.end();
@@ -152,6 +160,7 @@ export class WorldShadowPass extends RenderPass {
     for (const buf of this._cascadeBuffers) buf.destroy();
     for (const gpu of this._chunks.values()) {
       gpu.opaqueBuffer?.destroy();
+      gpu.transparentBuffer?.destroy();
       gpu.modelBuffer.destroy();
     }
     this._chunks.clear();
@@ -170,7 +179,7 @@ export class WorldShadowPass extends RenderPass {
     this._device.queue.writeBuffer(modelBuffer, 0, mat.buffer);
     const modelBG = this._device.createBindGroup({ label: 'WorldShadowModelBG', layout: this._modelBGL, entries: [{ binding: 0, resource: { buffer: modelBuffer } }] });
 
-    const gpu: ChunkShadowGpu = { opaqueBuffer: null, opaqueCount: 0, modelBuffer, modelBG };
+    const gpu: ChunkShadowGpu = { opaqueBuffer: null, opaqueCount: 0, transparentBuffer: null, transparentCount: 0, modelBuffer, modelBG };
     this._replaceMeshBuffer(gpu, mesh);
     return gpu;
   }
@@ -187,6 +196,19 @@ export class WorldShadowPass extends RenderPass {
       });
       this._device.queue.writeBuffer(buf, 0, mesh.opaque.buffer, 0, mesh.opaqueCount * BYTES_PER_VERT);
       gpu.opaqueBuffer = buf;
+    }
+
+    gpu.transparentBuffer?.destroy();
+    gpu.transparentBuffer = null;
+    gpu.transparentCount  = mesh.transparentCount;
+    if (mesh.transparentCount > 0) {
+      const buf = this._device.createBuffer({
+        label: 'WorldShadowTransparentBuf',
+        size : mesh.transparentCount * BYTES_PER_VERT,
+        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+      });
+      this._device.queue.writeBuffer(buf, 0, mesh.transparent.buffer, 0, mesh.transparentCount * BYTES_PER_VERT);
+      gpu.transparentBuffer = buf;
     }
   }
 }

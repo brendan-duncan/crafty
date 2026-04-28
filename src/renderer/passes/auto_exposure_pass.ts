@@ -126,11 +126,18 @@ export class AutoExposurePass extends RenderPass {
     );
   }
 
+  enabled = true;
+
   update(ctx: RenderContext, dt: number, settings: AutoExposureSettings = DEFAULT_AUTO_EXPOSURE): void {
+    if (!this.enabled) {
+      ctx.device.queue.writeBuffer(this.exposureBuffer, 0, new Float32Array([1.0, 0, 0, 0]));
+      return;
+    }
     AutoExposurePass._writeParams(ctx.device, this._paramsBuffer, dt, settings);
   }
 
   execute(encoder: GPUCommandEncoder, _ctx: RenderContext): void {
+    if (!this.enabled) return;
     const pass = encoder.beginComputePass({ label: 'AutoExposurePass' });
 
     // Build luminance histogram from the HDR scene (sampling every 4th pixel).

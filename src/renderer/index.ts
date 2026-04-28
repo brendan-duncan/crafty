@@ -4,6 +4,8 @@ export { RenderGraph } from './render_graph.js';
 export { GBuffer } from './gbuffer.js';
 export { ShadowPass } from './passes/shadow_pass.js';
 export { SkyPass } from './passes/sky_pass.js';
+export { AtmospherePass } from './passes/atmosphere_pass.js';
+export { BlockHighlightPass } from './passes/block_highlight_pass.js';
 export { CloudPass } from './passes/cloud_pass.js';
 export { CloudShadowPass } from './passes/cloud_shadow_pass.js';
 export type { CloudSettings } from './passes/cloud_pass.js';

@@ -23,9 +23,6 @@ fn rotate2d(v: vec2<f32>, a: f32) -> vec2<f32> {
   return vec2<f32>(c*v.x - s*v.y, s*v.x + c*v.y);
 }
 
-// Number of pre-filtered roughness levels — must match IBL_LEVELS in ibl.ts
-const IBL_LEVELS: i32 = 5;
-
 struct CameraUniforms {
   view       : mat4x4<f32>,
   proj       : mat4x4<f32>,
@@ -63,18 +60,11 @@ struct LightUniforms {
 @group(1) @binding(5) var gbufferSampler    : sampler;
 @group(1) @binding(6) var cloudShadowTex    : texture_2d<f32>;
 
-// IBL textures
-@group(2) @binding(0) var irradiance_tex  : texture_2d<f32>;
-@group(2) @binding(1) var prefiltered_tex : texture_2d_array<f32>;
-@group(2) @binding(2) var brdf_lut        : texture_2d<f32>;
-@group(2) @binding(3) var equirect_sampler: sampler; // repeat U, clamp V
-@group(2) @binding(4) var lut_sampler     : sampler; // clamp both
-
-// SSAO + SSGI (combined group 3)
-@group(3) @binding(0) var ao_tex   : texture_2d<f32>;
-@group(3) @binding(1) var ao_samp  : sampler;
-@group(3) @binding(2) var ssgi_tex : texture_2d<f32>;
-@group(3) @binding(3) var ssgi_samp: sampler;
+// SSAO + SSGI (group 2)
+@group(2) @binding(0) var ao_tex   : texture_2d<f32>;
+@group(2) @binding(1) var ao_samp  : sampler;
+@group(2) @binding(2) var ssgi_tex : texture_2d<f32>;
+@group(2) @binding(3) var ssgi_samp: sampler;
 
 struct VertexOutput {
   @builtin(position) clip_pos: vec4<f32>,
@@ -210,12 +200,6 @@ fn geometry_direct(NdotX: f32, roughness: f32) -> f32 {
   return NdotX / (NdotX * (1.0 - k) + k);
 }
 
-// k for IBL: roughness²/2  (stored in BRDF LUT precomputation)
-fn geometry_ibl(NdotX: f32, roughness: f32) -> f32 {
-  let k = roughness * roughness / 2.0;
-  return NdotX / (NdotX * (1.0 - k) + k);
-}
-
 fn smith_direct(NdotV: f32, NdotL: f32, roughness: f32) -> f32 {
   return geometry_direct(NdotV, roughness) * geometry_direct(NdotL, roughness);
 }
@@ -224,35 +208,6 @@ fn fresnel_schlick(cosTheta: f32, F0: vec3<f32>) -> vec3<f32> {
   return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
-// Roughness-attenuated Fresnel for IBL (Lazarov approximation)
-fn fresnel_schlick_roughness(cosTheta: f32, F0: vec3<f32>, roughness: f32) -> vec3<f32> {
-  return F0 + (max(vec3<f32>(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
-}
-
-// === Equirectangular UV ===============================================
-
-fn equirect_uv(dir: vec3<f32>) -> vec2<f32> {
-  let u = atan2(-dir.z, dir.x) / (2.0 * PI) + 0.5;
-  let v = acos(clamp(dir.y, -1.0, 1.0)) / PI;
-  return vec2<f32>(u, v);
-}
-
-// === IBL ==============================================================
-
-fn sample_irradiance(N: vec3<f32>) -> vec3<f32> {
-  return textureSampleLevel(irradiance_tex, equirect_sampler, equirect_uv(N), 0.0).rgb;
-}
-
-fn sample_prefiltered(R: vec3<f32>, roughness: f32) -> vec3<f32> {
-  let uv        = equirect_uv(R);
-  let level_f   = roughness * f32(IBL_LEVELS - 1);
-  let layer_lo  = i32(level_f);
-  let layer_hi  = min(layer_lo + 1, IBL_LEVELS - 1);
-  let t         = fract(level_f);
-  let lo = textureSampleLevel(prefiltered_tex, equirect_sampler, uv, layer_lo, 0.0).rgb;
-  let hi = textureSampleLevel(prefiltered_tex, equirect_sampler, uv, layer_hi, 0.0).rgb;
-  return mix(lo, hi, t);
-}
 
 // === Fragment =========================================================
 
@@ -307,7 +262,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
   let world_pos = reconstruct_world_pos(in.uv, depth);
   let V         = normalize(camera.position - world_pos);
-  let R         = reflect(-V, N);
   let NdotV     = max(dot(N, V), 0.001);
 
   // View-space depth for cascade selection
@@ -352,27 +306,20 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
   let direct = (diffuse_brdf + specular_brdf) * light.color * light.intensity * NdotL * shad * cloud_shadow;
 
-  // === IBL (ambient / sky reflections) ================================
-  let Fi    = fresnel_schlick_roughness(NdotV, F0, roughness);
-  let kS_ibl = Fi;
-  let kD_ibl = (vec3<f32>(1.0) - kS_ibl) * (1.0 - metallic);
-
-  // Diffuse: irradiance map sampled at surface normal
-  let irradiance   = sample_irradiance(N);
-  let diffuse_ibl  = kD_ibl * albedo * irradiance;
-
-  // Specular: pre-filtered env + split-sum BRDF LUT
-  let prefiltered  = sample_prefiltered(R, roughness);
-  let brdf         = textureSampleLevel(brdf_lut, lut_sampler, vec2<f32>(NdotV, roughness), 0.0).rg;
-  let specular_ibl = prefiltered * (Fi * brdf.x + brdf.y);
-
-  let ao    = textureSampleLevel(ao_tex, ao_samp, in.uv, 0.0).r;
+  // === Ambient (constant) =============================================
+  // Sky IBL replaced by a flat ambient term — atmospheric scattering
+  // handles sky appearance; this just prevents fully-black shadows.
+  let ao         = textureSampleLevel(ao_tex, ao_samp, in.uv, 0.0).r;
+  // top=0.50, side=0.25, bottom=0.05 — piecewise linear on N.y
+  let sky_factor = select(0.25 + N.y * 0.20, 0.25 + N.y * 0.25, N.y >= 0.0);
+  // Scale by shadow: underground≈0, surface shadows darker but not black.
+  let ambient    = albedo * (1.0 - metallic) * sky_factor * ao * max(shad, 0.05);
 
   // SSGI: one-bounce diffuse indirect from screen-space ray march
-  let ssgi_irr    = textureSampleLevel(ssgi_tex, ssgi_samp, in.uv, 0.0).rgb;
+  let ssgi_irr     = textureSampleLevel(ssgi_tex, ssgi_samp, in.uv, 0.0).rgb;
   let ssgi_contrib = ssgi_irr * albedo * (1.0 - metallic);
 
-  let color = direct + (diffuse_ibl + specular_ibl) * ao + ssgi_contrib;
+  let color = direct + ambient + ssgi_contrib;
 
   if (light.debugCascades != 0u) {
     let cascade = select_cascade(view_depth);

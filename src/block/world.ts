@@ -16,13 +16,15 @@ export class World {
   seed: number;
   renderDistanceH = 8;
   renderDistanceV = 4;
+  chunksPerFrame   = 2;
   time = 0;
 
   onChunkAdded?: (chunk: Chunk, mesh: ChunkMesh) => void;
   onChunkUpdated?: (chunk: Chunk, mesh: ChunkMesh) => void;
   onChunkRemoved?: (chunk: Chunk) => void;
 
-  private _chunks = new Map<string, Chunk>();
+  private _chunks    = new Map<string, Chunk>();
+  private _generated = new Set<string>();
 
   constructor(seed: number) {
     this.seed = seed;
@@ -164,36 +166,19 @@ export class World {
     return true;
   }
 
-  generate(xChunks: number, yChunks: number, zChunks: number): void {
-    for (let x = 0; x < xChunks; x++) {
-      for (let z = 0; z < zChunks; z++) {
-        for (let y = 0; y < yChunks; y++) {
-          const chunk = new Chunk(
-            x * Chunk.CHUNK_WIDTH,
-            y * Chunk.CHUNK_HEIGHT,
-            z * Chunk.CHUNK_DEPTH,
-          );
-          chunk.generateBlocks(this.seed);
-          if (chunk.aliveBlocks > 0) {
-            this._insertChunk(chunk);
-            this.onChunkAdded?.(chunk, chunk.generateVertices());
-          }
-        }
-      }
-    }
-  }
-
   update(playerPos: Vec3, dt: number): void {
     this.time += dt;
     this._removeDistantChunks(playerPos);
-    this._createNearbyChunk(playerPos);
+    this._createNearbyChunks(playerPos);
   }
 
   deleteChunk(chunk: Chunk): void {
     const [cx, cy, cz] = World.normalizeChunkPosition(
       chunk.globalPosition.x, chunk.globalPosition.y, chunk.globalPosition.z,
     );
-    this._chunks.delete(World._key(cx, cy, cz));
+    const key = World._key(cx, cy, cz);
+    this._chunks.delete(key);
+    this._generated.delete(key);
     chunk.isDeleted = true;
     this.onChunkRemoved?.(chunk);
   }
@@ -243,49 +228,56 @@ export class World {
     this.onChunkUpdated?.(chunk, chunk.generateVertices());
   }
 
-  private _getRenderBounds(playerPos: Vec3): [number, number, number, number, number, number] {
-    const [cpx, cpy, cpz] = World.normalizeChunkPosition(playerPos.x, playerPos.y, playerPos.z);
-    return [
-      cpx - this.renderDistanceH, cpy - this.renderDistanceV, cpz - this.renderDistanceH,
-      cpx + this.renderDistanceH, cpy + this.renderDistanceV, cpz + this.renderDistanceH,
-    ];
-  }
-
-  private _createNearbyChunk(playerPos: Vec3): void {
+  private _createNearbyChunks(playerPos: Vec3): void {
     if (this._chunks.size >= World.MAX_CHUNKS) return;
-    const [minX, minY, minZ, maxX, maxY, maxZ] = this._getRenderBounds(playerPos);
-    for (let x = minX; x < maxX; x++) {
-      for (let y = minY; y < maxY; y++) {
-        for (let z = minZ; z < maxZ; z++) {
-          const wx = x * Chunk.CHUNK_WIDTH;
-          const wy = y * Chunk.CHUNK_HEIGHT;
-          const wz = z * Chunk.CHUNK_DEPTH;
-          if (!this.chunkExists(wx, wy, wz)) {
-            this._createChunkAt(x, y, z);
-            return; // one chunk per frame to avoid stalls
+    const [cpx, cpy, cpz] = World.normalizeChunkPosition(playerPos.x, playerPos.y, playerPos.z);
+    const rdH = this.renderDistanceH;
+    const rdV = this.renderDistanceV;
+
+    // Collect all ungenerated positions within the cylinder, sorted by distance.
+    const candidates: [number, number, number, number][] = []; // [dist2, cx, cy, cz]
+    for (let dx = -rdH; dx <= rdH; dx++) {
+      for (let dz = -rdH; dz <= rdH; dz++) {
+        if (dx * dx + dz * dz > rdH * rdH) continue;
+        for (let dy = -rdV; dy <= rdV; dy++) {
+          const cx = cpx + dx, cy = cpy + dy, cz = cpz + dz;
+          const key = World._key(cx, cy, cz);
+          if (!this._generated.has(key)) {
+            candidates.push([dx * dx + dy * dy + dz * dz, cx, cy, cz]);
           }
         }
       }
     }
+
+    candidates.sort((a, b) => a[0] - b[0]);
+    let created = 0;
+    for (const [, cx, cy, cz] of candidates) {
+      if (created >= this.chunksPerFrame) break;
+      this._createChunkAt(cx, cy, cz);
+      created++;
+    }
   }
 
   private _removeDistantChunks(playerPos: Vec3): void {
-    const [minX, minY, minZ, maxX, maxY, maxZ] = this._getRenderBounds(playerPos);
+    const [cpx, cpy, cpz] = World.normalizeChunkPosition(playerPos.x, playerPos.y, playerPos.z);
+    const rdH = this.renderDistanceH + 1;
+    const rdV = this.renderDistanceV + 1;
     const toDelete: Chunk[] = [];
     for (const chunk of this._chunks.values()) {
       const [cx, cy, cz] = World.normalizeChunkPosition(
         chunk.globalPosition.x, chunk.globalPosition.y, chunk.globalPosition.z,
       );
-      if (cx < minX || cx >= maxX || cy < minY || cy >= maxY || cz < minZ || cz >= maxZ) {
+      const dx = cx - cpx, dy = cy - cpy, dz = cz - cpz;
+      if (dx * dx + dz * dz > rdH * rdH || Math.abs(dy) > rdV) {
         toDelete.push(chunk);
       }
     }
-    for (const chunk of toDelete) {
-      this.deleteChunk(chunk);
-    }
+    for (const chunk of toDelete) this.deleteChunk(chunk);
   }
 
   private _createChunkAt(cx: number, cy: number, cz: number): void {
+    const key = World._key(cx, cy, cz);
+    this._generated.add(key);
     const chunk = new Chunk(
       cx * Chunk.CHUNK_WIDTH,
       cy * Chunk.CHUNK_HEIGHT,

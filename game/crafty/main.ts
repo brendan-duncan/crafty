@@ -1,10 +1,4 @@
-import clearSkyUrl    from '../../assets/cubemaps/hdr/clear_sky.hdr?url';
-import belfastUrl     from '../../assets/cubemaps/hdr/belfast.hdr?url';
 import industrialUrl  from '../../assets/cubemaps/hdr/industrial.hdr?url';
-import nightSkyUrl    from '../../assets/cubemaps/hdr/night_sky.hdr?url';
-import skyUrl         from '../../assets/cubemaps/hdr/sky.hdr?url';
-import studioUrl      from '../../assets/cubemaps/hdr/studio.hdr?url';
-import sunflowersUrl  from '../../assets/cubemaps/hdr/sunflowers.hdr?url';
 import colorAtlasUrl  from '../../assets/cube_textures/simple_block_atlas.png?url';
 import normalAtlasUrl from '../../assets/cube_textures/simple_block_atlas_normal.png?url';
 import merAtlasUrl    from '../../assets/cube_textures/simple_block_atlas_mer.png?url';
@@ -13,20 +7,20 @@ import dudvUrl        from '../../assets/water/waterDUDV.png?url';
 import gradientUrl    from '../../assets/water/gradient_map.png?url';
 import { Mat4, Vec3 } from '../../src/math/index.js';
 import {
-  GameObject, Scene, Camera, DirectionalLight, CameraControls,
+  GameObject, Scene, Camera, DirectionalLight, PlayerController,
   PointLight, SpotLight,
 } from '../../src/engine/index.js';
 import type { CascadeData } from '../../src/engine/index.js';
 import {
   RenderContext, RenderGraph, GBuffer,
-  ShadowPass, SkyPass, GeometryPass, LightingPass,
+  ShadowPass, AtmospherePass, GeometryPass, LightingPass,
   TAAPass, SSAOPass, SSGIPass, DofPass, BloomPass, TonemapPass,
   AutoExposurePass, PointSpotShadowPass, PointSpotLightPass,
   WorldGeometryPass, WaterPass, WorldShadowPass, UnderwaterPass,
+  BlockHighlightPass,
 } from '../../src/renderer/index.js';
 import { Texture } from '../../src/assets/texture.js';
 import { parseHdr, createHdrTexture } from '../../src/assets/hdr_loader.js';
-import { computeIblGpu } from '../../src/assets/ibl.js';
 import { BlockTexture } from '../../src/assets/block_texture.js';
 import { World } from '../../src/block/index.js';
 import type { Chunk, ChunkMesh } from '../../src/block/index.js';
@@ -94,19 +88,7 @@ async function main(): Promise<void> {
   const ctx = await RenderContext.create(canvas);
   const { device } = ctx;
 
-  const skyOptions = [
-    { label: 'INDSTRL', url: industrialUrl  },
-    { label: 'CLEAR',   url: clearSkyUrl   },
-    { label: 'BELFAST', url: belfastUrl     },
-    { label: 'NIGHT',   url: nightSkyUrl    },
-    { label: 'SKY',     url: skyUrl         },
-    { label: 'STUDIO',  url: studioUrl      },
-    { label: 'SUNFLWR', url: sunflowersUrl  },
-  ];
-  let skyIndex = 0;
-
-  let skyTexture = await createHdrTexture(device, parseHdr(await (await fetch(industrialUrl)).arrayBuffer()));
-  let ibl        = await computeIblGpu(device, skyTexture.gpuTexture, 0.2);
+  const skyTexture = await createHdrTexture(device, parseHdr(await (await fetch(industrialUrl)).arrayBuffer()));
 
   const blockTexture   = await BlockTexture.load(device, colorAtlasUrl, normalAtlasUrl, merAtlasUrl, heightAtlasUrl);
   const dudvTexture    = await Texture.fromUrl(device, dudvUrl);
@@ -126,15 +108,25 @@ async function main(): Promise<void> {
   scene.add(sunGO);
 
   const cameraGO = new GameObject('Camera');
-  cameraGO.position.set(64, 40, 64);
+  cameraGO.position.set(64, 25, 64);  // eye position; player falls to ground on start
   const camera = cameraGO.addComponent(new Camera(70, 0.1, 1000, ctx.width / ctx.height));
   scene.add(cameraGO);
 
-  const cameraControls = new CameraControls(Math.PI, 0.1);
-  cameraControls.attach(canvas);
+  const player = new PlayerController(world, Math.PI, 0.1);
+  player.attach(canvas);
+
+  let targetBlock: Vec3 | null = null;
+
+  canvas.addEventListener('mousedown', (e: MouseEvent) => {
+    if (document.pointerLockElement !== canvas) return;
+    const block = targetBlock;
+    if (e.button === 0 && block) {
+      world.mineBlock(block.x, block.y, block.z);
+    }
+  });
 
   // --- Effect toggles ---
-  const effects = { ssao: true, ssgi: true, shadows: true, dof: true, bloom: true, aces: true, ao_dbg: false, shd_dbg: false, hdr: true };
+  const effects = { ssao: true, ssgi: false, shadows: true, dof: true, bloom: true, aces: true, ao_dbg: false, shd_dbg: false, hdr: true, auto_exp: false };
 
   // --- Renderer ---
 
@@ -148,13 +140,14 @@ async function main(): Promise<void> {
   let ssaoPass!           : SSAOPass;
   let ssgiPass!           : SSGIPass;
   let lightingPass!       : LightingPass;
-  let skyPass!            : SkyPass;
+  let atmospherePass!     : AtmospherePass;
   let pointSpotShadowPass!: PointSpotShadowPass;
   let pointSpotLightPass! : PointSpotLightPass;
   let taaPass!            : TAAPass;
   let dofPass             : DofPass        | null = null;
   let bloomPass           : BloomPass      | null = null;
   let underwaterPass!     : UnderwaterPass;
+  let blockHighlightPass! : BlockHighlightPass;
   let autoExposurePass!   : AutoExposurePass;
   let tonemapPass!        : TonemapPass;
   let graph!              : RenderGraph;
@@ -166,13 +159,14 @@ async function main(): Promise<void> {
     ssaoPass?.destroy();
     ssgiPass?.destroy();
     lightingPass?.destroy();
-    skyPass?.destroy();
+    atmospherePass?.destroy();
     pointSpotShadowPass?.destroy();
     pointSpotLightPass?.destroy();
     taaPass?.destroy();
     dofPass?.destroy();        dofPass        = null;
     bloomPass?.destroy();      bloomPass      = null;
     underwaterPass?.destroy();
+    blockHighlightPass?.destroy();
     autoExposurePass?.destroy();
     tonemapPass?.destroy();
 
@@ -215,8 +209,8 @@ async function main(): Promise<void> {
     }
 
     ssaoPass            = SSAOPass.create(ctx, gbuffer);
-    lightingPass        = LightingPass.create(ctx, gbuffer, shadowPass, ibl, ssaoPass.aoView);
-    skyPass             = SkyPass.create(ctx, lightingPass.hdrView, skyTexture);
+    lightingPass        = LightingPass.create(ctx, gbuffer, shadowPass, ssaoPass.aoView);
+    atmospherePass      = AtmospherePass.create(ctx, lightingPass.hdrView);
     pointSpotShadowPass = PointSpotShadowPass.create(ctx);
     pointSpotLightPass  = PointSpotLightPass.create(ctx, gbuffer, pointSpotShadowPass, lightingPass.hdrView);
     taaPass             = TAAPass.create(ctx, lightingPass, gbuffer);
@@ -239,9 +233,11 @@ async function main(): Promise<void> {
       ? (bloomPass = BloomPass.create(ctx, postInput), bloomPass.resultView)
       : postInput;
 
-    underwaterPass = UnderwaterPass.create(ctx, bloomOut);
+    underwaterPass     = UnderwaterPass.create(ctx, bloomOut);
+    blockHighlightPass = BlockHighlightPass.create(ctx, underwaterPass.resultView, gbuffer.depthView);
 
     autoExposurePass = AutoExposurePass.create(ctx, lightingPass.hdrTexture);
+    autoExposurePass.enabled = effects.auto_exp;
     tonemapPass      = TonemapPass.create(ctx, underwaterPass.resultView, ssaoPass.aoView, autoExposurePass.exposureBuffer);
 
     camera.aspect = ctx.width / ctx.height;
@@ -255,7 +251,7 @@ async function main(): Promise<void> {
     graph.addPass(worldGeometryPass);
     graph.addPass(ssaoPass);
     graph.addPass(ssgiPass);
-    graph.addPass(skyPass);
+    graph.addPass(atmospherePass);
     graph.addPass(lightingPass);
     graph.addPass(pointSpotLightPass);
     graph.addPass(waterPass);
@@ -263,17 +259,16 @@ async function main(): Promise<void> {
     if (dofPass)   graph.addPass(dofPass);
     if (bloomPass) graph.addPass(bloomPass);
     graph.addPass(underwaterPass);
+    graph.addPass(blockHighlightPass);
     graph.addPass(autoExposurePass);
     graph.addPass(tonemapPass);
   }
 
   buildRenderTargets();
 
-  world.generate(8, 2, 8);
-
   // --- UI ---
 
-  const hint = document.createElement('div');
+  /*const hint = document.createElement('div');
   hint.textContent = 'Click to look around  ·  WASD move  ·  Space / Shift up / down';
   hint.style.cssText = [
     'position:fixed', 'bottom:16px', 'left:50%', 'transform:translateX(-50%)',
@@ -282,10 +277,20 @@ async function main(): Promise<void> {
     'font-family:ui-monospace,monospace', 'font-size:12px',
     'pointer-events:none', 'transition:opacity 0.3s',
   ].join(';');
-  document.body.appendChild(hint);
-  document.addEventListener('pointerlockchange', () => {
-    hint.style.opacity = document.pointerLockElement ? '0' : '1';
-  });
+  document.body.appendChild(hint);*/
+  const reticle = document.createElement('div');
+  reticle.style.cssText = [
+    'position:fixed', 'top:50%', 'left:50%',
+    'width:16px', 'height:16px',
+    'transform:translate(-50%,-50%)',
+    'pointer-events:none',
+  ].join(';');
+  reticle.innerHTML = [
+    `<div style="position:absolute;top:50%;left:0;width:100%;height:1px;background:#fff;opacity:0.8;transform:translateY(-50%)"></div>`,
+    `<div style="position:absolute;left:50%;top:0;width:1px;height:100%;background:#fff;opacity:0.8;transform:translateX(-50%)"></div>`,
+    `<div style="position:absolute;top:50%;left:50%;width:3px;height:3px;background:#fff;opacity:0.9;transform:translate(-50%,-50%);border-radius:50%"></div>`,
+  ].join('');
+  document.body.appendChild(reticle);
 
   const fpsEl = document.createElement('div');
   fpsEl.style.cssText = [
@@ -296,52 +301,17 @@ async function main(): Promise<void> {
   ].join(';');
   document.body.appendChild(fpsEl);
 
-  // Sky texture cycling button (inserted above the effects panel)
-  let skyLoading = false;
-  const skyBtn = document.createElement('button');
-  const refreshSkyBtn = () => {
-    skyBtn.textContent = skyLoading ? 'LOADING...' : `SKY: ${skyOptions[skyIndex].label}`;
-    skyBtn.setAttribute('style', [
-      'padding:5px 10px', 'border-width:1px', 'border-style:solid', 'border-radius:4px',
-      'cursor:pointer', 'letter-spacing:0.04em',
-      'font-family:ui-monospace,monospace', 'font-size:13px',
-      'background:#1a1a2e', 'color:#88f', 'border-color:#88f',
-    ].join(';'));
-  };
-  skyBtn.addEventListener('click', async () => {
-    if (skyLoading) return;
-    skyLoading = true;
-    refreshSkyBtn();
-    const next = (skyIndex + 1) % skyOptions.length;
-    const hdr = parseHdr(await (await fetch(skyOptions[next].url)).arrayBuffer());
-    const newTex = await createHdrTexture(device, hdr);
-    const newIbl = await computeIblGpu(device, newTex.gpuTexture, 0.2);
-    const oldTex = skyTexture;
-    const oldIbl = ibl;
-    skyTexture = newTex;
-    ibl = newIbl;
-    skyIndex = next;
-    buildRenderTargets();
-    // Wait for any in-flight GPU work referencing the old texture to complete before destroying it.
-    await device.queue.onSubmittedWorkDone();
-    oldTex.destroy();
-    oldIbl.destroy();
-    skyLoading = false;
-    refreshSkyBtn();
-  });
-  refreshSkyBtn();
-
-  const effectsPanel = createControlPanel(effects, (key) => {
+  createControlPanel(effects, (key) => {
     if (key === 'ssao')    return;
     if (key === 'ssgi')    return;
     if (key === 'shadows') return;
-    if (key === 'aces')    return;
-    if (key === 'ao_dbg')  return;
-    if (key === 'shd_dbg') return;
-    if (key === 'hdr')     return;
+    if (key === 'aces')     return;
+    if (key === 'ao_dbg')   return;
+    if (key === 'shd_dbg')  return;
+    if (key === 'hdr')      return;
+    if (key === 'auto_exp') { autoExposurePass.enabled = effects.auto_exp; return; }
     buildRenderTargets();
   });
-  effectsPanel.insertBefore(skyBtn, effectsPanel.firstChild);
 
   const resizeObserver = new ResizeObserver(() => {
     const w = Math.max(1, Math.round(canvas.clientWidth  * devicePixelRatio));
@@ -371,7 +341,7 @@ async function main(): Promise<void> {
     waterTime += dt;
     sun.direction.set(Math.cos(sunAngle), -0.8, Math.sin(sunAngle));
 
-    cameraControls.update(cameraGO, dt);
+    player.update(cameraGO, dt);
     scene.update(dt);
 
     const camPos = camera.position();
@@ -408,7 +378,7 @@ async function main(): Promise<void> {
     pointSpotLightPass.updateCamera(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far);
     pointSpotLightPass.updateLights(ctx, pointLights, spotLights);
 
-    skyPass.updateCamera(ctx, invVP, camPos);
+    atmospherePass.update(ctx, invVP, camPos, sun.direction);
 
     geometryPass.setDrawItems(drawItems);
     geometryPass.updateCamera(ctx, view, proj, jitVP, invVP, camPos, camera.near, camera.far);
@@ -427,6 +397,17 @@ async function main(): Promise<void> {
 
     ssgiPass.updateSettings({ strength: effects.ssgi ? 1.0 : 0.0 });
     ssgiPass.updateCamera(ctx, view, proj, invProj, invVP, prevViewProj ?? vp, camPos);
+
+    const cosPitch = Math.cos(player.pitch);
+    const forward  = new Vec3(
+      -Math.sin(player.yaw) * cosPitch,
+      -Math.sin(player.pitch),
+      -Math.cos(player.yaw) * cosPitch,
+    );
+    const hit = world.getBlockByRay(camPos, forward, 16);
+    const MAX_REACH = 4;
+    targetBlock = hit && hit.position.sub(camPos).length() <= MAX_REACH ? hit.position : null;
+    blockHighlightPass.update(ctx, vp, targetBlock);
 
     dofPass?.updateParams(ctx, 8.0, 25.0, 6.0, camera.near, camera.far);
     underwaterPass.updateParams(ctx, camPos.y < 15.0, waterTime);

@@ -15,6 +15,7 @@ export class Chunk {
   static CHUNK_WIDTH = 16;
   static CHUNK_HEIGHT = 16;
   static CHUNK_DEPTH = 16;
+  static WATER_HEIGHT = 15;
 
   // Vertex positions for 6 faces × 6 verts = 36 verts, matches CUBE_POSITION_VERTICES in lc_chunk.c
   static readonly CUBE_VERTS = new Float32Array([
@@ -364,19 +365,28 @@ export class Chunk {
   }
 
   generateBlocks(seed: number): void {
+    // Pass 1: place all terrain blocks first so that up_block checks in pass 2
+    // see the fully-populated chunk instead of uninitialized air.
     for (let z = 0; z < Chunk.CHUNK_DEPTH; z++) {
       for (let y = 0; y < Chunk.CHUNK_HEIGHT; y++) {
         for (let x = 0; x < Chunk.CHUNK_WIDTH; x++) {
+          if (this.getBlock(x, y, z) !== BlockType.NONE) continue;
           const g_x = x + this.globalPosition.x;
           const g_y = y + this.globalPosition.y;
           const g_z = z + this.globalPosition.z;
-          if (this.getBlock(x, y, z) === BlockType.NONE) {
-            const blockType = this._generateBlock(g_x, g_y, g_z, seed);
-            this.setBlock(x, y, z, blockType);
-            if (blockType !== BlockType.NONE) {
-              this._generateAdditionalBlocks(x, y, z, g_x, g_y, g_z, seed);
-            }
-          }
+          this.setBlock(x, y, z, this._generateBlock(g_x, g_y, g_z, seed));
+        }
+      }
+    }
+    // Pass 2: place props and trees now that the full terrain is in place.
+    for (let z = 0; z < Chunk.CHUNK_DEPTH; z++) {
+      for (let y = 0; y < Chunk.CHUNK_HEIGHT; y++) {
+        for (let x = 0; x < Chunk.CHUNK_WIDTH; x++) {
+          if (this.getBlock(x, y, z) === BlockType.NONE) continue;
+          const g_x = x + this.globalPosition.x;
+          const g_y = y + this.globalPosition.y;
+          const g_z = z + this.globalPosition.z;
+          this._generateAdditionalBlocks(x, y, z, g_x, g_y, g_z, seed);
         }
       }
     }
@@ -481,8 +491,8 @@ export class Chunk {
         }
       }
     } else if (block_type == BlockType.GRASS || block_type == BlockType.DIRT) {
-      //generate a tree
-      if ((Random.global.randomUint32() % 2) == 0 && p_gY > 12 && p_gY < 300 && p_y < Chunk.CHUNK_HEIGHT - 5 && p_x > 2 && p_z > 2 && p_x < Chunk.CHUNK_WIDTH - 2
+      //generate a tree (only on dry land — up_block must be air, not water)
+      if ((Random.global.randomUint32() % 2) == 0 && p_gY > Chunk.WATER_HEIGHT && p_gY < 300 && p_y < Chunk.CHUNK_HEIGHT - 5 && p_x > 2 && p_z > 2 && p_x < Chunk.CHUNK_WIDTH - 2
             && p_z < Chunk.CHUNK_DEPTH - 2 && up_block == BlockType.NONE && right_block == BlockType.NONE && front_block == BlockType.NONE && back_block == BlockType.NONE) {
         const MIN_TREE_HEIGHT = 5;
 
@@ -512,7 +522,7 @@ export class Chunk {
             }
           }
         }
-      } else if (p_gY > 5 && (up_block == BlockType.NONE || isBlockWater(up_block)) && (left_block == BlockType.NONE || back_block == BlockType.NONE)) {
+      } else if (p_gY > Chunk.WATER_HEIGHT && up_block == BlockType.NONE && (left_block == BlockType.NONE || back_block == BlockType.NONE)) {
         //grass prop
         if ((Random.global.randomUint32() % 8) == 0) {
           this.setBlock(p_x, p_y + 1, p_z, BlockType.GRASS_PROP);
@@ -529,11 +539,9 @@ export class Chunk {
     const surfaceHeight = this._calculateSurfaceHeight(p_x, p_y, p_z, seed);
     let block = BlockType.NONE;
 
-    const WATER_HEIGHT = 15;
-
     if (p_y < surfaceHeight) {
       block = BlockType.STONE;
-    } else if (p_y < WATER_HEIGHT + 1) {
+    } else if (p_y < Chunk.WATER_HEIGHT + 1) {
       block = BlockType.WATER;
     } else {
       block = BlockType.NONE;
@@ -542,13 +550,13 @@ export class Chunk {
     if (block == BlockType.STONE) {
       let biome = this._determineBiome(p_x, p_y, p_z, seed);
       biome = BiomeType.GrassyPlains;
-      block = this._generateBlockBasedOnBiome(biome, p_x, p_y, p_z);
+      block = this._generateBlockBasedOnBiome(biome, p_x, p_y, p_z, surfaceHeight);
     }
 
     return block;
   }
 
-  _generateBlockBasedOnBiome(biome: BiomeType, p_x: number, p_y: number, p_z: number): BlockType {
+  _generateBlockBasedOnBiome(biome: BiomeType, p_x: number, p_y: number, p_z: number, surfaceHeight: number): BlockType {
     const noise_3d = Math.abs(perlinTurbulenceNoise3(p_x / 256.0, p_y / 256.0, p_z / 256.0, 2.0, 0.6, 1)) * 35;
     const both = noise_3d;
     switch (biome) {
@@ -570,7 +578,7 @@ export class Chunk {
       }
       case BiomeType.RockyMountains: {
         if (both > 5) {
-          return  BlockType.STONE;
+          return BlockType.STONE;
         } else if (both > 4) {
           return BlockType.SNOW;
         } else {
@@ -581,12 +589,14 @@ export class Chunk {
         return BlockType.SAND;
       }
       case BiomeType.GrassyPlains: {
-        if (p_y > 12) {
-          return  BlockType.GRASS;
-        } else if (p_y < 33) {
-          return BlockType.STONE;
-        } else {
+        const depth = Math.floor(surfaceHeight) - p_y; // 0 = top surface block
+        const aboveWater = surfaceHeight > Chunk.WATER_HEIGHT;
+        if (depth === 0) {
+          return aboveWater ? BlockType.GRASS : BlockType.DIRT;
+        } else if (depth <= 3) {
           return BlockType.DIRT;
+        } else {
+          return BlockType.STONE;
         }
       }
       default: {

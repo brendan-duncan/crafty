@@ -9,6 +9,7 @@ export { MeshRenderer } from './components/mesh_renderer.js';
 export { AnimatedModel } from './components/animated_model.js';
 export { Skeleton } from './skeleton.js';
 export { CameraControls } from './camera_controls.js';
+export { PlayerController } from './player_controller.js';
 export type { Material } from './components/mesh_renderer.js';
 export type { CascadeData } from './components/directional_light.js';
 export type { AnimationClip, AnimationChannel, Interpolation } from './animation.js';
