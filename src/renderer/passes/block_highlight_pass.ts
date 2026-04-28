@@ -64,42 +64,35 @@ export class BlockHighlightPass extends RenderPass {
       depthCompare     : 'less-equal',
     };
 
-    // Face overlay: semi-transparent dark overlay on each face.
+    // Face overlay needs depth bias to avoid z-fighting with the block surface.
+    const faceDepthStencil: GPUDepthStencilState = {
+      format           : 'depth32float',
+      depthWriteEnabled: false,
+      depthCompare     : 'less-equal',
+      depthBias        : -2,
+      depthBiasSlopeScale: -1.0,
+      depthBiasClamp   : 0.0,
+    };
+
+    const blend: GPUBlendState = {
+      color: { srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha', operation: 'add' },
+      alpha: { srcFactor: 'one',       dstFactor: 'one-minus-src-alpha', operation: 'add' },
+    };
+
     const facePipeline = device.createRenderPipeline({
       label   : 'BlockHighlightFacePipeline',
       layout  : pipelineLayout,
       vertex  : { module: shader, entryPoint: 'vs_face' },
-      fragment: {
-        module : shader,
-        entryPoint: 'fs_face',
-        targets: [{
-          format: HDR_FORMAT,
-          blend : {
-            color: { srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha', operation: 'add' },
-            alpha: { srcFactor: 'one',       dstFactor: 'one-minus-src-alpha', operation: 'add' },
-          },
-        }],
-      },
+      fragment: { module: shader, entryPoint: 'fs_face', targets: [{ format: HDR_FORMAT, blend }] },
       primitive   : { topology: 'triangle-list', cullMode: 'none' },
-      depthStencil,
+      depthStencil: faceDepthStencil,
     });
 
-    // Edge quads: opaque thick outlines on each edge.
     const edgePipeline = device.createRenderPipeline({
       label   : 'BlockHighlightEdgePipeline',
       layout  : pipelineLayout,
       vertex  : { module: shader, entryPoint: 'vs_edge' },
-      fragment: {
-        module    : shader,
-        entryPoint: 'fs_edge',
-        targets: [{
-          format: HDR_FORMAT,
-          blend : {
-            color: { srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha', operation: 'add' },
-            alpha: { srcFactor: 'one',       dstFactor: 'one-minus-src-alpha', operation: 'add' },
-          },
-        }],
-      },
+      fragment: { module: shader, entryPoint: 'fs_edge', targets: [{ format: HDR_FORMAT, blend }] },
       primitive   : { topology: 'triangle-list', cullMode: 'none' },
       depthStencil,
     });

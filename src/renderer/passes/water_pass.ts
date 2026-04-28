@@ -195,8 +195,8 @@ export class WaterPass extends RenderPass {
     ctx.queue.writeBuffer(this._cameraBuffer, 0, data.buffer as ArrayBuffer);
   }
 
-  updateTime(ctx: RenderContext, time: number): void {
-    ctx.queue.writeBuffer(this._waterBuffer, 0, new Float32Array([time, 0, 0, 0]).buffer as ArrayBuffer);
+  updateTime(ctx: RenderContext, time: number, skyIntensity: number = 1.0): void {
+    ctx.queue.writeBuffer(this._waterBuffer, 0, new Float32Array([time, skyIntensity, 0, 0]).buffer as ArrayBuffer);
   }
 
   addChunk(chunk: Chunk, mesh: ChunkMesh): void {

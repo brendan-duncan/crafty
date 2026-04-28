@@ -19,10 +19,10 @@ struct CameraUniforms {
 }
 
 struct WaterUniforms {
-  time : f32,
-  _p0  : f32,
-  _p1  : f32,
-  _p2  : f32,
+  time          : f32,
+  sky_intensity : f32,  // 0 at night, 1 at noon — dims the HDR sky reflection
+  _p1           : f32,
+  _p2           : f32,
 }
 
 struct ChunkUniforms {
@@ -109,15 +109,14 @@ fn fs_main(in: VertOut) -> @location(0) vec4<f32> {
   let VdotN     = clamp(dot(view_dir, normal), 0.0, 1.0);
   let fresnel_r = min(0.02 + 0.98 * pow(1.0 - VdotN, 5.0), 0.6);
 
-  // Sky reflection via equirectangular lookup
-  let sky_color = textureSample(sky_tex, samp, sky_uv(reflect(-view_dir, normal))).rgb;
+  // Sky reflection via equirectangular lookup, dimmed by sky_intensity for day/night.
+  let sky_color = textureSample(sky_tex, samp, sky_uv(reflect(-view_dir, normal))).rgb * water.sky_intensity;
 
   // Depth-based water tint: absorb red/green and scatter blue as depth increases.
-  // shallow_tint multiplies the refraction so the scene beneath reads as blue-green.
-  // deep_color is the water body colour shown when the scene below is fully obscured.
+  // deep_color is scaled by sky_intensity so water goes dark at night.
   let depth_t      = clamp(water_depth / 5.0, 0.0, 1.0);
   let shallow_tint = vec3<f32>(0.45, 0.78, 1.0);
-  let deep_color   = vec3<f32>(0.01, 0.10, 0.26);
+  let deep_color   = mix(vec3<f32>(0.003, 0.007, 0.015), vec3<f32>(0.01, 0.10, 0.26), water.sky_intensity);
   let tinted       = mix(refraction * shallow_tint, deep_color, depth_t);
 
   // Fresnel blend: refraction dominant head-on, reflection rises at grazing angles

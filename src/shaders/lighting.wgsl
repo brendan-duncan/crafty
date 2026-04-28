@@ -1,6 +1,88 @@
 // Deferred PBR lighting pass — fullscreen triangle, reads GBuffer + shadow maps + IBL.
 
 const PI: f32 = 3.14159265358979323846;
+
+// ---- Aerial perspective (Rayleigh + Mie, same model as atmosphere.wgsl) --------
+// Density scale factor: real atmosphere only hazes over km; game view is ~200 m,
+// so multiply density by 200 to get visible haze at typical render distances.
+const ATM_FOG_SCALE : f32       = 80.0;
+const ATM_R_E       : f32       = 6360000.0;
+const ATM_R_A       : f32       = 6420000.0;
+const ATM_H_R       : f32       = 8500.0;
+const ATM_H_M       : f32       = 1200.0;
+const ATM_G         : f32       = 0.758;
+const ATM_BETA_R    : vec3<f32> = vec3<f32>(5.5e-6, 13.0e-6, 22.4e-6);
+const ATM_BETA_M    : f32       = 21.0e-6;
+const ATM_SUN_I     : f32       = 20.0;
+
+fn atm_ray_sphere(ro: vec3<f32>, rd: vec3<f32>, r: f32) -> vec2<f32> {
+  let b = dot(ro, rd); let c = dot(ro, ro) - r * r; let d = b*b - c;
+  if (d < 0.0) { return vec2<f32>(-1.0, -1.0); }
+  let sq = sqrt(d);
+  return vec2<f32>(-b - sq, -b + sq);
+}
+
+fn atm_optical_depth(pos: vec3<f32>, dir: vec3<f32>) -> vec2<f32> {
+  let t = atm_ray_sphere(pos, dir, ATM_R_A); let ds = t.y / 4.0;
+  var od = vec2<f32>(0.0);
+  for (var i = 0; i < 4; i++) {
+    let h = length(pos + dir * ((f32(i) + 0.5) * ds)) - ATM_R_E;
+    if (h < 0.0) { break; }
+    od += vec2<f32>(exp(-h / ATM_H_R), exp(-h / ATM_H_M)) * ds;
+  }
+  return od;
+}
+
+// Simplified scatter for fog colour (6 main steps).
+fn atm_scatter(ro: vec3<f32>, rd: vec3<f32>, sun_dir: vec3<f32>) -> vec3<f32> {
+  let ta = atm_ray_sphere(ro, rd, ATM_R_A); let tMin = max(ta.x, 0.0);
+  if (ta.y < 0.0) { return vec3<f32>(0.0); }
+  let tg   = atm_ray_sphere(ro, rd, ATM_R_E);
+  let tMax = select(ta.y, min(ta.y, tg.x), tg.x > 0.0);
+  if (tMax <= tMin) { return vec3<f32>(0.0); }
+  let mu = dot(rd, sun_dir);
+  let pR = (3.0 / (16.0 * PI)) * (1.0 + mu * mu);
+  let g2 = ATM_G * ATM_G;
+  let pM = (3.0 / (8.0 * PI)) * ((1.0 - g2) * (1.0 + mu * mu)) /
+            ((2.0 + g2) * pow(max(1.0 + g2 - 2.0 * ATM_G * mu, 1e-4), 1.5));
+  let ds = (tMax - tMin) / 6.0;
+  var sumR = vec3<f32>(0.0); var sumM = vec3<f32>(0.0);
+  var odR = 0.0; var odM = 0.0;
+  for (var i = 0; i < 6; i++) {
+    let pos = ro + rd * (tMin + (f32(i) + 0.5) * ds);
+    let h   = length(pos) - ATM_R_E;
+    if (h < 0.0) { break; }
+    let hrh = exp(-h / ATM_H_R) * ds; let hmh = exp(-h / ATM_H_M) * ds;
+    odR += hrh; odM += hmh;
+    let tg2 = atm_ray_sphere(pos, sun_dir, ATM_R_E);
+    if (tg2.x > 0.0) { continue; }
+    let odL = atm_optical_depth(pos, sun_dir);
+    let tau = ATM_BETA_R * (odR + odL.x) + ATM_BETA_M * 1.1 * (odM + odL.y);
+    sumR += exp(-tau) * hrh; sumM += exp(-tau) * hmh;
+  }
+  return ATM_SUN_I * (ATM_BETA_R * pR * sumR + vec3<f32>(ATM_BETA_M) * pM * sumM);
+}
+
+fn apply_aerial_perspective(geo_color: vec3<f32>, world_pos: vec3<f32>,
+                             sun_dir: vec3<f32>, cam_h: f32) -> vec3<f32> {
+  let ray_vec  = world_pos - camera.position;
+  let dist     = length(ray_vec);
+  let ray_dir  = ray_vec / max(dist, 0.001);
+  let atm_ro   = vec3<f32>(0.0, ATM_R_E + cam_h, 0.0);
+
+  // Game-scale extinction: scale up real-atmosphere density to be visible at ~100–300 m.
+  let rho_R = exp(-cam_h / ATM_H_R);
+  let rho_M = exp(-cam_h / ATM_H_M);
+  let tau   = (ATM_BETA_R * rho_R + vec3<f32>(ATM_BETA_M * rho_M)) * ATM_FOG_SCALE * dist;
+  let geo_T = exp(-tau);
+
+  // Clamp to near-horizon — prevents the fog colour exactly matching the sky behind the
+  // geometry, which would make distant surfaces look transparent rather than hazy.
+  let horiz_dir = normalize(vec3<f32>(ray_dir.x, clamp(ray_dir.y, -0.15, 0.15), ray_dir.z));
+  let fog_color = atm_scatter(atm_ro, horiz_dir, sun_dir);
+
+  return geo_color * geo_T + fog_color * (1.0 - geo_T);
+}
 const SHADOW_MAP_SIZE: f32 = 2048.0;
 
 const POISSON16 = array<vec2<f32>, 16>(
@@ -334,5 +416,8 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     return vec4<f32>(tint * mix(0.15, 1.0, shad), 1.0);
   }
 
-  return vec4<f32>(color, 1.0);
+  let sun_dir_fog = normalize(-light.direction);
+  let cam_h_fog   = max(camera.position.y, 1.0);
+  let haze = apply_aerial_perspective(color, world_pos, sun_dir_fog, cam_h_fog);
+  return vec4<f32>(haze, 1.0);
 }

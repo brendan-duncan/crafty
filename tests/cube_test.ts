@@ -430,7 +430,7 @@ async function main() {
       : postInput;
 
     autoExposurePass = AutoExposurePass.create(ctx, lightingPass.hdrTexture);
-    tonemapPass = TonemapPass.create(ctx, tonemapInput, ssaoPass.aoView, autoExposurePass.exposureBuffer);
+    tonemapPass = TonemapPass.create(ctx, tonemapInput, ssaoPass.aoView, autoExposurePass.exposureBuffer, gbuffer.depthView);
 
     graph = new RenderGraph();
     graph.addPass(shadowPass);

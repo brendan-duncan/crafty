@@ -1,6 +1,5 @@
 import { RenderPass } from '../render_pass.js';
 import type { RenderContext } from '../render_context.js';
-import type { Texture } from '../../assets/texture.js';
 import type { Mat4 } from '../../math/mat4.js';
 import type { CloudNoiseTextures } from '../../assets/cloud_noise.js';
 import { HDR_FORMAT } from './lighting_pass.js';
@@ -48,7 +47,7 @@ export class CloudPass extends RenderPass {
   private _sceneBG        : GPUBindGroup;  // group 0: camera + cloud
   private _lightBG        : GPUBindGroup;  // group 1: light
   private _depthBG        : GPUBindGroup;  // group 2: depth texture
-  private _noiseSkyBG     : GPUBindGroup;  // group 3: noises + sky
+  private _noiseSkyBG     : GPUBindGroup;  // group 3: noises
 
   private constructor(
     pipeline    : GPURenderPipeline,
@@ -74,11 +73,10 @@ export class CloudPass extends RenderPass {
   }
 
   static create(
-    ctx       : RenderContext,
-    hdrView   : GPUTextureView,
-    depthView : GPUTextureView,
-    skyTexture: Texture,
-    noises    : CloudNoiseTextures,
+    ctx      : RenderContext,
+    hdrView  : GPUTextureView,
+    depthView: GPUTextureView,
+    noises   : CloudNoiseTextures,
   ): CloudPass {
     const { device } = ctx;
 
@@ -118,15 +116,13 @@ export class CloudPass extends RenderPass {
         { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } },
       ],
     });
-    // group 3: base_noise + detail_noise + sky_tex + noise_samp + sky_samp
+    // group 3: base_noise + detail_noise + noise_samp
     const noiseSkyBGL = device.createBindGroupLayout({
       label: 'CloudNoiseSkyBGL',
       entries: [
         { binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float', viewDimension: '3d' } },
         { binding: 1, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float', viewDimension: '3d' } },
-        { binding: 2, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } },
-        { binding: 3, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } },
-        { binding: 4, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } },
+        { binding: 2, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } },
       ],
     });
 
@@ -134,11 +130,6 @@ export class CloudPass extends RenderPass {
       label: 'CloudNoiseSampler',
       magFilter: 'linear', minFilter: 'linear', mipmapFilter: 'linear',
       addressModeU: 'repeat', addressModeV: 'repeat', addressModeW: 'repeat',
-    });
-    const skySampler = device.createSampler({
-      label: 'CloudSkySampler',
-      magFilter: 'linear', minFilter: 'linear',
-      addressModeU: 'repeat', addressModeV: 'clamp-to-edge',
     });
     const depthSampler = device.createSampler({ label: 'CloudDepthSampler' });
 
@@ -165,9 +156,7 @@ export class CloudPass extends RenderPass {
       entries: [
         { binding: 0, resource: noises.baseView },
         { binding: 1, resource: noises.detailView },
-        { binding: 2, resource: skyTexture.view },
-        { binding: 3, resource: noiseSampler },
-        { binding: 4, resource: skySampler },
+        { binding: 2, resource: noiseSampler },
       ],
     });
 
