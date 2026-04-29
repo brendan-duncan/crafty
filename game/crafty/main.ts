@@ -27,7 +27,7 @@ import type { ParticleGraphConfig } from '../../src/particles/index.js';
 import { Texture } from '../../src/assets/texture.js';
 import { parseHdr, createHdrTexture } from '../../src/assets/hdr_loader.js';
 import { BlockTexture } from '../../src/assets/block_texture.js';
-import { World, BlockType, blockTextureOffsetData } from '../../src/block/index.js';
+import { World, BlockType, blockTextureOffsetData, EnvironmentEffect, getBiomeEnvironmentEffect } from '../../src/block/index.js';
 import type { Chunk, ChunkMesh } from '../../src/block/index.js';
 import type { DrawItem } from '../../src/renderer/passes/geometry_pass.js';
 
@@ -225,7 +225,8 @@ async function main(): Promise<void> {
 
   // --- World ---
 
-  const world = new World(42);
+  //const world = new World(42);
+  const world = new World(454321);
   const chunkMeshCache = new Map<Chunk, ChunkMesh>();
 
   // --- Scene ---
@@ -260,7 +261,7 @@ async function main(): Promise<void> {
     }
   });
 
-  // --- Rain particle config ---
+  // --- Particle configs ---
   const rainConfig: ParticleGraphConfig = {
     emitter: {
       maxParticles: 30000,
@@ -282,12 +283,35 @@ async function main(): Promise<void> {
     renderer: { type: 'sprites', blendMode: 'alpha', billboard: 'velocity', renderTarget: 'hdr' },
   };
 
+  const snowConfig: ParticleGraphConfig = {
+    emitter: {
+      maxParticles: 5000,
+      spawnRate: 1200,
+      lifetime: [5.0, 9.0],
+      shape: { kind: 'box', halfExtents: [35, 0.1, 35] },
+      initialSpeed: [0, 0],
+      initialColor: [0.92, 0.96, 1.0, 0.85],
+      initialSize: [0.025, 0.055],
+      roughness: 0.1,
+      metallic: 0.0,
+    },
+    modifiers: [
+      { type: 'gravity', strength: 1.5 },
+      { type: 'drag', coefficient: 0.8 },
+      { type: 'color_over_lifetime', startColor: [0.92, 0.96, 1.0, 0.85], endColor: [0.92, 0.96, 1.0, 0.0] },
+      { type: 'block_collision' },
+    ],
+    renderer: { type: 'sprites', blendMode: 'alpha', billboard: 'camera', renderTarget: 'hdr' },
+  };
+
   // --- Effect toggles ---
   const effects = { ssao: true, ssgi: false, shadows: true, dof: true, bloom: true, aces: true, ao_dbg: false, shd_dbg: false, hdr: true, auto_exp: false, rain: true, clouds: true };
 
   // --- Renderer ---
 
   const shadowPass = ShadowPass.create(ctx, 3);
+
+  let currentWeatherEffect: EnvironmentEffect = EnvironmentEffect.None;
 
   let gbuffer!            : GBuffer;
   let geometryPass!       : GeometryPass;
@@ -421,8 +445,9 @@ async function main(): Promise<void> {
     graph.addPass(lightingPass);
     graph.addPass(pointSpotLightPass);
     graph.addPass(waterPass);
-    if (effects.rain) {
-      rainPass = ParticlePass.create(ctx, rainConfig, gbuffer, lightingPass.hdrView);
+    if (effects.rain && currentWeatherEffect !== EnvironmentEffect.None) {
+      const weatherConfig = currentWeatherEffect === EnvironmentEffect.Snow ? snowConfig : rainConfig;
+      rainPass = ParticlePass.create(ctx, weatherConfig, gbuffer, lightingPass.hdrView);
       graph.addPass(rainPass);
     }
     graph.addPass(taaPass);
@@ -643,6 +668,12 @@ async function main(): Promise<void> {
 
     const camPos = camera.position();
     world.update(camPos, dt);
+
+    const weatherEffect = getBiomeEnvironmentEffect(world.getBiomeAt(camPos.x, camPos.z));
+    if (weatherEffect !== currentWeatherEffect) {
+      currentWeatherEffect = weatherEffect;
+      buildRenderTargets();
+    }
 
     const hi    = (frameIndex % 16) + 1;
     const jx    = (halton(hi, 2) - 0.5) * (2 / ctx.width);

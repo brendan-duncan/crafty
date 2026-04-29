@@ -1,6 +1,7 @@
 import { Vec3 } from '../math/index.js';
 import { Chunk, ChunkMesh } from './chunk.js';
 import { BlockType, isBlockWater, isBlockProp } from './block_type.js';
+import { BiomeType } from './biome_type.js';
 
 export interface RaycastResult {
   blockType: number;
@@ -32,6 +33,10 @@ export class World {
 
   get chunkCount(): number { return this._chunks.size; }
   get chunks(): IterableIterator<Chunk> { return this._chunks.values(); }
+
+  getBiomeAt(wx: number, wz: number): BiomeType {
+    return Chunk._determineBiome(wx, wz, this.seed);
+  }
 
   static normalizeChunkPosition(wx: number, wy: number, wz: number): [number, number, number] {
     return [

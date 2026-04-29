@@ -1,4 +1,4 @@
-export { BiomeType } from './biome_type.js';
+export { BiomeType, EnvironmentEffect, getBiomeEnvironmentEffect } from './biome_type.js';
 export {
   BASE_RESOLUTION_WIDTH,
   BASE_RESOLUTION_HEIGHT,

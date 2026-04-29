@@ -536,7 +536,7 @@ export class Chunk {
   }
 
   _generateBlock(p_x: number, p_y: number, p_z: number, seed: number): number {
-    const biome = this._determineBiome(p_x, p_z, seed);
+    const biome = Chunk._determineBiome(p_x, p_z, seed);
     const surfaceHeight = this._calculateSurfaceHeight(p_x, p_y, p_z, seed, biome);
 
     if (p_y < surfaceHeight) {
@@ -586,7 +586,7 @@ export class Chunk {
 
   // Biome is determined from 2D (x, z) position only — y has no influence.
   // Uses three independent noise fields: temperature, moisture, and elevation.
-  _determineBiome(p_x: number, p_z: number, seed: number): BiomeType {
+  static _determineBiome(p_x: number, p_z: number, seed: number): BiomeType {
     const temperature = perlinNoise3Seed(p_x / 512.0, 0, p_z / 512.0, 0, 0, 0, seed + 31337);
     const moisture    = perlinNoise3Seed(p_x / 400.0, 0, p_z / 400.0, 0, 0, 0, seed + 99991);
     const elevation   = Math.abs(perlinNoise3Seed(p_x / 800.0, 0, p_z / 800.0, 0, 0, 0, seed + 7919));
