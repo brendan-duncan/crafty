@@ -72,6 +72,53 @@ fn sky_uv(d: vec3<f32>) -> vec2<f32> {
   return vec2<f32>(u, v);
 }
 
+// Screen-space reflection: ray-march the reflected ray in view space, sampling
+// refraction_tex (the pre-water HDR copy) for radiance at each hit.
+// Returns vec4(colour, confidence) — confidence fades to 0 near screen edges or on a miss.
+fn ssr(world_pos: vec3<f32>, normal: vec3<f32>, view_dir: vec3<f32>) -> vec4<f32> {
+  let reflect_dir = reflect(-view_dir, normal);
+  // Transform reflected direction and surface origin to view space.
+  let ray_vs    = normalize((cam.view * vec4<f32>(reflect_dir, 0.0)).xyz);
+  let origin_vs = (cam.view * vec4<f32>(world_pos, 1.0)).xyz;
+
+  // Only trace rays heading away from the camera (negative view-space Z).
+  if (ray_vs.z >= -0.001) { return vec4<f32>(0.0); }
+
+  let screen_dim = vec2<f32>(textureDimensions(refraction_tex));
+  let screen_i   = vec2<i32>(screen_dim);
+
+  let NUM_STEPS: u32 = 32u;
+  let MAX_DIST : f32 = 50.0;  // world-unit ray length
+  let THICKNESS: f32 = 1.5;   // hit tolerance in view-space units
+
+  for (var s = 0u; s < NUM_STEPS; s++) {
+    let t = (f32(s) + 1.0) * MAX_DIST / f32(NUM_STEPS);
+    let p = origin_vs + ray_vs * t;
+    if (p.z >= 0.0) { break; }  // stepped behind the near plane
+
+    // Project the ray point to screen UV.
+    let clip  = cam.proj * vec4<f32>(p, 1.0);
+    let inv_w = 1.0 / clip.w;
+    let uv    = vec2<f32>(clip.x * inv_w * 0.5 + 0.5, -clip.y * inv_w * 0.5 + 0.5);
+    if (any(uv < vec2<f32>(0.0)) || any(uv > vec2<f32>(1.0))) { break; }
+
+    // Compare ray depth against the stored GBuffer depth (converted to view-space Z).
+    let tc           = clamp(vec2<i32>(uv * screen_dim), vec2<i32>(0), screen_i - vec2<i32>(1));
+    let stored_depth = textureLoad(depth_tex, tc, 0);
+    if (stored_depth >= 1.0) { continue; }  // sky pixel — keep stepping
+
+    let stored_z = -linearize(stored_depth, cam.near, cam.far);  // view-space Z (negative)
+    if (p.z < stored_z && stored_z - p.z < THICKNESS) {
+      // Fade confidence near screen edges to hide ray-termination seams.
+      let edge = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y)) * 8.0;
+      let conf = clamp(edge, 0.0, 1.0);
+      let sample_uv = clamp(uv, vec2<f32>(0.001), vec2<f32>(0.999));
+      return vec4<f32>(textureSampleLevel(refraction_tex, samp, sample_uv, 0.0).rgb, conf);
+    }
+  }
+  return vec4<f32>(0.0);  // miss
+}
+
 @fragment
 fn fs_main(in: VertOut) -> @location(0) vec4<f32> {
   if (in.clip_coords.w < cam.near) { discard; }
@@ -109,8 +156,10 @@ fn fs_main(in: VertOut) -> @location(0) vec4<f32> {
   let VdotN     = clamp(dot(view_dir, normal), 0.0, 1.0);
   let fresnel_r = min(0.02 + 0.98 * pow(1.0 - VdotN, 5.0), 0.6);
 
-  // Sky reflection via equirectangular lookup, dimmed by sky_intensity for day/night.
-  let sky_color = textureSample(sky_tex, samp, sky_uv(reflect(-view_dir, normal))).rgb * water.sky_intensity;
+  // Screen-space reflection, with the equirectangular sky as fallback for missed rays.
+  let ssr_result = ssr(in.world_pos, normal, view_dir);
+  let sky_color  = textureSample(sky_tex, samp, sky_uv(reflect(-view_dir, normal))).rgb * water.sky_intensity;
+  let reflection = mix(sky_color, ssr_result.rgb, ssr_result.a);
 
   // Depth-based water tint: absorb red/green and scatter blue as depth increases.
   // deep_color is scaled by sky_intensity so water goes dark at night.
@@ -119,8 +168,8 @@ fn fs_main(in: VertOut) -> @location(0) vec4<f32> {
   let deep_color   = mix(vec3<f32>(0.003, 0.007, 0.015), vec3<f32>(0.01, 0.10, 0.26), water.sky_intensity);
   let tinted       = mix(refraction * shallow_tint, deep_color, depth_t);
 
-  // Fresnel blend: refraction dominant head-on, reflection rises at grazing angles
-  let world_color = mix(tinted, sky_color, fresnel_r);
+  // Fresnel blend: refraction dominant head-on, SSR reflection rises at grazing angles.
+  let world_color = mix(tinted, reflection, fresnel_r);
 
   // Alpha increases with depth so even shallow water applies a visible blue cast.
   // Edges stay transparent; deeper water becomes nearly opaque.
