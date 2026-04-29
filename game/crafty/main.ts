@@ -286,8 +286,8 @@ async function main(): Promise<void> {
   const snowConfig: ParticleGraphConfig = {
     emitter: {
       maxParticles: 5000,
-      spawnRate: 1200,
-      lifetime: [5.0, 9.0],
+      spawnRate: 150,
+      lifetime: [30.0, 45.0],
       shape: { kind: 'box', halfExtents: [35, 0.1, 35] },
       initialSpeed: [0, 0],
       initialColor: [0.92, 0.96, 1.0, 0.85],
@@ -298,7 +298,6 @@ async function main(): Promise<void> {
     modifiers: [
       { type: 'gravity', strength: 1.5 },
       { type: 'drag', coefficient: 0.8 },
-      { type: 'color_over_lifetime', startColor: [0.92, 0.96, 1.0, 0.85], endColor: [0.92, 0.96, 1.0, 0.0] },
       { type: 'block_collision' },
     ],
     renderer: { type: 'sprites', blendMode: 'alpha', billboard: 'camera', renderTarget: 'hdr' },
@@ -758,7 +757,8 @@ async function main(): Promise<void> {
     if (rainPass) {
       updateHeightmap(camPos.x, camPos.z);
       rainPass.updateHeightmap(ctx, hmData, camPos.x, camPos.z, HM_EXTENT);
-      const rainMat = new Mat4([1,0,0,0, 0,1,0,0, 0,0,1,0, camPos.x, camPos.y + 8, camPos.z, 1]);
+      const spawnOffset = currentWeatherEffect === EnvironmentEffect.Snow ? 20 : 8;
+      const rainMat = new Mat4([1,0,0,0, 0,1,0,0, 0,0,1,0, camPos.x, camPos.y + spawnOffset, camPos.z, 1]);
       rainPass.update(ctx, dt, view, proj, vp, invVP, camPos, camera.near, camera.far, rainMat);
     }
 
