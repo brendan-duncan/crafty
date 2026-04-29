@@ -238,7 +238,7 @@ async function main(): Promise<void> {
   scene.add(sunGO);
 
   const cameraGO = new GameObject('Camera');
-  cameraGO.position.set(64, 25, 64);  // eye position; player falls to ground on start
+  cameraGO.position.set(64, 25, 64);
   const camera = cameraGO.addComponent(new Camera(70, 0.1, 1000, ctx.width / ctx.height));
   scene.add(cameraGO);
 
@@ -459,6 +459,23 @@ async function main(): Promise<void> {
   }
 
   buildRenderTargets();
+
+  // Spawn player standing on the terrain surface at the starting X/Z.
+  // Force-generate the vertical column before the frame loop begins, centred at y=50
+  // so render-distance covers chunks cy=-1..7 (world y 0-112, all realistic terrain).
+  {
+    const spawnX = cameraGO.position.x;
+    const spawnZ = cameraGO.position.z;
+    const savedRate = world.chunksPerFrame;
+    world.chunksPerFrame = 200;
+    world.update(new Vec3(spawnX, 50, spawnZ), 0);
+    world.chunksPerFrame = savedRate;
+    const topY = world.getTopBlockY(spawnX, spawnZ, 200);
+    if (topY > 0) {
+      cameraGO.position.y = topY + 1.62;  // eye height above feet
+      player.velY = 0;                     // suppress first-frame gravity drop
+    }
+  }
 
   // --- UI ---
 

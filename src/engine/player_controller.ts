@@ -19,6 +19,7 @@ export class PlayerController {
   sensitivity: number = 0.002;
 
   private _velY         = 0;
+  set velY(v: number) { this._velY = v; }
   private _onGround     = false;
   private _prevInWater  = false;
   private _coyoteFrames = 0;

@@ -74,14 +74,12 @@ export class World {
     const H = Chunk.CHUNK_HEIGHT;
     const bx = Math.floor(wx);
     const bz = Math.floor(wz);
-    for (let y = maxY; y >= 0; y -= H) {
-      const chunkTopY = Math.min(y, maxY);
-      const chunk = this.getChunk(bx, chunkTopY, bz);
+    for (let cy = Math.floor(maxY / H); cy >= 0; cy--) {
+      const chunk = this.getChunk(bx, cy * H, bz);
       if (!chunk) continue;
       const rx = bx - chunk.globalPosition.x;
       const rz = bz - chunk.globalPosition.z;
-      const startRY = Math.min(chunkTopY - chunk.globalPosition.y, H - 1);
-      for (let ry = startRY; ry >= 0; ry--) {
+      for (let ry = H - 1; ry >= 0; ry--) {
         const bt = chunk.getBlock(rx, ry, rz);
         if (bt !== BlockType.NONE && !isBlockProp(bt)) return chunk.globalPosition.y + ry + 1;
       }
