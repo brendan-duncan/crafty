@@ -248,7 +248,7 @@ export const blockMaterialData: BlockMaterialData[] = [
   new BlockMaterialData(BlockType.DIAMOND, MaterialType.OPAQUE, 0, 1),
   new BlockMaterialData(BlockType.IRON, MaterialType.OPAQUE, 0, 1),
   new BlockMaterialData(BlockType.SPECULAR, MaterialType.OPAQUE, 0, 1),
-  new BlockMaterialData(BlockType.CACTUS, MaterialType.PROP, 0, 1),
+  new BlockMaterialData(BlockType.CACTUS, MaterialType.OPAQUE, 0, 1),
   new BlockMaterialData(BlockType.SNOW, MaterialType.OPAQUE, 0, 1),
   new BlockMaterialData(BlockType.GRASS_SNOW, MaterialType.OPAQUE, 0, 1),
   new BlockMaterialData(BlockType.SPRUCE_PLANKS, MaterialType.OPAQUE, 0, 1),
