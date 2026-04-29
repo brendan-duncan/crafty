@@ -14,7 +14,10 @@ const CHUNK_UNIFORM_SIZE  = 16;  // vec3f offset + f32 pad
 const FLOATS_PER_VERT = 2;  // [x, z]
 const BYTES_PER_VERT  = FLOATS_PER_VERT * 4;
 
+const CHUNK_SIZE = 16;
+
 interface ChunkWaterGpu {
+  ox: number; oy: number; oz: number;
   buffer        : GPUBuffer | null;
   vertexCount   : number;
   uniformBuffer : GPUBuffer;
@@ -40,6 +43,7 @@ export class WaterPass extends RenderPass {
   private _dudvTexture     : Texture;
   private _gradientTexture : Texture;
   private _chunks          = new Map<Chunk, ChunkWaterGpu>();
+  private _frustumPlanes   = new Float32Array(24);
 
   private constructor(
     device          : GPUDevice,
@@ -193,6 +197,27 @@ export class WaterPass extends RenderPass {
     data[67] = near;
     data[68] = far;
     ctx.queue.writeBuffer(this._cameraBuffer, 0, data.buffer as ArrayBuffer);
+    this._extractFrustumPlanes(viewProj.data);
+  }
+
+  private _extractFrustumPlanes(m: Float32Array | number[]): void {
+    const p = this._frustumPlanes;
+    p[ 0]=m[3]+m[0]; p[ 1]=m[7]+m[4]; p[ 2]=m[11]+m[ 8]; p[ 3]=m[15]+m[12];
+    p[ 4]=m[3]-m[0]; p[ 5]=m[7]-m[4]; p[ 6]=m[11]-m[ 8]; p[ 7]=m[15]-m[12];
+    p[ 8]=m[3]+m[1]; p[ 9]=m[7]+m[5]; p[10]=m[11]+m[ 9]; p[11]=m[15]+m[13];
+    p[12]=m[3]-m[1]; p[13]=m[7]-m[5]; p[14]=m[11]-m[ 9]; p[15]=m[15]-m[13];
+    p[16]=m[2];      p[17]=m[6];      p[18]=m[10];        p[19]=m[14];
+    p[20]=m[3]-m[2]; p[21]=m[7]-m[6]; p[22]=m[11]-m[10]; p[23]=m[15]-m[14];
+  }
+
+  private _isVisible(ox: number, oy: number, oz: number): boolean {
+    const p = this._frustumPlanes;
+    const mx = ox + CHUNK_SIZE, my = oy + CHUNK_SIZE, mz = oz + CHUNK_SIZE;
+    for (let i = 0; i < 6; i++) {
+      const a = p[i*4], b = p[i*4+1], c = p[i*4+2], d = p[i*4+3];
+      if (a*(a>=0?mx:ox) + b*(b>=0?my:oy) + c*(c>=0?mz:oz) + d < 0) return false;
+    }
+    return true;
   }
 
   updateTime(ctx: RenderContext, time: number, skyIntensity: number = 1.0): void {
@@ -244,8 +269,9 @@ export class WaterPass extends RenderPass {
     pass.setBindGroup(1, this._waterBG);
     pass.setBindGroup(3, this._sceneBG);
 
-    for (const [, gpu] of this._chunks) {
+    for (const gpu of this._chunks.values()) {
       if (!gpu.buffer || gpu.vertexCount === 0) continue;
+      if (!this._isVisible(gpu.ox, gpu.oy, gpu.oz)) continue;
       pass.setBindGroup(2, gpu.chunkBG);
       pass.setVertexBuffer(0, gpu.buffer);
       pass.draw(gpu.vertexCount);
@@ -302,7 +328,10 @@ export class WaterPass extends RenderPass {
       entries: [{ binding: 0, resource: { buffer: uniformBuffer } }],
     });
 
-    const gpu: ChunkWaterGpu = { buffer: null, vertexCount: 0, uniformBuffer, chunkBG };
+    const gpu: ChunkWaterGpu = {
+      ox: chunk.globalPosition.x, oy: chunk.globalPosition.y, oz: chunk.globalPosition.z,
+      buffer: null, vertexCount: 0, uniformBuffer, chunkBG,
+    };
     this._replaceMeshBuffer(gpu, mesh);
     return gpu;
   }

@@ -1,5 +1,6 @@
 import industrialUrl  from '../../assets/cubemaps/hdr/industrial.hdr?url';
 import hotbarUrl      from '../../assets/ui/hotbar.png?url';
+import inventoryUrl   from '../../assets/ui/new_inventory.png?url';
 import colorAtlasUrl  from '../../assets/cube_textures/simple_block_atlas.png?url';
 import normalAtlasUrl from '../../assets/cube_textures/simple_block_atlas_normal.png?url';
 import merAtlasUrl    from '../../assets/cube_textures/simple_block_atlas_mer.png?url';
@@ -8,7 +9,7 @@ import dudvUrl        from '../../assets/water/waterDUDV.png?url';
 import gradientUrl    from '../../assets/water/gradient_map.png?url';
 import { Mat4, Vec3 } from '../../src/math/index.js';
 import {
-  GameObject, Scene, Camera, DirectionalLight, PlayerController,
+  GameObject, Scene, Camera, DirectionalLight, PlayerController, CameraControls,
   PointLight, SpotLight,
 } from '../../src/engine/index.js';
 import type { CascadeData } from '../../src/engine/index.js';
@@ -27,7 +28,7 @@ import type { ParticleGraphConfig } from '../../src/particles/index.js';
 import { Texture } from '../../src/assets/texture.js';
 import { parseHdr, createHdrTexture } from '../../src/assets/hdr_loader.js';
 import { BlockTexture } from '../../src/assets/block_texture.js';
-import { World, BlockType, blockTextureOffsetData, EnvironmentEffect, getBiomeEnvironmentEffect } from '../../src/block/index.js';
+import { World, BlockType, blockTextureOffsetData, blockTypeName, BiomeType, EnvironmentEffect, getBiomeEnvironmentEffect, getBiomeCloudCoverage } from '../../src/block/index.js';
 import type { Chunk, ChunkMesh } from '../../src/block/index.js';
 import type { DrawItem } from '../../src/renderer/passes/geometry_pass.js';
 
@@ -45,7 +46,7 @@ const HOTBAR_SLOTS: BlockType[] = [
   BlockType.DIAMOND,
 ];
 
-function createHotbar(atlasUrl: string): { getSelected: () => BlockType } {
+function createHotbar(atlasUrl: string): { getSelected: () => BlockType; refresh: () => void } {
   const N = HOTBAR_SLOTS.length;
   let selected = 0;
 
@@ -117,21 +118,23 @@ function createHotbar(atlasUrl: string): { getSelected: () => BlockType } {
     sel.style.left = (barRect.left - 2 + selected * 40) + 'px';
   }
 
-  // ── Draw block icons once the atlas is loaded ──
+  // ── Draw block icons ──
   const img = new Image();
   img.src = atlasUrl;
-  img.onload = () => {
+
+  function refresh(): void {
+    if (!img.complete) return;
     const TILE = 16;
     for (let i = 0; i < N; i++) {
       const tod = blockTextureOffsetData.find(d => d.blockType === HOTBAR_SLOTS[i]);
-      if (!tod) continue;
-      const tx = tod.sideFace.x * TILE;
-      const ty = tod.sideFace.y * TILE;
       const ctx2 = canvases[i].getContext('2d')!;
+      ctx2.clearRect(0, 0, 32, 32);
+      if (!tod) continue;
       ctx2.imageSmoothingEnabled = false;
-      ctx2.drawImage(img, tx, ty, TILE, TILE, 0, 0, 32, 32);
+      ctx2.drawImage(img, tod.sideFace.x * TILE, tod.sideFace.y * TILE, TILE, TILE, 0, 0, 32, 32);
     }
-  };
+  }
+  img.onload = refresh;
 
   // ── Input ──
   window.addEventListener('keydown', (e) => {
@@ -147,7 +150,7 @@ function createHotbar(atlasUrl: string): { getSelected: () => BlockType } {
   // Delay first position update until bar is laid out
   requestAnimationFrame(updateSelection);
 
-  return { getSelected: () => HOTBAR_SLOTS[selected] };
+  return { getSelected: () => HOTBAR_SLOTS[selected], refresh };
 }
 
 function halton(index: number, base: number): number {
@@ -205,6 +208,146 @@ function createControlPanel(
   return panel;
 }
 
+// ── Block Manager (inventory panel shown inside the menu) ─────────────────────
+// Image: 400×150 native, displayed at S=2× (800×300).
+// Slot step = 18px native = 36px display. Icon canvas = 16px native = 32px display.
+// Inventory: 21 cols × 6 rows, offset (22, 14) display.
+// Hotbar:     9 cols × 1 row,  offset (238, 248) display (centred).
+
+function createBlockManager(
+  container: HTMLElement,
+  atlasUrl: string,
+  onHotbarChanged: () => void,
+): { syncHotbar: () => void } {
+  const S    = 2;          // display scale (px per native px)
+  const STEP = 18 * S;     // slot stride
+  const ICON = 16 * S;     // canvas draw size
+  const INV_COLS = 21, INV_ROWS = 6;
+  const INV_X = 12 * S, INV_Y = 12 * S;
+  const HOT_COLS = 9;
+  const HOT_X = 120 * S;   // 240
+  const HOT_Y = 124 * S;   // 248
+
+  // All placeable blocks (skip NONE=0 and WATER)
+  const allBlocks: BlockType[] = [];
+  for (let i = 1; i < BlockType.MAX; i++) {
+    if (i !== BlockType.WATER) allBlocks.push(i as BlockType);
+  }
+
+  // Wrapper with inventory image as visual background
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'position:relative;display:inline-block;align-self:center;';
+
+  const bgImg = document.createElement('img');
+  bgImg.src = inventoryUrl;
+  bgImg.draggable = false;
+  bgImg.style.cssText = [
+    `width:${400 * S}px`, `height:${150 * S}px`,
+    'display:block', 'image-rendering:pixelated', 'user-select:none',
+  ].join(';');
+  wrap.appendChild(bgImg);
+
+  // Atlas image shared by all slot canvases
+  const atlas = new Image();
+  atlas.src = atlasUrl;
+
+  function drawIcon(cv: HTMLCanvasElement, bt: BlockType | null): void {
+    const ctx2 = cv.getContext('2d')!;
+    ctx2.clearRect(0, 0, cv.width, cv.height);
+    if (!bt) return;
+    const tod = blockTextureOffsetData.find(d => d.blockType === bt);
+    if (!tod) return;
+    ctx2.imageSmoothingEnabled = false;
+    ctx2.drawImage(atlas, tod.sideFace.x * 16, tod.sideFace.y * 16, 16, 16, 0, 0, cv.width, cv.height);
+  }
+
+  // ── Drag state ────────────────────────────────────────────────────────────────
+  let dragBlock: BlockType | null = null;
+  let dragHotbarIdx: number | null = null;
+
+  function makeSlot(x: number, y: number, draggable: boolean): [HTMLDivElement, HTMLCanvasElement] {
+    const div = document.createElement('div');
+    div.style.cssText = [
+      'position:absolute', `left:${x}px`, `top:${y}px`,
+      `width:${ICON}px`, `height:${ICON}px`,
+      'box-sizing:border-box', draggable ? 'cursor:grab' : '',
+    ].join(';');
+    div.draggable = draggable;
+
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = ICON;
+    cv.style.cssText = `width:${ICON}px;height:${ICON}px;image-rendering:pixelated;pointer-events:none;display:block;`;
+    div.appendChild(cv);
+    wrap.appendChild(div);
+    return [div, cv];
+  }
+
+  // ── Inventory grid (source) ───────────────────────────────────────────────────
+  for (let row = 0; row < INV_ROWS; row++) {
+    for (let col = 0; col < INV_COLS; col++) {
+      const bt = allBlocks[row * INV_COLS + col] ?? null;
+      if (!bt) continue;
+      const [div, cv] = makeSlot(INV_X + col * STEP, INV_Y + row * STEP, true);
+      div.title = String(blockTypeName[bt]);
+      if (atlas.complete) drawIcon(cv, bt); else atlas.addEventListener('load', () => drawIcon(cv, bt), { once: false });
+      div.addEventListener('dragstart', (e) => {
+        dragBlock = bt; dragHotbarIdx = null;
+        e.dataTransfer!.effectAllowed = 'copy';
+        div.style.opacity = '0.4';
+      });
+      div.addEventListener('dragend', () => { div.style.opacity = '1'; });
+    }
+  }
+
+  // ── Hotbar row (source + target) ──────────────────────────────────────────────
+  const hotbarCanvases: HTMLCanvasElement[] = [];
+
+  for (let i = 0; i < HOT_COLS; i++) {
+    const [div, cv] = makeSlot(HOT_X + i * STEP, HOT_Y, true);
+    hotbarCanvases.push(cv);
+    div.title = `Slot ${i + 1}`;
+
+    div.addEventListener('dragstart', (e) => {
+      dragBlock = HOTBAR_SLOTS[i]; dragHotbarIdx = i;
+      e.dataTransfer!.effectAllowed = 'move';
+      div.style.opacity = '0.4';
+    });
+    div.addEventListener('dragend', () => { div.style.opacity = '1'; });
+
+    div.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer!.dropEffect = dragHotbarIdx !== null ? 'move' : 'copy';
+      div.style.outline = `2px solid #7ff`;
+    });
+    div.addEventListener('dragleave', () => { div.style.outline = ''; });
+    div.addEventListener('drop', (e) => {
+      e.preventDefault();
+      div.style.outline = '';
+      if (!dragBlock) return;
+      if (dragHotbarIdx !== null && dragHotbarIdx !== i) {
+        // swap two hotbar slots
+        [HOTBAR_SLOTS[i], HOTBAR_SLOTS[dragHotbarIdx]] = [HOTBAR_SLOTS[dragHotbarIdx], HOTBAR_SLOTS[i]];
+      } else if (dragHotbarIdx === null) {
+        HOTBAR_SLOTS[i] = dragBlock;
+      }
+      syncHotbar();
+      onHotbarChanged();
+      dragBlock = null; dragHotbarIdx = null;
+    });
+  }
+
+  // Re-draws the hotbar row in the inventory panel from current HOTBAR_SLOTS
+  function syncHotbar(): void {
+    for (let i = 0; i < HOT_COLS; i++) drawIcon(hotbarCanvases[i], HOTBAR_SLOTS[i]);
+  }
+
+  atlas.addEventListener('load', syncHotbar);
+  if (atlas.complete) syncHotbar();
+
+  container.appendChild(wrap);
+  return { syncHotbar };
+}
+
 async function main(): Promise<void> {
   const canvas = document.getElementById('canvas') as HTMLCanvasElement;
   if (!canvas) throw new Error('No canvas element');
@@ -245,19 +388,102 @@ async function main(): Promise<void> {
   const player = new PlayerController(world, Math.PI, 0.1);
   player.attach(canvas);
 
+  const freeCamera = new CameraControls(Math.PI, 0.1, 15);
+  let usePlayerController = true;
+
+  const modeEl = document.createElement('div');
+  modeEl.textContent = 'PLAYER';
+  modeEl.style.cssText = [
+    'position:fixed', 'top:12px', 'left:12px',
+    'font-family:ui-monospace,monospace', 'font-size:13px', 'font-weight:bold',
+    'color:#4f4', 'background:rgba(0,0,0,0.45)',
+    'padding:4px 8px', 'border-radius:4px', 'pointer-events:none',
+    'letter-spacing:0.05em',
+  ].join(';');
+  document.body.appendChild(modeEl);
+
+  function toggleController(): void {
+    usePlayerController = !usePlayerController;
+    if (usePlayerController) {
+      player.yaw   = freeCamera.yaw;
+      player.pitch = freeCamera.pitch;
+      freeCamera.detach();
+      player.attach(canvas);
+    } else {
+      freeCamera.yaw   = player.yaw;
+      freeCamera.pitch = player.pitch;
+      player.detach();
+      freeCamera.attach(canvas);
+    }
+    modeEl.textContent = usePlayerController ? 'PLAYER' : 'FREE';
+    modeEl.style.color = usePlayerController ? '#4f4' : '#4cf';
+  }
+
+  document.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.code === 'KeyC' && document.pointerLockElement === canvas) toggleController();
+  });
+
   let targetBlock: Vec3 | null = null;
   let targetHit: { position: Vec3; face: Vec3 } | null = null;
 
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
+  interface TorchEntry { go: GameObject; pl: PointLight; phase: number; }
+  const torchLights = new Map<string, TorchEntry>();
+  const torchLightKey = (x: number, y: number, z: number) => `${x},${y},${z}`;
+
+  function addTorchLight(bx: number, by: number, bz: number): void {
+    const key = torchLightKey(bx, by, bz);
+    if (torchLights.has(key)) return;
+    const go = new GameObject('TorchLight');
+    go.position.set(bx + 0.5, by + 0.9, bz + 0.5);
+    const pl = go.addComponent(new PointLight());
+    pl.color      = new Vec3(1.0, 0.52, 0.18);
+    pl.intensity  = 4.0;
+    pl.radius     = 6.0;
+    pl.castShadow = false;
+    scene.add(go);
+    // Each torch gets a unique phase so they flicker independently.
+    const phase = (bx * 127.1 + by * 311.7 + bz * 74.3) % (Math.PI * 2);
+    torchLights.set(key, { go, pl, phase });
+  }
+
+  function removeTorchLight(bx: number, by: number, bz: number): void {
+    const key = torchLightKey(bx, by, bz);
+    const entry = torchLights.get(key);
+    if (!entry) return;
+    scene.remove(entry.go);
+    torchLights.delete(key);
+  }
+
+  function updateTorchFlicker(t: number): void {
+    for (const { pl, phase } of torchLights.values()) {
+      // Layered sines at different frequencies — feels organic without needing noise.
+      const flicker = 1.0
+        + 0.08 * Math.sin(t * 11.7 + phase)
+        + 0.05 * Math.sin(t *  7.3 + phase * 1.7)
+        + 0.03 * Math.sin(t * 23.1 + phase * 0.5);
+      pl.intensity = 4.0 * flicker;
+    }
+  }
+
   canvas.addEventListener('mousedown', (e: MouseEvent) => {
     if (document.pointerLockElement !== canvas) return;
     const isPlace = e.button === 2 || (e.button === 0 && e.ctrlKey);
     if (!isPlace && e.button === 0 && targetBlock) {
+      if (world.getBlockType(targetBlock.x, targetBlock.y, targetBlock.z) === BlockType.TORCH) {
+        removeTorchLight(targetBlock.x, targetBlock.y, targetBlock.z);
+      }
       world.mineBlock(targetBlock.x, targetBlock.y, targetBlock.z);
     } else if (isPlace && targetHit) {
       const hit = targetHit;
-      world.addBlock(hit.position.x, hit.position.y, hit.position.z, hit.face.x, hit.face.y, hit.face.z, hotbar.getSelected());
+      const placed = hotbar.getSelected();
+      const newX = hit.position.x + hit.face.x;
+      const newY = hit.position.y + hit.face.y;
+      const newZ = hit.position.z + hit.face.z;
+      if (world.addBlock(hit.position.x, hit.position.y, hit.position.z, hit.face.x, hit.face.y, hit.face.z, placed)) {
+        if (placed === BlockType.TORCH) addTorchLight(newX, newY, newZ);
+      }
     }
   });
 
@@ -502,6 +728,15 @@ async function main(): Promise<void> {
   ].join(';');
   document.body.appendChild(fpsEl);
 
+  const biomeEl = document.createElement('div');
+  biomeEl.style.cssText = [
+    'position:fixed', 'bottom:12px', 'right:12px',
+    'font-family:ui-monospace,monospace', 'font-size:13px',
+    'color:#ff0', 'background:rgba(0,0,0,0.45)',
+    'padding:4px 8px', 'border-radius:4px', 'pointer-events:none',
+  ].join(';');
+  document.body.appendChild(biomeEl);
+
   // --- Menu overlay ---
 
   const menuOverlay = document.createElement('div');
@@ -520,7 +755,7 @@ async function main(): Promise<void> {
     'background:rgba(255,255,255,0.04)',
     'border:1px solid rgba(255,255,255,0.12)',
     'border-radius:12px',
-    'max-width:520px', 'width:90%',
+    'max-width:860px', 'width:90%',
   ].join(';');
   menuOverlay.appendChild(menuCard);
 
@@ -574,6 +809,20 @@ async function main(): Promise<void> {
     buildRenderTargets();
   }, menuCard);
 
+  const invSep = document.createElement('div');
+  invSep.style.cssText = 'width:100%;height:1px;background:rgba(255,255,255,0.12)';
+  menuCard.appendChild(invSep);
+
+  const invLabel = document.createElement('div');
+  invLabel.textContent = 'BLOCK MANAGER';
+  invLabel.style.cssText = [
+    'color:rgba(255,255,255,0.35)', 'font-size:11px',
+    'letter-spacing:0.18em', 'align-self:flex-start',
+  ].join(';');
+  menuCard.appendChild(invLabel);
+
+  const { syncHotbar } = createBlockManager(menuCard, colorAtlasUrl, () => hotbar.refresh());
+
   const escHint = document.createElement('div');
   escHint.textContent = 'ESC  ·  resume';
   escHint.style.cssText = [
@@ -585,6 +834,7 @@ async function main(): Promise<void> {
 
   function openMenu(): void {
     menuOpenedAt = performance.now();
+    syncHotbar();
     menuOverlay.style.display = 'flex';
     reticle.style.display = 'none';
   }
@@ -648,8 +898,9 @@ async function main(): Promise<void> {
   let sunAngle   = Math.PI * 0.3;  // start in morning
   let waterTime  = 0;
   let frameIndex = 0;
-  let cloudWindX = 0;
-  let cloudWindZ = 0;
+  let cloudWindX    = 0;
+  let cloudWindZ    = 0;
+  let cloudCoverage = getBiomeCloudCoverage(world.getBiomeAt(cameraGO.position.x, cameraGO.position.z));
 
   function frame(time: number): void {
     const dt = Math.min((time - lastTime) / 1000, 0.1);
@@ -679,17 +930,25 @@ async function main(): Promise<void> {
     const t = Math.max(0, elev);
     sun.color.set(1.0, 0.8 + 0.2 * t, 0.6 + 0.4 * t);
 
-    player.update(cameraGO, dt);
+    if (usePlayerController) player.update(cameraGO, dt);
+    else                     freeCamera.update(cameraGO, dt);
+    updateTorchFlicker(time / 1000);
     scene.update(dt);
 
     const camPos = camera.position();
     world.update(camPos, dt);
 
-    const weatherEffect = getBiomeEnvironmentEffect(world.getBiomeAt(camPos.x, camPos.z));
+    const biome = world.getBiomeAt(camPos.x, camPos.z);
+
+    const weatherEffect = getBiomeEnvironmentEffect(biome);
     if (weatherEffect !== currentWeatherEffect) {
       currentWeatherEffect = weatherEffect;
       buildRenderTargets();
     }
+
+    const targetCloudCoverage = getBiomeCloudCoverage(biome);
+    cloudCoverage += (targetCloudCoverage - cloudCoverage) * Math.min(1, 0.3 * dt);
+    biomeEl.textContent = `${BiomeType[biome]}  coverage:${cloudCoverage.toFixed(2)}`;
 
     const hi    = (frameIndex % 16) + 1;
     const jx    = (halton(hi, 2) - 0.5) * (2 / ctx.width);
@@ -722,7 +981,7 @@ async function main(): Promise<void> {
       0.03 + 0.52 * dayT,   // night: 0.03, noon: 0.55
       0.05 + 0.65 * dayT,   // night: 0.05, noon: 0.7
     ];
-    const cloudSettings = { cloudBase: 35, cloudTop: 55, coverage: 0.88, density: 4.0,
+    const cloudSettings = { cloudBase: 35, cloudTop: 55, coverage: cloudCoverage, density: 4.0,
       windOffset: [cloudWindX, cloudWindZ] as [number, number],
       anisotropy: 0.85, extinction: 0.25, ambientColor: cloudAmbient, exposure: 1.0 };
     if (cloudShadowPass) cloudShadowPass.update(ctx, cloudSettings, [camPos.x, camPos.z], 128);

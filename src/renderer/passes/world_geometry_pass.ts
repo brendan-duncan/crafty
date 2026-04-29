@@ -14,11 +14,16 @@ const BLOCK_DATA_STRIDE   = 16;                 // 4 u32s: sideTile, bottomTile,
 const FLOATS_PER_VERT = 5;
 const BYTES_PER_VERT  = FLOATS_PER_VERT * 4;
 
+const CHUNK_SIZE = 16; // CHUNK_WIDTH = CHUNK_HEIGHT = CHUNK_DEPTH
+
 interface ChunkGpu {
+  ox: number; oy: number; oz: number;   // world-space AABB origin
   opaqueBuffer      : GPUBuffer | null;
   opaqueCount       : number;
   transparentBuffer : GPUBuffer | null;
   transparentCount  : number;
+  propBuffer        : GPUBuffer | null;
+  propCount         : number;
   uniformBuffer     : GPUBuffer;
   chunkBindGroup    : GPUBindGroup;
 }
@@ -30,17 +35,20 @@ export class WorldGeometryPass extends RenderPass {
   private _device            : GPUDevice;
   private _opaquePipeline    : GPURenderPipeline;
   private _transparentPipeline: GPURenderPipeline;
+  private _propPipeline      : GPURenderPipeline;
   private _cameraBuffer      : GPUBuffer;
   private _cameraBindGroup   : GPUBindGroup;
   private _sharedBindGroup   : GPUBindGroup;
   private _chunkBGL          : GPUBindGroupLayout;
   private _chunks            = new Map<Chunk, ChunkGpu>();
+  private _frustumPlanes     = new Float32Array(24); // 6 planes × (A,B,C,D)
 
   private constructor(
     device             : GPUDevice,
     gbuffer            : GBuffer,
     opaquePipeline     : GPURenderPipeline,
     transparentPipeline: GPURenderPipeline,
+    propPipeline       : GPURenderPipeline,
     cameraBuffer       : GPUBuffer,
     cameraBindGroup    : GPUBindGroup,
     sharedBindGroup    : GPUBindGroup,
@@ -51,6 +59,7 @@ export class WorldGeometryPass extends RenderPass {
     this._gbuffer            = gbuffer;
     this._opaquePipeline     = opaquePipeline;
     this._transparentPipeline = transparentPipeline;
+    this._propPipeline       = propPipeline;
     this._cameraBuffer       = cameraBuffer;
     this._cameraBindGroup    = cameraBindGroup;
     this._sharedBindGroup    = sharedBindGroup;
@@ -164,7 +173,16 @@ export class WorldGeometryPass extends RenderPass {
       primitive   : { topology: 'triangle-list', cullMode: 'back' },
     });
 
-    return new WorldGeometryPass(device, gbuffer, opaquePipeline, transparentPipeline, cameraBuffer, cameraBindGroup, sharedBindGroup, chunkBGL);
+    const propPipeline = device.createRenderPipeline({
+      label : 'ChunkPropPipeline',
+      layout,
+      vertex  : { module: shader, entryPoint: 'vs_prop', buffers: [vertexLayout] },
+      fragment: { module: shader, entryPoint: 'fs_prop',  targets: colorTargets   },
+      depthStencil: { format: 'depth32float', depthWriteEnabled: true, depthCompare: 'less' },
+      primitive   : { topology: 'triangle-list', cullMode: 'none' },
+    });
+
+    return new WorldGeometryPass(device, gbuffer, opaquePipeline, transparentPipeline, propPipeline, cameraBuffer, cameraBindGroup, sharedBindGroup, chunkBGL);
   }
 
   updateGBuffer(gbuffer: GBuffer): void {
@@ -194,6 +212,7 @@ export class WorldGeometryPass extends RenderPass {
     if (!gpuData) return;
     gpuData.opaqueBuffer?.destroy();
     gpuData.transparentBuffer?.destroy();
+    gpuData.propBuffer?.destroy();
     gpuData.uniformBuffer.destroy();
     this._chunks.delete(chunk);
   }
@@ -213,6 +232,39 @@ export class WorldGeometryPass extends RenderPass {
     data[67] = near;
     data[68] = far;
     ctx.queue.writeBuffer(this._cameraBuffer, 0, data.buffer as ArrayBuffer);
+    this._extractFrustumPlanes(viewProj.data);
+  }
+
+  // Gribb/Hartmann plane extraction from a column-major VP matrix.
+  // Planes are in the form Ax+By+Cz+D >= 0 for points inside the frustum.
+  // WebGPU clip space: x/y in [-1,1], z in [0,1].
+  private _extractFrustumPlanes(m: Float32Array | number[]): void {
+    const p = this._frustumPlanes;
+    // Row i of a column-major 4×4: data[0*4+i], data[1*4+i], data[2*4+i], data[3*4+i]
+    // Left:   row3 + row0
+    p[ 0]=m[3]+m[0]; p[ 1]=m[7]+m[4]; p[ 2]=m[11]+m[ 8]; p[ 3]=m[15]+m[12];
+    // Right:  row3 - row0
+    p[ 4]=m[3]-m[0]; p[ 5]=m[7]-m[4]; p[ 6]=m[11]-m[ 8]; p[ 7]=m[15]-m[12];
+    // Bottom: row3 + row1
+    p[ 8]=m[3]+m[1]; p[ 9]=m[7]+m[5]; p[10]=m[11]+m[ 9]; p[11]=m[15]+m[13];
+    // Top:    row3 - row1
+    p[12]=m[3]-m[1]; p[13]=m[7]-m[5]; p[14]=m[11]-m[ 9]; p[15]=m[15]-m[13];
+    // Near:   row2  (WebGPU z >= 0)
+    p[16]=m[2];      p[17]=m[6];      p[18]=m[10];        p[19]=m[14];
+    // Far:    row3 - row2
+    p[20]=m[3]-m[2]; p[21]=m[7]-m[6]; p[22]=m[11]-m[10]; p[23]=m[15]-m[14];
+  }
+
+  // AABB vs frustum test. Returns false if the chunk is fully outside any plane.
+  private _isVisible(ox: number, oy: number, oz: number): boolean {
+    const p = this._frustumPlanes;
+    const mx = ox + CHUNK_SIZE, my = oy + CHUNK_SIZE, mz = oz + CHUNK_SIZE;
+    for (let i = 0; i < 6; i++) {
+      const a = p[i*4], b = p[i*4+1], c = p[i*4+2], d = p[i*4+3];
+      // Positive vertex: the corner most in the direction of the plane normal.
+      if (a*(a>=0?mx:ox) + b*(b>=0?my:oy) + c*(c>=0?mz:oz) + d < 0) return false;
+    }
+    return true;
   }
 
   execute(encoder: GPUCommandEncoder, _ctx: RenderContext): void {
@@ -233,6 +285,7 @@ export class WorldGeometryPass extends RenderPass {
 
     pass.setPipeline(this._opaquePipeline);
     for (const gpuData of this._chunks.values()) {
+      if (!this._isVisible(gpuData.ox, gpuData.oy, gpuData.oz)) continue;
       if (gpuData.opaqueBuffer && gpuData.opaqueCount > 0) {
         pass.setBindGroup(2, gpuData.chunkBindGroup);
         pass.setVertexBuffer(0, gpuData.opaqueBuffer);
@@ -242,10 +295,21 @@ export class WorldGeometryPass extends RenderPass {
 
     pass.setPipeline(this._transparentPipeline);
     for (const gpuData of this._chunks.values()) {
+      if (!this._isVisible(gpuData.ox, gpuData.oy, gpuData.oz)) continue;
       if (gpuData.transparentBuffer && gpuData.transparentCount > 0) {
         pass.setBindGroup(2, gpuData.chunkBindGroup);
         pass.setVertexBuffer(0, gpuData.transparentBuffer);
         pass.draw(gpuData.transparentCount);
+      }
+    }
+
+    pass.setPipeline(this._propPipeline);
+    for (const gpuData of this._chunks.values()) {
+      if (!this._isVisible(gpuData.ox, gpuData.oy, gpuData.oz)) continue;
+      if (gpuData.propBuffer && gpuData.propCount > 0) {
+        pass.setBindGroup(2, gpuData.chunkBindGroup);
+        pass.setVertexBuffer(0, gpuData.propBuffer);
+        pass.draw(gpuData.propCount);
       }
     }
 
@@ -257,6 +321,7 @@ export class WorldGeometryPass extends RenderPass {
     for (const gpuData of this._chunks.values()) {
       gpuData.opaqueBuffer?.destroy();
       gpuData.transparentBuffer?.destroy();
+      gpuData.propBuffer?.destroy();
       gpuData.uniformBuffer.destroy();
     }
     this._chunks.clear();
@@ -278,10 +343,15 @@ export class WorldGeometryPass extends RenderPass {
     });
 
     const gpuData: ChunkGpu = {
+      ox: chunk.globalPosition.x,
+      oy: chunk.globalPosition.y,
+      oz: chunk.globalPosition.z,
       opaqueBuffer     : null,
       opaqueCount      : 0,
       transparentBuffer: null,
       transparentCount : 0,
+      propBuffer       : null,
+      propCount        : 0,
       uniformBuffer,
       chunkBindGroup,
     };
@@ -292,10 +362,13 @@ export class WorldGeometryPass extends RenderPass {
   private _replaceMeshBuffers(gpuData: ChunkGpu, mesh: ChunkMesh): void {
     gpuData.opaqueBuffer?.destroy();
     gpuData.transparentBuffer?.destroy();
+    gpuData.propBuffer?.destroy();
     gpuData.opaqueBuffer      = null;
     gpuData.transparentBuffer = null;
+    gpuData.propBuffer        = null;
     gpuData.opaqueCount       = mesh.opaqueCount;
     gpuData.transparentCount  = mesh.transparentCount;
+    gpuData.propCount         = mesh.propCount;
 
     if (mesh.opaqueCount > 0) {
       const buf = this._device.createBuffer({
@@ -315,6 +388,16 @@ export class WorldGeometryPass extends RenderPass {
       });
       this._device.queue.writeBuffer(buf, 0, mesh.transparent.buffer, 0, mesh.transparentCount * BYTES_PER_VERT);
       gpuData.transparentBuffer = buf;
+    }
+
+    if (mesh.propCount > 0) {
+      const buf = this._device.createBuffer({
+        label: 'ChunkPropBuf',
+        size : mesh.propCount * BYTES_PER_VERT,
+        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+      });
+      this._device.queue.writeBuffer(buf, 0, mesh.prop.buffer, 0, mesh.propCount * BYTES_PER_VERT);
+      gpuData.propBuffer = buf;
     }
   }
 }

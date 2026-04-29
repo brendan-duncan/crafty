@@ -143,3 +143,74 @@ fn fs_transparent(in: VertexOutput) -> FragOutput {
   if textureSample(color_atlas, atlas_samp, uv).a < 0.5 { discard; }
   return shade(in, uv);
 }
+
+// ---- Prop billboard -------------------------------------------------------
+
+struct PropVertexOutput {
+  @builtin(position) clip_pos : vec4<f32>,
+  @location(0)       world_pos: vec3<f32>,
+  @location(1)       uv       : vec2<f32>,
+  @location(2)       block_f  : f32,
+  @location(3)       face_norm: vec3<f32>,
+}
+
+fn billboard_offset(vid: u32) -> vec2<f32> {
+  switch vid % 6u {
+    case 0u: { return vec2<f32>(-0.5, -0.5); }
+    case 1u: { return vec2<f32>( 0.5, -0.5); }
+    case 2u: { return vec2<f32>(-0.5,  0.5); }
+    case 3u: { return vec2<f32>( 0.5, -0.5); }
+    case 4u: { return vec2<f32>( 0.5,  0.5); }
+    default: { return vec2<f32>(-0.5,  0.5); }
+  }
+}
+
+fn billboard_uv(vid: u32) -> vec2<f32> {
+  switch vid % 6u {
+    case 0u: { return vec2<f32>(0.0, 1.0); }
+    case 1u: { return vec2<f32>(1.0, 1.0); }
+    case 2u: { return vec2<f32>(0.0, 0.0); }
+    case 3u: { return vec2<f32>(1.0, 1.0); }
+    case 4u: { return vec2<f32>(1.0, 0.0); }
+    default: { return vec2<f32>(0.0, 0.0); }
+  }
+}
+
+@vertex
+fn vs_prop(vin: VertexInput, @builtin(vertex_index) vid: u32) -> PropVertexOutput {
+  let center = vin.position + chunk.offset;
+
+  // Camera right and up from the view matrix rows (column-major storage).
+  let cam_right = vec3<f32>(camera.view[0].x, camera.view[1].x, camera.view[2].x);
+  let cam_up    = vec3<f32>(camera.view[0].y, camera.view[1].y, camera.view[2].y);
+
+  let off = billboard_offset(vid);
+  let wp  = center + cam_right * off.x + cam_up * off.y;
+
+  var out: PropVertexOutput;
+  out.clip_pos  = camera.viewProj * vec4<f32>(wp, 1.0);
+  out.world_pos = wp;
+  out.uv        = billboard_uv(vid);
+  out.block_f   = vin.block_type;
+  out.face_norm = normalize(camera.position - center);
+  return out;
+}
+
+@fragment
+fn fs_prop(in: PropVertexOutput) -> FragOutput {
+  let tile  = block_data[u32(in.block_f)].sideTile;
+  let tileX = f32(tile % ATLAS_COLS);
+  let tileY = f32(tile / ATLAS_COLS);
+  let uv    = (vec2<f32>(tileX, tileY) + in.uv) * vec2<f32>(INV_COLS, INV_ROWS);
+
+  let albedo_samp = textureSample(color_atlas, atlas_samp, uv);
+  if albedo_samp.a < 0.5 { discard; }
+
+  let mer = textureSample(mer_atlas, atlas_samp, uv);
+  let N   = normalize(in.face_norm);
+
+  var out: FragOutput;
+  out.albedo_roughness = vec4<f32>(albedo_samp.rgb, mer.b);
+  out.normal_metallic  = vec4<f32>(N * 0.5 + 0.5, mer.r);
+  return out;
+}

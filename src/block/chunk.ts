@@ -9,6 +9,8 @@ export interface ChunkMesh {
   transparentCount: number;
   water: Float32Array;
   waterCount: number;
+  prop: Float32Array;
+  propCount: number;
 }
 
 export class Chunk {
@@ -68,21 +70,25 @@ export class Chunk {
     // Count blocks for tight buffer allocation
     let opaqueCount = 0;
     let semiTransCount = 0;
+    let propCount = 0;
     for (let i = 0; i < this.blocks.length; i++) {
       const bt = this.blocks[i];
       if (bt === BlockType.NONE || isBlockWater(bt)) continue;
-      if (isBlockSemiTransparent(bt)) semiTransCount++;
+      if (isBlockProp(bt)) propCount++;
+      else if (isBlockSemiTransparent(bt)) semiTransCount++;
       else opaqueCount++;
     }
 
     const opaqueBuffer = new Float32Array(opaqueCount * 36 * FLOATS_PER_VERT);
     const transparentBuffer = new Float32Array(semiTransCount * 36 * FLOATS_PER_VERT);
+    const propBuffer = new Float32Array(propCount * 6 * FLOATS_PER_VERT);
 
     // drawnFaces[(x * H + y) * 6 + face] — bit z marks face as already merged into a quad
     const drawnFaces = new Uint16Array(W * H * 6);
 
     let opaqueIdx = 0;
     let transparentIdx = 0;
+    let propIdx = 0;
     let hasWater = false;
     const waterXZ = new Uint8Array(W * D);  // [x * D + z] = 1 if water present
 
@@ -122,19 +128,28 @@ export class Chunk {
           }
 
           const isProp = isBlockProp(blockType);
-          const useTransparent = isBlockSemiTransparent(blockType);
-
-          let skipBack   = (z > 0    && skipCheck(blockType, getType(x, y, z - 1))) || checkBit(x, y, z, 0);
-          let skipFront  = (nextZ !== 0 && skipCheck(blockType, getType(x, y, nextZ))) || checkBit(x, y, z, 1);
-          let skipLeft   = (x > 0    && skipCheck(blockType, getType(x - 1, y, z))) || checkBit(x, y, z, 2);
-          let skipRight  = (nextX !== 0 && skipCheck(blockType, getType(nextX, y, z))) || checkBit(x, y, z, 3);
-          let skipBottom = (y > 0    && skipCheck(blockType, getType(x, y - 1, z))) || checkBit(x, y, z, 4);
-          let skipTop    = (nextY !== 0 && skipCheck(blockType, getType(x, nextY, z))) || checkBit(x, y, z, 5);
 
           if (isProp) {
-            skipBottom = true;
-            skipTop = true;
+            // Single camera-facing billboard quad centered in the block.
+            // Vertex shader expands to corners using vertex_index % 6 + camera right/up.
+            for (let v = 0; v < 6; v++) {
+              propBuffer[propIdx++] = x + 0.5;
+              propBuffer[propIdx++] = y + 0.5;
+              propBuffer[propIdx++] = z + 0.5;
+              propBuffer[propIdx++] = 6;         // face=6 signals billboard
+              propBuffer[propIdx++] = blockType;
+            }
+            continue;
           }
+
+          const useTransparent = isBlockSemiTransparent(blockType);
+
+          const skipBack   = (z > 0    && skipCheck(blockType, getType(x, y, z - 1))) || checkBit(x, y, z, 0);
+          const skipFront  = (nextZ !== 0 && skipCheck(blockType, getType(x, y, nextZ))) || checkBit(x, y, z, 1);
+          const skipLeft   = (x > 0    && skipCheck(blockType, getType(x - 1, y, z))) || checkBit(x, y, z, 2);
+          const skipRight  = (nextX !== 0 && skipCheck(blockType, getType(nextX, y, z))) || checkBit(x, y, z, 3);
+          const skipBottom = (y > 0    && skipCheck(blockType, getType(x, y - 1, z))) || checkBit(x, y, z, 4);
+          const skipTop    = (nextY !== 0 && skipCheck(blockType, getType(x, nextY, z))) || checkBit(x, y, z, 5);
 
           if (skipBack && skipFront && skipLeft && skipRight && skipBottom && skipTop) continue;
 
@@ -361,6 +376,8 @@ export class Chunk {
       transparentCount: transparentIdx / FLOATS_PER_VERT,
       water: waterBuffer,
       waterCount: waterVertCount,
+      prop: propBuffer.subarray(0, propIdx),
+      propCount: propIdx / FLOATS_PER_VERT,
     };
   }
 

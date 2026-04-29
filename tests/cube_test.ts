@@ -18,7 +18,6 @@ import type { ParticleGraphConfig } from '../src/particles/index.js';
 import { Mesh, BlockTexture, GltfLoader, createCloudNoiseTextures } from '../src/assets/index.js';
 import type { GltfModel, CloudNoiseTextures } from '../src/assets/index.js';
 import { parseHdr, createHdrTexture } from '../src/assets/hdr_loader.js';
-import { computeIblGpu } from '../src/assets/ibl.js';
 import type { DrawItem } from '../src/renderer/passes/geometry_pass.js';
 
 function halton(index: number, base: number): number {
@@ -102,7 +101,6 @@ async function main() {
 
   const skyHdr    = parseHdr(await (await fetch(belfastUrl)).arrayBuffer());
   let skyTexture = await createHdrTexture(device, skyHdr);
-  let ibl        = await computeIblGpu(device, skyTexture.gpuTexture, 0.2);
 
   const cloudNoises: CloudNoiseTextures = createCloudNoiseTextures(device);
   const cloudSettings: CloudSettings = {
@@ -403,10 +401,10 @@ async function main() {
     ssaoPass = SSAOPass.create(ctx, gbuffer);
     if (effects.clouds) {
       cloudShadowPass = CloudShadowPass.create(ctx, cloudNoises);
-      lightingPass    = LightingPass.create(ctx, gbuffer, shadowPass, ibl, ssaoPass.aoView, cloudShadowPass.shadowView);
-      cloudPass       = CloudPass.create(ctx, lightingPass.hdrView, gbuffer.depthView, skyTexture, cloudNoises);
+      lightingPass    = LightingPass.create(ctx, gbuffer, shadowPass, ssaoPass.aoView, cloudShadowPass.shadowView);
+      cloudPass       = CloudPass.create(ctx, lightingPass.hdrView, gbuffer.depthView, cloudNoises);
     } else {
-      lightingPass = LightingPass.create(ctx, gbuffer, shadowPass, ibl, ssaoPass.aoView);
+      lightingPass = LightingPass.create(ctx, gbuffer, shadowPass, ssaoPass.aoView);
       skyPass      = SkyPass.create(ctx, lightingPass.hdrView, skyTexture);
     }
     pointSpotShadowPass = PointSpotShadowPass.create(ctx);

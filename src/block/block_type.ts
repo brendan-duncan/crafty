@@ -210,13 +210,20 @@ export const blockTextureOffsetData: BlockTextureOffsetData[] = [
     new Vec2(0, 0)),
 ];
 
+export enum MaterialType {
+  OPAQUE,
+  SEMI_TRANSPARENT,
+  WATER,
+  PROP
+}
+
 export class BlockMaterialData {
   blockType: BlockType;
-  materialType: number; //0 == opaque, 1 == semi transparent, 2 == water, 3 == prop
+  materialType: MaterialType; //0 == opaque, 1 == semi transparent, 2 == water, 3 == prop
   emitsLight: number;
   collidable: number;
 
-  constructor(blockType: BlockType, materialType: number, emitsLight: number, collidable: number) {
+  constructor(blockType: BlockType, materialType: MaterialType, emitsLight: number, collidable: number) {
     this.blockType = blockType;
     this.materialType = materialType;
     this.emitsLight = emitsLight;
@@ -225,31 +232,31 @@ export class BlockMaterialData {
 }
 
 export const blockMaterialData: BlockMaterialData[] = [
-  new BlockMaterialData(BlockType.NONE, 1, 0, 0),
-  new BlockMaterialData(BlockType.GRASS, 0, 0, 1),
-  new BlockMaterialData(BlockType.SAND, 0, 0, 1),
-  new BlockMaterialData(BlockType.STONE, 0, 0, 1),
-  new BlockMaterialData(BlockType.DIRT, 0, 0, 1),
-  new BlockMaterialData(BlockType.TRUNK, 0, 0, 1),
-  new BlockMaterialData(BlockType.TREELEAVES, 1, 0, 1),
-  new BlockMaterialData(BlockType.WATER, 2, 0, 0),
-  new BlockMaterialData(BlockType.GLASS, 1, 0, 1),
-  new BlockMaterialData(BlockType.FLOWER, 3, 0, 0),
-  new BlockMaterialData(BlockType.GLOWSTONE, 0, 1, 1),
-  new BlockMaterialData(BlockType.MAGMA, 0, 0, 1),
-  new BlockMaterialData(BlockType.OBSIDIAN, 0, 0, 1),
-  new BlockMaterialData(BlockType.DIAMOND, 0, 0, 1),
-  new BlockMaterialData(BlockType.IRON, 0, 0, 1),
-  new BlockMaterialData(BlockType.SPECULAR, 0, 0, 1),
-  new BlockMaterialData(BlockType.CACTUS, 3, 0, 1),
-  new BlockMaterialData(BlockType.SNOW, 0, 0, 1),
-  new BlockMaterialData(BlockType.GRASS_SNOW, 0, 0, 1),
-  new BlockMaterialData(BlockType.SPRUCE_PLANKS, 0, 0, 1),
-  new BlockMaterialData(BlockType.GRASS_PROP, 3, 0, 0),
-  new BlockMaterialData(BlockType.TORCH, 0, 1, 0),
-  new BlockMaterialData(BlockType.DEAD_BUSH, 3, 0, 0),
-  new BlockMaterialData(BlockType.SNOWYLEAVES, 1, 0, 1),
-  new BlockMaterialData(BlockType.AMETHYST, 0, 0, 1)
+  new BlockMaterialData(BlockType.NONE, MaterialType.SEMI_TRANSPARENT, 0, 0),
+  new BlockMaterialData(BlockType.GRASS, MaterialType.OPAQUE, 0, 1),
+  new BlockMaterialData(BlockType.SAND, MaterialType.OPAQUE, 0, 1),
+  new BlockMaterialData(BlockType.STONE, MaterialType.OPAQUE, 0, 1),
+  new BlockMaterialData(BlockType.DIRT, MaterialType.OPAQUE, 0, 1),
+  new BlockMaterialData(BlockType.TRUNK, MaterialType.OPAQUE, 0, 1),
+  new BlockMaterialData(BlockType.TREELEAVES, MaterialType.SEMI_TRANSPARENT, 0, 1),
+  new BlockMaterialData(BlockType.WATER, MaterialType.WATER, 0, 0),
+  new BlockMaterialData(BlockType.GLASS, MaterialType.SEMI_TRANSPARENT, 0, 1),
+  new BlockMaterialData(BlockType.FLOWER, MaterialType.PROP, 0, 0),
+  new BlockMaterialData(BlockType.GLOWSTONE, MaterialType.OPAQUE, 1, 1),
+  new BlockMaterialData(BlockType.MAGMA, MaterialType.OPAQUE, 0, 1),
+  new BlockMaterialData(BlockType.OBSIDIAN, MaterialType.OPAQUE, 0, 1),
+  new BlockMaterialData(BlockType.DIAMOND, MaterialType.OPAQUE, 0, 1),
+  new BlockMaterialData(BlockType.IRON, MaterialType.OPAQUE, 0, 1),
+  new BlockMaterialData(BlockType.SPECULAR, MaterialType.OPAQUE, 0, 1),
+  new BlockMaterialData(BlockType.CACTUS, MaterialType.PROP, 0, 1),
+  new BlockMaterialData(BlockType.SNOW, MaterialType.OPAQUE, 0, 1),
+  new BlockMaterialData(BlockType.GRASS_SNOW, MaterialType.OPAQUE, 0, 1),
+  new BlockMaterialData(BlockType.SPRUCE_PLANKS, MaterialType.OPAQUE, 0, 1),
+  new BlockMaterialData(BlockType.GRASS_PROP, MaterialType.PROP, 0, 0),
+  new BlockMaterialData(BlockType.TORCH, MaterialType.PROP, 1, 0),
+  new BlockMaterialData(BlockType.DEAD_BUSH, MaterialType.PROP, 0, 0),
+  new BlockMaterialData(BlockType.SNOWYLEAVES, MaterialType.SEMI_TRANSPARENT, 0, 1),
+  new BlockMaterialData(BlockType.AMETHYST, MaterialType.OPAQUE, 0, 1)
 ];
 
 export class BlockLightData {
