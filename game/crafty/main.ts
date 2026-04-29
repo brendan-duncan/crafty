@@ -500,13 +500,13 @@ async function main(): Promise<void> {
   // --- Particle configs ---
   const rainConfig: ParticleGraphConfig = {
     emitter: {
-      maxParticles: 30000,
-      spawnRate: 9000,
+      maxParticles: 80000,
+      spawnRate: 24000,
       lifetime: [2.0, 3.5],
       shape: { kind: 'box', halfExtents: [35, 0.1, 35] },
       initialSpeed: [0, 0],
       initialColor: [0.75, 0.88, 1.0, 0.55],
-      initialSize: [0.012, 0.02],
+      initialSize: [0.005, 0.009],
       roughness: 0.1,
       metallic: 0.0,
     },
