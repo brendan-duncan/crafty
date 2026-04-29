@@ -2,6 +2,17 @@ import { Vec3, perlinNoise3, perlinNoise3Seed, perlinRidgeNoise3, perlinTurbulen
 import { BiomeType } from './biome_type.js';
 import { BlockType, isBlockWater, isBlockProp, isBlockSemiTransparent, isBlockEmittingLight } from './block_type.js';
 
+// Pre-loaded blocks from the 6 axis-aligned neighbor chunks.
+// Pass Uint8Array references (not copies) so getType() can index them directly.
+export interface ChunkNeighbors {
+  negX?: Uint8Array;
+  posX?: Uint8Array;
+  negY?: Uint8Array;
+  posY?: Uint8Array;
+  negZ?: Uint8Array;
+  posZ?: Uint8Array;
+}
+
 export interface ChunkMesh {
   opaque: Float32Array;
   opaqueCount: number;
@@ -61,7 +72,7 @@ export class Chunk {
 
   // Vertex layout: [x, y, z, normal(0-5), blockType] — 5 floats per vertex.
   // Water vertices: [x, z] pairs — 2 floats per vertex.
-  generateVertices(): ChunkMesh {
+  generateVertices(neighbors?: ChunkNeighbors): ChunkMesh {
     const W = Chunk.CHUNK_WIDTH;
     const H = Chunk.CHUNK_HEIGHT;
     const D = Chunk.CHUNK_DEPTH;
@@ -99,7 +110,12 @@ export class Chunk {
       return (drawnFaces[(x * H + y) * 6 + face] & (1 << z)) !== 0;
     };
     const getType = (x: number, y: number, z: number): number => {
-      if (x < 0 || x >= W || y < 0 || y >= H || z < 0 || z >= D) return BlockType.NONE;
+      if (x < 0)   return neighbors?.negX ? neighbors.negX[(W - 1) + y * W + z * W * H] : BlockType.NONE;
+      if (x >= W)  return neighbors?.posX ? neighbors.posX[0       + y * W + z * W * H] : BlockType.NONE;
+      if (y < 0)   return neighbors?.negY ? neighbors.negY[x + (H - 1) * W + z * W * H] : BlockType.NONE;
+      if (y >= H)  return neighbors?.posY ? neighbors.posY[x + 0       * W + z * W * H] : BlockType.NONE;
+      if (z < 0)   return neighbors?.negZ ? neighbors.negZ[x + y * W + (D - 1) * W * H] : BlockType.NONE;
+      if (z >= D)  return neighbors?.posZ ? neighbors.posZ[x + y * W + 0       * W * H] : BlockType.NONE;
       return this.blocks[x + y * W + z * W * H];
     };
     const skipCheck = (b1: number, b2: number): boolean => {
@@ -112,12 +128,8 @@ export class Chunk {
     const cv = Chunk.CUBE_VERTS;
 
     for (let x = 0; x < W; x++) {
-      const nextX = (x + 1) % W;
       for (let y = 0; y < H; y++) {
-        const nextY = (y + 1) % H;
         for (let z = 0; z < D; z++) {
-          const nextZ = (z + 1) % D;
-
           const blockType = getType(x, y, z);
           if (blockType === BlockType.NONE) continue;
 
@@ -144,12 +156,12 @@ export class Chunk {
 
           const useTransparent = isBlockSemiTransparent(blockType);
 
-          const skipBack   = (z > 0    && skipCheck(blockType, getType(x, y, z - 1))) || checkBit(x, y, z, 0);
-          const skipFront  = (nextZ !== 0 && skipCheck(blockType, getType(x, y, nextZ))) || checkBit(x, y, z, 1);
-          const skipLeft   = (x > 0    && skipCheck(blockType, getType(x - 1, y, z))) || checkBit(x, y, z, 2);
-          const skipRight  = (nextX !== 0 && skipCheck(blockType, getType(nextX, y, z))) || checkBit(x, y, z, 3);
-          const skipBottom = (y > 0    && skipCheck(blockType, getType(x, y - 1, z))) || checkBit(x, y, z, 4);
-          const skipTop    = (nextY !== 0 && skipCheck(blockType, getType(x, nextY, z))) || checkBit(x, y, z, 5);
+          const skipBack   = skipCheck(blockType, getType(x, y, z - 1)) || checkBit(x, y, z, 0);
+          const skipFront  = skipCheck(blockType, getType(x, y, z + 1)) || checkBit(x, y, z, 1);
+          const skipLeft   = skipCheck(blockType, getType(x - 1, y, z)) || checkBit(x, y, z, 2);
+          const skipRight  = skipCheck(blockType, getType(x + 1, y, z)) || checkBit(x, y, z, 3);
+          const skipBottom = skipCheck(blockType, getType(x, y - 1, z)) || checkBit(x, y, z, 4);
+          const skipTop    = skipCheck(blockType, getType(x, y + 1, z)) || checkBit(x, y, z, 5);
 
           if (skipBack && skipFront && skipLeft && skipRight && skipBottom && skipTop) continue;
 

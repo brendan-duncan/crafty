@@ -1,5 +1,5 @@
 import { Vec3 } from '../math/index.js';
-import { Chunk, ChunkMesh } from './chunk.js';
+import { Chunk, ChunkMesh, ChunkNeighbors } from './chunk.js';
 import { BlockType, isBlockWater, isBlockProp } from './block_type.js';
 import { BiomeType } from './biome_type.js';
 
@@ -170,7 +170,7 @@ export class World {
     const rz = newZ - targetChunk.globalPosition.z;
 
     targetChunk.setBlock(rx, ry, rz, blockType);
-    this._updateChunk(targetChunk);
+    this._updateChunk(targetChunk, rx, ry, rz);
     return true;
   }
 
@@ -186,7 +186,7 @@ export class World {
     if (blockType === BlockType.NONE || isBlockWater(blockType)) return false;
 
     chunk.setBlock(rx, ry, rz, BlockType.NONE);
-    this._updateChunk(chunk);
+    this._updateChunk(chunk, rx, ry, rz);
     return true;
   }
 
@@ -248,8 +248,39 @@ export class World {
     chunk.isDeleted = false;
   }
 
-  private _updateChunk(chunk: Chunk): void {
-    this.onChunkUpdated?.(chunk, chunk.generateVertices());
+  private _gatherNeighbors(cx: number, cy: number, cz: number): ChunkNeighbors {
+    const get = (dx: number, dy: number, dz: number): Uint8Array | undefined =>
+      this._chunks.get(World._key(cx + dx, cy + dy, cz + dz))?.blocks;
+    return {
+      negX: get(-1,  0,  0),
+      posX: get( 1,  0,  0),
+      negY: get( 0, -1,  0),
+      posY: get( 0,  1,  0),
+      negZ: get( 0,  0, -1),
+      posZ: get( 0,  0,  1),
+    };
+  }
+
+  private _remeshSingleNeighbor(cx: number, cy: number, cz: number): void {
+    const neighbor = this._chunks.get(World._key(cx, cy, cz));
+    if (neighbor) {
+      this.onChunkUpdated?.(neighbor, neighbor.generateVertices(this._gatherNeighbors(cx, cy, cz)));
+    }
+  }
+
+  private _updateChunk(chunk: Chunk, rx?: number, ry?: number, rz?: number): void {
+    const [cx, cy, cz] = World.normalizeChunkPosition(
+      chunk.globalPosition.x, chunk.globalPosition.y, chunk.globalPosition.z,
+    );
+    this.onChunkUpdated?.(chunk, chunk.generateVertices(this._gatherNeighbors(cx, cy, cz)));
+    if (rx === undefined) return;
+    const W = Chunk.CHUNK_WIDTH, H = Chunk.CHUNK_HEIGHT, D = Chunk.CHUNK_DEPTH;
+    if (rx === 0)     this._remeshSingleNeighbor(cx - 1, cy, cz);
+    if (rx === W - 1) this._remeshSingleNeighbor(cx + 1, cy, cz);
+    if (ry === 0)     this._remeshSingleNeighbor(cx, cy - 1, cz);
+    if (ry === H - 1) this._remeshSingleNeighbor(cx, cy + 1, cz);
+    if (rz === 0)     this._remeshSingleNeighbor(cx, cy, cz - 1);
+    if (rz === D - 1) this._remeshSingleNeighbor(cx, cy, cz + 1);
   }
 
   private _createNearbyChunks(playerPos: Vec3): void {
@@ -310,7 +341,11 @@ export class World {
     chunk.generateBlocks(this.seed);
     if (chunk.aliveBlocks > 0) {
       this._insertChunk(chunk);
-      this.onChunkAdded?.(chunk, chunk.generateVertices());
+      this.onChunkAdded?.(chunk, chunk.generateVertices(this._gatherNeighbors(cx, cy, cz)));
+      // Re-mesh existing neighbors so their edge faces are correctly culled against this chunk.
+      for (const [dx, dy, dz] of [[-1,0,0],[1,0,0],[0,-1,0],[0,1,0],[0,0,-1],[0,0,1]] as const) {
+        this._remeshSingleNeighbor(cx + dx, cy + dy, cz + dz);
+      }
     }
   }
 }

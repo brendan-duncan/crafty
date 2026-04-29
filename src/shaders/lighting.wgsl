@@ -360,6 +360,9 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
   let NdotH = max(dot(N, H), 0.0);
   let VdotH = max(dot(V, H), 0.0);
 
+  // Smoothly kill sun contribution as it dips below the horizon (L.y = 0).
+  let horizon_fade = smoothstep(-0.05, 0.05, L.y);
+
   let D  = distribution_ggx(NdotH, roughness);
   let G  = smith_direct(NdotV, NdotL, roughness);
   let Fd = fresnel_schlick(VdotH, F0);
@@ -386,7 +389,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     light.cloudShadowExtent <= 0.0,
   );
 
-  let direct = (diffuse_brdf + specular_brdf) * light.color * light.intensity * NdotL * shad * cloud_shadow;
+  let direct = (diffuse_brdf + specular_brdf) * light.color * light.intensity * NdotL * shad * cloud_shadow * horizon_fade;
 
   // === Ambient (constant) =============================================
   // Sky IBL replaced by a flat ambient term — atmospheric scattering
@@ -394,8 +397,11 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
   let ao         = textureSampleLevel(ao_tex, ao_samp, in.uv, 0.0).r;
   // top=0.50, side=0.25, bottom=0.05 — piecewise linear on N.y
   let sky_factor = select(0.25 + N.y * 0.20, 0.25 + N.y * 0.25, N.y >= 0.0);
-  // Scale by shadow: underground≈0, surface shadows darker but not black.
-  let ambient    = albedo * (1.0 - metallic) * sky_factor * ao * max(shad, 0.05);
+  // Shadow-darken ambient during the day; at night remove shadow influence.
+  let shadow_scale = mix(1.0, max(shad, 0.05), horizon_fade);
+  // Scale sky ambient by horizon_fade so it vanishes with the sun.
+  // Add a small constant for moonlight/starlight so the world isn't pitch black.
+  let ambient    = albedo * (1.0 - metallic) * ao * (sky_factor * shadow_scale * horizon_fade + 0.01);
 
   // SSGI: one-bounce diffuse indirect from screen-space ray march
   let ssgi_irr     = textureSampleLevel(ssgi_tex, ssgi_samp, in.uv, 0.0).rgb;
