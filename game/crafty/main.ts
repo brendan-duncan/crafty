@@ -902,6 +902,11 @@ async function main(): Promise<void> {
   let cloudWindZ    = 0;
   let cloudCoverage = getBiomeCloudCoverage(world.getBiomeAt(cameraGO.position.x, cameraGO.position.z));
 
+  // Pre-allocated scratch objects reused every frame to avoid GC pressure.
+  const _forward = new Vec3(0, 0, -1);
+  // Identity matrix with mutable translation (col 3 = [tx, ty, tz, 1]).
+  const _rainMat = new Mat4([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]);
+
   function frame(time: number): void {
     const dt = Math.min((time - lastTime) / 1000, 0.1);
     lastTime = time;
@@ -1018,12 +1023,10 @@ async function main(): Promise<void> {
     ssgiPass.updateCamera(ctx, view, proj, invProj, invVP, prevViewProj ?? vp, camPos);
 
     const cosPitch = Math.cos(player.pitch);
-    const forward  = new Vec3(
-      -Math.sin(player.yaw) * cosPitch,
-      -Math.sin(player.pitch),
-      -Math.cos(player.yaw) * cosPitch,
-    );
-    const hit = world.getBlockByRay(camPos, forward, 16);
+    _forward.x = -Math.sin(player.yaw) * cosPitch;
+    _forward.y = -Math.sin(player.pitch);
+    _forward.z = -Math.cos(player.yaw) * cosPitch;
+    const hit = world.getBlockByRay(camPos, _forward, 16);
     const MAX_REACH = 6;
     const inReach = !!(hit && hit.position.sub(camPos).length() <= MAX_REACH);
     targetBlock = inReach ? hit!.position : null;
@@ -1034,8 +1037,8 @@ async function main(): Promise<void> {
       updateHeightmap(camPos.x, camPos.z);
       rainPass.updateHeightmap(ctx, hmData, camPos.x, camPos.z, HM_EXTENT);
       const spawnOffset = currentWeatherEffect === EnvironmentEffect.Snow ? 20 : 8;
-      const rainMat = new Mat4([1,0,0,0, 0,1,0,0, 0,0,1,0, camPos.x, camPos.y + spawnOffset, camPos.z, 1]);
-      rainPass.update(ctx, dt, view, proj, vp, invVP, camPos, camera.near, camera.far, rainMat);
+      _rainMat.data[12] = camPos.x; _rainMat.data[13] = camPos.y + spawnOffset; _rainMat.data[14] = camPos.z;
+      rainPass.update(ctx, dt, view, proj, vp, invVP, camPos, camera.near, camera.far, _rainMat);
     }
 
     dofPass?.updateParams(ctx, 8.0, 25.0, 6.0, camera.near, camera.far);

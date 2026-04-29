@@ -59,6 +59,14 @@ export class ParticlePass extends RenderPass {
   private _time        = 0;
   private _frameSeed   = 0;
 
+  // Pre-allocated staging buffers — reused every frame to avoid per-frame GC.
+  private readonly _cuBuf      = new Float32Array(COMPUTE_UNI_SIZE / 4);
+  private readonly _cuiView    = new Uint32Array(this._cuBuf.buffer);
+  private readonly _camBuf     = new Float32Array(CAMERA_UNI_SIZE / 4);
+  private readonly _hmUniBuf   = new Float32Array(HEIGHTMAP_UNI_SIZE / 4);
+  private readonly _hmRes      = new Uint32Array([HEIGHTMAP_RES]);
+  private readonly _resetArr   = new Uint32Array(1); // stays 0
+
   private constructor(
     gbuffer: GBuffer,
     hdrView: GPUTextureView | undefined,
@@ -435,12 +443,11 @@ export class ParticlePass extends RenderPass {
   updateHeightmap(ctx: RenderContext, heights: Float32Array, originX: number, originZ: number, extent: number): void {
     if (!this._heightmapDataBuf || !this._heightmapUniBuf) return;
     ctx.queue.writeBuffer(this._heightmapDataBuf, 0, heights.buffer as ArrayBuffer);
-    const uni  = new Float32Array(3);
-    const uniU = new Uint32Array(uni.buffer);
+    const uni = this._hmUniBuf;
     uni[0] = originX; uni[1] = originZ; uni[2] = extent;
     // Write first 3 floats then the u32 resolution separately to avoid aliasing.
-    ctx.queue.writeBuffer(this._heightmapUniBuf, 0, uni.buffer as ArrayBuffer);
-    ctx.queue.writeBuffer(this._heightmapUniBuf, 12, new Uint32Array([HEIGHTMAP_RES]));
+    ctx.queue.writeBuffer(this._heightmapUniBuf, 0, uni.buffer as ArrayBuffer, 0, 12);
+    ctx.queue.writeBuffer(this._heightmapUniBuf, 12, this._hmRes);
   }
 
   update(
@@ -488,8 +495,8 @@ export class ParticlePass extends RenderPass {
     //   [4..7]  world_quat
     //   [8]     spawn_offset, [9] max_particles, [10] frame_seed, [11] _pad
     //   [12]    dt, [13] time, [14..15] _pad
-    const cu  = new Float32Array(20);
-    const cui = new Uint32Array(cu.buffer);
+    const cu  = this._cuBuf;
+    const cui = this._cuiView;
     cu[0] = px; cu[1] = py; cu[2] = pz;
     cui[3]  = this._spawnCount;
     cu[4]   = qx; cu[5] = qy; cu[6] = qz; cu[7] = qw;
@@ -502,12 +509,12 @@ export class ParticlePass extends RenderPass {
     ctx.queue.writeBuffer(this._computeUniforms, 0, cu.buffer as ArrayBuffer);
 
     // Reset atomic counter for this frame's compact pass
-    ctx.queue.writeBuffer(this._counterBuffer, 0, new Uint32Array([0]));
+    ctx.queue.writeBuffer(this._counterBuffer, 0, this._resetArr);
 
     this._spawnOffset = (this._spawnOffset + this._spawnCount) % this._maxParticles;
 
     // Camera uniforms (72 floats / 288 bytes)
-    const camData = new Float32Array(CAMERA_UNI_SIZE / 4);
+    const camData = this._camBuf;
     camData.set(view.data,         0);
     camData.set(proj.data,        16);
     camData.set(viewProj.data,    32);

@@ -3,6 +3,9 @@ import type { GameObject } from './game_object.js';
 import type { World } from '../block/world.js';
 import { BlockType, isBlockWater, isBlockProp } from '../block/block_type.js';
 
+const AXIS_Y = new Vec3(0, 1, 0);
+const AXIS_X = new Vec3(1, 0, 0);
+
 const GRAVITY        = -28.0;   // blocks/s²
 const WATER_GRAVITY  =  -4.0;   // blocks/s² while submerged
 const WALK_SPEED     =   4.3;   // blocks/s
@@ -72,8 +75,8 @@ export class PlayerController {
     dt = Math.min(dt, 0.05);
 
     // Orientation: yaw around world-Y, pitch around local-X.
-    eyeGO.rotation = Quaternion.fromAxisAngle(new Vec3(0, 1, 0), this.yaw)
-      .multiply(Quaternion.fromAxisAngle(new Vec3(1, 0, 0), -this.pitch));
+    eyeGO.rotation = Quaternion.fromAxisAngle(AXIS_Y, this.yaw)
+      .multiply(Quaternion.fromAxisAngle(AXIS_X, -this.pitch));
 
     // Horizontal movement direction from WASD.
     const sinY = Math.sin(this.yaw);

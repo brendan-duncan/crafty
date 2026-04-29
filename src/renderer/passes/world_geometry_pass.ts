@@ -42,6 +42,7 @@ export class WorldGeometryPass extends RenderPass {
   private _chunkBGL          : GPUBindGroupLayout;
   private _chunks            = new Map<Chunk, ChunkGpu>();
   private _frustumPlanes     = new Float32Array(24); // 6 planes × (A,B,C,D)
+  private readonly _cameraData = new Float32Array(CAMERA_UNIFORM_SIZE / 4);
 
   private constructor(
     device             : GPUDevice,
@@ -223,7 +224,7 @@ export class WorldGeometryPass extends RenderPass {
     camPos: { x: number; y: number; z: number },
     near: number, far: number,
   ): void {
-    const data = new Float32Array(CAMERA_UNIFORM_SIZE / 4);
+    const data = this._cameraData;
     data.set(view.data,         0);
     data.set(proj.data,        16);
     data.set(viewProj.data,    32);

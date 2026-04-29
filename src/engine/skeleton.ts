@@ -11,6 +11,10 @@ export class Skeleton {
   readonly restRotations   : Float32Array;  // jointCount × 4 (xyzw)
   readonly restScales      : Float32Array;  // jointCount × 3
 
+  // Pre-allocated scratch buffers for computeJointMatrices — avoids per-frame GC.
+  private readonly _globalMats: Float32Array;
+  private readonly _localMat   = new Float32Array(16);
+
   constructor(
     parentIndices    : Int16Array,
     invBindMats      : Float32Array,
@@ -26,6 +30,7 @@ export class Skeleton {
     this.restTranslations = restTranslations;
     this.restRotations    = restRotations;
     this.restScales       = restScales;
+    this._globalMats      = new Float32Array(this.jointCount * 16);
   }
 
   // Computes final joint matrices from per-joint TRS arrays.
@@ -37,8 +42,9 @@ export class Skeleton {
     scales      : Float32Array,
     out         : Float32Array,
   ): void {
-    const n       = this.jointCount;
-    const global  = new Float32Array(n * 16);
+    const n      = this.jointCount;
+    const global = this._globalMats;
+    const local  = this._localMat;
 
     for (let j = 0; j < n; j++) {
       const tx = translations[j * 3],     ty = translations[j * 3 + 1], tz = translations[j * 3 + 2];
@@ -53,7 +59,6 @@ export class Skeleton {
 
       // Column-major TRS matrix:
       // col0 = right*sx, col1 = up*sy, col2 = fwd*sz, col3 = translation
-      const local = new Float32Array(16);
       local[0]  = (1 - (yy + zz)) * sx; local[1]  = (xy + wz) * sx;       local[2]  = (xz - wy) * sx; local[3]  = 0;
       local[4]  = (xy - wz) * sy;       local[5]  = (1 - (xx + zz)) * sy; local[6]  = (yz + wx) * sy; local[7]  = 0;
       local[8]  = (xz + wy) * sz;       local[9]  = (yz - wx) * sz;       local[10] = (1 - (xx + yy)) * sz; local[11] = 0;

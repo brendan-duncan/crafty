@@ -33,6 +33,16 @@ export class PointSpotLightPass extends RenderPass {
   private _spotBuffer      : GPUBuffer;
   private _hdrView         : GPUTextureView;
 
+  // Pre-allocated staging buffers — reused every frame to avoid GC pressure.
+  private readonly _cameraData      = new Float32Array(CAMERA_SIZE / 4);
+  private readonly _lightCountsArr  = new Uint32Array(2);
+  private readonly _pointBuf        = new ArrayBuffer(MAX_POINT_LIGHTS * POINT_STRIDE);
+  private readonly _pointF32        = new Float32Array(this._pointBuf);
+  private readonly _pointI32        = new Int32Array(this._pointBuf);
+  private readonly _spotBuf         = new ArrayBuffer(MAX_SPOT_LIGHTS * SPOT_STRIDE);
+  private readonly _spotF32         = new Float32Array(this._spotBuf);
+  private readonly _spotI32         = new Int32Array(this._spotBuf);
+
   private constructor(
     pipeline        : GPURenderPipeline,
     cameraBG        : GPUBindGroup,
@@ -193,7 +203,7 @@ export class PointSpotLightPass extends RenderPass {
   }
 
   updateCamera(ctx: RenderContext, view: Mat4, proj: Mat4, viewProj: Mat4, invViewProj: Mat4, camPos: { x: number; y: number; z: number }, near: number, far: number): void {
-    const data = new Float32Array(CAMERA_SIZE / 4);
+    const data = this._cameraData;
     data.set(view.data,         0);
     data.set(proj.data,        16);
     data.set(viewProj.data,    32);
@@ -205,16 +215,14 @@ export class PointSpotLightPass extends RenderPass {
 
   updateLights(ctx: RenderContext, pointLights: PointLight[], spotLights: SpotLight[]): void {
     // Light counts
-    const counts = new Uint32Array([
-      Math.min(pointLights.length, MAX_POINT_LIGHTS),
-      Math.min(spotLights.length,  MAX_SPOT_LIGHTS),
-    ]);
+    const counts = this._lightCountsArr;
+    counts[0] = Math.min(pointLights.length, MAX_POINT_LIGHTS);
+    counts[1] = Math.min(spotLights.length,  MAX_SPOT_LIGHTS);
     ctx.queue.writeBuffer(this._lightCountsBuffer, 0, counts.buffer as ArrayBuffer);
 
     // Point lights — 48 bytes each (12 float/int32 words)
-    const pointBuf = new ArrayBuffer(MAX_POINT_LIGHTS * POINT_STRIDE);
-    const pf32 = new Float32Array(pointBuf);
-    const pi32 = new Int32Array(pointBuf);
+    const pf32 = this._pointF32;
+    const pi32 = this._pointI32;
     let shadowPointIdx = 0;
     for (let i = 0; i < Math.min(pointLights.length, MAX_POINT_LIGHTS); i++) {
       const pl  = pointLights[i];
@@ -231,12 +239,11 @@ export class PointSpotLightPass extends RenderPass {
       }
       pi32[b+9] = 0; pi32[b+10] = 0; pi32[b+11] = 0;
     }
-    ctx.queue.writeBuffer(this._pointBuffer, 0, pointBuf);
+    ctx.queue.writeBuffer(this._pointBuffer, 0, this._pointBuf);
 
     // Spot lights — 128 bytes each (32 float/int32 words)
-    const spotBuf = new ArrayBuffer(MAX_SPOT_LIGHTS * SPOT_STRIDE);
-    const sf32 = new Float32Array(spotBuf);
-    const si32 = new Int32Array(spotBuf);
+    const sf32 = this._spotF32;
+    const si32 = this._spotI32;
     let shadowSpotIdx = 0;
     for (let i = 0; i < Math.min(spotLights.length, MAX_SPOT_LIGHTS); i++) {
       const sl  = spotLights[i];
@@ -260,7 +267,7 @@ export class PointSpotLightPass extends RenderPass {
       si32[b+15] = 0;
       sf32.set(vp.data, b + 16);
     }
-    ctx.queue.writeBuffer(this._spotBuffer, 0, spotBuf);
+    ctx.queue.writeBuffer(this._spotBuffer, 0, this._spotBuf);
   }
 
   execute(encoder: GPUCommandEncoder, _ctx: RenderContext): void {

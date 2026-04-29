@@ -1,6 +1,9 @@
 import type { GameObject } from './game_object.js';
 import { Quaternion, Vec3 } from '../math/index.js';
 
+const AXIS_Y = new Vec3(0, 1, 0);
+const AXIS_X = new Vec3(1, 0, 0);
+
 // First-person camera controller. Call attach() once, then update() every frame.
 //
 // Convention (matches the engine's fromEuler(pitch, yaw, 0)):
@@ -85,7 +88,7 @@ export class CameraControls {
 
     // Compose yaw (world Y) then pitch (local X) as independent quaternions so
     // they never interact — the camera can never accumulate roll this way.
-    gameObject.rotation = Quaternion.fromAxisAngle(new Vec3(0, 1, 0), this.yaw)
-      .multiply(Quaternion.fromAxisAngle(new Vec3(1, 0, 0), -this.pitch));
+    gameObject.rotation = Quaternion.fromAxisAngle(AXIS_Y, this.yaw)
+      .multiply(Quaternion.fromAxisAngle(AXIS_X, -this.pitch));
   }
 }

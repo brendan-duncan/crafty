@@ -51,6 +51,10 @@ export class SkinnedGeometryPass extends RenderPass {
   private _textureBGs = new WeakMap<object, GPUBindGroup>();
   private _drawItems: SkinnedDrawItem[] = [];
 
+  // Pre-allocated staging buffers — reused per draw call to avoid per-frame GC.
+  private readonly _modelData = new Float32Array(32);
+  private readonly _matData   = new Float32Array(12);
+
   private constructor(
     gbuffer: GBuffer,
     pipeline: GPURenderPipeline,
@@ -185,12 +189,12 @@ export class SkinnedGeometryPass extends RenderPass {
     for (let i = 0; i < this._drawItems.length; i++) {
       const item = this._drawItems[i];
 
-      const modelData = new Float32Array(32);
+      const modelData = this._modelData;
       modelData.set(item.modelMatrix.data, 0);
       modelData.set(item.normalMatrix.data, 16);
       ctx.queue.writeBuffer(this._modelBuffers[i], 0, modelData.buffer as ArrayBuffer);
 
-      const matData = new Float32Array(12);
+      const matData = this._matData;
       matData.set(item.material.albedo, 0);
       matData[4] = item.material.roughness;
       matData[5] = item.material.metallic;
