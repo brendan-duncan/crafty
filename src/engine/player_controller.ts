@@ -8,8 +8,9 @@ const AXIS_X = new Vec3(1, 0, 0);
 
 const GRAVITY        = -28.0;   // blocks/s²
 const WATER_GRAVITY  =  -4.0;   // blocks/s² while submerged
+const SNEAK_SPEED    =   1.3;   // blocks/s (ShiftLeft)
 const WALK_SPEED     =   4.3;   // blocks/s
-const SPRINT_SPEED   =   7.0;   // blocks/s (Shift)
+const SPRINT_SPEED   =   7.0;   // blocks/s (ControlLeft)
 const JUMP_VEL       =  11.5;   // blocks/s  (peak ≈ 2.36 blocks, clears 1-block walls)
 const SWIM_VEL       =   3.5;   // blocks/s upward when Space pressed in water
 const HALF_W         =   0.3;   // player AABB half-width/depth
@@ -81,8 +82,9 @@ export class PlayerController {
     // Horizontal movement direction from WASD.
     const sinY = Math.sin(this.yaw);
     const cosY = Math.cos(this.yaw);
-    const sprinting = this._keys.has('ShiftLeft') || this._keys.has('ShiftRight');
-    const speed = sprinting ? SPRINT_SPEED : WALK_SPEED;
+    const sprinting = this._keys.has('ControlLeft');
+    const sneaking  = this._keys.has('ShiftLeft');
+    const speed = sprinting ? SPRINT_SPEED : sneaking ? SNEAK_SPEED : WALK_SPEED;
 
     let mx = 0, mz = 0;
     if (this._keys.has('KeyW') || this._keys.has('ArrowUp'))    { mx -= sinY; mz -= cosY; }

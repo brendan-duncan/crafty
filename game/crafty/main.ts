@@ -419,8 +419,18 @@ async function main(): Promise<void> {
     modeEl.style.color = usePlayerController ? '#4f4' : '#4cf';
   }
 
+  // Double-tap Space: measure the gap between first keyup and second keydown.
+  // Holding Space never triggers this because keyup only fires on release.
+  let _lastSpaceUp = -Infinity;
+  document.addEventListener('keyup', (e: KeyboardEvent) => {
+    if (e.code === 'Space') _lastSpaceUp = performance.now();
+  });
   document.addEventListener('keydown', (e: KeyboardEvent) => {
-    if (e.code === 'KeyC' && document.pointerLockElement === canvas) toggleController();
+    if (e.code !== 'Space' || e.repeat) return;
+    if (performance.now() - _lastSpaceUp < 400 && document.pointerLockElement === canvas) {
+      toggleController();
+      _lastSpaceUp = -Infinity;
+    }
   });
 
   let targetBlock: Vec3 | null = null;
@@ -469,7 +479,7 @@ async function main(): Promise<void> {
 
   canvas.addEventListener('mousedown', (e: MouseEvent) => {
     if (document.pointerLockElement !== canvas) return;
-    const isPlace = e.button === 2 || (e.button === 0 && e.ctrlKey);
+    const isPlace = e.button === 2;
     if (!isPlace && e.button === 0 && targetBlock) {
       if (world.getBlockType(targetBlock.x, targetBlock.y, targetBlock.z) === BlockType.TORCH) {
         removeTorchLight(targetBlock.x, targetBlock.y, targetBlock.z);
