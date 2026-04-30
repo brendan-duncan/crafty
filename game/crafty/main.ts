@@ -835,6 +835,20 @@ async function main(): Promise<void> {
   sep.style.cssText = 'width:100%;height:1px;background:rgba(255,255,255,0.12)';
   menuCard.appendChild(sep);
 
+  /*const invLabel = document.createElement('div');
+  invLabel.textContent = 'BLOCK MANAGER';
+  invLabel.style.cssText = [
+    'color:rgba(255,255,255,0.35)', 'font-size:11px',
+    'letter-spacing:0.18em', 'align-self:flex-start',
+  ].join(';');
+  menuCard.appendChild(invLabel);*/
+
+  const { syncHotbar, refreshSlotHighlight } = createBlockManager(menuCard, colorAtlasUrl, () => hotbar.refresh(), hotbar.getSelectedSlot, hotbar.setSelectedSlot);
+
+  const invSep = document.createElement('div');
+  invSep.style.cssText = 'width:100%;height:1px;background:rgba(255,255,255,0.12)';
+  menuCard.appendChild(invSep);
+
   const effectsLabel = document.createElement('div');
   effectsLabel.textContent = 'EFFECTS';
   effectsLabel.style.cssText = [
@@ -856,20 +870,6 @@ async function main(): Promise<void> {
     if (key === 'clouds')   { buildRenderTargets(); return; }
     buildRenderTargets();
   }, menuCard);
-
-  const invSep = document.createElement('div');
-  invSep.style.cssText = 'width:100%;height:1px;background:rgba(255,255,255,0.12)';
-  menuCard.appendChild(invSep);
-
-  const invLabel = document.createElement('div');
-  invLabel.textContent = 'BLOCK MANAGER';
-  invLabel.style.cssText = [
-    'color:rgba(255,255,255,0.35)', 'font-size:11px',
-    'letter-spacing:0.18em', 'align-self:flex-start',
-  ].join(';');
-  menuCard.appendChild(invLabel);
-
-  const { syncHotbar, refreshSlotHighlight } = createBlockManager(menuCard, colorAtlasUrl, () => hotbar.refresh(), hotbar.getSelectedSlot, hotbar.setSelectedSlot);
   hotbar.setOnSelectionChanged(refreshSlotHighlight);
 
   const escHint = document.createElement('div');
@@ -1022,7 +1022,10 @@ async function main(): Promise<void> {
     const proj    = camera.projectionMatrix();
     const invVP   = vp.invert();
     const invProj = proj.invert();
-    const cascades: CascadeData[] = sun.computeCascadeMatrices(camera);
+    // Shadow far matches render distance (8 chunks × 16 = 128 blocks).
+    // Using camera.far (1000) would make the last cascade's bounding sphere ~1500 units
+    // wide, giving ~1.5 block/texel precision. At 128 the last cascade is ~0.2 block/texel.
+    const cascades: CascadeData[] = sun.computeCascadeMatrices(camera, 128);
 
     const meshRenderers = scene.collectMeshRenderers();
     const drawItems: DrawItem[] = meshRenderers.map(mr => {
