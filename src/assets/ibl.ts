@@ -1,17 +1,20 @@
 import iblWgsl from '../shaders/ibl.wgsl?raw';
 
 export interface IblTextures {
-  readonly irradiance    : GPUTexture;   // rgba16float 64×32 — pre-integrated diffuse
-  readonly prefiltered   : GPUTexture;   // rgba16float 64×32 × IBL_LEVELS layers — GGX pre-filtered
+  readonly irradiance    : GPUTexture;   // rgba16float cube, 32×32 — pre-integrated diffuse
+  readonly prefiltered   : GPUTexture;   // rgba16float cube, 128×128 × IBL_LEVELS mips — GGX pre-filtered
   readonly brdfLut       : GPUTexture;   // rgba16float 64×64 — split-sum A/B in rg
-  readonly irradianceView : GPUTextureView;
-  readonly prefilteredView: GPUTextureView; // dimension: '2d-array'
+  readonly irradianceView : GPUTextureView;   // dimension: 'cube'
+  readonly prefilteredView: GPUTextureView;   // dimension: 'cube', all mips
   readonly brdfLutView    : GPUTextureView;
   readonly levels         : number;
   destroy(): void;
 }
 
-export const IBL_LEVELS = 5;
+export const IBL_LEVELS  = 5;
+export const CUBE_SIZE   = 128;   // prefilter base mip (mip 0 = 128, mip 4 = 8)
+export const IRR_SIZE    = 32;    // irradiance cube face size
+
 const ROUGHNESSES = [0, 0.25, 0.5, 0.75, 1.0];
 
 // ---- BRDF LUT (view-independent, computed once on the CPU and cached) -------
@@ -119,7 +122,7 @@ interface IblPipelines {
   irrPipeline : GPUComputePipeline;
   pfPipeline  : GPUComputePipeline;
   bgl0        : GPUBindGroupLayout;  // uniform + sky_tex + sky_samp
-  bgl1        : GPUBindGroupLayout;  // write-only storage texture
+  bgl1        : GPUBindGroupLayout;  // write-only 2D storage texture (one face)
   sampler     : GPUSampler;
 }
 
@@ -169,45 +172,41 @@ function getOrCreatePipelines(device: GPUDevice): IblPipelines {
 
 // ---- Public API -------------------------------------------------------------
 
-// Samples skyTexture directly on the GPU — no CPU-side HDR data needed.
-// Both the irradiance and prefiltered outputs are ready by the time the
-// returned Promise resolves.
+// Bakes IBL cube textures from the equirectangular sky texture on the GPU.
+// Irradiance: 32×32 per face, 6 faces.
+// Prefiltered: 128×128 base, IBL_LEVELS mip levels, 6 faces per mip.
+// Dispatches 6 × (1 + IBL_LEVELS) compute passes; completes before returning.
 export async function computeIblGpu(
   device     : GPUDevice,
   skyTexture : GPUTexture,
   exposure   = 0.2,
 ): Promise<IblTextures> {
-  const IRR_W = 64, IRR_H = 32;
-  const PF_W  = 64, PF_H  = 32;
-
   const { irrPipeline, pfPipeline, bgl0, bgl1, sampler } = getOrCreatePipelines(device);
 
-  // Output textures need STORAGE_BINDING (written by compute) + TEXTURE_BINDING (read by lighting).
+  // Irradiance: 32×32 per face, 6 faces, no mip levels needed (it's already very blurred).
   const irradiance = device.createTexture({
     label: 'IBL Irradiance',
-    size:  { width: IRR_W, height: IRR_H },
+    size:  { width: IRR_SIZE, height: IRR_SIZE, depthOrArrayLayers: 6 },
     format: 'rgba16float',
     usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING,
   });
 
+  // Prefiltered: 128×128 per face, 6 faces, IBL_LEVELS mip levels (roughness 0→1).
   const prefiltered = device.createTexture({
     label: 'IBL Prefiltered',
-    size:  { width: PF_W, height: PF_H, depthOrArrayLayers: IBL_LEVELS },
+    size:  { width: CUBE_SIZE, height: CUBE_SIZE, depthOrArrayLayers: 6 },
+    mipLevelCount: IBL_LEVELS,
     format: 'rgba16float',
     usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING,
   });
 
-  // One uniform buffer per dispatch (roughness value differs across prefiltered levels).
-  const makeUniformBuf = (roughness: number) => {
+  const makeUniformBuf = (roughness: number, face: number) => {
     const buf = device.createBuffer({
       size: 16, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
-    device.queue.writeBuffer(buf, 0, new Float32Array([exposure, roughness, 0, 0]));
+    device.queue.writeBuffer(buf, 0, new Float32Array([exposure, roughness, face, 0]));
     return buf;
   };
-
-  const irrUniform  = makeUniformBuf(0.0);
-  const pfUniforms  = ROUGHNESSES.map(r => makeUniformBuf(r));
 
   const skyView = skyTexture.createView();
 
@@ -224,39 +223,61 @@ export async function computeIblGpu(
     layout: bgl1, entries: [{ binding: 0, resource: view }],
   });
 
-  const irrBG0  = makeBG0(irrUniform);
+  // Create uniform buffers and face views: 6 for irradiance, 6×IBL_LEVELS for prefilter.
+  const irrUniforms = Array.from({ length: 6 }, (_, f) => makeUniformBuf(0.0, f));
+  const pfUniforms  = ROUGHNESSES.flatMap((r, _l) =>
+    Array.from({ length: 6 }, (_, f) => makeUniformBuf(r, f)));
+
+  const irrBG0s = irrUniforms.map(makeBG0);
   const pfBG0s  = pfUniforms.map(makeBG0);
-  const irrBG1  = makeBG1(irradiance.createView());
-  const pfBG1s  = Array.from({ length: IBL_LEVELS }, (_, l) =>
-    makeBG1(prefiltered.createView({ dimension: '2d', baseArrayLayer: l, arrayLayerCount: 1 })),
-  );
+
+  const irrBG1s = Array.from({ length: 6 }, (_, f) =>
+    makeBG1(irradiance.createView({
+      dimension: '2d', baseArrayLayer: f, arrayLayerCount: 1,
+    })));
+
+  const pfBG1s = Array.from({ length: IBL_LEVELS * 6 }, (_, i) => {
+    const l = Math.floor(i / 6);
+    const f = i % 6;
+    return makeBG1(prefiltered.createView({
+      dimension: '2d',
+      baseMipLevel: l, mipLevelCount: 1,
+      baseArrayLayer: f, arrayLayerCount: 1,
+    }));
+  });
 
   const encoder = device.createCommandEncoder({ label: 'IblComputeEncoder' });
   const pass    = encoder.beginComputePass({ label: 'IblComputePass' });
 
+  // Irradiance: 6 face dispatches.
   pass.setPipeline(irrPipeline);
-  pass.setBindGroup(0, irrBG0);
-  pass.setBindGroup(1, irrBG1);
-  pass.dispatchWorkgroups(Math.ceil(IRR_W / 8), Math.ceil(IRR_H / 8));
+  for (let f = 0; f < 6; f++) {
+    pass.setBindGroup(0, irrBG0s[f]);
+    pass.setBindGroup(1, irrBG1s[f]);
+    pass.dispatchWorkgroups(Math.ceil(IRR_SIZE / 8), Math.ceil(IRR_SIZE / 8));
+  }
 
+  // Prefiltered: IBL_LEVELS roughness levels × 6 faces.
   pass.setPipeline(pfPipeline);
   for (let l = 0; l < IBL_LEVELS; l++) {
-    pass.setBindGroup(0, pfBG0s[l]);
-    pass.setBindGroup(1, pfBG1s[l]);
-    pass.dispatchWorkgroups(Math.ceil(PF_W / 8), Math.ceil(PF_H / 8));
+    const mipSize = CUBE_SIZE >> l;
+    for (let f = 0; f < 6; f++) {
+      pass.setBindGroup(0, pfBG0s[l * 6 + f]);
+      pass.setBindGroup(1, pfBG1s[l * 6 + f]);
+      pass.dispatchWorkgroups(Math.ceil(mipSize / 8), Math.ceil(mipSize / 8));
+    }
   }
 
   pass.end();
   device.queue.submit([encoder.finish()]);
   await device.queue.onSubmittedWorkDone();
 
-  // Uniform buffers no longer needed after GPU work is done.
-  irrUniform.destroy();
+  irrUniforms.forEach(b => b.destroy());
   pfUniforms.forEach(b => b.destroy());
 
   const brdfLut         = getOrCreateBrdfLut(device);
-  const irradianceView  = irradiance.createView();
-  const prefilteredView = prefiltered.createView({ dimension: '2d-array' });
+  const irradianceView  = irradiance.createView({ dimension: 'cube' });
+  const prefilteredView = prefiltered.createView({ dimension: 'cube' });
   const brdfLutView     = brdfLut.createView();
 
   return {

@@ -4,6 +4,7 @@ import type { GBuffer } from '../gbuffer.js';
 import type { ShadowPass } from './shadow_pass.js';
 import type { Mat4 } from '../../math/mat4.js';
 import type { CascadeData } from '../../engine/components/directional_light.js';
+import type { IblTextures } from '../../assets/ibl.js';
 import lightingWgsl from '../../shaders/lighting.wgsl?raw';
 
 export const HDR_FORMAT: GPUTextureFormat = 'rgba16float';
@@ -24,7 +25,8 @@ export class LightingPass extends RenderPass {
   private _pipeline: GPURenderPipeline;
   private _sceneBindGroup: GPUBindGroup;
   private _gbufferBindGroup: GPUBindGroup;
-  private _aoBindGroup: GPUBindGroup;    // group 2: AO + SSGI combined
+  private _aoBindGroup : GPUBindGroup;    // group 2: AO + SSGI combined
+  private _iblBindGroup: GPUBindGroup;   // group 3: irradiance cube, prefilter cube, BRDF LUT
   private _cameraBuffer: GPUBuffer;
   private _lightBuffer: GPUBuffer;
   private _defaultCloudShadow: GPUTexture | null;
@@ -44,6 +46,7 @@ export class LightingPass extends RenderPass {
     sceneBindGroup: GPUBindGroup,
     gbufferBindGroup: GPUBindGroup,
     aoBindGroup: GPUBindGroup,
+    iblBindGroup: GPUBindGroup,
     cameraBuffer: GPUBuffer,
     lightBuffer: GPUBuffer,
     defaultCloudShadow: GPUTexture | null,
@@ -61,6 +64,7 @@ export class LightingPass extends RenderPass {
     this._sceneBindGroup = sceneBindGroup;
     this._gbufferBindGroup = gbufferBindGroup;
     this._aoBindGroup = aoBindGroup;
+    this._iblBindGroup = iblBindGroup;
     this._cameraBuffer = cameraBuffer;
     this._lightBuffer = lightBuffer;
     this._defaultCloudShadow = defaultCloudShadow;
@@ -72,7 +76,7 @@ export class LightingPass extends RenderPass {
     this._ssgiSampler = ssgiSampler;
   }
 
-  static create(ctx: RenderContext, gbuffer: GBuffer, shadowPass: ShadowPass, aoView: GPUTextureView, cloudShadowView?: GPUTextureView): LightingPass {
+  static create(ctx: RenderContext, gbuffer: GBuffer, shadowPass: ShadowPass, aoView: GPUTextureView, cloudShadowView?: GPUTextureView, iblTextures?: IblTextures): LightingPass {
     const { device, width, height } = ctx;
 
     const hdrTexture = device.createTexture({
@@ -159,6 +163,45 @@ export class LightingPass extends RenderPass {
       usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
     });
 
+    // Group 3: IBL — irradiance cube, pre-filtered cube, BRDF LUT, shared sampler
+    const iblBGL = device.createBindGroupLayout({
+      label: 'LightIblBGL',
+      entries: [
+        { binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float', viewDimension: 'cube' } },
+        { binding: 1, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float', viewDimension: 'cube' } },
+        { binding: 2, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } },
+        { binding: 3, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } },
+      ],
+    });
+    const iblSampler = device.createSampler({
+      label: 'IblSampler',
+      magFilter: 'linear', minFilter: 'linear', mipmapFilter: 'linear',
+      addressModeU: 'clamp-to-edge', addressModeV: 'clamp-to-edge', addressModeW: 'clamp-to-edge',
+    });
+    // 1×1 black cube fallback used when IBL textures are not yet available.
+    const defaultIblCube = device.createTexture({
+      label: 'DefaultIblCube', size: { width: 1, height: 1, depthOrArrayLayers: 6 },
+      format: 'rgba16float',
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+    });
+    const defaultIblView    = defaultIblCube.createView({ dimension: 'cube' });
+    const defaultBrdfLut    = device.createTexture({
+      label: 'DefaultBrdfLut', size: { width: 1, height: 1 },
+      format: 'rgba16float',
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+    });
+    const iblBindGroup = device.createBindGroup({
+      label: 'LightIblBG', layout: iblBGL,
+      entries: [
+        { binding: 0, resource: iblTextures?.irradianceView  ?? defaultIblView },
+        { binding: 1, resource: iblTextures?.prefilteredView ?? defaultIblView },
+        { binding: 2, resource: iblTextures?.brdfLutView     ?? defaultBrdfLut.createView() },
+        { binding: 3, resource: iblSampler },
+      ],
+    });
+    defaultIblCube.destroy();
+    defaultBrdfLut.destroy();
+
     const sceneBindGroup = device.createBindGroup({
       layout: sceneBGL,
       entries: [
@@ -194,7 +237,7 @@ export class LightingPass extends RenderPass {
 
     const pipeline = device.createRenderPipeline({
       label: 'LightingPipeline',
-      layout: device.createPipelineLayout({ bindGroupLayouts: [sceneBGL, gbufferBGL, aoBGL] }),
+      layout: device.createPipelineLayout({ bindGroupLayouts: [sceneBGL, gbufferBGL, aoBGL, iblBGL] }),
       vertex: { module: shaderModule, entryPoint: 'vs_main' },
       fragment: {
         module: shaderModule, entryPoint: 'fs_main',
@@ -205,7 +248,7 @@ export class LightingPass extends RenderPass {
 
     return new LightingPass(
       hdrTexture, hdrView, pipeline,
-      sceneBindGroup, gbufferBindGroup, aoBindGroup,
+      sceneBindGroup, gbufferBindGroup, aoBindGroup, iblBindGroup,
       cameraBuffer, lightBuffer,
       cloudShadowView ? null : defaultCloudShadow,
       defaultSsgi, device, aoBGL, aoView, aoSampler, ssgiSampler,
@@ -285,6 +328,7 @@ export class LightingPass extends RenderPass {
     pass.setBindGroup(0, this._sceneBindGroup);
     pass.setBindGroup(1, this._gbufferBindGroup);
     pass.setBindGroup(2, this._aoBindGroup);
+    pass.setBindGroup(3, this._iblBindGroup);
     pass.draw(3);
     pass.end();
   }

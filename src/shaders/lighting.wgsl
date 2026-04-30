@@ -70,16 +70,38 @@ fn apply_aerial_perspective(geo_color: vec3<f32>, world_pos: vec3<f32>,
   let ray_dir  = ray_vec / max(dist, 0.001);
   let atm_ro   = vec3<f32>(0.0, ATM_R_E + cam_h, 0.0);
 
-  // Game-scale extinction: scale up real-atmosphere density to be visible at ~100–300 m.
-  let rho_R = exp(-cam_h / ATM_H_R);
-  let rho_M = exp(-cam_h / ATM_H_M);
-  let tau   = (ATM_BETA_R * rho_R + vec3<f32>(ATM_BETA_M * rho_M)) * ATM_FOG_SCALE * dist;
+  // Altitude at camera and at the geometry surface.
+  let h0 = max(camera.position.y, 0.0);
+  let h1 = max(world_pos.y, 0.0);
+  let dh = h1 - h0;
+
+  // Analytic integral of exp(-h(t)/H) dt along the ray from t=0 to t=dist:
+  //   h(t) = h0 + (dh/dist)*t
+  //   integral = (exp(-h0/H) - exp(-h1/H)) * H * dist / dh
+  // Horizontal-ray limit (|dh| → 0): exp(-h0/H) * dist
+  // This makes fog thicker for low geometry and thinner for high geometry at the same distance.
+  var od_R: f32;
+  var od_M: f32;
+  if (abs(dh) < 0.1) {
+    od_R = exp(-h0 / ATM_H_R) * dist;
+    od_M = exp(-h0 / ATM_H_M) * dist;
+  } else {
+    od_R = max((exp(-h0 / ATM_H_R) - exp(-h1 / ATM_H_R)) * ATM_H_R * dist / dh, 0.0);
+    od_M = max((exp(-h0 / ATM_H_M) - exp(-h1 / ATM_H_M)) * ATM_H_M * dist / dh, 0.0);
+  }
+
+  let tau   = (ATM_BETA_R * od_R + vec3<f32>(ATM_BETA_M * od_M)) * ATM_FOG_SCALE;
   let geo_T = exp(-tau);
 
-  // Clamp to near-horizon — prevents the fog colour exactly matching the sky behind the
-  // geometry, which would make distant surfaces look transparent rather than hazy.
-  let horiz_dir = normalize(vec3<f32>(ray_dir.x, clamp(ray_dir.y, -0.15, 0.15), ray_dir.z));
-  let fog_color = atm_scatter(atm_ro, horiz_dir, sun_dir);
+  // Sample fog colour using only the horizontal component of the ray direction.
+  // Using the true ray direction creates a visible line at camera height where
+  // the sky-scatter colour changes as the downward angle exceeds any clamp value.
+  // Projecting to horizontal makes fog colour a function of azimuth only (sun angle),
+  // matching the sky at the true horizon with no altitude-dependent discontinuity.
+  let h2   = vec3<f32>(ray_dir.x, 0.0, ray_dir.z);
+  let len2 = dot(h2, h2);
+  let fog_dir   = select(normalize(h2), vec3<f32>(1.0, 0.0, 0.0), len2 < 1e-6);
+  let fog_color = atm_scatter(atm_ro, fog_dir, sun_dir);
 
   return geo_color * geo_T + fog_color * (1.0 - geo_T);
 }
@@ -147,6 +169,16 @@ struct LightUniforms {
 @group(2) @binding(1) var ao_samp  : sampler;
 @group(2) @binding(2) var ssgi_tex : texture_2d<f32>;
 @group(2) @binding(3) var ssgi_samp: sampler;
+
+// IBL (group 3): pre-baked from the physical sky HDR.
+// irradiance_cube: diffuse integral (cosine-weighted hemisphere), 32×32 per face.
+// prefilter_cube:  GGX specular pre-filtered, 128×128 base with IBL_MIP_LEVELS mip levels.
+// brdf_lut:        split-sum A/B (NdotV × roughness → rg), 64×64.
+const IBL_MIP_LEVELS: f32 = 5.0;   // must match IBL_LEVELS in ibl.ts
+@group(3) @binding(0) var irradiance_cube: texture_cube<f32>;
+@group(3) @binding(1) var prefilter_cube : texture_cube<f32>;
+@group(3) @binding(2) var brdf_lut       : texture_2d<f32>;
+@group(3) @binding(3) var ibl_samp       : sampler;
 
 struct VertexOutput {
   @builtin(position) clip_pos: vec4<f32>,
@@ -290,6 +322,11 @@ fn fresnel_schlick(cosTheta: f32, F0: vec3<f32>) -> vec3<f32> {
   return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
+// Roughness-clamped Fresnel for IBL — prevents energy gain at grazing angles on rough metals.
+fn fresnel_schlick_roughness(cosTheta: f32, F0: vec3<f32>, roughness: f32) -> vec3<f32> {
+  return F0 + (max(vec3<f32>(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+}
+
 
 // === Fragment =========================================================
 
@@ -391,17 +428,29 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
   let direct = (diffuse_brdf + specular_brdf) * light.color * light.intensity * NdotL * shad * cloud_shadow * horizon_fade;
 
-  // === Ambient (constant) =============================================
-  // Sky IBL replaced by a flat ambient term — atmospheric scattering
-  // handles sky appearance; this just prevents fully-black shadows.
-  let ao         = textureSampleLevel(ao_tex, ao_samp, in.uv, 0.0).r;
-  // top=0.25, side=0.125, bottom=0.025 — piecewise linear on N.y
-  let sky_factor = select(0.125 + N.y * 0.10, 0.125 + N.y * 0.125, N.y >= 0.0);
+  // === IBL Ambient ====================================================
+  let ao = textureSampleLevel(ao_tex, ao_samp, in.uv, 0.0).r;
+
+  // Roughness-corrected Fresnel — avoids energy gain on rough metals at grazing angles.
+  let kS_ibl = fresnel_schlick_roughness(NdotV, F0, roughness);
+  let kD_ibl = (vec3<f32>(1.0) - kS_ibl) * (1.0 - metallic);
+
+  // Diffuse IBL: cosine-weighted hemisphere integral baked into irradiance cube.
+  let irradiance  = textureSampleLevel(irradiance_cube, ibl_samp, N, 0.0).rgb;
+  let diffuse_ibl = irradiance * albedo * kD_ibl;
+
+  // Specular IBL: GGX pre-filtered env + split-sum BRDF LUT.
+  let R           = reflect(-V, N);
+  let prefiltered = textureSampleLevel(prefilter_cube, ibl_samp, R, roughness * (IBL_MIP_LEVELS - 1.0)).rgb;
+  let brdf        = textureSampleLevel(brdf_lut, ibl_samp, vec2<f32>(NdotV, roughness), 0.0).rg;
+  let specular_ibl = prefiltered * (kS_ibl * brdf.x + brdf.y);
+
   // Shadow-darken ambient during the day; at night remove shadow influence.
   let shadow_scale = mix(1.0, max(shad, 0.05), horizon_fade);
-  // Scale sky ambient by horizon_fade so it vanishes with the sun.
-  // Add a small constant for moonlight/starlight so the world isn't pitch black.
-  let ambient    = albedo * (1.0 - metallic) * ao * (sky_factor * shadow_scale * horizon_fade + 0.01);
+  // Scale by AO and shadow; fade IBL with sun so it doesn't blast at night.
+  // Add a tiny constant for moonlight/starlight so the world isn't pitch black.
+  let ambient = (diffuse_ibl + specular_ibl) * ao * shadow_scale * horizon_fade
+              + albedo * (1.0 - metallic) * 0.01;
 
   // SSGI: one-bounce diffuse indirect from screen-space ray march
   let ssgi_irr     = textureSampleLevel(ssgi_tex, ssgi_samp, in.uv, 0.0).rgb;

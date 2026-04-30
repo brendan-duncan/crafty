@@ -3,8 +3,8 @@
 // cs_irradiance : cosine-weighted hemisphere integral for diffuse irradiance.
 // cs_prefilter  : GGX importance-sampled integral for specular pre-filtered env.
 //
-// Both sample the sky equirectangular texture directly on the GPU (no CPU copies)
-// and write to a 2D rgba16float storage texture.
+// Both sample the sky equirectangular texture and write to one face of a cube
+// texture (6 dispatches per roughness level, one face per dispatch).
 
 const PI      : f32 = 3.14159265358979323846;
 const SAMPLES : u32 = 256u;
@@ -12,7 +12,8 @@ const SAMPLES : u32 = 256u;
 struct IblParams {
   exposure  : f32,
   roughness : f32,   // ignored by cs_irradiance
-  _pad      : vec2<f32>,
+  face      : f32,   // cube face index 0-5 (written as float, cast to u32)
+  _pad      : f32,
 }
 
 @group(0) @binding(0) var<uniform> params   : IblParams;
@@ -46,6 +47,19 @@ fn tangent_frame(N: vec3<f32>) -> mat3x3<f32> {
   return mat3x3<f32>(T, B, N);
 }
 
+// Convert cube face + normalised UV in [-1,1] to a world-space direction.
+// Uses the standard WebGPU/OpenGL cubemap face convention.
+fn cube_dir(face: u32, uc: f32, vc: f32) -> vec3<f32> {
+  switch face {
+    case 0u: { return normalize(vec3<f32>( 1.0, -vc, -uc)); }  // +X
+    case 1u: { return normalize(vec3<f32>(-1.0, -vc,  uc)); }  // -X
+    case 2u: { return normalize(vec3<f32>( uc,   1.0,  vc)); }  // +Y
+    case 3u: { return normalize(vec3<f32>( uc,  -1.0, -vc)); }  // -Y
+    case 4u: { return normalize(vec3<f32>( uc,  -vc,  1.0)); }  // +Z
+    default: { return normalize(vec3<f32>(-uc,  -vc, -1.0)); }  // -Z
+  }
+}
+
 // ---- Irradiance (diffuse IBL) -----------------------------------------------
 //
 // E(N) = (1/N) Σ L(ωi)   with cosine-weighted PDF = cosθ/π  (estimator = L)
@@ -55,12 +69,10 @@ fn cs_irradiance(@builtin(global_invocation_id) gid: vec3<u32>) {
   let size = textureDimensions(out_tex);
   if (gid.x >= size.x || gid.y >= size.y) { return; }
 
-  // phi_eq is the inverse of equirect_uv's atan2(-z,x)/(2π)+0.5, so that
-  // textureStore at (gid.x,gid.y) is read back at equirect_uv(N).
-  let phi_eq = ((f32(gid.x) + 0.5) / f32(size.x) - 0.5) * 2.0 * PI;
-  let theta  = (f32(gid.y) + 0.5) / f32(size.y) * PI;
-  let N      = vec3<f32>(sin(theta)*cos(phi_eq), cos(theta), -sin(theta)*sin(phi_eq));
-  let TBN   = tangent_frame(N);
+  let uc = 2.0 * (f32(gid.x) + 0.5) / f32(size.x) - 1.0;
+  let vc = 2.0 * (f32(gid.y) + 0.5) / f32(size.y) - 1.0;
+  let N  = cube_dir(u32(params.face), uc, vc);
+  let TBN = tangent_frame(N);
 
   var rgb = vec3<f32>(0.0);
   for (var i = 0u; i < SAMPLES; i++) {
@@ -86,10 +98,10 @@ fn cs_prefilter(@builtin(global_invocation_id) gid: vec3<u32>) {
   let size = textureDimensions(out_tex);
   if (gid.x >= size.x || gid.y >= size.y) { return; }
 
-  let phi_eq = ((f32(gid.x) + 0.5) / f32(size.x) - 0.5) * 2.0 * PI;
-  let theta  = (f32(gid.y) + 0.5) / f32(size.y) * PI;
-  let N      = vec3<f32>(sin(theta)*cos(phi_eq), cos(theta), -sin(theta)*sin(phi_eq));
-  let TBN   = tangent_frame(N);
+  let uc = 2.0 * (f32(gid.x) + 0.5) / f32(size.x) - 1.0;
+  let vc = 2.0 * (f32(gid.y) + 0.5) / f32(size.y) - 1.0;
+  let N  = cube_dir(u32(params.face), uc, vc);
+  let TBN = tangent_frame(N);
 
   let a  = params.roughness * params.roughness;
   let a2 = a * a;

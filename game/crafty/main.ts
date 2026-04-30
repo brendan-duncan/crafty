@@ -24,6 +24,8 @@ import {
 } from '../../src/renderer/index.js';
 import { createCloudNoiseTextures } from '../../src/assets/cloud_noise.js';
 import type { CloudNoiseTextures } from '../../src/assets/cloud_noise.js';
+import { computeIblGpu } from '../../src/assets/ibl.js';
+import type { IblTextures } from '../../src/assets/ibl.js';
 import type { ParticleGraphConfig } from '../../src/particles/index.js';
 import { Texture } from '../../src/assets/texture.js';
 import { parseHdr, createHdrTexture } from '../../src/assets/hdr_loader.js';
@@ -381,6 +383,7 @@ async function main(): Promise<void> {
   const { device } = ctx;
 
   const skyTexture    = await createHdrTexture(device, parseHdr(await (await fetch(industrialUrl)).arrayBuffer()));
+  const iblTextures: IblTextures = await computeIblGpu(device, skyTexture.gpuTexture);
   const cloudNoises: CloudNoiseTextures = createCloudNoiseTextures(device);
 
   const blockTexture   = await BlockTexture.load(device, colorAtlasUrl, normalAtlasUrl, merAtlasUrl, heightAtlasUrl);
@@ -694,7 +697,7 @@ async function main(): Promise<void> {
 
     ssaoPass            = SSAOPass.create(ctx, gbuffer);
     if (effects.clouds) cloudShadowPass = CloudShadowPass.create(ctx, cloudNoises);
-    lightingPass        = LightingPass.create(ctx, gbuffer, shadowPass, ssaoPass.aoView, cloudShadowPass?.shadowView);
+    lightingPass        = LightingPass.create(ctx, gbuffer, shadowPass, ssaoPass.aoView, cloudShadowPass?.shadowView, iblTextures);
     atmospherePass      = AtmospherePass.create(ctx, lightingPass.hdrView);
     if (effects.clouds) cloudPass = CloudPass.create(ctx, lightingPass.hdrView, gbuffer.depthView, cloudNoises);
     pointSpotShadowPass = PointSpotShadowPass.create(ctx);
@@ -872,14 +875,6 @@ async function main(): Promise<void> {
   sep.style.cssText = 'width:100%;height:1px;background:rgba(255,255,255,0.12)';
   menuCard.appendChild(sep);
 
-  /*const invLabel = document.createElement('div');
-  invLabel.textContent = 'BLOCK MANAGER';
-  invLabel.style.cssText = [
-    'color:rgba(255,255,255,0.35)', 'font-size:11px',
-    'letter-spacing:0.18em', 'align-self:flex-start',
-  ].join(';');
-  menuCard.appendChild(invLabel);*/
-
   const { syncHotbar, refreshSlotHighlight } = createBlockManager(menuCard, colorAtlasUrl, () => hotbar.refresh(), hotbar.getSelectedSlot, hotbar.setSelectedSlot);
 
   const invSep = document.createElement('div');
@@ -907,6 +902,31 @@ async function main(): Promise<void> {
     if (key === 'clouds')   { buildRenderTargets(); return; }
     buildRenderTargets();
   }, menuCard);
+
+  // DoF mode selector — switches between the two composite algorithms
+  const dofModeRow = document.createElement('div');
+  dofModeRow.style.cssText = 'display:flex;align-items:center;gap:8px;font-family:ui-monospace,monospace;font-size:13px;user-select:none';
+  const dofModeLabel = document.createElement('span');
+  dofModeLabel.textContent = 'DOF';
+  dofModeLabel.style.cssText = 'color:rgba(255,255,255,0.5);letter-spacing:0.05em';
+  dofModeRow.appendChild(dofModeLabel);
+
+  const DOF_MODES = ['CRAFTY', 'LITECRAFT'] as const;
+  const SEL_STYLE  = 'background:#1a2e1a;color:#5f5;border-color:#5f5';
+  const UNSEL_STYLE = 'background:#222;color:#888;border-color:#555';
+  const dofModeBtns = DOF_MODES.map((label, i) => {
+    const btn = document.createElement('button');
+    btn.textContent = label;
+    btn.style.cssText = `padding:4px 10px;border-width:1px;border-style:solid;border-radius:4px;cursor:pointer;letter-spacing:0.04em;${i === 0 ? SEL_STYLE : UNSEL_STYLE}`;
+    btn.addEventListener('click', () => {
+      if (dofPass) dofPass.mode = i;
+      dofModeBtns.forEach((b, j) => b.setAttribute('style', `padding:4px 10px;border-width:1px;border-style:solid;border-radius:4px;cursor:pointer;letter-spacing:0.04em;${j === i ? SEL_STYLE : UNSEL_STYLE}`));
+    });
+    dofModeRow.appendChild(btn);
+    return btn;
+  });
+  menuCard.appendChild(dofModeRow);
+
   hotbar.setOnSelectionChanged(refreshSlotHighlight);
 
   const escHint = document.createElement('div');

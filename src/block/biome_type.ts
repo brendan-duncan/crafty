@@ -26,7 +26,7 @@ export function getBiomeEnvironmentEffect(biome: BiomeType): EnvironmentEffect {
 export function getBiomeCloudCoverage(biome: BiomeType): number {
   switch (biome) {
     case BiomeType.SnowyMountains:  return 1.2;
-    case BiomeType.SnowyPlains:     return 1.1;
+    case BiomeType.SnowyPlains:     return 1.2;
     case BiomeType.GrassyPlains:    return 1.0;
     case BiomeType.RockyMountains:  return 0.9;
     case BiomeType.Desert:          return 0.15;
