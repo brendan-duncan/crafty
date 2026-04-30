@@ -502,13 +502,49 @@ async function main(): Promise<void> {
     }
   }
 
+  const magmaLights = new Map<string, TorchEntry>();
+
+  function addMagmaLight(bx: number, by: number, bz: number): void {
+    const key = torchLightKey(bx, by, bz);
+    if (magmaLights.has(key)) return;
+    const go = new GameObject('MagmaLight');
+    go.position.set(bx + 0.5, by + 0.5, bz + 0.5);
+    const pl = go.addComponent(new PointLight());
+    pl.color      = new Vec3(1.0, 0.28, 0.0);
+    pl.intensity  = 6.0;
+    pl.radius     = 10.0;
+    pl.castShadow = false;
+    scene.add(go);
+    const phase = (bx * 127.1 + by * 311.7 + bz * 74.3) % (Math.PI * 2);
+    magmaLights.set(key, { go, pl, phase });
+  }
+
+  function removeMagmaLight(bx: number, by: number, bz: number): void {
+    const key = torchLightKey(bx, by, bz);
+    const entry = magmaLights.get(key);
+    if (!entry) return;
+    scene.remove(entry.go);
+    magmaLights.delete(key);
+  }
+
+  function updateMagmaFlicker(t: number): void {
+    for (const { pl, phase } of magmaLights.values()) {
+      // Slow, heavy pulsing — lava swells and bubbles rather than flickering.
+      const flicker = 1.0
+        + 0.18 * Math.sin(t * 1.1 + phase)
+        + 0.10 * Math.sin(t * 2.9 + phase * 0.7)
+        + 0.06 * Math.sin(t * 0.5 + phase * 1.4);
+      pl.intensity = 6.0 * flicker;
+    }
+  }
+
   canvas.addEventListener('mousedown', (e: MouseEvent) => {
     if (document.pointerLockElement !== canvas) return;
     const isPlace = e.button === 2;
     if (!isPlace && e.button === 0 && targetBlock) {
-      if (world.getBlockType(targetBlock.x, targetBlock.y, targetBlock.z) === BlockType.TORCH) {
-        removeTorchLight(targetBlock.x, targetBlock.y, targetBlock.z);
-      }
+      const minedType = world.getBlockType(targetBlock.x, targetBlock.y, targetBlock.z);
+      if (minedType === BlockType.TORCH) removeTorchLight(targetBlock.x, targetBlock.y, targetBlock.z);
+      if (minedType === BlockType.MAGMA) removeMagmaLight(targetBlock.x, targetBlock.y, targetBlock.z);
       world.mineBlock(targetBlock.x, targetBlock.y, targetBlock.z);
     } else if (isPlace && targetHit) {
       const hit = targetHit;
@@ -518,6 +554,7 @@ async function main(): Promise<void> {
       const newZ = hit.position.z + hit.face.z;
       if (world.addBlock(hit.position.x, hit.position.y, hit.position.z, hit.face.x, hit.face.y, hit.face.z, placed)) {
         if (placed === BlockType.TORCH) addTorchLight(newX, newY, newZ);
+        if (placed === BlockType.MAGMA) addMagmaLight(newX, newY, newZ);
       }
     }
   });
@@ -990,6 +1027,7 @@ async function main(): Promise<void> {
     if (usePlayerController) player.update(cameraGO, dt);
     else                     freeCamera.update(cameraGO, dt);
     updateTorchFlicker(time / 1000);
+    updateMagmaFlicker(time / 1000);
     scene.update(dt);
 
     const camPos = camera.position();

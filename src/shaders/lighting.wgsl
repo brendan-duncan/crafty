@@ -395,8 +395,8 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
   // Sky IBL replaced by a flat ambient term — atmospheric scattering
   // handles sky appearance; this just prevents fully-black shadows.
   let ao         = textureSampleLevel(ao_tex, ao_samp, in.uv, 0.0).r;
-  // top=0.50, side=0.25, bottom=0.05 — piecewise linear on N.y
-  let sky_factor = select(0.25 + N.y * 0.20, 0.25 + N.y * 0.25, N.y >= 0.0);
+  // top=0.25, side=0.125, bottom=0.025 — piecewise linear on N.y
+  let sky_factor = select(0.125 + N.y * 0.10, 0.125 + N.y * 0.125, N.y >= 0.0);
   // Shadow-darken ambient during the day; at night remove shadow influence.
   let shadow_scale = mix(1.0, max(shad, 0.05), horizon_fade);
   // Scale sky ambient by horizon_fade so it vanishes with the sun.
