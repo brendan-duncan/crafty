@@ -628,19 +628,38 @@ export class Chunk {
     return BiomeType.GrassyPlains;
   }
 
-  _calculateSurfaceHeight(p_x: number, p_y: number, p_z: number, seed: number, biome: BiomeType = BiomeType.GrassyPlains): number {
+  _calculateSurfaceHeight(p_x: number, p_y: number, p_z: number, seed: number, _biome?: BiomeType): number {
     this._calculateContinentalness(p_x, p_z);
 
-    // Scale terrain amplitude and base offset per biome so each has a distinct feel.
-    let amplitudeScale = 1.0;
-    let baseOffset     = 0.0;
-    switch (biome) {
-      case BiomeType.SnowyMountains: amplitudeScale = 2.0; baseOffset = 16; break;
-      case BiomeType.RockyMountains: amplitudeScale = 1.7; baseOffset = 10; break;
-      case BiomeType.SnowyPlains:    amplitudeScale = 0.75; break;
-      case BiomeType.Desert:         amplitudeScale = 0.35; baseOffset = 2; break;
-      default:                       amplitudeScale = 1.0; break;
-    }
+    // Blend height parameters continuously from raw noise so they transition
+    // smoothly across biome borders instead of jumping at hard thresholds.
+    const temperature = perlinNoise3Seed(p_x / 512.0, 0, p_z / 512.0, 0, 0, 0, seed + 31337);
+    const elevation   = Math.abs(perlinNoise3Seed(p_x / 800.0, 0, p_z / 800.0, 0, 0, 0, seed + 7919));
+    const moisture    = perlinNoise3Seed(p_x / 400.0, 0, p_z / 400.0, 0, 0, 0, seed + 99991);
+
+    const ss = (e0: number, e1: number, x: number): number => {
+      const t = Math.max(0, Math.min(1, (x - e0) / (e1 - e0)));
+      return t * t * (3 - 2 * t);
+    };
+
+    // Mountain weight — smoothly transitions ±0.08 around the elevation=0.48 threshold.
+    const mtnT       = ss(0.40, 0.56, elevation);
+    const snowyMtnFr = 1.0 - ss(0.02, 0.18, temperature); // cold side of temp=0.1 split
+    const snowyMtnW  = mtnT * snowyMtnFr;
+    const rockyMtnW  = mtnT * (1.0 - snowyMtnFr);
+
+    // Non-mountain weights — desert, snowy plains, grassy plains.
+    // Constructed so (desertW + snowyW + grassW) = nonMtnT exactly.
+    const nonMtnT   = 1.0 - mtnT;
+    const desertRaw = ss(0.28, 0.36, temperature) * ss(-0.04, 0.04, -moisture);
+    const snowyRaw  = ss(-0.32, -0.24, -temperature);
+    const desertW   = nonMtnT * desertRaw;
+    const snowyW    = nonMtnT * snowyRaw * (1.0 - desertRaw);
+    const grassW    = nonMtnT * (1.0 - desertRaw) * (1.0 - snowyRaw);
+
+    // Biome amplitude/offset values — weights sum to 1 by construction.
+    const amplitudeScale = snowyMtnW * 2.0 + rockyMtnW * 1.7 + desertW * 0.35 + snowyW * 0.75 + grassW * 1.0;
+    const baseOffset     = snowyMtnW * 16.0 + rockyMtnW * 10.0 + desertW * 2.0;
 
     const surfaceHeightMultiplier = Math.abs(perlinNoise3Seed(p_x / 1024.0, 0, p_z / 1024.0, 0, 0, 0, seed) * 450) * amplitudeScale;
     let surfaceHeight = Math.abs(perlinNoise3Seed(p_x / 256.0, p_y / 512.0, p_z / 256.0, 0, 0, 0, seed) * surfaceHeightMultiplier);

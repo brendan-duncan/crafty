@@ -13,22 +13,24 @@ export const HDR_FORMAT: GPUTextureFormat = 'rgba16float';
 const CAMERA_SIZE = 64 * 4 + 16 + 16;
 // LightUniforms: dir(3)+intensity(1)+color(3)+cascadeCount(1)+4*mat4(256)+cascadeSplits(4)+
 //   shadowsEnabled(1)+debugCascades(1)+cloudShadowOrigin(2)+cloudShadowExtent(1)+shadowSoftness(1)+
-//   cascadeDepthRanges(4) = 352 bytes
-const LIGHT_SIZE = 352;
+//   _pad(2)+cascadeDepthRanges(4)+cascadeTexelSizes(4) = 368 bytes
+const LIGHT_SIZE = 368;
 
 export class LightingPass extends RenderPass {
   readonly name = 'LightingPass';
 
-  readonly hdrTexture: GPUTexture;
-  readonly hdrView: GPUTextureView;
+  readonly hdrTexture   : GPUTexture;
+  readonly hdrView      : GPUTextureView;
+  // Exposed so other passes (e.g. GodrayPass) can share the same GPU buffers
+  // without duplicating per-frame writes.
+  readonly cameraBuffer : GPUBuffer;
+  readonly lightBuffer  : GPUBuffer;
 
   private _pipeline: GPURenderPipeline;
   private _sceneBindGroup: GPUBindGroup;
   private _gbufferBindGroup: GPUBindGroup;
   private _aoBindGroup : GPUBindGroup;    // group 2: AO + SSGI combined
   private _iblBindGroup: GPUBindGroup;   // group 3: irradiance cube, prefilter cube, BRDF LUT
-  private _cameraBuffer: GPUBuffer;
-  private _lightBuffer: GPUBuffer;
   private _defaultCloudShadow: GPUTexture | null;
   private _defaultSsgi: GPUTexture | null;
 
@@ -65,8 +67,8 @@ export class LightingPass extends RenderPass {
     this._gbufferBindGroup = gbufferBindGroup;
     this._aoBindGroup = aoBindGroup;
     this._iblBindGroup = iblBindGroup;
-    this._cameraBuffer = cameraBuffer;
-    this._lightBuffer = lightBuffer;
+    this.cameraBuffer = cameraBuffer;
+    this.lightBuffer  = lightBuffer;
     this._defaultCloudShadow = defaultCloudShadow;
     this._defaultSsgi = defaultSsgi;
     this._device = device;
@@ -276,7 +278,7 @@ export class LightingPass extends RenderPass {
     data.set(invViewProj.data, 48);
     data[64] = camPos.x; data[65] = camPos.y; data[66] = camPos.z;
     data[67] = near; data[68] = far;
-    ctx.queue.writeBuffer(this._cameraBuffer, 0, data.buffer as ArrayBuffer);
+    ctx.queue.writeBuffer(this.cameraBuffer, 0, data.buffer as ArrayBuffer);
   }
 
   updateLight(ctx: RenderContext, dir: { x: number; y: number; z: number }, color: { x: number; y: number; z: number }, intensity: number, cascades: CascadeData[], shadowsEnabled = true, debugCascades = false, shadowSoftness = 0.02): void {
@@ -304,7 +306,11 @@ export class LightingPass extends RenderPass {
     for (let i = 0; i < 4; i++) {
       data[84 + i] = i < cascades.length ? cascades[i].depthRange : 1.0;
     }
-    ctx.queue.writeBuffer(this._lightBuffer, 0, data.buffer as ArrayBuffer);
+    // floats 88-91 (offsets 352-367): cascadeTexelSizes — world-space size of one shadow texel
+    for (let i = 0; i < 4; i++) {
+      data[88 + i] = i < cascades.length ? cascades[i].texelWorldSize : 1.0;
+    }
+    ctx.queue.writeBuffer(this.lightBuffer, 0, data.buffer as ArrayBuffer);
   }
 
   // Must be called after updateLight() each frame (updateLight overwrites the whole buffer).
@@ -314,7 +320,7 @@ export class LightingPass extends RenderPass {
     data[0] = originX;
     data[1] = originZ;
     data[2] = extent;
-    ctx.queue.writeBuffer(this._lightBuffer, 312, data.buffer as ArrayBuffer);
+    ctx.queue.writeBuffer(this.lightBuffer, 312, data.buffer as ArrayBuffer);
   }
 
   execute(encoder: GPUCommandEncoder, _ctx: RenderContext): void {
@@ -335,8 +341,8 @@ export class LightingPass extends RenderPass {
 
   destroy(): void {
     this.hdrTexture.destroy();
-    this._cameraBuffer.destroy();
-    this._lightBuffer.destroy();
+    this.cameraBuffer.destroy();
+    this.lightBuffer.destroy();
     this._defaultCloudShadow?.destroy();
     this._defaultSsgi?.destroy();
   }

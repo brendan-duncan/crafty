@@ -150,7 +150,8 @@ struct LightUniforms {
   cloudShadowExtent  : f32,        // half-size in world units (covers ±extent)
   shadowSoftness     : f32,        // PCSS light-size factor (~0.02)
   _pad_light         : vec2<f32>,  // padding to align cascadeDepthRanges to 16 bytes (offset 336)
-  cascadeDepthRanges : vec4<f32>,  // light-space Z depth per cascade (for adaptive bias)
+  cascadeDepthRanges : vec4<f32>,  // light-space Z depth per cascade (for adaptive depth bias)
+  cascadeTexelSizes  : vec4<f32>,  // world-space size of one shadow texel per cascade
 }
 
 @group(0) @binding(0) var<uniform> camera: CameraUniforms;
@@ -257,13 +258,25 @@ fn select_cascade(view_depth: f32) -> u32 {
   return light.cascadeCount - 1u;
 }
 
-fn shadow_factor(world_pos: vec3<f32>, NdotL: f32, view_depth: f32) -> f32 {
+fn shadow_factor(world_pos: vec3<f32>, N: vec3<f32>, NdotL: f32, view_depth: f32) -> f32 {
   if (light.shadowsEnabled == 0u) { return 1.0; }
-  let cascade    = select_cascade(view_depth);
+  let cascade     = select_cascade(view_depth);
   let depth_range = light.cascadeDepthRanges[cascade];
-  let bias       = max(0.05 * (1.0 - NdotL), 0.01) / max(depth_range, 1.0);
+  let bias        = max(0.05 * (1.0 - NdotL), 0.01) / max(depth_range, 1.0);
 
-  let sc0 = cascade_coords(cascade, world_pos);
+  // Normal bias — scales with the cascade's world-space texel size so near
+  // cascades stay sharp and far cascades avoid acne on low-angle surfaces.
+  // Uses a flat (axis-snapped) normal for temporal stability, then removes the
+  // light-parallel component so the offset doesn't inflate shadow-map depth.
+  let L       = normalize(-light.direction);
+  let q       = round(N);
+  let flat_N  = select(N, normalize(q), dot(q, q) > 0.5);
+  let t_angle = 1.0 - max(0.0, dot(L, -flat_N));
+  var nb      = flat_N * (light.cascadeTexelSizes[cascade] * 1.5 * t_angle);
+  nb         -= L * dot(L, nb);
+  let biased_pos = world_pos + nb;
+
+  let sc0 = cascade_coords(cascade, biased_pos);
   if (!in_cascade(sc0)) { return 1.0; }
 
   // PCSS: blocker search → penumbra width → scaled PCF kernel.
@@ -281,7 +294,7 @@ fn shadow_factor(world_pos: vec3<f32>, NdotL: f32, view_depth: f32) -> f32 {
     let blend_band = split * 0.1;
     let t = smoothstep(split - blend_band, split, view_depth);
     if (t > 0.0) {
-      let sc1 = cascade_coords(next, world_pos);
+      let sc1 = cascade_coords(next, biased_pos);
       // Only blend toward the next cascade if this position is actually inside it;
       // blending toward an OOB cascade would mix toward depth=1 (fully lit).
       if (in_cascade(sc1)) {
@@ -410,9 +423,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
   let specular_brdf = D * G * Fd / max(4.0 * NdotV * NdotL, 0.001);
   let diffuse_brdf  = kD_direct * albedo / PI;
 
-  // Offset shadow test position along the surface normal to avoid coplanar self-shadowing.
-  let shadow_pos = world_pos + N * 0.03;
-  let shad = shadow_factor(shadow_pos, NdotL, view_depth);
+  let shad = shadow_factor(world_pos, N, NdotL, view_depth);
 
   // Cloud shadow — sample top-down transmittance map; default 1.0 when extent is zero
   let cloud_ext = max(light.cloudShadowExtent, 0.001);
@@ -467,7 +478,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
       case 2u:    { tint = vec3<f32>(0.25, 0.25, 1.0); } // blue  = far
       default:    { tint = vec3<f32>(1.0,  1.0,  0.25); } // yellow = beyond
     }
-    let shad = shadow_factor(shadow_pos, NdotL, view_depth);
+    let shad = shadow_factor(world_pos, N, NdotL, view_depth);
     return vec4<f32>(tint * mix(0.15, 1.0, shad), 1.0);
   }
 

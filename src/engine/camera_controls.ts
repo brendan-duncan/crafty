@@ -51,6 +51,10 @@ export class CameraControls {
     document.addEventListener('keyup',     this._onKeyUp);
   }
 
+  // Inject a key as if it were currently held — use when the controller is
+  // attached after the physical keydown event already fired (e.g. double-tap toggle).
+  pressKey(code: string): void { this._keys.add(code); }
+
   detach(): void {
     if (!this._canvas) return;
     this._canvas.removeEventListener('click',     this._onClick);

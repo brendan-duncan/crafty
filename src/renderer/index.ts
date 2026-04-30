@@ -12,6 +12,8 @@ export type { CloudSettings } from './passes/cloud_pass.js';
 export type { CloudShadowSettings } from './passes/cloud_shadow_pass.js';
 export { TAAPass } from './passes/taa_pass.js';
 export { BloomPass } from './passes/bloom_pass.js';
+export { GodrayPass } from './passes/godray_pass.js';
+export { FogPass } from './passes/fog_pass.js';
 export { GeometryPass } from './passes/geometry_pass.js';
 export { WorldGeometryPass } from './passes/world_geometry_pass.js';
 export { SkinnedGeometryPass } from './passes/skinned_geometry_pass.js';

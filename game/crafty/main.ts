@@ -20,7 +20,7 @@ import {
   AutoExposurePass, PointSpotShadowPass, PointSpotLightPass,
   WorldGeometryPass, WaterPass, WorldShadowPass, UnderwaterPass,
   BlockHighlightPass, ParticlePass,
-  CloudPass, CloudShadowPass,
+  CloudPass, CloudShadowPass, GodrayPass, FogPass,
 } from '../../src/renderer/index.js';
 import { createCloudNoiseTextures } from '../../src/assets/cloud_noise.js';
 import type { CloudNoiseTextures } from '../../src/assets/cloud_noise.js';
@@ -456,8 +456,12 @@ async function main(): Promise<void> {
   document.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.code !== 'Space' || e.repeat) return;
     if (performance.now() - _lastSpaceUp < 400 && document.pointerLockElement === canvas) {
+      const wasPlayer = usePlayerController;
       toggleController();
       _lastSpaceUp = -Infinity;
+      // The second Space press is still physically held — inject it into the free
+      // camera so holding Space immediately ascends without a re-press.
+      if (wasPlayer) freeCamera.pressKey('Space');
     }
   });
 
@@ -605,7 +609,7 @@ async function main(): Promise<void> {
   };
 
   // --- Effect toggles ---
-  const effects = { ssao: true, ssgi: false, shadows: true, dof: true, bloom: true, aces: true, ao_dbg: false, shd_dbg: false, hdr: true, auto_exp: false, rain: true, clouds: true };
+  const effects = { ssao: true, ssgi: false, shadows: true, dof: true, bloom: true, godrays: true, fog: true, aces: true, ao_dbg: false, shd_dbg: false, hdr: true, auto_exp: false, rain: true, clouds: true };
 
   // --- Renderer ---
 
@@ -628,6 +632,8 @@ async function main(): Promise<void> {
   let dofPass             : DofPass        | null = null;
   let bloomPass           : BloomPass      | null = null;
   let rainPass            : ParticlePass   | null = null;
+  let godrayPass          : GodrayPass      | null = null;
+  let fogPass             : FogPass        | null = null;
   let cloudPass           : CloudPass      | null = null;
   let cloudShadowPass     : CloudShadowPass | null = null;
   let underwaterPass!     : UnderwaterPass;
@@ -649,6 +655,8 @@ async function main(): Promise<void> {
     taaPass?.destroy();
     dofPass?.destroy();          dofPass          = null;
     bloomPass?.destroy();        bloomPass        = null;
+    godrayPass?.destroy();       godrayPass       = null;
+    fogPass?.destroy();          fogPass          = null;
     rainPass?.destroy();         rainPass         = null;
     cloudPass?.destroy();        cloudPass        = null;
     cloudShadowPass?.destroy();  cloudShadowPass  = null;
@@ -698,6 +706,9 @@ async function main(): Promise<void> {
     ssaoPass            = SSAOPass.create(ctx, gbuffer);
     if (effects.clouds) cloudShadowPass = CloudShadowPass.create(ctx, cloudNoises);
     lightingPass        = LightingPass.create(ctx, gbuffer, shadowPass, ssaoPass.aoView, cloudShadowPass?.shadowView, iblTextures);
+    if (effects.godrays) {
+      godrayPass = GodrayPass.create(ctx, gbuffer, shadowPass, lightingPass.hdrView, lightingPass.cameraBuffer, lightingPass.lightBuffer);
+    }
     atmospherePass      = AtmospherePass.create(ctx, lightingPass.hdrView);
     if (effects.clouds) cloudPass = CloudPass.create(ctx, lightingPass.hdrView, gbuffer.depthView, cloudNoises);
     pointSpotShadowPass = PointSpotShadowPass.create(ctx);
@@ -714,9 +725,15 @@ async function main(): Promise<void> {
       waterPass.updateRenderTargets(lightingPass.hdrTexture, lightingPass.hdrView, gbuffer.depthView, skyTexture);
     }
 
+    if (effects.fog) {
+      fogPass = FogPass.create(ctx, taaPass.resolvedView, gbuffer.depthView, lightingPass.cameraBuffer, lightingPass.lightBuffer);
+      fogPass.updateParams(ctx);
+    }
+    const fogOut = fogPass?.resultView ?? taaPass.resolvedView;
+
     const postInput = effects.dof
-      ? (dofPass = DofPass.create(ctx, taaPass.resolvedView, gbuffer.depthView), dofPass.resultView)
-      : taaPass.resolvedView;
+      ? (dofPass = DofPass.create(ctx, fogOut, gbuffer.depthView), dofPass.resultView)
+      : fogOut;
 
     const bloomOut = effects.bloom
       ? (bloomPass = BloomPass.create(ctx, postInput), bloomPass.resultView)
@@ -745,12 +762,14 @@ async function main(): Promise<void> {
     graph.addPass(lightingPass);
     graph.addPass(pointSpotLightPass);
     graph.addPass(waterPass);
+    if (godrayPass) graph.addPass(godrayPass);
     if (effects.rain && currentWeatherEffect !== EnvironmentEffect.None) {
       const weatherConfig = currentWeatherEffect === EnvironmentEffect.Snow ? snowConfig : rainConfig;
       rainPass = ParticlePass.create(ctx, weatherConfig, gbuffer, lightingPass.hdrView);
       graph.addPass(rainPass);
     }
     graph.addPass(taaPass);
+    if (fogPass)   graph.addPass(fogPass);
     if (dofPass)   graph.addPass(dofPass);
     if (bloomPass) graph.addPass(bloomPass);
     graph.addPass(underwaterPass);
@@ -1162,6 +1181,8 @@ async function main(): Promise<void> {
     }
 
     dofPass?.updateParams(ctx, 8.0, 25.0, 6.0, camera.near, camera.far);
+    godrayPass?.updateParams(ctx);
+    fogPass?.updateParams(ctx);
     const isUnderwater = camPos.y < 15.0;
     underwaterPass.updateParams(ctx, isUnderwater, waterTime);
     tonemapPass.updateParams(ctx, effects.aces, effects.ao_dbg, effects.hdr);

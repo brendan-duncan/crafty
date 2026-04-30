@@ -3,9 +3,10 @@ import { Component } from '../component.js';
 import type { Camera } from './camera.js';
 
 export interface CascadeData {
-  lightViewProj: Mat4;
-  splitFar: number;
-  depthRange: number;  // light-space Z depth (maxZ - minZ after padding)
+  lightViewProj : Mat4;
+  splitFar      : number;
+  depthRange    : number;  // light-space Z depth (maxZ - minZ after padding)
+  texelWorldSize: number;  // world-space size of one shadow-map texel (2*radius/mapSize)
 }
 
 export class DirectionalLight extends Component {
@@ -45,8 +46,11 @@ export class DirectionalLight extends Component {
         radius = Math.max(radius, c.sub(center).length());
       }
       // Round radius up to a texel boundary to eliminate sub-texel drift on resize.
-      const texelWorldSize = (2 * radius) / shadowMapSize;
+      let texelWorldSize = (2 * radius) / shadowMapSize;
       radius = Math.ceil(radius / texelWorldSize) * texelWorldSize;
+      // Expand by 2 texels so sampling at the cascade edge never wraps to the other side.
+      radius *= shadowMapSize / (shadowMapSize - 2);
+      texelWorldSize = (2 * radius) / shadowMapSize;
 
       // Z range still comes from the actual corners, plus padding for off-frustum casters.
       let minZ = Infinity, maxZ = -Infinity;
@@ -80,14 +84,14 @@ export class DirectionalLight extends Component {
       lightProj.set(3, 0, lightProj.get(3, 0) + dndcX);
       lightProj.set(3, 1, lightProj.get(3, 1) + dndcY);
 
-      cascades.push({ lightViewProj: lightProj.multiply(lightView), splitFar: farSplit, depthRange: maxZ - minZ });
+      cascades.push({ lightViewProj: lightProj.multiply(lightView), splitFar: farSplit, depthRange: maxZ - minZ, texelWorldSize });
     }
 
     return cascades;
   }
 
   private _computeSplitDepths(near: number, far: number, count: number): number[] {
-    const lambda = 0.95;
+    const lambda = 0.75;
     const splits: number[] = [];
     for (let i = 1; i <= count; i++) {
       const uniform = near + (far - near) * (i / count);
