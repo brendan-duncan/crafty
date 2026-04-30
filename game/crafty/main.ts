@@ -46,7 +46,7 @@ const HOTBAR_SLOTS: BlockType[] = [
   BlockType.DIAMOND,
 ];
 
-function createHotbar(atlasUrl: string): { getSelected: () => BlockType; refresh: () => void } {
+function createHotbar(atlasUrl: string): { getSelected: () => BlockType; refresh: () => void; getSelectedSlot: () => number; setSelectedSlot: (i: number) => void; setOnSelectionChanged: (cb: () => void) => void } {
   const N = HOTBAR_SLOTS.length;
   let selected = 0;
 
@@ -112,10 +112,13 @@ function createHotbar(atlasUrl: string): { getSelected: () => BlockType; refresh
   ].join(';');
   document.body.appendChild(sel);
 
+  let _onSelectionChanged: (() => void) | null = null;
+
   function updateSelection() {
     const barRect = bar.getBoundingClientRect();
     // Each slot is 40px wide; centre the 44px selector over the active slot
     sel.style.left = (barRect.left - 2 + selected * 40) + 'px';
+    _onSelectionChanged?.();
   }
 
   // ── Draw block icons ──
@@ -150,7 +153,13 @@ function createHotbar(atlasUrl: string): { getSelected: () => BlockType; refresh
   // Delay first position update until bar is laid out
   requestAnimationFrame(updateSelection);
 
-  return { getSelected: () => HOTBAR_SLOTS[selected], refresh };
+  return {
+    getSelected: () => HOTBAR_SLOTS[selected],
+    refresh,
+    getSelectedSlot: () => selected,
+    setSelectedSlot: (i: number) => { selected = i; updateSelection(); },
+    setOnSelectionChanged: (cb: () => void) => { _onSelectionChanged = cb; },
+  };
 }
 
 function halton(index: number, base: number): number {
@@ -218,7 +227,9 @@ function createBlockManager(
   container: HTMLElement,
   atlasUrl: string,
   onHotbarChanged: () => void,
-): { syncHotbar: () => void } {
+  getSelectedSlot: () => number,
+  setSelectedSlot: (i: number) => void,
+): { syncHotbar: () => void; refreshSlotHighlight: () => void } {
   const S    = 2;          // display scale (px per native px)
   const STEP = 18 * S;     // slot stride
   const ICON = 16 * S;     // canvas draw size
@@ -265,6 +276,13 @@ function createBlockManager(
   let dragBlock: BlockType | null = null;
   let dragHotbarIdx: number | null = null;
 
+  const hotbarDivs: HTMLDivElement[] = [];
+  function refreshSlotHighlight(): void {
+    hotbarDivs.forEach((d, i) => {
+      d.style.outline = i === getSelectedSlot() ? '2px solid #ff0' : '';
+    });
+  }
+
   function makeSlot(x: number, y: number, draggable: boolean): [HTMLDivElement, HTMLCanvasElement] {
     const div = document.createElement('div');
     div.style.cssText = [
@@ -290,6 +308,11 @@ function createBlockManager(
       const [div, cv] = makeSlot(INV_X + col * STEP, INV_Y + row * STEP, true);
       div.title = String(blockTypeName[bt]);
       if (atlas.complete) drawIcon(cv, bt); else atlas.addEventListener('load', () => drawIcon(cv, bt), { once: false });
+      div.addEventListener('click', () => {
+        HOTBAR_SLOTS[getSelectedSlot()] = bt;
+        syncHotbar();
+        onHotbarChanged();
+      });
       div.addEventListener('dragstart', (e) => {
         dragBlock = bt; dragHotbarIdx = null;
         e.dataTransfer!.effectAllowed = 'copy';
@@ -305,8 +328,10 @@ function createBlockManager(
   for (let i = 0; i < HOT_COLS; i++) {
     const [div, cv] = makeSlot(HOT_X + i * STEP, HOT_Y, true);
     hotbarCanvases.push(cv);
+    hotbarDivs.push(div);
     div.title = `Slot ${i + 1}`;
 
+    div.addEventListener('click', () => { setSelectedSlot(i); refreshSlotHighlight(); });
     div.addEventListener('dragstart', (e) => {
       dragBlock = HOTBAR_SLOTS[i]; dragHotbarIdx = i;
       e.dataTransfer!.effectAllowed = 'move';
@@ -317,12 +342,12 @@ function createBlockManager(
     div.addEventListener('dragover', (e) => {
       e.preventDefault();
       e.dataTransfer!.dropEffect = dragHotbarIdx !== null ? 'move' : 'copy';
-      div.style.outline = `2px solid #7ff`;
+      div.style.boxShadow = 'inset 0 0 0 2px #7ff';
     });
-    div.addEventListener('dragleave', () => { div.style.outline = ''; });
+    div.addEventListener('dragleave', () => { div.style.boxShadow = ''; });
     div.addEventListener('drop', (e) => {
       e.preventDefault();
-      div.style.outline = '';
+      div.style.boxShadow = '';
       if (!dragBlock) return;
       if (dragHotbarIdx !== null && dragHotbarIdx !== i) {
         // swap two hotbar slots
@@ -345,7 +370,7 @@ function createBlockManager(
   if (atlas.complete) syncHotbar();
 
   container.appendChild(wrap);
-  return { syncHotbar };
+  return { syncHotbar, refreshSlotHighlight };
 }
 
 async function main(): Promise<void> {
@@ -800,7 +825,10 @@ async function main(): Promise<void> {
   ].join(';');
   resumeBtn.addEventListener('mouseenter', () => { resumeBtn.style.background = '#243e24'; });
   resumeBtn.addEventListener('mouseleave', () => { resumeBtn.style.background = '#1a3a1a'; });
-  resumeBtn.addEventListener('click', () => canvas.requestPointerLock());
+  resumeBtn.addEventListener('click', async () => {
+    if (!document.fullscreenElement) await document.documentElement.requestFullscreen().catch(() => {});
+    canvas.requestPointerLock();
+  });
   menuCard.appendChild(resumeBtn);
 
   const sep = document.createElement('div');
@@ -841,7 +869,8 @@ async function main(): Promise<void> {
   ].join(';');
   menuCard.appendChild(invLabel);
 
-  const { syncHotbar } = createBlockManager(menuCard, colorAtlasUrl, () => hotbar.refresh());
+  const { syncHotbar, refreshSlotHighlight } = createBlockManager(menuCard, colorAtlasUrl, () => hotbar.refresh(), hotbar.getSelectedSlot, hotbar.setSelectedSlot);
+  hotbar.setOnSelectionChanged(refreshSlotHighlight);
 
   const escHint = document.createElement('div');
   escHint.textContent = 'ESC  ·  resume';
@@ -855,6 +884,7 @@ async function main(): Promise<void> {
   function openMenu(): void {
     menuOpenedAt = performance.now();
     syncHotbar();
+    refreshSlotHighlight();
     menuOverlay.style.display = 'flex';
     reticle.style.display = 'none';
   }
