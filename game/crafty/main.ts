@@ -738,6 +738,16 @@ async function main(): Promise<void> {
   ].join(';');
   document.body.appendChild(fpsEl);
 
+  const statsEl = document.createElement('div');
+  statsEl.style.cssText = [
+    'position:fixed', 'top:44px', 'right:12px',
+    'font-family:ui-monospace,monospace', 'font-size:11px',
+    'color:#aaf', 'background:rgba(0,0,0,0.45)',
+    'padding:4px 8px', 'border-radius:4px', 'pointer-events:none',
+    'white-space:pre',
+  ].join(';');
+  document.body.appendChild(statsEl);
+
   const biomeEl = document.createElement('div');
   biomeEl.style.cssText = [
     'position:fixed', 'bottom:12px', 'right:12px',
@@ -780,7 +790,7 @@ async function main(): Promise<void> {
   menuCard.appendChild(menuTitle);
 
   const resumeBtn = document.createElement('button');
-  resumeBtn.textContent = 'Resume';
+  resumeBtn.textContent = 'Play';
   resumeBtn.style.cssText = [
     'padding:10px 40px', 'font-size:15px', 'font-family:ui-monospace,monospace',
     'background:#1a3a1a', 'color:#5f5',
@@ -904,7 +914,8 @@ async function main(): Promise<void> {
   }
 
   let lastTime   = 0;
-  let smoothFps  = 0;
+  let smoothFps    = 0;
+  let lastHudUpdate = -Infinity;
   let sunAngle   = Math.PI * 0.3;  // start in morning
   let waterTime  = 0;
   let frameIndex = 0;
@@ -920,9 +931,10 @@ async function main(): Promise<void> {
   function frame(time: number): void {
     const dt = Math.min((time - lastTime) / 1000, 0.1);
     lastTime = time;
+    const updateHud = time - lastHudUpdate >= 1000;
+    if (updateHud) lastHudUpdate = time;
     if (dt > 0) {
       smoothFps += (1 / dt - smoothFps) * 0.1;
-      fpsEl.textContent = `${smoothFps.toFixed(0)} fps`;
     }
 
     sunAngle  += dt * 0.021;  // full day/night cycle ~5 minutes
@@ -963,7 +975,12 @@ async function main(): Promise<void> {
 
     const targetCloudCoverage = getBiomeCloudCoverage(biome);
     cloudCoverage += (targetCloudCoverage - cloudCoverage) * Math.min(1, 0.3 * dt);
-    biomeEl.textContent = `${BiomeType[biome]}  coverage:${cloudCoverage.toFixed(2)}`;
+    if (updateHud) {
+      fpsEl.textContent = `${smoothFps.toFixed(0)} fps`;
+      const kTris = (worldGeometryPass.triangles / 1000).toFixed(1);
+      statsEl.textContent = `${worldGeometryPass.drawCalls} draws  ${kTris}k tris\n${world.chunkCount} chunks  ${world.pendingChunks} pending`;
+      biomeEl.textContent = `${BiomeType[biome]}  coverage:${cloudCoverage.toFixed(2)}`;
+    }
 
     const hi    = (frameIndex % 16) + 1;
     const jx    = (halton(hi, 2) - 0.5) * (2 / ctx.width);
@@ -988,7 +1005,8 @@ async function main(): Promise<void> {
 
     shadowPass.setSceneSnapshot(shadowItems);
     shadowPass.updateScene(scene, camera, sun);
-    worldShadowPass.update(ctx, cascades);
+    worldShadowPass.enabled = sun.intensity > 0;
+    worldShadowPass.update(ctx, cascades, camPos.x, camPos.z);
 
     const dayT = Math.max(0, elev);
     const cloudAmbient: [number, number, number] = [
@@ -1029,8 +1047,9 @@ async function main(): Promise<void> {
     ssaoPass.updateCamera(ctx, view, proj, invProj);
     ssaoPass.updateParams(ctx, 1.0, 0.005, effects.ssao ? 2.0 : 0.0);
 
+    ssgiPass.enabled = effects.ssgi;
     ssgiPass.updateSettings({ strength: effects.ssgi ? 1.0 : 0.0 });
-    ssgiPass.updateCamera(ctx, view, proj, invProj, invVP, prevViewProj ?? vp, camPos);
+    if (effects.ssgi) ssgiPass.updateCamera(ctx, view, proj, invProj, invVP, prevViewProj ?? vp, camPos);
 
     const cosPitch = Math.cos(player.pitch);
     _forward.x = -Math.sin(player.yaw) * cosPitch;
@@ -1052,7 +1071,8 @@ async function main(): Promise<void> {
     }
 
     dofPass?.updateParams(ctx, 8.0, 25.0, 6.0, camera.near, camera.far);
-    underwaterPass.updateParams(ctx, camPos.y < 15.0, waterTime);
+    const isUnderwater = camPos.y < 15.0;
+    underwaterPass.updateParams(ctx, isUnderwater, waterTime);
     tonemapPass.updateParams(ctx, effects.aces, effects.ao_dbg, effects.hdr);
     // sun_dir toward the sun = negate light.direction (which points from sun to scene)
     const sunDir = { x: -sun.direction.x, y: -sun.direction.y, z: -sun.direction.z };

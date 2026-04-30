@@ -9,15 +9,20 @@ import type { BlockTexture } from '../../assets/block_texture.js';
 import { blockTextureOffsetData, BlockType, BLOCK_ATLAS_WIDTH_DIVIDED } from '../../block/block_type.js';
 import shadowWgsl      from '../../shaders/shadow.wgsl?raw';
 import chunkShadowWgsl from '../../shaders/chunk_shadow.wgsl?raw';
+import propShadowWgsl  from '../../shaders/prop_shadow.wgsl?raw';
 
 const MAX_CASCADES    = 4;
 const BYTES_PER_VERT  = 5 * 4;  // [x,y,z,face,blockType] — shadow shader only reads xyz
 
 interface ChunkShadowGpu {
+  ox               : number;   // chunk world-space X origin (for distance culling)
+  oz               : number;   // chunk world-space Z origin
   opaqueBuffer      : GPUBuffer | null;
   opaqueCount       : number;
   transparentBuffer : GPUBuffer | null;
   transparentCount  : number;
+  propBuffer        : GPUBuffer | null;
+  propCount         : number;
   modelBuffer       : GPUBuffer;  // 64-byte translation matrix (world offset)
   modelBG           : GPUBindGroup;
 }
@@ -25,14 +30,21 @@ interface ChunkShadowGpu {
 export class WorldShadowPass extends RenderPass {
   readonly name = 'WorldShadowPass';
 
+  shadowChunkRadius = 4;   // chunks; independent of render distance
+
+  private _camX = 0;
+  private _camZ = 0;
   private _device              : GPUDevice;
   private _shadowMapArrayViews : GPUTextureView[];
   private _pipeline            : GPURenderPipeline;
   private _transparentPipeline : GPURenderPipeline;
+  private _propPipeline        : GPURenderPipeline;
   private _cascadeBGs          : GPUBindGroup[];
   private _cascadeBuffers      : GPUBuffer[];
   private _modelBGL            : GPUBindGroupLayout;
   private _atlasBG             : GPUBindGroup;
+  private _orientBG_X          : GPUBindGroup;  // right=(1,0,0) for XY-plane quads
+  private _orientBG_Z          : GPUBindGroup;  // right=(0,0,1) for ZY-plane quads
   private _chunks              = new Map<Chunk, ChunkShadowGpu>();
   private _cascades            : CascadeData[] = [];
 
@@ -41,20 +53,26 @@ export class WorldShadowPass extends RenderPass {
     shadowMapArrayViews: GPUTextureView[],
     pipeline           : GPURenderPipeline,
     transparentPipeline: GPURenderPipeline,
+    propPipeline       : GPURenderPipeline,
     cascadeBGs         : GPUBindGroup[],
     cascadeBuffers     : GPUBuffer[],
     modelBGL           : GPUBindGroupLayout,
     atlasBG            : GPUBindGroup,
+    orientBG_X         : GPUBindGroup,
+    orientBG_Z         : GPUBindGroup,
   ) {
     super();
     this._device              = device;
     this._shadowMapArrayViews = shadowMapArrayViews;
     this._pipeline            = pipeline;
     this._transparentPipeline = transparentPipeline;
+    this._propPipeline        = propPipeline;
     this._cascadeBGs          = cascadeBGs;
     this._cascadeBuffers      = cascadeBuffers;
     this._modelBGL            = modelBGL;
     this._atlasBG             = atlasBG;
+    this._orientBG_X          = orientBG_X;
+    this._orientBG_Z          = orientBG_Z;
   }
 
   static create(ctx: RenderContext, shadowMapArrayViews: GPUTextureView[], cascadeCount: number, blockTexture: BlockTexture): WorldShadowPass {
@@ -156,12 +174,49 @@ export class WorldShadowPass extends RenderPass {
       primitive   : { topology: 'triangle-list', cullMode: 'none' },
     });
 
-    return new WorldShadowPass(device, shadowMapArrayViews, pipeline, transparentPipeline, cascadeBGs, cascadeBuffers, modelBGL, atlasBG);
+    // Prop pipeline: expands billboard centres into quads; drawn twice per cascade
+    // (X-axis and Z-axis) to form a cross-shaped shadow.
+    const orientBGL = device.createBindGroupLayout({
+      label  : 'WorldShadowOrientBGL',
+      entries: [{ binding: 0, visibility: GPUShaderStage.VERTEX, buffer: { type: 'uniform' } }],
+    });
+    const makeOrientBG = (label: string, rx: number, ry: number, rz: number): GPUBindGroup => {
+      const buf = device.createBuffer({ label, size: 16, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+      device.queue.writeBuffer(buf, 0, new Float32Array([rx, ry, rz, 0]));
+      return device.createBindGroup({ label, layout: orientBGL, entries: [{ binding: 0, resource: { buffer: buf } }] });
+    };
+    const orientBG_X = makeOrientBG('PropShadowOrientBG_X', 1, 0, 0);
+    const orientBG_Z = makeOrientBG('PropShadowOrientBG_Z', 0, 0, 1);
+
+    const propShader = device.createShaderModule({ label: 'WorldShadowPropShader', code: propShadowWgsl });
+    const propLayout = device.createPipelineLayout({ bindGroupLayouts: [cascadeBGL, modelBGL, atlasBGL, orientBGL] });
+    const propPipeline = device.createRenderPipeline({
+      label   : 'WorldShadowPropPipeline',
+      layout  : propLayout,
+      vertex  : {
+        module: propShader, entryPoint: 'vs_main',
+        buffers: [{
+          arrayStride: BYTES_PER_VERT,
+          attributes : [
+            { shaderLocation: 0, offset:  0, format: 'float32x3' },
+            { shaderLocation: 1, offset: 12, format: 'float32'   },
+            { shaderLocation: 2, offset: 16, format: 'float32'   },
+          ],
+        }],
+      },
+      fragment    : { module: propShader, entryPoint: 'fs_alpha_test', targets: [] },
+      depthStencil: { format: 'depth32float', depthWriteEnabled: true, depthCompare: 'less' },
+      primitive   : { topology: 'triangle-list', cullMode: 'none' },
+    });
+
+    return new WorldShadowPass(device, shadowMapArrayViews, pipeline, transparentPipeline, propPipeline, cascadeBGs, cascadeBuffers, modelBGL, atlasBG, orientBG_X, orientBG_Z);
   }
 
-  // Feed cascade data from main.ts (same array returned by sun.computeCascadeMatrices).
-  update(ctx: RenderContext, cascades: CascadeData[]): void {
+  // Feed cascade data and camera world position for distance culling.
+  update(ctx: RenderContext, cascades: CascadeData[], camX: number, camZ: number): void {
     this._cascades = cascades;
+    this._camX = camX;
+    this._camZ = camZ;
     const n = Math.min(cascades.length, this._cascadeBuffers.length);
     for (let i = 0; i < n; i++) {
       ctx.queue.writeBuffer(this._cascadeBuffers[i], 0, cascades[i].lightViewProj.data.buffer as ArrayBuffer);
@@ -191,6 +246,7 @@ export class WorldShadowPass extends RenderPass {
     if (!gpu) return;
     gpu.opaqueBuffer?.destroy();
     gpu.transparentBuffer?.destroy();
+    gpu.propBuffer?.destroy();
     gpu.modelBuffer.destroy();
     this._chunks.delete(chunk);
   }
@@ -209,10 +265,15 @@ export class WorldShadowPass extends RenderPass {
       });
       pass.setBindGroup(0, this._cascadeBGs[c]);
 
+      const maxDist = this.shadowChunkRadius * 16; // CHUNK_WIDTH
+      const maxDist2 = maxDist * maxDist;
+
       // Opaque geometry: depth-only pipeline, no fragment shader.
       pass.setPipeline(this._pipeline);
       for (const gpu of this._chunks.values()) {
         if (!gpu.opaqueBuffer || gpu.opaqueCount === 0) continue;
+        const dx = gpu.ox - this._camX, dz = gpu.oz - this._camZ;
+        if (dx * dx + dz * dz > maxDist2) continue;
         pass.setBindGroup(1, gpu.modelBG);
         pass.setVertexBuffer(0, gpu.opaqueBuffer);
         pass.draw(gpu.opaqueCount);
@@ -223,9 +284,26 @@ export class WorldShadowPass extends RenderPass {
       pass.setBindGroup(2, this._atlasBG);
       for (const gpu of this._chunks.values()) {
         if (!gpu.transparentBuffer || gpu.transparentCount === 0) continue;
+        const dx = gpu.ox - this._camX, dz = gpu.oz - this._camZ;
+        if (dx * dx + dz * dz > maxDist2) continue;
         pass.setBindGroup(1, gpu.modelBG);
         pass.setVertexBuffer(0, gpu.transparentBuffer);
         pass.draw(gpu.transparentCount);
+      }
+
+      // Prop geometry: drawn twice (X and Z orientations) to form a cross shadow.
+      pass.setPipeline(this._propPipeline);
+      pass.setBindGroup(2, this._atlasBG);
+      for (const orientBG of [this._orientBG_X, this._orientBG_Z]) {
+        pass.setBindGroup(3, orientBG);
+        for (const gpu of this._chunks.values()) {
+          if (!gpu.propBuffer || gpu.propCount === 0) continue;
+          const dx = gpu.ox - this._camX, dz = gpu.oz - this._camZ;
+          if (dx * dx + dz * dz > maxDist2) continue;
+          pass.setBindGroup(1, gpu.modelBG);
+          pass.setVertexBuffer(0, gpu.propBuffer);
+          pass.draw(gpu.propCount);
+        }
       }
 
       pass.end();
@@ -237,6 +315,7 @@ export class WorldShadowPass extends RenderPass {
     for (const gpu of this._chunks.values()) {
       gpu.opaqueBuffer?.destroy();
       gpu.transparentBuffer?.destroy();
+      gpu.propBuffer?.destroy();
       gpu.modelBuffer.destroy();
     }
     this._chunks.clear();
@@ -255,7 +334,7 @@ export class WorldShadowPass extends RenderPass {
     this._device.queue.writeBuffer(modelBuffer, 0, mat.buffer);
     const modelBG = this._device.createBindGroup({ label: 'WorldShadowModelBG', layout: this._modelBGL, entries: [{ binding: 0, resource: { buffer: modelBuffer } }] });
 
-    const gpu: ChunkShadowGpu = { opaqueBuffer: null, opaqueCount: 0, transparentBuffer: null, transparentCount: 0, modelBuffer, modelBG };
+    const gpu: ChunkShadowGpu = { ox: t.x, oz: t.z, opaqueBuffer: null, opaqueCount: 0, transparentBuffer: null, transparentCount: 0, propBuffer: null, propCount: 0, modelBuffer, modelBG };
     this._replaceMeshBuffer(gpu, mesh);
     return gpu;
   }
@@ -285,6 +364,19 @@ export class WorldShadowPass extends RenderPass {
       });
       this._device.queue.writeBuffer(buf, 0, mesh.transparent.buffer, 0, mesh.transparentCount * BYTES_PER_VERT);
       gpu.transparentBuffer = buf;
+    }
+
+    gpu.propBuffer?.destroy();
+    gpu.propBuffer = null;
+    gpu.propCount  = mesh.propCount;
+    if (mesh.propCount > 0) {
+      const buf = this._device.createBuffer({
+        label: 'WorldShadowPropBuf',
+        size : mesh.propCount * BYTES_PER_VERT,
+        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+      });
+      this._device.queue.writeBuffer(buf, 0, mesh.prop.buffer, 0, mesh.propCount * BYTES_PER_VERT);
+      gpu.propBuffer = buf;
     }
   }
 }

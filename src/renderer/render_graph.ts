@@ -11,7 +11,7 @@ export class RenderGraph {
   execute(ctx: RenderContext): void {
     const encoder = ctx.device.createCommandEncoder();
     for (const pass of this._passes) {
-      pass.execute(encoder, ctx);
+      if (pass.enabled) pass.execute(encoder, ctx);
     }
     ctx.queue.submit([encoder.finish()]);
   }

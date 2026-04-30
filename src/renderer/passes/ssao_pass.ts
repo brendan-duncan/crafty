@@ -86,8 +86,10 @@ export class SSAOPass extends RenderPass {
   static create(ctx: RenderContext, gbuffer: GBuffer): SSAOPass {
     const { device, width, height } = ctx;
 
-    const raw     = device.createTexture({ label: 'SsaoRaw',     size: { width, height }, format: AO_FORMAT, usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING });
-    const blurred = device.createTexture({ label: 'SsaoBlurred', size: { width, height }, format: AO_FORMAT, usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING });
+    const hw = Math.max(1, width  >> 1);
+    const hh = Math.max(1, height >> 1);
+    const raw     = device.createTexture({ label: 'SsaoRaw',     size: { width: hw, height: hh }, format: AO_FORMAT, usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING });
+    const blurred = device.createTexture({ label: 'SsaoBlurred', size: { width: hw, height: hh }, format: AO_FORMAT, usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING });
     const rawView    = raw.createView();
     const aoView     = blurred.createView();
 

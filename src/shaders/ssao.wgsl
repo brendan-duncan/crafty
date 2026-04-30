@@ -45,7 +45,10 @@ fn view_pos(uv: vec2<f32>, depth: f32) -> vec3<f32> {
 
 @fragment
 fn fs_ssao(in: VertexOutput) -> @location(0) vec4<f32> {
-  let coord = vec2<i32>(in.clip_pos.xy);
+  // This pass runs at half resolution. clip_pos is in half-res pixel space;
+  // GBuffer textures are full-res so multiply by 2 to address them correctly.
+  let half_coord = vec2<i32>(in.clip_pos.xy);
+  let coord      = half_coord * 2;
   let depth = textureLoad(depth_tex, coord, 0);
 
   // Sky pixels → full AO (no occlusion)
@@ -58,8 +61,8 @@ fn fs_ssao(in: VertexOutput) -> @location(0) vec4<f32> {
   let world_N = normalize(raw_n * 2.0 - 1.0);
   let N       = normalize((ssao.view * vec4<f32>(world_N, 0.0)).xyz);
 
-  // Tiled 4×4 noise: random tangent rotation
-  let noise_coord = vec2<u32>(coord) % vec2<u32>(4u);
+  // Tiled 4×4 noise using half-res coords so the pattern tiles the full screen.
+  let noise_coord = vec2<u32>(half_coord) % vec2<u32>(4u);
   let rnd         = textureLoad(noise_tex, noise_coord, 0).rg * 2.0 - 1.0;
 
   // Gram-Schmidt: build orthonormal tangent frame from random vector + N

@@ -42,6 +42,9 @@ export class WorldGeometryPass extends RenderPass {
   private _chunkBGL          : GPUBindGroupLayout;
   private _chunks            = new Map<Chunk, ChunkGpu>();
   private _frustumPlanes     = new Float32Array(24); // 6 planes × (A,B,C,D)
+
+  drawCalls  = 0;
+  triangles  = 0;
   private readonly _cameraData = new Float32Array(CAMERA_UNIFORM_SIZE / 4);
 
   private constructor(
@@ -284,6 +287,8 @@ export class WorldGeometryPass extends RenderPass {
     pass.setBindGroup(0, this._cameraBindGroup);
     pass.setBindGroup(1, this._sharedBindGroup);
 
+    let dc = 0, tris = 0;
+
     pass.setPipeline(this._opaquePipeline);
     for (const gpuData of this._chunks.values()) {
       if (!this._isVisible(gpuData.ox, gpuData.oy, gpuData.oz)) continue;
@@ -291,6 +296,7 @@ export class WorldGeometryPass extends RenderPass {
         pass.setBindGroup(2, gpuData.chunkBindGroup);
         pass.setVertexBuffer(0, gpuData.opaqueBuffer);
         pass.draw(gpuData.opaqueCount);
+        dc++; tris += gpuData.opaqueCount / 3;
       }
     }
 
@@ -301,6 +307,7 @@ export class WorldGeometryPass extends RenderPass {
         pass.setBindGroup(2, gpuData.chunkBindGroup);
         pass.setVertexBuffer(0, gpuData.transparentBuffer);
         pass.draw(gpuData.transparentCount);
+        dc++; tris += gpuData.transparentCount / 3;
       }
     }
 
@@ -311,8 +318,12 @@ export class WorldGeometryPass extends RenderPass {
         pass.setBindGroup(2, gpuData.chunkBindGroup);
         pass.setVertexBuffer(0, gpuData.propBuffer);
         pass.draw(gpuData.propCount);
+        dc++; tris += gpuData.propCount / 3;
       }
     }
+
+    this.drawCalls = dc;
+    this.triangles = tris;
 
     pass.end();
   }

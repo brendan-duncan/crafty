@@ -34,6 +34,8 @@ export class World {
   get chunkCount(): number { return this._chunks.size; }
   get chunks(): IterableIterator<Chunk> { return this._chunks.values(); }
 
+  pendingChunks = 0;
+
   getBiomeAt(wx: number, wz: number): BiomeType {
     return Chunk._determineBiome(wx, wz, this.seed);
   }
@@ -305,6 +307,7 @@ export class World {
     }
 
     candidates.sort((a, b) => a[0] - b[0]);
+    this.pendingChunks = candidates.length;
     let created = 0;
     for (const [, cx, cy, cz] of candidates) {
       if (created >= this.chunksPerFrame) break;
