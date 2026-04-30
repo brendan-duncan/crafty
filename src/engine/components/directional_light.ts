@@ -22,8 +22,9 @@ export class DirectionalLight extends Component {
     this.numCascades = numCascades;
   }
 
-  computeCascadeMatrices(camera: Camera): CascadeData[] {
-    const splits = this._computeSplitDepths(camera.near, camera.far, this.numCascades);
+  computeCascadeMatrices(camera: Camera, shadowFar?: number): CascadeData[] {
+    const far = shadowFar ?? camera.far;
+    const splits = this._computeSplitDepths(camera.near, far, this.numCascades);
     const cascades: CascadeData[] = [];
 
     for (let i = 0; i < this.numCascades; i++) {
@@ -53,7 +54,10 @@ export class DirectionalLight extends Component {
         const lc = lightView.transformPoint(c);
         minZ = Math.min(minZ, lc.z); maxZ = Math.max(maxZ, lc.z);
       }
-      const zPadding = (maxZ - minZ) * 4.0;
+      // 2× covers off-frustum casters (mountains, overhangs).
+      // A horizontal sun can push the frustum corners far in light Z, so
+      // we also cap padding at 256 to avoid inflating the depth range for nothing.
+      const zPadding = Math.min((maxZ - minZ) * 2.0, 256);
       minZ -= zPadding;
       maxZ += zPadding;
 
