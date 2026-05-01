@@ -1,4 +1,4 @@
-import { Vec3, perlinNoise3, perlinNoise3Seed, perlinRidgeNoise3, perlinTurbulenceNoise3, Random } from '../math/index.js';
+import { Vec3, perlinNoise3Seed, perlinRidgeNoise3, perlinTurbulenceNoise3, Random } from '../math/index.js';
 import { BiomeType } from './biome_type.js';
 import { BlockType, isBlockWater, isBlockProp, isBlockSemiTransparent, isBlockEmittingLight } from './block_type.js';
 
@@ -436,16 +436,10 @@ export class Chunk {
   generateBlocks(seed: number): void {
     const W = Chunk.CHUNK_WIDTH, H = Chunk.CHUNK_HEIGHT, D = Chunk.CHUNK_DEPTH;
 
-    // Precompute 2D per-column noise for all (x, z) pairs. All height quantities
-    // that depend only on world XZ are computed once per column instead of once per
-    // block — that's a ~7× reduction in Perlin evaluations for a 16×16×16 chunk.
-    const ss = (e0: number, e1: number, v: number): number => {
-      const t = Math.max(0, Math.min(1, (v - e0) / (e1 - e0)));
-      return t * t * (3 - 2 * t);
-    };
+    // Precompute 2D per-column noise. All height quantities that depend only on
+    // world XZ are computed once per column — ~5× fewer Perlin evaluations.
     const colHeightMult = new Float64Array(W * D);
     const colFlatness   = new Float64Array(W * D);
-    const colBaseOffset = new Float64Array(W * D);
     const colBiome      = new Uint8Array(W * D);
 
     for (let lz = 0; lz < D; lz++) {
@@ -454,26 +448,12 @@ export class Chunk {
         const gz = lz + this.globalPosition.z;
         const ci = lx + lz * W;
 
-        const temperature = perlinNoise3Seed(gx / 512.0,  0, gz / 512.0,  0, 0, 0, seed + 31337);
-        const elevation   = Math.abs(perlinNoise3Seed(gx / 800.0,  0, gz / 800.0,  0, 0, 0, seed + 7919));
-        const moisture    = perlinNoise3Seed(gx / 400.0,  0, gz / 400.0,  0, 0, 0, seed + 99991);
-
-        const mtnT       = ss(0.40, 0.56, elevation);
-        const snowyMtnFr = 1.0 - ss(0.02, 0.18, temperature);
-        const snowyMtnW  = mtnT * snowyMtnFr;
-        const rockyMtnW  = mtnT * (1.0 - snowyMtnFr);
-        const nonMtnT    = 1.0 - mtnT;
-        const desertRaw  = ss(0.28, 0.36, temperature) * ss(-0.04, 0.04, -moisture);
-        const snowyRaw   = ss(-0.32, -0.24, -temperature);
-        const desertW    = nonMtnT * desertRaw;
-        const snowyW     = nonMtnT * snowyRaw * (1.0 - desertRaw);
-        const grassW     = nonMtnT * (1.0 - desertRaw) * (1.0 - snowyRaw);
-        const ampScale   = snowyMtnW * 2.0 + rockyMtnW * 1.7 + desertW * 0.35 + snowyW * 0.75 + grassW * 1.0;
-
-        colBaseOffset[ci] = snowyMtnW * 16.0 + rockyMtnW * 10.0 + desertW * 2.0;
-        colHeightMult[ci] = Math.abs(perlinNoise3Seed(gx / 1024.0, 0, gz / 1024.0, 0, 0, 0, seed) * 450) * ampScale;
+        const temperature = perlinNoise3Seed(gx / 512.0, 0, gz / 512.0, 0, 0, 0, seed + 31337);
+        const cont        = perlinNoise3Seed(gx / 2048.0, 0, gz / 2048.0, 0, 0, 0, seed);
+        colHeightMult[ci] = Math.abs(perlinNoise3Seed(gx / 1024.0, 0, gz / 1024.0, 0, 0, 0, seed) * 450)
+                            * Math.max(0.1, (cont + 1) * 0.5);
         colFlatness[ci]   = perlinRidgeNoise3(gx / 256.0, 0, gz / 256.0, 2.0, 0.6, 1.2, 6) * 12;
-        colBiome[ci]      = Chunk._determineBiomeFromNoise(temperature, elevation, moisture);
+        colBiome[ci]      = Chunk._determineBiomeFromNoise(temperature);
       }
     }
 
@@ -489,7 +469,7 @@ export class Chunk {
 
           const surfaceHeight =
             Math.abs(perlinNoise3Seed(g_x / 256.0, g_y / 512.0, g_z / 256.0, 0, 0, 0, seed) * colHeightMult[ci])
-            + colFlatness[ci] + colBaseOffset[ci];
+            + colFlatness[ci];
 
           if (g_y < surfaceHeight) {
             this.setBlock(x, y, z, this._generateBlockBasedOnBiome(colBiome[ci] as BiomeType, g_x, g_y, g_z, surfaceHeight));
@@ -614,7 +594,7 @@ export class Chunk {
       }
     } else if (block_type == BlockType.GRASS || block_type == BlockType.DIRT) {
       //generate a tree (only on dry land — up_block must be air, not water)
-      if ((Random.global.randomUint32() % 2) == 0 && p_gY > Chunk.WATER_HEIGHT && p_gY < 300 && p_y < Chunk.CHUNK_HEIGHT - 5 && p_x > 2 && p_z > 2 && p_x < Chunk.CHUNK_WIDTH - 2
+      if ((Random.global.randomUint32() % 2) == 0 && p_gY > 5 && p_gY < 300 && p_y < Chunk.CHUNK_HEIGHT - 5 && p_x > 2 && p_z > 2 && p_x < Chunk.CHUNK_WIDTH - 2
             && p_z < Chunk.CHUNK_DEPTH - 2 && up_block == BlockType.NONE && right_block == BlockType.NONE && front_block == BlockType.NONE && back_block == BlockType.NONE) {
         const MIN_TREE_HEIGHT = 5;
 
@@ -644,7 +624,7 @@ export class Chunk {
             }
           }
         }
-      } else if (p_gY > Chunk.WATER_HEIGHT && up_block == BlockType.NONE && (left_block == BlockType.NONE || back_block == BlockType.NONE)) {
+      } else if (p_gY > 5 && up_block == BlockType.NONE && (left_block == BlockType.NONE || back_block == BlockType.NONE)) {
         //grass prop
         if ((Random.global.randomUint32() % 8) == 0) {
           this.setBlock(p_x, p_y + 1, p_z, BlockType.GRASS_PROP);
@@ -655,18 +635,6 @@ export class Chunk {
         }
       }
     }
-  }
-
-  _generateBlock(p_x: number, p_y: number, p_z: number, seed: number): number {
-    const biome = Chunk._determineBiome(p_x, p_z, seed);
-    const surfaceHeight = this._calculateSurfaceHeight(p_x, p_y, p_z, seed, biome);
-
-    if (p_y < surfaceHeight) {
-      return this._generateBlockBasedOnBiome(biome, p_x, p_y, p_z, surfaceHeight);
-    } else if (p_y < Chunk.WATER_HEIGHT + 1) {
-      return BlockType.WATER;
-    }
-    return BlockType.NONE;
   }
 
   _generateBlockBasedOnBiome(biome: BiomeType, p_x: number, p_y: number, p_z: number, surfaceHeight: number): BlockType {
@@ -689,8 +657,9 @@ export class Chunk {
         return BlockType.STONE;
       }
       case BiomeType.SnowyMountains: {
+        const noise3d = Math.abs(perlinTurbulenceNoise3(p_x / 256.0, p_y / 256.0, p_z / 256.0, 2.0, 0.6, 1)) * 35;
         if (depth === 0) return BlockType.GRASS_SNOW;
-        if (depth <= 4)  return BlockType.SNOW;
+        if (depth <= 4 || noise3d > 20) return BlockType.SNOW;
         return BlockType.STONE;
       }
       case BiomeType.RockyMountains: {
@@ -706,68 +675,19 @@ export class Chunk {
     }
   }
 
-  static _determineBiomeFromNoise(temperature: number, elevation: number, moisture: number): BiomeType {
-    if (elevation > 0.48) {
-      return temperature < 0.1 ? BiomeType.SnowyMountains : BiomeType.RockyMountains;
-    }
-    if (temperature < -0.28) return BiomeType.SnowyPlains;
-    if (temperature > 0.32 && moisture < 0.0) return BiomeType.Desert;
+  // Single-noise biome determination matching Litecraft's threshold approach.
+  static _determineBiomeFromNoise(temperature: number): BiomeType {
+    const v = Math.abs(temperature * 20);
+    if (v > 8)   return BiomeType.RockyMountains;
+    if (v > 4)   return BiomeType.SnowyMountains;
+    if (v > 2.8) return BiomeType.SnowyPlains;
+    if (v > 0.5) return BiomeType.Desert;
     return BiomeType.GrassyPlains;
   }
 
-  // Biome is determined from 2D (x, z) position only — y has no influence.
-  // Uses three independent noise fields: temperature, moisture, and elevation.
   static _determineBiome(p_x: number, p_z: number, seed: number): BiomeType {
     const temperature = perlinNoise3Seed(p_x / 512.0, 0, p_z / 512.0, 0, 0, 0, seed + 31337);
-    const moisture    = perlinNoise3Seed(p_x / 400.0, 0, p_z / 400.0, 0, 0, 0, seed + 99991);
-    const elevation   = Math.abs(perlinNoise3Seed(p_x / 800.0, 0, p_z / 800.0, 0, 0, 0, seed + 7919));
-    return Chunk._determineBiomeFromNoise(temperature, elevation, moisture);
+    return Chunk._determineBiomeFromNoise(temperature);
   }
 
-  _calculateSurfaceHeight(p_x: number, p_y: number, p_z: number, seed: number, _biome?: BiomeType): number {
-    // Blend height parameters continuously from raw noise so they transition
-    // smoothly across biome borders instead of jumping at hard thresholds.
-    const temperature = perlinNoise3Seed(p_x / 512.0, 0, p_z / 512.0, 0, 0, 0, seed + 31337);
-    const elevation   = Math.abs(perlinNoise3Seed(p_x / 800.0, 0, p_z / 800.0, 0, 0, 0, seed + 7919));
-    const moisture    = perlinNoise3Seed(p_x / 400.0, 0, p_z / 400.0, 0, 0, 0, seed + 99991);
-
-    const ss = (e0: number, e1: number, x: number): number => {
-      const t = Math.max(0, Math.min(1, (x - e0) / (e1 - e0)));
-      return t * t * (3 - 2 * t);
-    };
-
-    // Mountain weight — smoothly transitions ±0.08 around the elevation=0.48 threshold.
-    const mtnT       = ss(0.40, 0.56, elevation);
-    const snowyMtnFr = 1.0 - ss(0.02, 0.18, temperature); // cold side of temp=0.1 split
-    const snowyMtnW  = mtnT * snowyMtnFr;
-    const rockyMtnW  = mtnT * (1.0 - snowyMtnFr);
-
-    // Non-mountain weights — desert, snowy plains, grassy plains.
-    // Constructed so (desertW + snowyW + grassW) = nonMtnT exactly.
-    const nonMtnT   = 1.0 - mtnT;
-    const desertRaw = ss(0.28, 0.36, temperature) * ss(-0.04, 0.04, -moisture);
-    const snowyRaw  = ss(-0.32, -0.24, -temperature);
-    const desertW   = nonMtnT * desertRaw;
-    const snowyW    = nonMtnT * snowyRaw * (1.0 - desertRaw);
-    const grassW    = nonMtnT * (1.0 - desertRaw) * (1.0 - snowyRaw);
-
-    // Biome amplitude/offset values — weights sum to 1 by construction.
-    const amplitudeScale = snowyMtnW * 2.0 + rockyMtnW * 1.7 + desertW * 0.35 + snowyW * 0.75 + grassW * 1.0;
-    const baseOffset     = snowyMtnW * 16.0 + rockyMtnW * 10.0 + desertW * 2.0;
-
-    const surfaceHeightMultiplier = Math.abs(perlinNoise3Seed(p_x / 1024.0, 0, p_z / 1024.0, 0, 0, 0, seed) * 450) * amplitudeScale;
-    let surfaceHeight = Math.abs(perlinNoise3Seed(p_x / 256.0, p_y / 512.0, p_z / 256.0, 0, 0, 0, seed) * surfaceHeightMultiplier);
-    const flatness = perlinRidgeNoise3(p_x / 256.0, 0, p_z / 256.0, 2.0, 0.6, 1.2, 6) * 12;
-
-    surfaceHeight += flatness + baseOffset;
-    return surfaceHeight;
-  }
-
-  _calculateContinentalness(p_x: number, p_z: number): number {
-    let noise = perlinNoise3(p_x / 2048.0, 0.0, p_z / 2048.0, 0, 0, 0);
-
-    noise = Math.max(Math.min(noise, 1.0), -1.0);
-
-    return noise;
-  }
 }
