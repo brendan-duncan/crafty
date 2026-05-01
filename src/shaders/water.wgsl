@@ -47,13 +47,22 @@ struct VertOut {
   @location(1)       clip_coords: vec4<f32>,
 }
 
-const PI           : f32 = 3.14159265358979;
-const WATER_HEIGHT : f32 = 15.0;
+const PI            : f32 = 3.14159265358979;
+const WATER_HEIGHT  : f32 = 15.0;
+const WAVE_AMPLITUDE: f32 = 3.8;
+
+fn calc_wave(world_pos: vec3<f32>) -> f32 {
+  let fy   = fract(world_pos.y + 0.001);
+  let wave = 0.05 * sin(2.0 * PI * (water.time * 0.8 + world_pos.x /  2.5 + world_pos.z /  5.0))
+           + 0.05 * sin(2.0 * PI * (water.time * 0.6 + world_pos.x /  6.0 + world_pos.z / 12.0));
+  return clamp(wave, -fy, 1.0 - fy) * WAVE_AMPLITUDE;
+}
 
 @vertex
 fn vs_main(@location(0) xz: vec2<f32>) -> VertOut {
-  let world_pos = vec3<f32>(xz.x + chunk.offset.x, chunk.offset.y + WATER_HEIGHT, xz.y + chunk.offset.z);
-  let clip      = cam.viewProj * vec4<f32>(world_pos, 1.0);
+  var world_pos  = vec3<f32>(xz.x + chunk.offset.x, chunk.offset.y + WATER_HEIGHT, xz.y + chunk.offset.z);
+  //world_pos.y   += calc_wave(world_pos);
+  let clip       = cam.viewProj * vec4<f32>(world_pos, 1.0);
   var out: VertOut;
   out.clip_pos    = clip;
   out.world_pos   = world_pos;
@@ -161,19 +170,21 @@ fn fs_main(in: VertOut) -> @location(0) vec4<f32> {
   let sky_color  = textureSample(sky_tex, samp, sky_uv(reflect(-view_dir, normal))).rgb * water.sky_intensity;
   let reflection = mix(sky_color, ssr_result.rgb, ssr_result.a);
 
-  // Depth-based water tint: absorb red/green and scatter blue as depth increases.
-  // deep_color is scaled by sky_intensity so water goes dark at night.
-  let depth_t      = clamp(water_depth / 5.0, 0.0, 1.0);
-  let shallow_tint = vec3<f32>(0.45, 0.78, 1.0);
-  let deep_color   = mix(vec3<f32>(0.003, 0.007, 0.015), vec3<f32>(0.01, 0.10, 0.26), water.sky_intensity);
-  let tinted       = mix(refraction * shallow_tint, deep_color, depth_t);
+  // Depth-based water tint via gradient map, with murkiness blend (Litecraft approach).
+  // Shallow water is transparent refraction; deep water takes the gradient map colour.
+  const MURKY_DEPTH: f32 = 4.0;
+  let murk_factor = clamp(water_depth / MURKY_DEPTH, 0.0, 1.0);
+  let inv_depth   = clamp(1.0 - murk_factor, 0.1, 0.99);
+  let water_color = textureSample(gradient_tex, samp, vec2<f32>(inv_depth, 0.5)).rgb
+                    * max(water.sky_intensity, 0.05);
+  let tinted      = mix(refraction, water_color, murk_factor);
 
   // Fresnel blend: refraction dominant head-on, SSR reflection rises at grazing angles.
   let world_color = mix(tinted, reflection, fresnel_r);
 
-  // Alpha increases with depth so even shallow water applies a visible blue cast.
-  // Edges stay transparent; deeper water becomes nearly opaque.
-  let edge_alpha = clamp(water_depth * 2.0, 0.0, 0.95);
+  // Alpha: transparent at edges/shallow, opaque in deep water (Litecraft smoothstep approach).
+  let depth_clamp = clamp(1.0 / max(water_depth, 0.001), 0.0, 1.0);
+  let edge_alpha  = clamp(smoothstep(1.0, 0.0, depth_clamp), 0.0, 0.95);
 
   return vec4<f32>(world_color, edge_alpha);
 }
