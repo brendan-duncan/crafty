@@ -12,7 +12,7 @@ export interface RaycastResult {
 }
 
 export class World {
-  static readonly MAX_CHUNKS = 1024;
+  static readonly MAX_CHUNKS = 2048;
 
   seed: number;
   renderDistanceH = 8;
@@ -286,7 +286,6 @@ export class World {
   }
 
   private _createNearbyChunks(playerPos: Vec3): void {
-    if (this._chunks.size >= World.MAX_CHUNKS) return;
     const [cpx, cpy, cpz] = World.normalizeChunkPosition(playerPos.x, playerPos.y, playerPos.z);
     const rdH = this.renderDistanceH;
     const rdV = this.renderDistanceV;
@@ -308,6 +307,7 @@ export class World {
 
     candidates.sort((a, b) => a[0] - b[0]);
     this.pendingChunks = candidates.length;
+    if (this._chunks.size >= World.MAX_CHUNKS) return;
     let created = 0;
     for (const [, cx, cy, cz] of candidates) {
       if (created >= this.chunksPerFrame) break;

@@ -10,7 +10,7 @@ import chunkGeometryWgsl from '../../shaders/chunk_geometry.wgsl?raw';
 const CAMERA_UNIFORM_SIZE      = 64 * 4 + 16 + 16; // 4 mat4 + vec3+f32 + f32+pad = 288 bytes
 const BLOCK_DATA_STRIDE        = 16;               // 4 u32s: sideTile, bottomTile, topTile, pad
 const CHUNK_UNIFORM_ALIGNMENT  = 256;              // minUniformBufferOffsetAlignment (WebGPU spec max)
-const MAX_CHUNK_SLOTS          = 1280;             // World.MAX_CHUNKS + generous headroom
+const MAX_CHUNK_SLOTS          = 2048;             // World.MAX_CHUNKS + generous headroom
 
 const FLOATS_PER_VERT = 5;
 const BYTES_PER_VERT  = FLOATS_PER_VERT * 4;

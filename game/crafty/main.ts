@@ -627,7 +627,7 @@ async function main(): Promise<void> {
   };
 
   // --- Effect toggles ---
-  const effects = { ssao: true, ssgi: false, shadows: true, dof: true, bloom: true, godrays: true, fog: true, aces: true, ao_dbg: false, shd_dbg: false, hdr: true, auto_exp: false, rain: true, clouds: true };
+  const effects = { ssao: true, ssgi: false, shadows: true, dof: true, bloom: true, godrays: true, fog: false, aces: true, ao_dbg: false, shd_dbg: false, hdr: true, auto_exp: false, rain: true, clouds: true };
 
   // --- Renderer ---
 
