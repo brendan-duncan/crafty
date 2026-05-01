@@ -17,8 +17,8 @@ const BETA_M : f32 = 21.0e-6;
 // Solar irradiance at top of atmosphere (in renderer HDR units).
 const SUN_INTENSITY : f32 = 20.0;
 // Angular cosine thresholds for sun and moon disks.
-const SUN_COS_THRESH  : f32 = 0.999976;  // 10% larger angular radius than default
-const MOON_COS_THRESH : f32 = 0.999978;  //  5% larger angular radius than default
+const SUN_COS_THRESH  : f32 = 0.9996;   // ~1.6° angular radius (~3× real sun)
+const MOON_COS_THRESH : f32 = 0.9997;   // slightly smaller than sun
 
 struct Uniforms {
   invViewProj : mat4x4<f32>,
