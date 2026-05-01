@@ -103,21 +103,61 @@ export class Chunk {
     let hasWater = false;
     const waterXZ = new Uint8Array(W * D);  // [x * D + z] = 1 if water present
 
+    // Build a (W+2)×(H+2)×(D+2) padded copy of this chunk's blocks with one
+    // layer of neighbor data on each face. All neighbor lookups become a single
+    // array index — no per-axis boundary branching in the hot mesher loop.
+    const PW = W + 2, PH = H + 2;
+    const PWPH = PW * PH;
+    const padded = new Uint8Array(PW * PH * (D + 2)); // zero = BlockType.NONE
+    for (let z = 0; z < D; z++)
+      for (let y = 0; y < H; y++)
+        for (let x = 0; x < W; x++)
+          padded[(x + 1) + (y + 1) * PW + (z + 1) * PWPH] = this.blocks[x + y * W + z * W * H];
+    if (neighbors?.negX) {
+      const nb = neighbors.negX;
+      for (let z = 0; z < D; z++)
+        for (let y = 0; y < H; y++)
+          padded[0 + (y + 1) * PW + (z + 1) * PWPH] = nb[(W - 1) + y * W + z * W * H];
+    }
+    if (neighbors?.posX) {
+      const nb = neighbors.posX;
+      for (let z = 0; z < D; z++)
+        for (let y = 0; y < H; y++)
+          padded[(W + 1) + (y + 1) * PW + (z + 1) * PWPH] = nb[0 + y * W + z * W * H];
+    }
+    if (neighbors?.negY) {
+      const nb = neighbors.negY;
+      for (let z = 0; z < D; z++)
+        for (let x = 0; x < W; x++)
+          padded[(x + 1) + 0 + (z + 1) * PWPH] = nb[x + (H - 1) * W + z * W * H];
+    }
+    if (neighbors?.posY) {
+      const nb = neighbors.posY;
+      for (let z = 0; z < D; z++)
+        for (let x = 0; x < W; x++)
+          padded[(x + 1) + (H + 1) * PW + (z + 1) * PWPH] = nb[x + 0 * W + z * W * H];
+    }
+    if (neighbors?.negZ) {
+      const nb = neighbors.negZ;
+      for (let y = 0; y < H; y++)
+        for (let x = 0; x < W; x++)
+          padded[(x + 1) + (y + 1) * PW + 0] = nb[x + y * W + (D - 1) * W * H];
+    }
+    if (neighbors?.posZ) {
+      const nb = neighbors.posZ;
+      for (let y = 0; y < H; y++)
+        for (let x = 0; x < W; x++)
+          padded[(x + 1) + (y + 1) * PW + (D + 1) * PWPH] = nb[x + y * W + 0 * W * H];
+    }
+
     const setBit = (x: number, y: number, z: number, face: number) => {
       drawnFaces[(x * H + y) * 6 + face] |= (1 << z);
     };
     const checkBit = (x: number, y: number, z: number, face: number): boolean => {
       return (drawnFaces[(x * H + y) * 6 + face] & (1 << z)) !== 0;
     };
-    const getType = (x: number, y: number, z: number): number => {
-      if (x < 0)   return neighbors?.negX ? neighbors.negX[(W - 1) + y * W + z * W * H] : BlockType.NONE;
-      if (x >= W)  return neighbors?.posX ? neighbors.posX[0       + y * W + z * W * H] : BlockType.NONE;
-      if (y < 0)   return neighbors?.negY ? neighbors.negY[x + (H - 1) * W + z * W * H] : BlockType.NONE;
-      if (y >= H)  return neighbors?.posY ? neighbors.posY[x + 0       * W + z * W * H] : BlockType.NONE;
-      if (z < 0)   return neighbors?.negZ ? neighbors.negZ[x + y * W + (D - 1) * W * H] : BlockType.NONE;
-      if (z >= D)  return neighbors?.posZ ? neighbors.posZ[x + y * W + 0       * W * H] : BlockType.NONE;
-      return this.blocks[x + y * W + z * W * H];
-    };
+    const getType = (x: number, y: number, z: number): number =>
+      padded[(x + 1) + (y + 1) * PW + (z + 1) * PWPH];
     const skipCheck = (b1: number, b2: number): boolean => {
       if (b2 === BlockType.NONE) return false;
       if (isBlockProp(b1) || isBlockProp(b2)) return false;
@@ -394,20 +434,73 @@ export class Chunk {
   }
 
   generateBlocks(seed: number): void {
-    // Pass 1: place all terrain blocks first so that up_block checks in pass 2
-    // see the fully-populated chunk instead of uninitialized air.
-    for (let z = 0; z < Chunk.CHUNK_DEPTH; z++) {
-      for (let y = 0; y < Chunk.CHUNK_HEIGHT; y++) {
-        for (let x = 0; x < Chunk.CHUNK_WIDTH; x++) {
+    const W = Chunk.CHUNK_WIDTH, H = Chunk.CHUNK_HEIGHT, D = Chunk.CHUNK_DEPTH;
+
+    // Precompute 2D per-column noise for all (x, z) pairs. All height quantities
+    // that depend only on world XZ are computed once per column instead of once per
+    // block — that's a ~7× reduction in Perlin evaluations for a 16×16×16 chunk.
+    const ss = (e0: number, e1: number, v: number): number => {
+      const t = Math.max(0, Math.min(1, (v - e0) / (e1 - e0)));
+      return t * t * (3 - 2 * t);
+    };
+    const colHeightMult = new Float64Array(W * D);
+    const colFlatness   = new Float64Array(W * D);
+    const colBaseOffset = new Float64Array(W * D);
+    const colBiome      = new Uint8Array(W * D);
+
+    for (let lz = 0; lz < D; lz++) {
+      for (let lx = 0; lx < W; lx++) {
+        const gx = lx + this.globalPosition.x;
+        const gz = lz + this.globalPosition.z;
+        const ci = lx + lz * W;
+
+        const temperature = perlinNoise3Seed(gx / 512.0,  0, gz / 512.0,  0, 0, 0, seed + 31337);
+        const elevation   = Math.abs(perlinNoise3Seed(gx / 800.0,  0, gz / 800.0,  0, 0, 0, seed + 7919));
+        const moisture    = perlinNoise3Seed(gx / 400.0,  0, gz / 400.0,  0, 0, 0, seed + 99991);
+
+        const mtnT       = ss(0.40, 0.56, elevation);
+        const snowyMtnFr = 1.0 - ss(0.02, 0.18, temperature);
+        const snowyMtnW  = mtnT * snowyMtnFr;
+        const rockyMtnW  = mtnT * (1.0 - snowyMtnFr);
+        const nonMtnT    = 1.0 - mtnT;
+        const desertRaw  = ss(0.28, 0.36, temperature) * ss(-0.04, 0.04, -moisture);
+        const snowyRaw   = ss(-0.32, -0.24, -temperature);
+        const desertW    = nonMtnT * desertRaw;
+        const snowyW     = nonMtnT * snowyRaw * (1.0 - desertRaw);
+        const grassW     = nonMtnT * (1.0 - desertRaw) * (1.0 - snowyRaw);
+        const ampScale   = snowyMtnW * 2.0 + rockyMtnW * 1.7 + desertW * 0.35 + snowyW * 0.75 + grassW * 1.0;
+
+        colBaseOffset[ci] = snowyMtnW * 16.0 + rockyMtnW * 10.0 + desertW * 2.0;
+        colHeightMult[ci] = Math.abs(perlinNoise3Seed(gx / 1024.0, 0, gz / 1024.0, 0, 0, 0, seed) * 450) * ampScale;
+        colFlatness[ci]   = perlinRidgeNoise3(gx / 256.0, 0, gz / 256.0, 2.0, 0.6, 1.2, 6) * 12;
+        colBiome[ci]      = Chunk._determineBiomeFromNoise(temperature, elevation, moisture);
+      }
+    }
+
+    // Pass 1: terrain blocks.
+    for (let z = 0; z < D; z++) {
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
           if (this.getBlock(x, y, z) !== BlockType.NONE) continue;
+          const ci  = x + z * W;
           const g_x = x + this.globalPosition.x;
           const g_y = y + this.globalPosition.y;
           const g_z = z + this.globalPosition.z;
-          this.setBlock(x, y, z, this._generateBlock(g_x, g_y, g_z, seed));
+
+          const surfaceHeight =
+            Math.abs(perlinNoise3Seed(g_x / 256.0, g_y / 512.0, g_z / 256.0, 0, 0, 0, seed) * colHeightMult[ci])
+            + colFlatness[ci] + colBaseOffset[ci];
+
+          if (g_y < surfaceHeight) {
+            this.setBlock(x, y, z, this._generateBlockBasedOnBiome(colBiome[ci] as BiomeType, g_x, g_y, g_z, surfaceHeight));
+          } else if (g_y < Chunk.WATER_HEIGHT + 1) {
+            this.setBlock(x, y, z, BlockType.WATER);
+          }
         }
       }
     }
-    // Pass 2: place props and trees now that the full terrain is in place.
+
+    // Pass 2: props and trees now that full terrain is in place.
     for (let z = 0; z < Chunk.CHUNK_DEPTH; z++) {
       for (let y = 0; y < Chunk.CHUNK_HEIGHT; y++) {
         for (let x = 0; x < Chunk.CHUNK_WIDTH; x++) {
@@ -613,13 +706,7 @@ export class Chunk {
     }
   }
 
-  // Biome is determined from 2D (x, z) position only — y has no influence.
-  // Uses three independent noise fields: temperature, moisture, and elevation.
-  static _determineBiome(p_x: number, p_z: number, seed: number): BiomeType {
-    const temperature = perlinNoise3Seed(p_x / 512.0, 0, p_z / 512.0, 0, 0, 0, seed + 31337);
-    const moisture    = perlinNoise3Seed(p_x / 400.0, 0, p_z / 400.0, 0, 0, 0, seed + 99991);
-    const elevation   = Math.abs(perlinNoise3Seed(p_x / 800.0, 0, p_z / 800.0, 0, 0, 0, seed + 7919));
-
+  static _determineBiomeFromNoise(temperature: number, elevation: number, moisture: number): BiomeType {
     if (elevation > 0.48) {
       return temperature < 0.1 ? BiomeType.SnowyMountains : BiomeType.RockyMountains;
     }
@@ -628,9 +715,16 @@ export class Chunk {
     return BiomeType.GrassyPlains;
   }
 
-  _calculateSurfaceHeight(p_x: number, p_y: number, p_z: number, seed: number, _biome?: BiomeType): number {
-    this._calculateContinentalness(p_x, p_z);
+  // Biome is determined from 2D (x, z) position only — y has no influence.
+  // Uses three independent noise fields: temperature, moisture, and elevation.
+  static _determineBiome(p_x: number, p_z: number, seed: number): BiomeType {
+    const temperature = perlinNoise3Seed(p_x / 512.0, 0, p_z / 512.0, 0, 0, 0, seed + 31337);
+    const moisture    = perlinNoise3Seed(p_x / 400.0, 0, p_z / 400.0, 0, 0, 0, seed + 99991);
+    const elevation   = Math.abs(perlinNoise3Seed(p_x / 800.0, 0, p_z / 800.0, 0, 0, 0, seed + 7919));
+    return Chunk._determineBiomeFromNoise(temperature, elevation, moisture);
+  }
 
+  _calculateSurfaceHeight(p_x: number, p_y: number, p_z: number, seed: number, _biome?: BiomeType): number {
     // Blend height parameters continuously from raw noise so they transition
     // smoothly across biome borders instead of jumping at hard thresholds.
     const temperature = perlinNoise3Seed(p_x / 512.0, 0, p_z / 512.0, 0, 0, 0, seed + 31337);
