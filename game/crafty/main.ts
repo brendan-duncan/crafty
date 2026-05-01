@@ -30,7 +30,7 @@ import type { ParticleGraphConfig } from '../../src/particles/index.js';
 import { Texture } from '../../src/assets/texture.js';
 import { parseHdr, createHdrTexture } from '../../src/assets/hdr_loader.js';
 import { BlockTexture } from '../../src/assets/block_texture.js';
-import { World, BlockType, blockTextureOffsetData, blockTypeName, BiomeType, EnvironmentEffect, getBiomeEnvironmentEffect, getBiomeCloudCoverage } from '../../src/block/index.js';
+import { World, BlockType, blockTextureOffsetData, blockTypeName, BiomeType, EnvironmentEffect, getBiomeEnvironmentEffect, getBiomeCloudCoverage, getBiomeCloudBounds } from '../../src/block/index.js';
 import type { Chunk, ChunkMesh } from '../../src/block/index.js';
 import type { DrawItem } from '../../src/renderer/passes/geometry_pass.js';
 
@@ -1028,6 +1028,9 @@ async function main(): Promise<void> {
   let cloudWindX    = 0;
   let cloudWindZ    = 0;
   let cloudCoverage = getBiomeCloudCoverage(world.getBiomeAt(cameraGO.position.x, cameraGO.position.z));
+  const _initBounds = getBiomeCloudBounds(world.getBiomeAt(cameraGO.position.x, cameraGO.position.z));
+  let cloudBase = _initBounds.cloudBase;
+  let cloudTop  = _initBounds.cloudTop;
 
   // Pre-allocated scratch objects reused every frame to avoid GC pressure.
   const _forward = new Vec3(0, 0, -1);
@@ -1082,6 +1085,9 @@ async function main(): Promise<void> {
 
     const targetCloudCoverage = getBiomeCloudCoverage(biome);
     cloudCoverage += (targetCloudCoverage - cloudCoverage) * Math.min(1, 0.3 * dt);
+    const targetBounds = getBiomeCloudBounds(biome);
+    cloudBase += (targetBounds.cloudBase - cloudBase) * Math.min(1, 0.3 * dt);
+    cloudTop  += (targetBounds.cloudTop  - cloudTop)  * Math.min(1, 0.3 * dt);
     if (updateHud) {
       fpsEl.textContent = `${smoothFps.toFixed(0)} fps`;
       const kTris = (worldGeometryPass.triangles / 1000).toFixed(1);
@@ -1124,7 +1130,7 @@ async function main(): Promise<void> {
       0.03 + 0.52 * dayT,   // night: 0.03, noon: 0.55
       0.05 + 0.65 * dayT,   // night: 0.05, noon: 0.7
     ];
-    const cloudSettings = { cloudBase: 35, cloudTop: 55, coverage: cloudCoverage, density: 4.0,
+    const cloudSettings = { cloudBase, cloudTop, coverage: cloudCoverage, density: 4.0,
       windOffset: [cloudWindX, cloudWindZ] as [number, number],
       anisotropy: 0.85, extinction: 0.25, ambientColor: cloudAmbient, exposure: 1.0 };
     if (cloudShadowPass) cloudShadowPass.update(ctx, cloudSettings, [camPos.x, camPos.z], 128);
