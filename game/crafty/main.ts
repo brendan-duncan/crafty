@@ -16,11 +16,11 @@ import type { CascadeData } from '../../src/engine/index.js';
 import {
   RenderContext, RenderGraph, GBuffer,
   ShadowPass, AtmospherePass, GeometryPass, LightingPass,
-  TAAPass, SSAOPass, SSGIPass, DofPass, BloomPass, TonemapPass,
+  TAAPass, SSAOPass, SSGIPass, DofPass, BloomPass, CompositePass,
   AutoExposurePass, PointSpotShadowPass, PointSpotLightPass,
-  WorldGeometryPass, WaterPass, WorldShadowPass, UnderwaterPass,
+  WorldGeometryPass, WaterPass, WorldShadowPass,
   BlockHighlightPass, ParticlePass,
-  CloudPass, CloudShadowPass, GodrayPass, FogPass,
+  CloudPass, CloudShadowPass, GodrayPass,
 } from '../../src/renderer/index.js';
 import { createCloudNoiseTextures } from '../../src/assets/cloud_noise.js';
 import type { CloudNoiseTextures } from '../../src/assets/cloud_noise.js';
@@ -545,15 +545,20 @@ async function main(): Promise<void> {
     }
   }
 
-  canvas.addEventListener('mousedown', (e: MouseEvent) => {
-    if (document.pointerLockElement !== canvas) return;
-    const isPlace = e.button === 2;
-    if (!isPlace && e.button === 0 && targetBlock) {
+  let mouseHeld       = -1;
+  let mouseHoldTime   = 0;
+  let lastBlockAction = 0;
+  const BLOCK_INITIAL_DELAY  = 700; // ms before repeat starts
+  const BLOCK_REPEAT_INTERVAL = 300; // ms between repeats
+
+  function doBlockAction(button: number, time: number): void {
+    if (button === 0 && targetBlock) {
       const minedType = world.getBlockType(targetBlock.x, targetBlock.y, targetBlock.z);
       if (minedType === BlockType.TORCH) removeTorchLight(targetBlock.x, targetBlock.y, targetBlock.z);
       if (minedType === BlockType.MAGMA) removeMagmaLight(targetBlock.x, targetBlock.y, targetBlock.z);
       world.mineBlock(targetBlock.x, targetBlock.y, targetBlock.z);
-    } else if (isPlace && targetHit) {
+      lastBlockAction = time;
+    } else if (button === 2 && targetHit) {
       const hit = targetHit;
       const placed = hotbar.getSelected();
       const newX = hit.position.x + hit.face.x;
@@ -563,7 +568,20 @@ async function main(): Promise<void> {
         if (placed === BlockType.TORCH) addTorchLight(newX, newY, newZ);
         if (placed === BlockType.MAGMA) addMagmaLight(newX, newY, newZ);
       }
+      lastBlockAction = time;
     }
+  }
+
+  canvas.addEventListener('mousedown', (e: MouseEvent) => {
+    if (document.pointerLockElement !== canvas) return;
+    if (e.button !== 0 && e.button !== 2) return;
+    mouseHeld     = e.button;
+    mouseHoldTime = e.timeStamp;
+    doBlockAction(e.button, e.timeStamp);
+  });
+
+  canvas.addEventListener('mouseup', (e: MouseEvent) => {
+    if (e.button === mouseHeld) mouseHeld = -1;
   });
 
   // --- Particle configs ---
@@ -632,14 +650,12 @@ async function main(): Promise<void> {
   let dofPass             : DofPass        | null = null;
   let bloomPass           : BloomPass      | null = null;
   let rainPass            : ParticlePass   | null = null;
-  let godrayPass          : GodrayPass      | null = null;
-  let fogPass             : FogPass        | null = null;
+  let godrayPass          : GodrayPass     | null = null;
   let cloudPass           : CloudPass      | null = null;
   let cloudShadowPass     : CloudShadowPass | null = null;
-  let underwaterPass!     : UnderwaterPass;
   let blockHighlightPass! : BlockHighlightPass;
   let autoExposurePass!   : AutoExposurePass;
-  let tonemapPass!        : TonemapPass;
+  let compositePass!      : CompositePass;
   let graph!              : RenderGraph;
   let prevViewProj        : Mat4 | null = null;
 
@@ -656,14 +672,12 @@ async function main(): Promise<void> {
     dofPass?.destroy();          dofPass          = null;
     bloomPass?.destroy();        bloomPass        = null;
     godrayPass?.destroy();       godrayPass       = null;
-    fogPass?.destroy();          fogPass          = null;
     rainPass?.destroy();         rainPass         = null;
     cloudPass?.destroy();        cloudPass        = null;
     cloudShadowPass?.destroy();  cloudShadowPass  = null;
-    underwaterPass?.destroy();
     blockHighlightPass?.destroy();
     autoExposurePass?.destroy();
-    tonemapPass?.destroy();
+    compositePass?.destroy();
 
     // WorldGeometryPass / WaterPass / WorldShadowPass: persistent across resizes to preserve chunk GPU data.
     if (worldGeometryPass) {
@@ -725,26 +739,20 @@ async function main(): Promise<void> {
       waterPass.updateRenderTargets(lightingPass.hdrTexture, lightingPass.hdrView, gbuffer.depthView, skyTexture);
     }
 
-    if (effects.fog) {
-      fogPass = FogPass.create(ctx, taaPass.resolvedView, gbuffer.depthView, lightingPass.cameraBuffer, lightingPass.lightBuffer);
-      fogPass.updateParams(ctx);
-    }
-    const fogOut = fogPass?.resultView ?? taaPass.resolvedView;
-
     const postInput = effects.dof
-      ? (dofPass = DofPass.create(ctx, fogOut, gbuffer.depthView), dofPass.resultView)
-      : fogOut;
+      ? (dofPass = DofPass.create(ctx, taaPass.resolvedView, gbuffer.depthView), dofPass.resultView)
+      : taaPass.resolvedView;
 
     const bloomOut = effects.bloom
       ? (bloomPass = BloomPass.create(ctx, postInput), bloomPass.resultView)
       : postInput;
 
-    underwaterPass     = UnderwaterPass.create(ctx, bloomOut);
-    blockHighlightPass = BlockHighlightPass.create(ctx, underwaterPass.resultView, gbuffer.depthView);
+    blockHighlightPass = BlockHighlightPass.create(ctx, bloomOut, gbuffer.depthView);
 
     autoExposurePass = AutoExposurePass.create(ctx, lightingPass.hdrTexture);
     autoExposurePass.enabled = effects.auto_exp;
-    tonemapPass      = TonemapPass.create(ctx, underwaterPass.resultView, ssaoPass.aoView, autoExposurePass.exposureBuffer, gbuffer.depthView);
+    compositePass = CompositePass.create(ctx, bloomOut, ssaoPass.aoView, gbuffer.depthView, lightingPass.cameraBuffer, lightingPass.lightBuffer, autoExposurePass.exposureBuffer);
+    compositePass.depthFogEnabled = effects.fog;
 
     camera.aspect = ctx.width / ctx.height;
     prevViewProj  = null;
@@ -769,13 +777,11 @@ async function main(): Promise<void> {
       graph.addPass(rainPass);
     }
     graph.addPass(taaPass);
-    if (fogPass)   graph.addPass(fogPass);
     if (dofPass)   graph.addPass(dofPass);
     if (bloomPass) graph.addPass(bloomPass);
-    graph.addPass(underwaterPass);
     graph.addPass(blockHighlightPass);
     graph.addPass(autoExposurePass);
-    graph.addPass(tonemapPass);
+    graph.addPass(compositePass);
   }
 
   buildRenderTargets();
@@ -917,6 +923,7 @@ async function main(): Promise<void> {
     if (key === 'shd_dbg')  return;
     if (key === 'hdr')      return;
     if (key === 'auto_exp') { autoExposurePass.enabled = effects.auto_exp; return; }
+    if (key === 'fog')      { compositePass.depthFogEnabled = effects.fog; return; }
     if (key === 'rain')     { buildRenderTargets(); return; }
     if (key === 'clouds')   { buildRenderTargets(); return; }
     buildRenderTargets();
@@ -1178,6 +1185,12 @@ async function main(): Promise<void> {
     targetHit   = inReach ? hit : null;
     blockHighlightPass.update(ctx, vp, targetBlock);
 
+    if (mouseHeld >= 0 && document.pointerLockElement === canvas) {
+      if (time - mouseHoldTime >= BLOCK_INITIAL_DELAY && time - lastBlockAction >= BLOCK_REPEAT_INTERVAL) {
+        doBlockAction(mouseHeld, time);
+      }
+    }
+
     if (rainPass) {
       updateHeightmap(camPos.x, camPos.z);
       rainPass.updateHeightmap(ctx, hmData, camPos.x, camPos.z, HM_EXTENT);
@@ -1188,13 +1201,11 @@ async function main(): Promise<void> {
 
     dofPass?.updateParams(ctx, 8.0, 25.0, 6.0, camera.near, camera.far);
     godrayPass?.updateParams(ctx);
-    fogPass?.updateParams(ctx);
     const isUnderwater = camPos.y < 15.0;
-    underwaterPass.updateParams(ctx, isUnderwater, waterTime);
-    tonemapPass.updateParams(ctx, effects.aces, effects.ao_dbg, effects.hdr);
     // sun_dir toward the sun = negate light.direction (which points from sun to scene)
     const sunDir = { x: -sun.direction.x, y: -sun.direction.y, z: -sun.direction.z };
-    tonemapPass.updateStars(ctx, invVP, camPos, sunDir);
+    compositePass.updateParams(ctx, isUnderwater, waterTime, effects.aces, effects.ao_dbg, effects.hdr);
+    compositePass.updateStars(ctx, invVP, camPos, sunDir);
     autoExposurePass.update(ctx, dt);
     taaPass.updateCamera(ctx, invVP, prevViewProj ?? vp);
 

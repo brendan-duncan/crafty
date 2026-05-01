@@ -7,9 +7,10 @@ import { blockTextureOffsetData, BlockType, BLOCK_ATLAS_WIDTH_DIVIDED } from '..
 import type { Mat4 } from '../../math/mat4.js';
 import chunkGeometryWgsl from '../../shaders/chunk_geometry.wgsl?raw';
 
-const CAMERA_UNIFORM_SIZE = 64 * 4 + 16 + 16; // 4 mat4 + vec3+f32 + f32+pad = 288 bytes
-const CHUNK_UNIFORM_SIZE  = 16;                 // vec3f + f32 pad
-const BLOCK_DATA_STRIDE   = 16;                 // 4 u32s: sideTile, bottomTile, topTile, pad
+const CAMERA_UNIFORM_SIZE      = 64 * 4 + 16 + 16; // 4 mat4 + vec3+f32 + f32+pad = 288 bytes
+const BLOCK_DATA_STRIDE        = 16;               // 4 u32s: sideTile, bottomTile, topTile, pad
+const CHUNK_UNIFORM_ALIGNMENT  = 256;              // minUniformBufferOffsetAlignment (WebGPU spec max)
+const MAX_CHUNK_SLOTS          = 1280;             // World.MAX_CHUNKS + generous headroom
 
 const FLOATS_PER_VERT = 5;
 const BYTES_PER_VERT  = FLOATS_PER_VERT * 4;
@@ -18,14 +19,13 @@ const CHUNK_SIZE = 16; // CHUNK_WIDTH = CHUNK_HEIGHT = CHUNK_DEPTH
 
 interface ChunkGpu {
   ox: number; oy: number; oz: number;   // world-space AABB origin
+  slot              : number;           // index into shared chunk uniform buffer
   opaqueBuffer      : GPUBuffer | null;
   opaqueCount       : number;
   transparentBuffer : GPUBuffer | null;
   transparentCount  : number;
   propBuffer        : GPUBuffer | null;
   propCount         : number;
-  uniformBuffer     : GPUBuffer;
-  chunkBindGroup    : GPUBindGroup;
 }
 
 export class WorldGeometryPass extends RenderPass {
@@ -39,7 +39,10 @@ export class WorldGeometryPass extends RenderPass {
   private _cameraBuffer      : GPUBuffer;
   private _cameraBindGroup   : GPUBindGroup;
   private _sharedBindGroup   : GPUBindGroup;
-  private _chunkBGL          : GPUBindGroupLayout;
+  private _chunkUniformBuffer: GPUBuffer;
+  private _chunkBindGroup    : GPUBindGroup;
+  private _slotFreeList      : number[] = [];
+  private _slotHighWater     = 0;
   private _chunks            = new Map<Chunk, ChunkGpu>();
   private _frustumPlanes     = new Float32Array(24); // 6 planes × (A,B,C,D)
 
@@ -48,26 +51,28 @@ export class WorldGeometryPass extends RenderPass {
   private readonly _cameraData = new Float32Array(CAMERA_UNIFORM_SIZE / 4);
 
   private constructor(
-    device             : GPUDevice,
-    gbuffer            : GBuffer,
-    opaquePipeline     : GPURenderPipeline,
-    transparentPipeline: GPURenderPipeline,
-    propPipeline       : GPURenderPipeline,
-    cameraBuffer       : GPUBuffer,
-    cameraBindGroup    : GPUBindGroup,
-    sharedBindGroup    : GPUBindGroup,
-    chunkBGL           : GPUBindGroupLayout,
+    device              : GPUDevice,
+    gbuffer             : GBuffer,
+    opaquePipeline      : GPURenderPipeline,
+    transparentPipeline : GPURenderPipeline,
+    propPipeline        : GPURenderPipeline,
+    cameraBuffer        : GPUBuffer,
+    cameraBindGroup     : GPUBindGroup,
+    sharedBindGroup     : GPUBindGroup,
+    chunkUniformBuffer  : GPUBuffer,
+    chunkBindGroup      : GPUBindGroup,
   ) {
     super();
-    this._device             = device;
-    this._gbuffer            = gbuffer;
-    this._opaquePipeline     = opaquePipeline;
+    this._device              = device;
+    this._gbuffer             = gbuffer;
+    this._opaquePipeline      = opaquePipeline;
     this._transparentPipeline = transparentPipeline;
-    this._propPipeline       = propPipeline;
-    this._cameraBuffer       = cameraBuffer;
-    this._cameraBindGroup    = cameraBindGroup;
-    this._sharedBindGroup    = sharedBindGroup;
-    this._chunkBGL           = chunkBGL;
+    this._propPipeline        = propPipeline;
+    this._cameraBuffer        = cameraBuffer;
+    this._cameraBindGroup     = cameraBindGroup;
+    this._sharedBindGroup     = sharedBindGroup;
+    this._chunkUniformBuffer  = chunkUniformBuffer;
+    this._chunkBindGroup      = chunkBindGroup;
   }
 
   static create(ctx: RenderContext, gbuffer: GBuffer, blockTexture: BlockTexture): WorldGeometryPass {
@@ -91,7 +96,7 @@ export class WorldGeometryPass extends RenderPass {
 
     const chunkBGL = device.createBindGroupLayout({
       label: 'ChunkOffsetBGL',
-      entries: [{ binding: 0, visibility: GPUShaderStage.VERTEX, buffer: { type: 'uniform' } }],
+      entries: [{ binding: 0, visibility: GPUShaderStage.VERTEX, buffer: { type: 'uniform', hasDynamicOffset: true, minBindingSize: 16 } }],
     });
 
     // Build block data storage buffer: 4 u32s per block type (sideTile, bottomTile, topTile, pad)
@@ -186,7 +191,19 @@ export class WorldGeometryPass extends RenderPass {
       primitive   : { topology: 'triangle-list', cullMode: 'none' },
     });
 
-    return new WorldGeometryPass(device, gbuffer, opaquePipeline, transparentPipeline, propPipeline, cameraBuffer, cameraBindGroup, sharedBindGroup, chunkBGL);
+    const chunkUniformBuffer = device.createBuffer({
+      label: 'ChunkUniformBuffer',
+      size : MAX_CHUNK_SLOTS * CHUNK_UNIFORM_ALIGNMENT,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+
+    const chunkBindGroup = device.createBindGroup({
+      label  : 'ChunkOffsetBG',
+      layout : chunkBGL,
+      entries: [{ binding: 0, resource: { buffer: chunkUniformBuffer, size: 16 } }],
+    });
+
+    return new WorldGeometryPass(device, gbuffer, opaquePipeline, transparentPipeline, propPipeline, cameraBuffer, cameraBindGroup, sharedBindGroup, chunkUniformBuffer, chunkBindGroup);
   }
 
   updateGBuffer(gbuffer: GBuffer): void {
@@ -217,7 +234,7 @@ export class WorldGeometryPass extends RenderPass {
     gpuData.opaqueBuffer?.destroy();
     gpuData.transparentBuffer?.destroy();
     gpuData.propBuffer?.destroy();
-    gpuData.uniformBuffer.destroy();
+    this._freeSlot(gpuData.slot);
     this._chunks.delete(chunk);
   }
 
@@ -289,11 +306,16 @@ export class WorldGeometryPass extends RenderPass {
 
     let dc = 0, tris = 0;
 
-    pass.setPipeline(this._opaquePipeline);
+    // Collect visible chunks once — reused across all three pipeline passes.
+    const visible: ChunkGpu[] = [];
     for (const gpuData of this._chunks.values()) {
-      if (!this._isVisible(gpuData.ox, gpuData.oy, gpuData.oz)) continue;
+      if (this._isVisible(gpuData.ox, gpuData.oy, gpuData.oz)) visible.push(gpuData);
+    }
+
+    pass.setPipeline(this._opaquePipeline);
+    for (const gpuData of visible) {
       if (gpuData.opaqueBuffer && gpuData.opaqueCount > 0) {
-        pass.setBindGroup(2, gpuData.chunkBindGroup);
+        pass.setBindGroup(2, this._chunkBindGroup, [gpuData.slot * CHUNK_UNIFORM_ALIGNMENT]);
         pass.setVertexBuffer(0, gpuData.opaqueBuffer);
         pass.draw(gpuData.opaqueCount);
         dc++; tris += gpuData.opaqueCount / 3;
@@ -301,10 +323,9 @@ export class WorldGeometryPass extends RenderPass {
     }
 
     pass.setPipeline(this._transparentPipeline);
-    for (const gpuData of this._chunks.values()) {
-      if (!this._isVisible(gpuData.ox, gpuData.oy, gpuData.oz)) continue;
+    for (const gpuData of visible) {
       if (gpuData.transparentBuffer && gpuData.transparentCount > 0) {
-        pass.setBindGroup(2, gpuData.chunkBindGroup);
+        pass.setBindGroup(2, this._chunkBindGroup, [gpuData.slot * CHUNK_UNIFORM_ALIGNMENT]);
         pass.setVertexBuffer(0, gpuData.transparentBuffer);
         pass.draw(gpuData.transparentCount);
         dc++; tris += gpuData.transparentCount / 3;
@@ -312,10 +333,9 @@ export class WorldGeometryPass extends RenderPass {
     }
 
     pass.setPipeline(this._propPipeline);
-    for (const gpuData of this._chunks.values()) {
-      if (!this._isVisible(gpuData.ox, gpuData.oy, gpuData.oz)) continue;
+    for (const gpuData of visible) {
       if (gpuData.propBuffer && gpuData.propCount > 0) {
-        pass.setBindGroup(2, gpuData.chunkBindGroup);
+        pass.setBindGroup(2, this._chunkBindGroup, [gpuData.slot * CHUNK_UNIFORM_ALIGNMENT]);
         pass.setVertexBuffer(0, gpuData.propBuffer);
         pass.draw(gpuData.propCount);
         dc++; tris += gpuData.propCount / 3;
@@ -330,42 +350,41 @@ export class WorldGeometryPass extends RenderPass {
 
   destroy(): void {
     this._cameraBuffer.destroy();
+    this._chunkUniformBuffer.destroy();
     for (const gpuData of this._chunks.values()) {
       gpuData.opaqueBuffer?.destroy();
       gpuData.transparentBuffer?.destroy();
       gpuData.propBuffer?.destroy();
-      gpuData.uniformBuffer.destroy();
     }
     this._chunks.clear();
   }
 
-  private _createChunkGpu(chunk: Chunk, mesh: ChunkMesh): ChunkGpu {
-    const uniformBuffer = this._device.createBuffer({
-      label: `ChunkOffsetBuf(${chunk.globalPosition.x},${chunk.globalPosition.y},${chunk.globalPosition.z})`,
-      size : CHUNK_UNIFORM_SIZE,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-    });
-    const offsetData = new Float32Array([chunk.globalPosition.x, chunk.globalPosition.y, chunk.globalPosition.z, 0]);
-    this._device.queue.writeBuffer(uniformBuffer, 0, offsetData);
+  private _allocSlot(): number {
+    return this._slotFreeList.length > 0
+      ? this._slotFreeList.pop()!
+      : this._slotHighWater++;
+  }
 
-    const chunkBindGroup = this._device.createBindGroup({
-      label  : 'ChunkOffsetBG',
-      layout : this._chunkBGL,
-      entries: [{ binding: 0, resource: { buffer: uniformBuffer } }],
-    });
+  private _freeSlot(slot: number): void {
+    this._slotFreeList.push(slot);
+  }
+
+  private _createChunkGpu(chunk: Chunk, mesh: ChunkMesh): ChunkGpu {
+    const slot = this._allocSlot();
+    const offsetData = new Float32Array([chunk.globalPosition.x, chunk.globalPosition.y, chunk.globalPosition.z, 0]);
+    this._device.queue.writeBuffer(this._chunkUniformBuffer, slot * CHUNK_UNIFORM_ALIGNMENT, offsetData);
 
     const gpuData: ChunkGpu = {
       ox: chunk.globalPosition.x,
       oy: chunk.globalPosition.y,
       oz: chunk.globalPosition.z,
+      slot,
       opaqueBuffer     : null,
       opaqueCount      : 0,
       transparentBuffer: null,
       transparentCount : 0,
       propBuffer       : null,
       propCount        : 0,
-      uniformBuffer,
-      chunkBindGroup,
     };
     this._replaceMeshBuffers(gpuData, mesh);
     return gpuData;

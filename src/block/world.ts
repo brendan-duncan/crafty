@@ -311,6 +311,7 @@ export class World {
     let created = 0;
     for (const [, cx, cy, cz] of candidates) {
       if (created >= this.chunksPerFrame) break;
+      if (this._chunks.size >= World.MAX_CHUNKS) break;
       this._createChunkAt(cx, cy, cz);
       created++;
     }
