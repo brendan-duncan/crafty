@@ -75,10 +75,10 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
   let world_z = params.worldOriginZ + (in.uv.y - 0.5) * params.worldExtent * 2.0;
 
   let slab_h = params.cloudTop - params.cloudBase;
-  let step_h = slab_h / 32.0;
+  let step_h = slab_h / 16.0;
 
   var opt_depth = 0.0;
-  for (var i = 0; i < 32; i++) {
+  for (var i = 0; i < 16; i++) {
     let y = params.cloudBase + (f32(i) + 0.5) * step_h;
     opt_depth += sample_density(vec3<f32>(world_x, y, world_z)) * step_h;
   }

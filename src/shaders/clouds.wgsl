@@ -77,9 +77,9 @@ fn phase_m_atm(mu: f32) -> f32 {
 
 fn optical_depth_to_sky(pos: vec3<f32>, dir: vec3<f32>) -> vec2<f32> {
   let t  = ray_sphere(pos, dir, R_A);
-  let ds = t.y / 6.0;
+  let ds = t.y / 4.0;
   var od = vec2<f32>(0.0);
-  for (var i = 0; i < 6; i++) {
+  for (var i = 0; i < 4; i++) {
     let h = length(pos + dir * ((f32(i) + 0.5) * ds)) - R_E;
     if (h < 0.0) { break; }
     od += vec2<f32>(exp(-h / H_R), exp(-h / H_M)) * ds;
@@ -103,14 +103,14 @@ fn scatter_sky(ro: vec3<f32>, rd: vec3<f32>, sun_dir: vec3<f32>) -> vec3<f32> {
   let mu = dot(rd, sun_dir);
   let pR = phase_r(mu);
   let pM = phase_m_atm(mu);
-  let ds = (tMax - tMin) / 12.0;
+  let ds = (tMax - tMin) / 8.0;
 
   var sumR = vec3<f32>(0.0);
   var sumM = vec3<f32>(0.0);
   var odR  = 0.0;
   var odM  = 0.0;
 
-  for (var i = 0; i < 12; i++) {
+  for (var i = 0; i < 8; i++) {
     let pos = ro + rd * (tMin + (f32(i) + 0.5) * ds);
     let h   = length(pos) - R_E;
     if (h < 0.0) { break; }
@@ -203,9 +203,9 @@ fn sample_density_coarse(p: vec3<f32>) -> f32 {
 }
 
 fn light_march(p: vec3<f32>, sun_dir: vec3<f32>) -> f32 {
-  let step_size = (cloud.cloudTop - cloud.cloudBase) / 4.0;
+  let step_size = (cloud.cloudTop - cloud.cloudBase) / 2.0;
   var opt_depth = 0.0;
-  for (var i = 0; i < 4; i++) {
+  for (var i = 0; i < 2; i++) {
     let sp = p + sun_dir * (f32(i) + 0.5) * step_size;
     if (sp.y < cloud.cloudBase || sp.y > cloud.cloudTop) { continue; }
     opt_depth += sample_density_coarse(sp) * step_size;
@@ -270,8 +270,8 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     return vec4<f32>(sky_color, 1.0);
   }
 
-  // Primary ray march (32 steps, IGN jitter for TAA)
-  let step_size = (t_end - slab.x) / 32.0;
+  // Primary ray march (24 steps, IGN jitter for TAA)
+  let step_size = (t_end - slab.x) / 24.0;
   let coord     = vec2<i32>(in.clip_pos.xy);
   let jitter    = fract(52.9829189 * fract(0.06711056 * f32(coord.x) + 0.00583715 * f32(coord.y)));
   let t_start   = slab.x + jitter * step_size;
@@ -281,7 +281,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
   var cloud_color = vec3<f32>(0.0);
   var total_trans = 1.0;
 
-  for (var i = 0; i < 32; i++) {
+  for (var i = 0; i < 24; i++) {
     let t = t_start + f32(i) * step_size;
     if (t >= t_end) { break; }
     let p = camera.position + ray_dir * t;

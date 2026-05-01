@@ -29,6 +29,7 @@ export class CloudShadowPass extends RenderPass {
   private _uniformBuffer  : GPUBuffer;
   private _uniformBG      : GPUBindGroup;
   private _noiseBG        : GPUBindGroup;
+  private _frameCount     = 0;
 
   private constructor(
     shadowTexture: GPUTexture,
@@ -137,6 +138,9 @@ export class CloudShadowPass extends RenderPass {
   }
 
   execute(encoder: GPUCommandEncoder, _ctx: RenderContext): void {
+    // Update shadow map every other frame — clouds animate slowly so the
+    // previous frame's map is visually indistinguishable on the skipped frame.
+    if (this._frameCount++ % 2 !== 0) return;
     const pass = encoder.beginRenderPass({
       label: 'CloudShadowPass',
       colorAttachments: [{
