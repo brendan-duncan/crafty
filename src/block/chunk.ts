@@ -472,7 +472,14 @@ export class Chunk {
             + colFlatness[ci];
 
           if (g_y < surfaceHeight) {
-            this.setBlock(x, y, z, this._generateBlockBasedOnBiome(colBiome[ci] as BiomeType, g_x, g_y, g_z, surfaceHeight));
+            if (Chunk._isCave(g_x, g_y, g_z, seed, surfaceHeight - g_y)) {
+              // Carved: flooded below the water table, air above it
+              if (g_y < Chunk.WATER_HEIGHT + 1) {
+                this.setBlock(x, y, z, BlockType.WATER);
+              }
+            } else {
+              this.setBlock(x, y, z, this._generateBlockBasedOnBiome(colBiome[ci] as BiomeType, g_x, g_y, g_z, surfaceHeight));
+            }
           } else if (g_y < Chunk.WATER_HEIGHT + 1) {
             this.setBlock(x, y, z, BlockType.WATER);
           }
@@ -688,6 +695,26 @@ export class Chunk {
   static _determineBiome(p_x: number, p_z: number, seed: number): BiomeType {
     const temperature = perlinNoise3Seed(p_x / 512.0, 0, p_z / 512.0, 0, 0, 0, seed + 31337);
     return Chunk._determineBiomeFromNoise(temperature);
+  }
+
+  // Returns true if a block should be carved out to form a cave.
+  // depthBelowSurface < 3 is skipped to preserve the solid ground cap.
+  // Two cave types:
+  //   Cheese caves  — large open chambers via a single noise threshold.
+  //   Spaghetti tunnels — two intersecting noise isosurfaces form winding passages.
+  // Carved blocks below WATER_HEIGHT are filled with water (underground lakes).
+  static _isCave(gx: number, gy: number, gz: number, seed: number, depthBelowSurface: number): boolean {
+    if (depthBelowSurface < 3) return false;
+
+    // Cheese caves: large open chambers
+    if (perlinNoise3Seed(gx / 48.0, gy / 48.0, gz / 48.0, 0, 0, 0, seed + 777) > 0.68) return true;
+
+    // Spaghetti tunnels: where both noise fields are near zero their isosurfaces
+    // intersect and form a winding 1D curve — a tunnel through the rock.
+    // Compressing n2's Y scale biases tunnels toward horizontal.
+    const n1 = perlinNoise3Seed(gx / 20.0, gy / 20.0, gz / 20.0, 0, 0, 0, seed + 13579);
+    const n2 = perlinNoise3Seed(gx / 20.0, gy / 12.0, gz / 20.0, 0, 0, 0, seed + 24680);
+    return Math.abs(n1) < 0.09 && Math.abs(n2) < 0.09;
   }
 
 }
