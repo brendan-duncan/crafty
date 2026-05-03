@@ -80,7 +80,7 @@ export class CameraControls {
 
     const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
     if (len > 0) {
-      const fast = this._keys.has('ControlLeft');
+      const fast = this._keys.has('ControlLeft') || this._keys.has('AltLeft');
       const s = this.speed * (fast ? FLY_FAST_MULT : 1.0) * dt / len;
       gameObject.position.x += dx * s;
       gameObject.position.y += dy * s;

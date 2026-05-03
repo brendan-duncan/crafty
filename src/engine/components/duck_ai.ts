@@ -2,6 +2,7 @@ import { Vec3 } from '../../math/index.js';
 import { Quaternion } from '../../math/quaternion.js';
 import { Component } from '../component.js';
 import type { World } from '../../block/world.js';
+import { BlockType } from '../../block/block_type.js';
 
 type DuckState = 'idle' | 'wander' | 'flee';
 
@@ -58,8 +59,18 @@ export class DuckAI extends Component {
     this._velY -= 9.8 * dt;
     go.position.y += this._velY * dt;
     const groundY = this._world.getTopBlockY(Math.floor(gx), Math.floor(gz), Math.ceil(go.position.y) + 4);
-    if (groundY > 0 && go.position.y < groundY) {
-      go.position.y = groundY;
+
+    // Check if duck is at or below ground level
+    if (groundY > 0 && go.position.y <= groundY + 0.1) {
+      // Check if the block below is water - ducks should float on water surface
+      const blockBelow = this._world.getBlockType(Math.floor(gx), Math.floor(groundY - 1), Math.floor(gz));
+      if (blockBelow === BlockType.WATER) {
+        // Float on water surface (water block Y + 1, minus small offset so duck sits slightly in water)
+        go.position.y = groundY - 1;
+      } else {
+        // Stand on solid ground
+        go.position.y = groundY;
+      }
       this._velY = 0;
     }
 

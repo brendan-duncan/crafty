@@ -12,12 +12,14 @@ import heightAtlasUrl from '../assets/cube_textures/simple_block_atlas_heightmap
 import foxUrl         from '../assets/fox.glb?url';
 import { Mat4, Vec3, Quaternion } from '../src/math/index.js';
 import { GameObject, Scene, Camera, DirectionalLight, MeshRenderer, CameraControls, AnimatedModel, PointLight, SpotLight } from '../src/engine/index.js';
-import { RenderContext, RenderGraph, GBuffer, ShadowPass, SkyPass, GeometryPass, SkinnedGeometryPass, LightingPass, TAAPass, SSAOPass, SSGIPass, DofPass, BloomPass, TonemapPass, DebugLightPass, ParticlePass, CloudPass, CloudShadowPass, AutoExposurePass, PointSpotShadowPass, PointSpotLightPass } from '../src/renderer/index.js';
+import { RenderContext, RenderGraph, GBuffer, ShadowPass, SkyPass, GeometryPass, SkinnedGeometryPass, LightingPass, TAAPass, SSAOPass, SSGIPass, DofPass, BloomPass, CompositePass, DebugLightPass, ParticlePass, CloudPass, CloudShadowPass, AutoExposurePass, PointSpotShadowPass, PointSpotLightPass } from '../src/renderer/index.js';
 import type { CloudSettings } from '../src/renderer/index.js';
 import type { ParticleGraphConfig } from '../src/particles/index.js';
 import { Mesh, BlockTexture, GltfLoader, createCloudNoiseTextures } from '../src/assets/index.js';
 import type { GltfModel, CloudNoiseTextures } from '../src/assets/index.js';
 import { parseHdr, createHdrTexture } from '../src/assets/hdr_loader.js';
+import { computeIblGpu } from '../src/assets/ibl.js';
+import type { IblTextures } from '../src/assets/ibl.js';
 import type { DrawItem } from '../src/renderer/passes/geometry_pass.js';
 
 function halton(index: number, base: number): number {
@@ -101,6 +103,7 @@ async function main() {
 
   const skyHdr    = parseHdr(await (await fetch(belfastUrl)).arrayBuffer());
   let skyTexture = await createHdrTexture(device, skyHdr);
+  let ibl: IblTextures = await computeIblGpu(device, skyTexture.gpuTexture);
 
   const cloudNoises: CloudNoiseTextures = createCloudNoiseTextures(device);
   const cloudSettings: CloudSettings = {
@@ -273,7 +276,7 @@ async function main() {
   let dofPass             : DofPass             | null = null;
   let bloomPass           : BloomPass           | null = null;
   let debugLightPass!     : DebugLightPass;
-  let tonemapPass!        : TonemapPass;
+  let compositePass!      : CompositePass;
   let firePass            : ParticlePass        | null = null;
   let sparksPass          : ParticlePass        | null = null;
   let rainPass            : ParticlePass        | null = null;
@@ -401,10 +404,10 @@ async function main() {
     ssaoPass = SSAOPass.create(ctx, gbuffer);
     if (effects.clouds) {
       cloudShadowPass = CloudShadowPass.create(ctx, cloudNoises);
-      lightingPass    = LightingPass.create(ctx, gbuffer, shadowPass, ssaoPass.aoView, cloudShadowPass.shadowView);
+      lightingPass    = LightingPass.create(ctx, gbuffer, shadowPass, ssaoPass.aoView, cloudShadowPass.shadowView, ibl);
       cloudPass       = CloudPass.create(ctx, lightingPass.hdrView, gbuffer.depthView, cloudNoises);
     } else {
-      lightingPass = LightingPass.create(ctx, gbuffer, shadowPass, ssaoPass.aoView);
+      lightingPass = LightingPass.create(ctx, gbuffer, shadowPass, ssaoPass.aoView, undefined, ibl);
       skyPass      = SkyPass.create(ctx, lightingPass.hdrView, skyTexture);
     }
     pointSpotShadowPass = PointSpotShadowPass.create(ctx);
@@ -423,12 +426,12 @@ async function main() {
       ? (dofPass = DofPass.create(ctx, taaPass.resolvedView, gbuffer.depthView), dofPass.resultView)
       : taaPass.resolvedView;
 
-    const tonemapInput = effects.bloom
+    const compositeInput = effects.bloom
       ? (bloomPass = BloomPass.create(ctx, postInput), bloomPass.resultView)
       : postInput;
 
     autoExposurePass = AutoExposurePass.create(ctx, lightingPass.hdrTexture);
-    tonemapPass = TonemapPass.create(ctx, tonemapInput, ssaoPass.aoView, autoExposurePass.exposureBuffer, gbuffer.depthView);
+    compositePass = CompositePass.create(ctx, compositeInput, ssaoPass.aoView, gbuffer.depthView, lightingPass.cameraBuffer, lightingPass.lightBuffer, autoExposurePass.exposureBuffer);
 
     graph = new RenderGraph();
     graph.addPass(shadowPass);
@@ -451,7 +454,7 @@ async function main() {
     if (dofPass)   graph.addPass(dofPass);
     if (bloomPass) graph.addPass(bloomPass);
     graph.addPass(autoExposurePass);
-    graph.addPass(tonemapPass);
+    graph.addPass(compositePass);
 
     camera.aspect = ctx.width / ctx.height;
     prevViewProj = null;
@@ -653,7 +656,8 @@ async function main() {
     ssaoPass.updateParams(ctx, 1.0, 0.005, effects.ssao ? 2.0 : 0.0);
     ssgiPass?.updateSettings({ strength: effects.ssgi ? 1.0 : 0.0 });
     ssgiPass?.updateCamera(ctx, view, proj, invProj, invVP, prevViewProj ?? vp, camPos);
-    tonemapPass.updateParams(ctx, effects.aces, effects.ao_dbg, effects.hdr);
+    compositePass.updateParams(ctx, false, 0, effects.aces, effects.ao_dbg, effects.hdr);
+    compositePass.updateStars(ctx, invVP, camPos, new Vec3(0, 1, 0));
 
     // Cone at 7 units "behind" the sun, oriented so local +Y points in sun.direction.
     if (sun) {

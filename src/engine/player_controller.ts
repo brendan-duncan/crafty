@@ -82,7 +82,7 @@ export class PlayerController {
     // Horizontal movement direction from WASD.
     const sinY = Math.sin(this.yaw);
     const cosY = Math.cos(this.yaw);
-    const sprinting = this._keys.has('ControlLeft');
+    const sprinting = this._keys.has('ControlLeft') || this._keys.has('AltLeft');
     const sneaking  = this._keys.has('ShiftLeft');
     const speed = sprinting ? SPRINT_SPEED : sneaking ? SNEAK_SPEED : WALK_SPEED;
 

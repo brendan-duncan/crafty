@@ -124,8 +124,15 @@ fn shade(in: VertexOutput, uv: vec2<f32>) -> FragOutput {
   let tbn     = mat3x3<f32>(T_ortho, B, N);
   let mapped_N = normalize(tbn * n_ts);
 
+  // Darken snow blocks for HDR displays (BlockType.SNOW = 17, GRASS_SNOW = 18, SNOWYLEAVES = 23)
+  let block_type = u32(in.block_f);
+  var albedo_scale = 1.0;
+  if (block_type == 17u || block_type == 18u || block_type == 23u) {
+    albedo_scale = 0.70;
+  }
+
   var out: FragOutput;
-  out.albedo_roughness = vec4<f32>(albedo_samp.rgb, mer.b);
+  out.albedo_roughness = vec4<f32>(albedo_samp.rgb * albedo_scale, mer.b);
   out.normal_metallic  = vec4<f32>(mapped_N * 0.5 + 0.5, mer.r);
   return out;
 }

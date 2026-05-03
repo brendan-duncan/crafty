@@ -842,16 +842,28 @@ export class Chunk {
       return false;
     }
 
-    // Cheese caves: large open chambers
-    if (perlinNoise3Seed(gx / 48.0, gy / 48.0, gz / 48.0, 0, 0, 0, seed + 777) > 0.68) {
+    // Cheese caves: large open chambers - increased scale and lowered threshold for bigger caves
+    const cheeseNoise = perlinNoise3Seed(gx / 60.0, gy / 60.0, gz / 60.0, 0, 0, 0, seed + 777);
+    if (cheeseNoise > 0.60) {
       return true;
     }
 
     // Spaghetti tunnels: where both noise fields are near zero their isosurfaces
     // intersect and form a winding 1D curve — a tunnel through the rock.
     // Compressing n2's Y scale biases tunnels toward horizontal.
-    const n1 = perlinNoise3Seed(gx / 20.0, gy / 20.0, gz / 20.0, 0, 0, 0, seed + 13579);
-    const n2 = perlinNoise3Seed(gx / 20.0, gy / 12.0, gz / 20.0, 0, 0, 0, seed + 24680);
-    return Math.abs(n1) < 0.09 && Math.abs(n2) < 0.09;
+    const n1 = perlinNoise3Seed(gx / 24.0, gy / 24.0, gz / 24.0, 0, 0, 0, seed + 13579);
+    const n2 = perlinNoise3Seed(gx / 24.0, gy / 14.0, gz / 24.0, 0, 0, 0, seed + 24680);
+    if (Math.abs(n1) < 0.12 && Math.abs(n2) < 0.12) {
+      return true;
+    }
+
+    // Additional tunnel layer with different orientation for more complex networks
+    const n3 = perlinNoise3Seed(gx / 28.0, gy / 18.0, gz / 28.0, 0, 0, 0, seed + 55555);
+    const n4 = perlinNoise3Seed(gx / 28.0, gy / 28.0, gz / 28.0, 0, 0, 0, seed + 99999);
+    if (Math.abs(n3) < 0.10 && Math.abs(n4) < 0.10) {
+      return true;
+    }
+
+    return false;
   }
 }

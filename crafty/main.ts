@@ -899,12 +899,20 @@ async function main(): Promise<void> {
 
   function spawnDuck(wx: number, wz: number): void {
     const topY = world.getTopBlockY(wx, wz, 200);
-    if (topY <= 0) return;
+    if (topY <= 0) {
+      return;
+    }
     const biome = world.getBiomeAt(wx, topY, wz);
-    if (biome !== BiomeType.GrassyPlains) return;
+    if (biome !== BiomeType.GrassyPlains) {
+      return;
+    }
+
+    // Check if spawning over water - ducks should float on water surface
+    const blockBelow = world.getBlockType(Math.floor(wx), Math.floor(topY - 1), Math.floor(wz));
+    const spawnY = blockBelow === BlockType.WATER ? Math.floor(topY - 0.05) : topY;
 
     const duckRoot = new GameObject('Duck');
-    duckRoot.position.set(wx + 0.5, topY, wz + 0.5);
+    duckRoot.position.set(wx + 0.5, spawnY, wz + 0.5);
 
     const bodyGO = new GameObject('Duck.Body');
     bodyGO.position.set(0, 0.15, 0);
@@ -925,12 +933,21 @@ async function main(): Promise<void> {
     scene.add(duckRoot);
   }
 
-  // Scatter 10 ducks in GrassyPlains around the spawn point.
-  for (let i = 0; i < 10; i++) {
-    const angle = (i / 10) * Math.PI * 2 + Math.random() * 0.4;
+  // Scatter 30 ducks in GrassyPlains around the spawn point.
+  for (let i = 0; i < 30; i++) {
+    const angle = (i / 30) * Math.PI * 2 + Math.random() * 0.4;
     const dist  = 8 + Math.random() * 20;
     spawnDuck(Math.floor(spawnX + Math.cos(angle) * dist), Math.floor(spawnZ + Math.sin(angle) * dist));
   }
+
+  // --- Keyboard shortcuts ---
+  window.addEventListener('keydown', (e) => {
+    // Prevent Ctrl+W from closing the tab and use it to reload/restart
+    if (e.ctrlKey && e.key === 'w') {
+      e.preventDefault();
+      window.location.reload();
+    }
+  });
 
   // --- UI ---
 
@@ -952,7 +969,7 @@ async function main(): Promise<void> {
   fpsEl.style.cssText = [
     'position:fixed', 'top:12px', 'right:12px',
     'font-family:ui-monospace,monospace', 'font-size:13px',
-    'color:#ff0', 'background:rgba(0,0,0,0.45)',
+    'color:#ff0', 'background:rgba(0,0,0,0.85)',
     'padding:4px 8px', 'border-radius:4px', 'pointer-events:none',
   ].join(';');
   document.body.appendChild(fpsEl);
@@ -961,7 +978,7 @@ async function main(): Promise<void> {
   statsEl.style.cssText = [
     'position:fixed', 'top:44px', 'right:12px',
     'font-family:ui-monospace,monospace', 'font-size:11px',
-    'color:#aaf', 'background:rgba(0,0,0,0.45)',
+    'color:#aaf', 'background:rgba(0,0,0,0.85)',
     'padding:4px 8px', 'border-radius:4px', 'pointer-events:none',
     'white-space:pre',
   ].join(';');
@@ -971,10 +988,19 @@ async function main(): Promise<void> {
   biomeEl.style.cssText = [
     'position:fixed', 'bottom:12px', 'right:12px',
     'font-family:ui-monospace,monospace', 'font-size:13px',
-    'color:#ff0', 'background:rgba(0,0,0,0.45)',
+    'color:#ff0', 'background:rgba(0,0,0,0.85)',
     'padding:4px 8px', 'border-radius:4px', 'pointer-events:none',
   ].join(';');
   document.body.appendChild(biomeEl);
+
+  const posEl = document.createElement('div');
+  posEl.style.cssText = [
+    'position:fixed', 'bottom:44px', 'right:12px',
+    'font-family:ui-monospace,monospace', 'font-size:11px',
+    'color:#ccf', 'background:rgba(0,0,0,0.85)',
+    'padding:4px 8px', 'border-radius:4px', 'pointer-events:none',
+  ].join(';');
+  document.body.appendChild(posEl);
 
   // --- Menu overlay ---
 
@@ -1249,6 +1275,7 @@ async function main(): Promise<void> {
       const kTris = (worldGeometryPass.triangles / 1000).toFixed(1);
       statsEl.textContent = `${worldGeometryPass.drawCalls} draws  ${kTris}k tris\n${world.chunkCount} chunks  ${world.pendingChunks} pending`;
       biomeEl.textContent = `${BiomeType[biome]}  coverage:${cloudCoverage.toFixed(2)}`;
+      posEl.textContent = `X: ${camPos.x.toFixed(1)}  Y: ${camPos.y.toFixed(1)}  Z: ${camPos.z.toFixed(1)}`;
     }
 
     const hi    = (frameIndex % 16) + 1;
