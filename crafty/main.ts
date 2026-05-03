@@ -428,8 +428,8 @@ async function main(): Promise<void> {
   // --- World ---
 
   //const world = new World(42);
-  //const world = new World(454321);
-  const world = new World(0);
+  const world = new World(454321);
+  //const world = new World(0);
   const chunkMeshCache = new Map<Chunk, ChunkMesh>();
 
   // --- Scene ---
@@ -685,7 +685,7 @@ async function main(): Promise<void> {
     modifiers: [
       { type: 'gravity', strength: 1.5 },
       { type: 'drag', coefficient: 0.8 },
-      { type: 'curl_noise', scale: 1.0, strength: 10.0, timeScale: 1.0, octaves: 1 },
+      { type: 'curl_noise', scale: 1.0, strength: 1.0, timeScale: 1.0, octaves: 1 },
       //{ type: 'swirl_force', speed: 1.0, strength: 10.0 },
       //{ type: 'vortex', strength: 1.0 },
       { type: 'block_collision' },

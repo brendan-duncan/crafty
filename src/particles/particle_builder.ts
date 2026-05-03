@@ -80,17 +80,23 @@ fn noise3(p: vec3<f32>) -> f32 {
 }
 
 fn curl_noise(p: vec3<f32>) -> vec3<f32> {
-  let e  = 0.01;
-  let ex = vec3<f32>(e,  0.0, 0.0);
-  let ey = vec3<f32>(0.0,  e, 0.0);
-  let ez = vec3<f32>(0.0, 0.0,  e);
-
-  // curl = rot of field F = (noise(p), noise(p+offset), noise(p+offset2))
-  let px = vec3<f32>(noise3(p + ey) - noise3(p - ey), noise3(p + ez) - noise3(p - ez), noise3(p + ex) - noise3(p - ex));
-  let py = vec3<f32>(noise3(p + ez) - noise3(p - ez), noise3(p + ex) - noise3(p - ex), noise3(p + ey) - noise3(p - ey));
-  let pz = vec3<f32>(noise3(p + ex) - noise3(p - ex), noise3(p + ey) - noise3(p - ey), noise3(p + ez) - noise3(p - ez));
-
-  return vec3<f32>(px.x - py.z, py.x - pz.z, pz.x - px.z) / (2.0 * e);
+  let e  = 0.1;
+  let ex = vec3<f32>(e,   0.0, 0.0);
+  let ey = vec3<f32>(0.0, e,   0.0);
+  let ez = vec3<f32>(0.0, 0.0, e  );
+  // Three decorrelated potential fields: Fx=noise3(p), Fy=noise3(p+o1), Fz=noise3(p+o2)
+  let o1 = vec3<f32>(31.416, 27.183, 14.142);
+  let o2 = vec3<f32>(62.832, 54.366, 28.284);
+  // curl(F).x = dFz/dy - dFy/dz
+  let cx = (noise3(p + o2 + ey) - noise3(p + o2 - ey))
+         - (noise3(p + o1 + ez) - noise3(p + o1 - ez));
+  // curl(F).y = dFx/dz - dFz/dx
+  let cy = (noise3(p + ez)      - noise3(p - ez))
+         - (noise3(p + o2 + ex) - noise3(p + o2 - ex));
+  // curl(F).z = dFy/dx - dFx/dy
+  let cz = (noise3(p + o1 + ex) - noise3(p + o1 - ex))
+         - (noise3(p + ey)      - noise3(p - ey));
+  return vec3<f32>(cx, cy, cz) / (2.0 * e);
 }
 
 // FBM curl noise: sums octaves at increasing frequencies / decreasing amplitudes.
