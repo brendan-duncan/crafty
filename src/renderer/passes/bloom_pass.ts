@@ -130,7 +130,7 @@ export class BloomPass extends RenderPass {
 
     const compositePipeline = device.createRenderPipeline({
       label: 'BloomCompositePipeline', layout: compositeLayout,
-      vertex:   { module: compositeShader, entryPoint: 'vs_main' },
+      vertex: { module: compositeShader, entryPoint: 'vs_main' },
       fragment: { module: compositeShader, entryPoint: 'fs_main', targets: [{ format: HDR_FORMAT }] },
       primitive: { topology: 'triangle-list' },
     });

@@ -440,7 +440,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
   let direct = (diffuse_brdf + specular_brdf) * light.color * light.intensity * NdotL * shad * cloud_shadow * horizon_fade;
 
   // === IBL Ambient ====================================================
-  let ao = textureSampleLevel(ao_tex, ao_samp, in.uv, 0.0).r;
+  let ao = textureSampleLevel(ao_tex, ao_samp, in.uv, 0.0).r * 10.0;
 
   // Roughness-corrected Fresnel — avoids energy gain on rough metals at grazing angles.
   let kS_ibl = fresnel_schlick_roughness(NdotV, F0, roughness);

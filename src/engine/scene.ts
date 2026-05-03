@@ -13,17 +13,23 @@ export class Scene {
 
   remove(go: GameObject): void {
     const idx = this.gameObjects.indexOf(go);
-    if (idx !== -1) this.gameObjects.splice(idx, 1);
+    if (idx !== -1) {
+      this.gameObjects.splice(idx, 1);
+    }
   }
 
   update(dt: number): void {
-    for (const go of this.gameObjects) go.update(dt);
+    for (const go of this.gameObjects) {
+      go.update(dt);
+    }
   }
 
   findCamera(): Camera | null {
     for (const go of this.gameObjects) {
       const c = go.getComponent(Camera);
-      if (c) return c;
+      if (c) {
+        return c;
+      }
     }
     return null;
   }
@@ -31,7 +37,9 @@ export class Scene {
   findDirectionalLight(): DirectionalLight | null {
     for (const go of this.gameObjects) {
       const l = go.getComponent(DirectionalLight);
-      if (l) return l;
+      if (l) {
+        return l;
+      }
     }
     return null;
   }
@@ -40,7 +48,9 @@ export class Scene {
     const result: MeshRenderer[] = [];
     for (const go of this.gameObjects) {
       const mr = go.getComponent(MeshRenderer);
-      if (mr) result.push(mr);
+      if (mr) {
+        result.push(mr);
+      }
     }
     return result;
   }
@@ -49,7 +59,9 @@ export class Scene {
     const result: T[] = [];
     for (const go of this.gameObjects) {
       const c = go.getComponent(ctor);
-      if (c) result.push(c);
+      if (c) {
+        result.push(c);
+      }
     }
     return result;
   }

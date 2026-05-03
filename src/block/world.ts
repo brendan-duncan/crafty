@@ -36,8 +36,8 @@ export class World {
 
   pendingChunks = 0;
 
-  getBiomeAt(wx: number, wz: number): BiomeType {
-    return Chunk._determineBiome(wx, wz, this.seed);
+  getBiomeAt(wx: number, wy: number, wz: number): BiomeType {
+    return Chunk._determineBiome(wx, wy, wz, this.seed);
   }
 
   static normalizeChunkPosition(wx: number, wy: number, wz: number): [number, number, number] {

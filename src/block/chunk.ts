@@ -84,10 +84,16 @@ export class Chunk {
     let propCount = 0;
     for (let i = 0; i < this.blocks.length; i++) {
       const bt = this.blocks[i];
-      if (bt === BlockType.NONE || isBlockWater(bt)) continue;
-      if (isBlockProp(bt)) propCount++;
-      else if (isBlockSemiTransparent(bt)) semiTransCount++;
-      else opaqueCount++;
+      if (bt === BlockType.NONE || isBlockWater(bt)) {
+        continue;
+      }
+      if (isBlockProp(bt)) {
+        propCount++;
+      } else if (isBlockSemiTransparent(bt)) {
+        semiTransCount++;
+      } else {
+        opaqueCount++;
+      }
     }
 
     const opaqueBuffer = new Float32Array(opaqueCount * 36 * FLOATS_PER_VERT);
@@ -109,45 +115,60 @@ export class Chunk {
     const PW = W + 2, PH = H + 2;
     const PWPH = PW * PH;
     const padded = new Uint8Array(PW * PH * (D + 2)); // zero = BlockType.NONE
-    for (let z = 0; z < D; z++)
-      for (let y = 0; y < H; y++)
-        for (let x = 0; x < W; x++)
+    for (let z = 0; z < D; z++) {
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
           padded[(x + 1) + (y + 1) * PW + (z + 1) * PWPH] = this.blocks[x + y * W + z * W * H];
+        }
+      }
+    }
     if (neighbors?.negX) {
       const nb = neighbors.negX;
-      for (let z = 0; z < D; z++)
-        for (let y = 0; y < H; y++)
+      for (let z = 0; z < D; z++) {
+        for (let y = 0; y < H; y++) {
           padded[0 + (y + 1) * PW + (z + 1) * PWPH] = nb[(W - 1) + y * W + z * W * H];
+        }
+      }
     }
     if (neighbors?.posX) {
       const nb = neighbors.posX;
-      for (let z = 0; z < D; z++)
-        for (let y = 0; y < H; y++)
+      for (let z = 0; z < D; z++) {
+        for (let y = 0; y < H; y++) {
           padded[(W + 1) + (y + 1) * PW + (z + 1) * PWPH] = nb[0 + y * W + z * W * H];
+        }
+      }
     }
     if (neighbors?.negY) {
       const nb = neighbors.negY;
-      for (let z = 0; z < D; z++)
-        for (let x = 0; x < W; x++)
+      for (let z = 0; z < D; z++) {
+        for (let x = 0; x < W; x++) {
           padded[(x + 1) + 0 + (z + 1) * PWPH] = nb[x + (H - 1) * W + z * W * H];
+        }
+      }
     }
     if (neighbors?.posY) {
       const nb = neighbors.posY;
-      for (let z = 0; z < D; z++)
-        for (let x = 0; x < W; x++)
+      for (let z = 0; z < D; z++) {
+        for (let x = 0; x < W; x++) {
           padded[(x + 1) + (H + 1) * PW + (z + 1) * PWPH] = nb[x + 0 * W + z * W * H];
+        }
+      }
     }
     if (neighbors?.negZ) {
       const nb = neighbors.negZ;
-      for (let y = 0; y < H; y++)
-        for (let x = 0; x < W; x++)
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
           padded[(x + 1) + (y + 1) * PW + 0] = nb[x + y * W + (D - 1) * W * H];
+        }
+      }
     }
     if (neighbors?.posZ) {
       const nb = neighbors.posZ;
-      for (let y = 0; y < H; y++)
-        for (let x = 0; x < W; x++)
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
           padded[(x + 1) + (y + 1) * PW + (D + 1) * PWPH] = nb[x + y * W + 0 * W * H];
+        }
+      }
     }
 
     const setBit = (x: number, y: number, z: number, face: number) => {
@@ -159,9 +180,15 @@ export class Chunk {
     const getType = (x: number, y: number, z: number): number =>
       padded[(x + 1) + (y + 1) * PW + (z + 1) * PWPH];
     const skipCheck = (b1: number, b2: number): boolean => {
-      if (b2 === BlockType.NONE) return false;
-      if (isBlockProp(b1) || isBlockProp(b2)) return false;
-      if (!isBlockWater(b1) && isBlockWater(b2)) return false;
+      if (b2 === BlockType.NONE) {
+        return false;
+      }
+      if (isBlockProp(b1) || isBlockProp(b2)) {
+        return false;
+      }
+      if (!isBlockWater(b1) && isBlockWater(b2)) {
+        return false;
+      }
       return true;
     };
 
@@ -171,7 +198,9 @@ export class Chunk {
       for (let y = 0; y < H; y++) {
         for (let z = 0; z < D; z++) {
           const blockType = getType(x, y, z);
-          if (blockType === BlockType.NONE) continue;
+          if (blockType === BlockType.NONE) {
+            continue;
+          }
 
           if (isBlockWater(blockType)) {
             waterXZ[x * D + z] = 1;
@@ -196,14 +225,16 @@ export class Chunk {
 
           const useTransparent = isBlockSemiTransparent(blockType);
 
-          const skipBack   = skipCheck(blockType, getType(x, y, z - 1)) || checkBit(x, y, z, 0);
-          const skipFront  = skipCheck(blockType, getType(x, y, z + 1)) || checkBit(x, y, z, 1);
-          const skipLeft   = skipCheck(blockType, getType(x - 1, y, z)) || checkBit(x, y, z, 2);
-          const skipRight  = skipCheck(blockType, getType(x + 1, y, z)) || checkBit(x, y, z, 3);
+          const skipBack = skipCheck(blockType, getType(x, y, z - 1)) || checkBit(x, y, z, 0);
+          const skipFront = skipCheck(blockType, getType(x, y, z + 1)) || checkBit(x, y, z, 1);
+          const skipLeft = skipCheck(blockType, getType(x - 1, y, z)) || checkBit(x, y, z, 2);
+          const skipRight = skipCheck(blockType, getType(x + 1, y, z)) || checkBit(x, y, z, 3);
           const skipBottom = skipCheck(blockType, getType(x, y - 1, z)) || checkBit(x, y, z, 4);
-          const skipTop    = skipCheck(blockType, getType(x, y + 1, z)) || checkBit(x, y, z, 5);
+          const skipTop = skipCheck(blockType, getType(x, y + 1, z)) || checkBit(x, y, z, 5);
 
-          if (skipBack && skipFront && skipLeft && skipRight && skipBottom && skipTop) continue;
+          if (skipBack && skipFront && skipLeft && skipRight && skipBottom && skipTop) {
+            continue;
+          }
 
           // Find max Y extent shared by back/front and left/right sections
           let maxY = y;
@@ -248,15 +279,26 @@ export class Chunk {
 
             for (let xm = x; xm <= maxX; xm++) {
               for (let ym = y; ym <= maxY; ym++) {
-                if (!skipBack)  setBit(xm, ym, z, 0);
-                if (!skipFront) setBit(xm, ym, z, 1);
+                if (!skipBack) {
+                  setBit(xm, ym, z, 0);
+                }
+                if (!skipFront) {
+                  setBit(xm, ym, z, 1);
+                }
               }
             }
 
             let startI: number, endI: number;
-            if (!skipBack && !skipFront) { startI = 0; endI = 12; }
-            else if (!skipBack)          { startI = 0; endI = 6; }
-            else                         { startI = 6; endI = 12; }
+            if (!skipBack && !skipFront) {
+              startI = 0; 
+              endI = 12;
+            } else if (!skipBack) {
+              startI = 0;
+              endI = 6;
+            } else {
+              startI = 6; 
+              endI = 12; 
+            }
 
             const toAddX = maxX + 1 - x;
             const toAddY = maxY + 1 - y;
@@ -272,7 +314,11 @@ export class Chunk {
               buf[wi++] = blockType;
             }
 
-            if (useTransparent) transparentIdx = wi; else opaqueIdx = wi;
+            if (useTransparent) {
+              transparentIdx = wi; 
+            } else {
+              opaqueIdx = wi;
+            }
           }
 
           // Left + Right: ZY quads at fixed X, greedy-merge in Z then Y
@@ -304,15 +350,25 @@ export class Chunk {
 
             for (let zm = z; zm <= maxZ; zm++) {
               for (let ym = y; ym <= maxY; ym++) {
-                if (!skipLeft)  setBit(x, ym, zm, 2);
-                if (!skipRight) setBit(x, ym, zm, 3);
+                if (!skipLeft) {
+                  setBit(x, ym, zm, 2);
+                }
+                if (!skipRight) {
+                  setBit(x, ym, zm, 3);
+                }
               }
             }
 
             let startI: number, endI: number;
-            if (!skipLeft && !skipRight) { startI = 12; endI = 24; }
-            else if (!skipLeft)          { startI = 12; endI = 18; }
-            else                         { startI = 18; endI = 24; }
+            if (!skipLeft && !skipRight) {
+              startI = 12; endI = 24; 
+            } else if (!skipLeft) {
+              startI = 12;
+              endI = 18;
+            } else {
+              startI = 18;
+              endI = 24;
+            }
 
             const toAddZ = maxZ + 1 - z;
             const toAddY = maxY + 1 - y;
@@ -328,7 +384,11 @@ export class Chunk {
               buf[wi++] = blockType;
             }
 
-            if (useTransparent) transparentIdx = wi; else opaqueIdx = wi;
+            if (useTransparent) {
+              transparentIdx = wi;
+             } else {
+              opaqueIdx = wi;
+            }
           }
 
           // Bottom + Top: XZ quads at fixed Y, greedy-merge in X then Z
@@ -371,15 +431,26 @@ export class Chunk {
 
             for (let xm = x; xm <= maxX; xm++) {
               for (let zm = z; zm <= maxZ; zm++) {
-                if (!skipBottom) setBit(xm, y, zm, 4);
-                if (!skipTop)    setBit(xm, y, zm, 5);
+                if (!skipBottom) {
+                  setBit(xm, y, zm, 4);
+                }
+                if (!skipTop) {
+                  setBit(xm, y, zm, 5);
+                }
               }
             }
 
             let startI: number, endI: number;
-            if (!skipBottom && !skipTop) { startI = 24; endI = 36; }
-            else if (!skipBottom)        { startI = 24; endI = 30; }
-            else                         { startI = 30; endI = 36; }
+            if (!skipBottom && !skipTop) {
+              startI = 24; 
+              endI = 36;
+            } else if (!skipBottom) {
+              startI = 24;
+              endI = 30;
+            } else {
+              startI = 30; 
+              endI = 36; 
+            }
 
             const toAddX = maxX + 1 - x;
             const toAddZ = maxZ + 1 - z;
@@ -395,14 +466,18 @@ export class Chunk {
               buf[wi++] = blockType;
             }
 
-            if (useTransparent) transparentIdx = wi; else opaqueIdx = wi;
+            if (useTransparent) {
+              transparentIdx = wi;
+            } else {
+              opaqueIdx = wi;
+            }
           }
         }
       }
     }
 
     // Water: one quad per (x,z) cell that actually contains a water block.
-    let waterBuffer = new Float32Array(0);
+    let waterBuffer: Float32Array | null = null;
     let waterVertCount = 0;
     if (hasWater) {
       waterBuffer = new Float32Array(W * D * 6 * 2);
@@ -426,7 +501,7 @@ export class Chunk {
       opaqueCount: opaqueIdx / FLOATS_PER_VERT,
       transparent: transparentBuffer.subarray(0, transparentIdx),
       transparentCount: transparentIdx / FLOATS_PER_VERT,
-      water: waterBuffer,
+      water: waterBuffer || new Float32Array(0),
       waterCount: waterVertCount,
       prop: propBuffer.subarray(0, propIdx),
       propCount: propIdx / FLOATS_PER_VERT,
@@ -434,13 +509,15 @@ export class Chunk {
   }
 
   generateBlocks(seed: number): void {
-    const W = Chunk.CHUNK_WIDTH, H = Chunk.CHUNK_HEIGHT, D = Chunk.CHUNK_DEPTH;
+    const W = Chunk.CHUNK_WIDTH;
+    const H = Chunk.CHUNK_HEIGHT;
+    const D = Chunk.CHUNK_DEPTH;
 
     // Precompute 2D per-column noise. All height quantities that depend only on
     // world XZ are computed once per column — ~5× fewer Perlin evaluations.
     const colHeightMult = new Float64Array(W * D);
-    const colFlatness   = new Float64Array(W * D);
-    const colBiome      = new Uint8Array(W * D);
+    const colFlatness = new Float64Array(W * D);
+    const colBiome = new Uint8Array(W * D);
 
     for (let lz = 0; lz < D; lz++) {
       for (let lx = 0; lx < W; lx++) {
@@ -448,12 +525,12 @@ export class Chunk {
         const gz = lz + this.globalPosition.z;
         const ci = lx + lz * W;
 
-        const temperature = perlinNoise3Seed(gx / 512.0, 0, gz / 512.0, 0, 0, 0, seed + 31337);
-        const cont        = perlinNoise3Seed(gx / 2048.0, 0, gz / 2048.0, 0, 0, 0, seed);
+        const temperature = perlinNoise3Seed(gx / 512.0, -5, gz / 512.0, 0, 0, 0, seed + 31337);
+        const cont = perlinNoise3Seed(gx / 2048.0, 10, gz / 2048.0, 0, 0, 0, seed);
         colHeightMult[ci] = Math.abs(perlinNoise3Seed(gx / 1024.0, 0, gz / 1024.0, 0, 0, 0, seed) * 450)
                             * Math.max(0.1, (cont + 1) * 0.5);
-        colFlatness[ci]   = perlinRidgeNoise3(gx / 256.0, 0, gz / 256.0, 2.0, 0.6, 1.2, 6) * 12;
-        colBiome[ci]      = Chunk._determineBiomeFromNoise(temperature);
+        colFlatness[ci] = perlinRidgeNoise3(gx / 256.0, 15, gz / 256.0, 2.0, 0.6, 1.2, 6) * 12;
+        colBiome[ci] = Chunk._determineBiomeFromNoise(temperature);
       }
     }
 
@@ -461,7 +538,9 @@ export class Chunk {
     for (let z = 0; z < D; z++) {
       for (let y = 0; y < H; y++) {
         for (let x = 0; x < W; x++) {
-          if (this.getBlock(x, y, z) !== BlockType.NONE) continue;
+          if (this.getBlock(x, y, z) !== BlockType.NONE) {
+            continue;
+          }
           const ci  = x + z * W;
           const g_x = x + this.globalPosition.x;
           const g_y = y + this.globalPosition.y;
@@ -476,6 +555,8 @@ export class Chunk {
               // Carved: flooded below the water table, air above it
               if (g_y < Chunk.WATER_HEIGHT + 1) {
                 this.setBlock(x, y, z, BlockType.WATER);
+              } else {
+                this.setBlock(x, y, z, BlockType.NONE);
               }
             } else {
               this.setBlock(x, y, z, this._generateBlockBasedOnBiome(colBiome[ci] as BiomeType, g_x, g_y, g_z, surfaceHeight));
@@ -491,7 +572,9 @@ export class Chunk {
     for (let z = 0; z < Chunk.CHUNK_DEPTH; z++) {
       for (let y = 0; y < Chunk.CHUNK_HEIGHT; y++) {
         for (let x = 0; x < Chunk.CHUNK_WIDTH; x++) {
-          if (this.getBlock(x, y, z) === BlockType.NONE) continue;
+          if (this.getBlock(x, y, z) === BlockType.NONE) {
+            continue;
+          }
           const g_x = x + this.globalPosition.x;
           const g_y = y + this.globalPosition.y;
           const g_z = z + this.globalPosition.z;
@@ -510,20 +593,32 @@ export class Chunk {
 
     if (old !== BlockType.NONE) {
       this.aliveBlocks--;
-      if (isBlockWater(old)) this.waterBlocks--;
-      else if (isBlockSemiTransparent(old)) this.transparentBlocks--;
-      else this.opaqueBlocks--;
-      if (isBlockEmittingLight(old)) this.lightBlocks--;
+      if (isBlockWater(old)) {
+        this.waterBlocks--;
+      } else if (isBlockSemiTransparent(old)) {
+        this.transparentBlocks--;
+      } else {
+        this.opaqueBlocks--;
+      }
+      if (isBlockEmittingLight(old)) {
+        this.lightBlocks--;
+      }
     }
 
     this.blocks[index] = blockId;
 
     if (blockId !== BlockType.NONE) {
       this.aliveBlocks++;
-      if (isBlockWater(blockId)) this.waterBlocks++;
-      else if (isBlockSemiTransparent(blockId)) this.transparentBlocks++;
-      else this.opaqueBlocks++;
-      if (isBlockEmittingLight(blockId)) this.lightBlocks++;
+      if (isBlockWater(blockId)) {
+        this.waterBlocks++;
+      } else if (isBlockSemiTransparent(blockId)) {
+        this.transparentBlocks++;
+      } else {
+        this.opaqueBlocks++;
+      }
+      if (isBlockEmittingLight(blockId)) {
+        this.lightBlocks++;
+      }
     }
   }
 
@@ -572,14 +667,14 @@ export class Chunk {
                  p_z < Chunk.CHUNK_DEPTH - 2 && up_block == BlockType.NONE && right_block == BlockType.NONE && front_block == BlockType.NONE && back_block == BlockType.NONE) {
         const MIN_TREE_HEIGHT = 5;
 
-        //Generate trunk
+        // Generate trunk
         const tree_height = Math.max(Random.global.randomUint32() % 5, MIN_TREE_HEIGHT);
 
         for (let i = 0; i < tree_height; i++) {
           this.setBlock(p_x, p_y + i, p_z, BlockType.TRUNK);
         }
 
-        //Generate tree leaves
+        // Generate tree leaves
         for (let iy = -2; iy <= 2; iy++) {
           const minH = (iy < -1 || iy > 1) ? 0 : -1;
           const maxH = (iy < -1 || iy > 1) ? 0 : 1;
@@ -650,30 +745,46 @@ export class Chunk {
 
     switch (biome) {
       case BiomeType.GrassyPlains: {
-        if (depth === 0) return aboveWater ? BlockType.GRASS : BlockType.DIRT;
-        if (depth <= 3)  return BlockType.DIRT;
+        if (depth === 0) {
+          return aboveWater ? BlockType.GRASS : BlockType.DIRT;
+        }
+        if (depth <= 3) {
+          return BlockType.DIRT;
+        }
         return BlockType.STONE;
       }
       case BiomeType.Desert: {
-        if (depth <= 3) return BlockType.SAND;
+        if (depth <= 3) {
+          return BlockType.SAND;
+        }
         return BlockType.STONE;
       }
       case BiomeType.SnowyPlains: {
-        if (depth === 0) return BlockType.GRASS_SNOW;
-        if (depth <= 2)  return BlockType.SNOW;
+        if (depth === 0) {
+          return BlockType.GRASS_SNOW;
+        }
+        if (depth <= 2) {
+          return BlockType.SNOW;
+        }
         return BlockType.STONE;
       }
       case BiomeType.SnowyMountains: {
         const noise3d = Math.abs(perlinTurbulenceNoise3(p_x / 256.0, p_y / 256.0, p_z / 256.0, 2.0, 0.6, 1)) * 35;
-        if (depth === 0) return BlockType.GRASS_SNOW;
-        if (depth <= 4 || noise3d > 20) return BlockType.SNOW;
+        if (depth === 0) {
+          return BlockType.GRASS_SNOW;
+        }
+        if (depth <= 4 || noise3d > 20) {
+          return BlockType.SNOW;
+        }
         return BlockType.STONE;
       }
       case BiomeType.RockyMountains: {
         // Rare snow patches on exposed peaks
         if (depth === 0) {
           const patch = Math.abs(perlinTurbulenceNoise3(p_x / 64.0, p_y / 64.0, p_z / 64.0, 2.0, 0.6, 1));
-          if (aboveWater && patch < 0.12) return BlockType.SNOW;
+          if (aboveWater && patch < 0.12) {
+            return BlockType.SNOW;
+          }
         }
         return BlockType.STONE;
       }
@@ -682,18 +793,25 @@ export class Chunk {
     }
   }
 
-  // Single-noise biome determination matching Litecraft's threshold approach.
+  // Maps temperature noise [-1, 1] monotonically to biomes — no abs() to avoid ring artifacts.
   static _determineBiomeFromNoise(temperature: number): BiomeType {
-    const v = Math.abs(temperature * 20);
-    if (v > 8)   return BiomeType.RockyMountains;
-    if (v > 4)   return BiomeType.SnowyMountains;
-    if (v > 2.8) return BiomeType.SnowyPlains;
-    if (v > 0.5) return BiomeType.Desert;
-    return BiomeType.GrassyPlains;
+    if (temperature > 0.35) {
+      return BiomeType.Desert;
+    }
+    if (temperature > -0.15) {
+      return BiomeType.GrassyPlains;
+    }
+    if (temperature > -0.3) {
+      return BiomeType.SnowyPlains;
+    }
+    if (temperature > -0.5) {
+      return BiomeType.SnowyMountains;
+    }
+    return BiomeType.RockyMountains;
   }
 
-  static _determineBiome(p_x: number, p_z: number, seed: number): BiomeType {
-    const temperature = perlinNoise3Seed(p_x / 512.0, 0, p_z / 512.0, 0, 0, 0, seed + 31337);
+  static _determineBiome(p_x: number, p_y: number, p_z: number, seed: number): BiomeType {
+    const temperature = perlinNoise3Seed(p_x / 512.0, -5/*p_y / 2028.0*/, p_z / 512.0, 0, 0, 0, seed + 31337);
     return Chunk._determineBiomeFromNoise(temperature);
   }
 
@@ -704,10 +822,14 @@ export class Chunk {
   //   Spaghetti tunnels — two intersecting noise isosurfaces form winding passages.
   // Carved blocks below WATER_HEIGHT are filled with water (underground lakes).
   static _isCave(gx: number, gy: number, gz: number, seed: number, depthBelowSurface: number): boolean {
-    if (depthBelowSurface < 3) return false;
+    if (depthBelowSurface < 3) {
+      return false;
+    }
 
     // Cheese caves: large open chambers
-    if (perlinNoise3Seed(gx / 48.0, gy / 48.0, gz / 48.0, 0, 0, 0, seed + 777) > 0.68) return true;
+    if (perlinNoise3Seed(gx / 48.0, gy / 48.0, gz / 48.0, 0, 0, 0, seed + 777) > 0.68) {
+      return true;
+    }
 
     // Spaghetti tunnels: where both noise fields are near zero their isosurfaces
     // intersect and form a winding 1D curve — a tunnel through the rock.
@@ -716,5 +838,4 @@ export class Chunk {
     const n2 = perlinNoise3Seed(gx / 20.0, gy / 12.0, gz / 20.0, 0, 0, 0, seed + 24680);
     return Math.abs(n1) < 0.09 && Math.abs(n2) < 0.09;
   }
-
 }

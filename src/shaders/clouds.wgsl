@@ -8,29 +8,29 @@ const PI: f32 = 3.14159265358979323846;
 // ---- Uniforms ----------------------------------------------------------------
 
 struct CameraUniforms {
-  invViewProj : mat4x4<f32>,
-  position    : vec3<f32>,
-  near        : f32,
-  far         : f32,
+  invViewProj: mat4x4<f32>,
+  position: vec3<f32>,
+  near: f32,
+  far: f32,
 }
 
 struct CloudUniforms {
-  cloudBase   : f32,
-  cloudTop    : f32,
-  coverage    : f32,
-  density     : f32,
-  windOffset  : vec2<f32>,
-  anisotropy  : f32,
-  extinction  : f32,
+  cloudBase: f32,
+  cloudTop: f32,
+  coverage: f32,
+  density: f32,
+  windOffset: vec2<f32>,
+  anisotropy: f32,
+  extinction: f32,
   ambientColor: vec3<f32>,
-  exposure    : f32,
+  exposure: f32,
 }
 
 struct LightUniforms {
-  direction : vec3<f32>,
-  intensity : f32,
-  color     : vec3<f32>,
-  _pad      : f32,
+  direction: vec3<f32>,
+  intensity: f32,
+  color: vec3<f32>,
+  _pad: f32,
 }
 
 @group(0) @binding(0) var<uniform> camera: CameraUniforms;
@@ -181,14 +181,14 @@ fn sample_density(p: vec3<f32>) -> f32 {
   // Drifts at half wind speed for natural differential parallax with smaller clouds.
   let pw_large = sample_pw((p + wind * 0.5) * 0.012);
   // Medium-scale pass — smaller individual clouds.
-  let pw_med   = sample_pw((p + wind) * 0.04);
+  let pw_med = sample_pw((p + wind) * 0.04);
   // Blend: large scale dominates shape; medium adds smaller clouds in sparser areas.
-  let pw  = pw_large * 0.6 + pw_med * 0.4;
-  let hg  = height_gradient(p.y);
+  let pw = pw_large * 0.6 + pw_med * 0.4;
+  let hg = height_gradient(p.y);
   let cov = saturate(remap(pw, 1.0 - cloud.coverage, 1.0, 0.0, 1.0)) * hg;
   if (cov < 0.001) { return 0.0; }
   let detail_uv = p * 0.12 + wind * 0.1;
-  let det    = textureSampleLevel(detail_noise, noise_samp, detail_uv, 0.0);
+  let det = textureSampleLevel(detail_noise, noise_samp, detail_uv, 0.0);
   let detail = det.r * 0.5 + det.g * 0.25 + det.b * 0.125;
   return max(0.0, cov - (1.0 - cov) * detail * 0.3) * cloud.density;
 }
@@ -215,14 +215,18 @@ fn light_march(p: vec3<f32>, sun_dir: vec3<f32>) -> f32 {
 
 fn ray_slab(ro: vec3<f32>, rd: vec3<f32>, y_min: f32, y_max: f32) -> vec2<f32> {
   if (abs(rd.y) < 1e-6) {
-    if (ro.y < y_min || ro.y > y_max) { return vec2<f32>(-1.0, -1.0); }
+    if (ro.y < y_min || ro.y > y_max) {
+      return vec2<f32>(-1.0, -1.0);
+    }
     return vec2<f32>(0.0, 1e9);
   }
   let t0 = (y_min - ro.y) / rd.y;
   let t1 = (y_max - ro.y) / rd.y;
   let t_near = min(t0, t1);
   let t_far  = max(t0, t1);
-  if (t_far < 0.0) { return vec2<f32>(-1.0, -1.0); }
+  if (t_far < 0.0) {
+    return vec2<f32>(-1.0, -1.0);
+  }
   return vec2<f32>(max(t_near, 0.0), t_far);
 }
 

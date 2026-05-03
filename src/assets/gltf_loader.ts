@@ -136,9 +136,11 @@ function readFloat32Accessor(
   const src = new DataView(bin, bvOff + accOff);
 
   if (acc.componentType === 5126) {
-    for (let i = 0; i < count; i++)
-      for (let c = 0; c < n; c++)
+    for (let i = 0; i < count; i++) {
+      for (let c = 0; c < n; c++) {
         out[i * n + c] = src.getFloat32(i * stride + c * 4, true);
+      }
+    }
   } else {
     throw new Error(`readFloat32Accessor: unsupported componentType ${acc.componentType}`);
   }
@@ -162,19 +164,25 @@ function readUint32Accessor(
 
   if (acc.componentType === 5125) {
     const stride = bv?.byteStride ?? (n * 4);
-    for (let i = 0; i < count; i++)
-      for (let c = 0; c < n; c++)
+    for (let i = 0; i < count; i++) {
+      for (let c = 0; c < n; c++) {
         out[i * n + c] = src.getUint32(i * stride + c * 4, true);
+      }
+    }
   } else if (acc.componentType === 5123) {
     const stride = bv?.byteStride ?? (n * 2);
-    for (let i = 0; i < count; i++)
-      for (let c = 0; c < n; c++)
+    for (let i = 0; i < count; i++) {
+      for (let c = 0; c < n; c++) {
         out[i * n + c] = src.getUint16(i * stride + c * 2, true);
+      }
+    }
   } else if (acc.componentType === 5121) {
     const stride = bv?.byteStride ?? n;
-    for (let i = 0; i < count; i++)
-      for (let c = 0; c < n; c++)
+    for (let i = 0; i < count; i++) {
+      for (let c = 0; c < n; c++) {
         out[i * n + c] = src.getUint8(i * stride + c);
+      }
+    }
   } else {
     throw new Error(`readUint32Accessor: unsupported componentType ${acc.componentType}`);
   }
@@ -215,7 +223,9 @@ function computeTangents(
     const e2x = p2x-p0x, e2y = p2y-p0y, e2z = p2z-p0z;
     const du1 = u1-u0, dv1 = v1-v0, du2 = u2-u0, dv2 = v2-v0;
     const d = du1*dv2 - du2*dv1;
-    if (Math.abs(d) < 1e-9) continue;
+    if (Math.abs(d) < 1e-9) {
+      continue;
+    }
     const r = 1 / d;
     const tx = (dv2*e1x - dv1*e2x)*r, ty = (dv2*e1y - dv1*e2y)*r, tz = (dv2*e1z - dv1*e2z)*r;
     const bx = (du1*e2x - du2*e1x)*r, by = (du1*e2y - du2*e1y)*r, bz = (du1*e2z - du2*e1z)*r;
@@ -252,9 +262,13 @@ async function loadGltfTexture(
   srgb: boolean,
 ): Promise<Texture | null> {
   const tex  = gltf.textures?.[texIndex];
-  if (!tex || tex.source == null) return null;
+  if (!tex || tex.source == null) {
+    return null;
+  }
   const img = gltf.images?.[tex.source];
-  if (!img) return null;
+  if (!img) {
+    return null;
+  }
 
   if (img.bufferView != null) {
     const bv     = gltf.bufferViews![img.bufferView];
@@ -274,7 +288,9 @@ async function loadGltfTexture(
 // ---- Node/matrix helpers ----------------------------------------------------
 
 function nodeLocalMatrix(node: GltfNode): Float32Array {
-  if (node.matrix) return new Float32Array(node.matrix);
+  if (node.matrix) {
+    return new Float32Array(node.matrix);
+  }
   const t = node.translation ?? [0, 0, 0];
   const r = node.rotation    ?? [0, 0, 0, 1];
   const s = node.scale       ?? [1, 1, 1];
@@ -294,12 +310,15 @@ function nodeLocalMatrix(node: GltfNode): Float32Array {
 
 function mat4MulF32(a: Float32Array, b: Float32Array): Float32Array {
   const out = new Float32Array(16);
-  for (let col = 0; col < 4; col++)
+  for (let col = 0; col < 4; col++) {
     for (let row = 0; row < 4; row++) {
       let sum = 0;
-      for (let k = 0; k < 4; k++) sum += a[k*4+row] * b[col*4+k];
+      for (let k = 0; k < 4; k++) {
+        sum += a[k*4+row] * b[col*4+k];
+      }
       out[col*4+row] = sum;
     }
+  }
   return out;
 }
 
@@ -335,9 +354,11 @@ export class GltfLoader {
       offset += chunkLength;
     }
 
-    if (!gltfJson) throw new Error('GLB: no JSON chunk found');
+    if (!gltfJson) {
+      throw new Error('GLB: no JSON chunk found');
+    }
 
-    const gltf      = gltfJson;
+    const gltf = gltfJson;
     const accessors  = gltf.accessors  ?? [];
     const bufViews   = gltf.bufferViews ?? [];
     const nodes      = gltf.nodes      ?? [];
@@ -345,7 +366,9 @@ export class GltfLoader {
     // ---- Build node-parent map ----
     const nodeParent = new Int32Array(nodes.length).fill(-1);
     for (let ni = 0; ni < nodes.length; ni++) {
-      for (const ci of (nodes[ni].children ?? [])) nodeParent[ci] = ni;
+      for (const ci of (nodes[ni].children ?? [])) {
+        nodeParent[ci] = ni;
+      }
     }
 
     // ---- Parse skin ----
@@ -357,13 +380,17 @@ export class GltfLoader {
       const jointNodes = skinJson.joints;
       const jointCount = jointNodes.length;
 
-      for (let j = 0; j < jointCount; j++) nodeToJoint.set(jointNodes[j], j);
+      for (let j = 0; j < jointCount; j++) {
+        nodeToJoint.set(jointNodes[j], j);
+      }
 
       // Parent indices
       const parentIndices = new Int16Array(jointCount).fill(-1);
       for (let j = 0; j < jointCount; j++) {
         const pni = nodeParent[jointNodes[j]];
-        if (pni >= 0 && nodeToJoint.has(pni)) parentIndices[j] = nodeToJoint.get(pni)!;
+        if (pni >= 0 && nodeToJoint.has(pni)) {
+          parentIndices[j] = nodeToJoint.get(pni)!;
+        }
       }
 
       // Inverse bind matrices
@@ -384,11 +411,24 @@ export class GltfLoader {
       const restS = new Float32Array(jointCount * 3);
       for (let j = 0; j < jointCount; j++) {
         const node = nodes[jointNodes[j]];
-        if (node.translation) { restT[j*3] = node.translation[0]; restT[j*3+1] = node.translation[1]; restT[j*3+2] = node.translation[2]; }
+        if (node.translation) { 
+          restT[j*3] = node.translation[0]; 
+          restT[j*3+1] = node.translation[1]; 
+          restT[j*3+2] = node.translation[2];
+        }
         restR[j*4+3] = 1; // identity quaternion w=1
-        if (node.rotation) { restR[j*4] = node.rotation[0]; restR[j*4+1] = node.rotation[1]; restR[j*4+2] = node.rotation[2]; restR[j*4+3] = node.rotation[3]; }
+        if (node.rotation) {
+          restR[j*4] = node.rotation[0];
+          restR[j*4+1] = node.rotation[1];
+          restR[j*4+2] = node.rotation[2];
+          restR[j*4+3] = node.rotation[3];
+        }
         restS[j*3] = restS[j*3+1] = restS[j*3+2] = 1;
-        if (node.scale) { restS[j*3] = node.scale[0]; restS[j*3+1] = node.scale[1]; restS[j*3+2] = node.scale[2]; }
+        if (node.scale) {
+          restS[j*3] = node.scale[0];
+          restS[j*3+1] = node.scale[1];
+          restS[j*3+2] = node.scale[2];
+        }
       }
 
       // Compute accumulated transform of all ancestor nodes above the root joint.
@@ -412,17 +452,23 @@ export class GltfLoader {
 
       for (const ch of animJson.channels) {
         const targetNode = ch.target.node;
-        if (targetNode == null || !nodeToJoint.has(targetNode)) continue;
+        if (targetNode == null || !nodeToJoint.has(targetNode)) {
+          continue;
+        }
         const jointIndex = nodeToJoint.get(targetNode)!;
         const prop = ch.target.path as 'translation' | 'rotation' | 'scale';
-        if (prop !== 'translation' && prop !== 'rotation' && prop !== 'scale') continue;
+        if (prop !== 'translation' && prop !== 'rotation' && prop !== 'scale') {
+          continue;
+        }
 
-        const samp         = animJson.samplers[ch.sampler];
-        const times        = readFloat32Accessor(accessors[samp.input],  bufViews, binBuffer);
-        const values       = readFloat32Accessor(accessors[samp.output], bufViews, binBuffer);
+        const samp = animJson.samplers[ch.sampler];
+        const times = readFloat32Accessor(accessors[samp.input],  bufViews, binBuffer);
+        const values = readFloat32Accessor(accessors[samp.output], bufViews, binBuffer);
         const interpolation = (samp.interpolation ?? 'LINEAR') as Interpolation;
 
-        if (times.length > 0) duration = Math.max(duration, times[times.length - 1]);
+        if (times.length > 0) {
+          duration = Math.max(duration, times[times.length - 1]);
+        }
 
         channels.push({ jointIndex, property: prop, times, values, interpolation });
       }
@@ -435,8 +481,12 @@ export class GltfLoader {
     const textures: (Texture | null)[] = [];
 
     const loadTex = async (idx: number | undefined, srgb: boolean): Promise<Texture | null> => {
-      if (idx == null) return null;
-      if (!(idx in textures)) textures[idx] = await loadGltfTexture(device, idx, gltf, binBuffer, srgb);
+      if (idx == null) {
+        return null;
+      }
+      if (!(idx in textures)) {
+        textures[idx] = await loadGltfTexture(device, idx, gltf, binBuffer, srgb);
+      }
       return textures[idx]!;
     };
 
@@ -458,7 +508,9 @@ export class GltfLoader {
           indices = readUint32Accessor(accessors[prim.indices], bufViews, binBuffer);
         } else {
           indices = new Uint32Array(vertCount);
-          for (let i = 0; i < vertCount; i++) indices[i] = i;
+          for (let i = 0; i < vertCount; i++) {
+            indices[i] = i;
+          }
         }
 
         const finalTangents = tangents ?? computeTangents(positions, normals, uvs, indices);
@@ -492,8 +544,8 @@ export class GltfLoader {
         const skinnedMesh = SkinnedMesh.fromData(device, vertBuf, indices);
 
         // Material
-        const matJson   = prim.material != null ? gltf.materials?.[prim.material] : undefined;
-        const pbr       = matJson?.pbrMetallicRoughness;
+        const matJson = prim.material != null ? gltf.materials?.[prim.material] : undefined;
+        const pbr = matJson?.pbrMetallicRoughness;
         const albedoMap = await loadTex(pbr?.baseColorTexture?.index, true);
         const normalMap = await loadTex(matJson?.normalTexture?.index, false);
 
@@ -516,8 +568,12 @@ export class GltfLoader {
       skin   : skeleton,
       clips,
       destroy() {
-        for (const md of meshDatas) md.skinnedMesh.destroy();
-        for (const t of allTextures) t.destroy();
+        for (const md of meshDatas) {
+          md.skinnedMesh.destroy();
+        }
+        for (const t of allTextures) {
+          t.destroy();
+        }
       },
     };
   }

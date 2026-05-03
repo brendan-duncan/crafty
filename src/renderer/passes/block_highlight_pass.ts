@@ -12,11 +12,11 @@ export class BlockHighlightPass extends RenderPass {
 
   private _facePipeline: GPURenderPipeline;
   private _edgePipeline: GPURenderPipeline;
-  private _uniformBuf  : GPUBuffer;
-  private _bg          : GPUBindGroup;
-  private _hdrView     : GPUTextureView;
-  private _depthView   : GPUTextureView;
-  private _active      = false;
+  private _uniformBuf: GPUBuffer;
+  private _bg: GPUBindGroup;
+  private _hdrView: GPUTextureView;
+  private _depthView: GPUTextureView;
+  private _active = false;
 
   private constructor(
     facePipeline: GPURenderPipeline,
@@ -113,7 +113,9 @@ export class BlockHighlightPass extends RenderPass {
   }
 
   execute(encoder: GPUCommandEncoder, _ctx: RenderContext): void {
-    if (!this._active) return;
+    if (!this._active) {
+      return;
+    }
 
     const pass = encoder.beginRenderPass({
       label           : 'BlockHighlightPass',

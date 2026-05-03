@@ -15,16 +15,16 @@ const MAX_CASCADES    = 4;
 const BYTES_PER_VERT  = 5 * 4;  // [x,y,z,face,blockType] — shadow shader only reads xyz
 
 interface ChunkShadowGpu {
-  ox               : number;   // chunk world-space X origin (for distance culling)
-  oz               : number;   // chunk world-space Z origin
-  opaqueBuffer      : GPUBuffer | null;
-  opaqueCount       : number;
-  transparentBuffer : GPUBuffer | null;
-  transparentCount  : number;
-  propBuffer        : GPUBuffer | null;
-  propCount         : number;
-  modelBuffer       : GPUBuffer;  // 64-byte translation matrix (world offset)
-  modelBG           : GPUBindGroup;
+  ox: number;   // chunk world-space X origin (for distance culling)
+  oz: number;   // chunk world-space Z origin
+  opaqueBuffer: GPUBuffer | null;
+  opaqueCount: number;
+  transparentBuffer: GPUBuffer | null;
+  transparentCount: number;
+  propBuffer: GPUBuffer | null;
+  propCount: number;
+  modelBuffer: GPUBuffer;  // 64-byte translation matrix (world offset)
+  modelBG: GPUBindGroup;
 }
 
 export class WorldShadowPass extends RenderPass {
@@ -104,13 +104,13 @@ export class WorldShadowPass extends RenderPass {
     }
 
     // Block data buffer: sideTile, bottomTile, topTile, pad per block type
-    const numBlocks    = BlockType.MAX as number;
+    const numBlocks = BlockType.MAX as number;
     const blockDataBuf = device.createBuffer({
       label: 'WorldShadowBlockDataBuf',
       size : Math.max(numBlocks * 16, 16),
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     });
-    const COLS     = BLOCK_ATLAS_WIDTH_DIVIDED;
+    const COLS = BLOCK_ATLAS_WIDTH_DIVIDED;
     const blockArr = new Uint32Array(numBlocks * 4);
     for (let bt = 0; bt < numBlocks; bt++) {
       const tod = blockTextureOffsetData[bt];
@@ -145,39 +145,39 @@ export class WorldShadowPass extends RenderPass {
         module: opaqueShader, entryPoint: 'vs_main',
         buffers: [{
           arrayStride: BYTES_PER_VERT,
-          attributes : [{ shaderLocation: 0, offset: 0, format: 'float32x3' }],
+          attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x3' }],
         }],
       },
       depthStencil: { format: 'depth32float', depthWriteEnabled: true, depthCompare: 'less' },
-      primitive   : { topology: 'triangle-list', cullMode: 'back' },
+      primitive: { topology: 'triangle-list', cullMode: 'none' },
     });
 
     // Transparent pipeline: reads xyz + face + blockType, discards low-alpha texels.
     const transpShader = device.createShaderModule({ label: 'WorldShadowTranspShader', code: chunkShadowWgsl });
     const transpLayout = device.createPipelineLayout({ bindGroupLayouts: [cascadeBGL, modelBGL, atlasBGL] });
     const transparentPipeline = device.createRenderPipeline({
-      label   : 'WorldShadowTransparentPipeline',
-      layout  : transpLayout,
-      vertex  : {
+      label: 'WorldShadowTransparentPipeline',
+      layout: transpLayout,
+      vertex: {
         module: transpShader, entryPoint: 'vs_main',
         buffers: [{
           arrayStride: BYTES_PER_VERT,
-          attributes : [
+          attributes: [
             { shaderLocation: 0, offset:  0, format: 'float32x3' },
             { shaderLocation: 1, offset: 12, format: 'float32'   },
             { shaderLocation: 2, offset: 16, format: 'float32'   },
           ],
         }],
       },
-      fragment    : { module: transpShader, entryPoint: 'fs_alpha_test', targets: [] },
+      fragment: { module: transpShader, entryPoint: 'fs_alpha_test', targets: [] },
       depthStencil: { format: 'depth32float', depthWriteEnabled: true, depthCompare: 'less' },
-      primitive   : { topology: 'triangle-list', cullMode: 'none' },
+      primitive: { topology: 'triangle-list', cullMode: 'none' },
     });
 
     // Prop pipeline: expands billboard centres into quads; drawn twice per cascade
     // (X-axis and Z-axis) to form a cross-shaped shadow.
     const orientBGL = device.createBindGroupLayout({
-      label  : 'WorldShadowOrientBGL',
+      label: 'WorldShadowOrientBGL',
       entries: [{ binding: 0, visibility: GPUShaderStage.VERTEX, buffer: { type: 'uniform' } }],
     });
     const makeOrientBG = (label: string, rx: number, ry: number, rz: number): GPUBindGroup => {
@@ -191,9 +191,9 @@ export class WorldShadowPass extends RenderPass {
     const propShader = device.createShaderModule({ label: 'WorldShadowPropShader', code: propShadowWgsl });
     const propLayout = device.createPipelineLayout({ bindGroupLayouts: [cascadeBGL, modelBGL, atlasBGL, orientBGL] });
     const propPipeline = device.createRenderPipeline({
-      label   : 'WorldShadowPropPipeline',
-      layout  : propLayout,
-      vertex  : {
+      label: 'WorldShadowPropPipeline',
+      layout: propLayout,
+      vertex: {
         module: propShader, entryPoint: 'vs_main',
         buffers: [{
           arrayStride: BYTES_PER_VERT,

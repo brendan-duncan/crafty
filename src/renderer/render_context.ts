@@ -25,10 +25,14 @@ export class RenderContext {
   get height(): number { return this.canvas.height; }
 
   static async create(canvas: HTMLCanvasElement): Promise<RenderContext> {
-    if (!navigator.gpu) throw new Error('WebGPU not supported');
+    if (!navigator.gpu) {
+      throw new Error('WebGPU not supported');
+    }
 
     const adapter = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' });
-    if (!adapter) throw new Error('No WebGPU adapter found');
+    if (!adapter) {
+      throw new Error('No WebGPU adapter found');
+    }
 
     const device = await adapter.requestDevice({
       requiredFeatures: [],

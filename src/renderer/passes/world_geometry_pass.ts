@@ -18,14 +18,16 @@ const BYTES_PER_VERT  = FLOATS_PER_VERT * 4;
 const CHUNK_SIZE = 16; // CHUNK_WIDTH = CHUNK_HEIGHT = CHUNK_DEPTH
 
 interface ChunkGpu {
-  ox: number; oy: number; oz: number;   // world-space AABB origin
-  slot              : number;           // index into shared chunk uniform buffer
-  opaqueBuffer      : GPUBuffer | null;
-  opaqueCount       : number;
-  transparentBuffer : GPUBuffer | null;
-  transparentCount  : number;
-  propBuffer        : GPUBuffer | null;
-  propCount         : number;
+  ox: number; 
+  oy: number; 
+  oz: number;   // world-space AABB origin
+  slot: number;           // index into shared chunk uniform buffer
+  opaqueBuffer: GPUBuffer | null;
+  opaqueCount: number;
+  transparentBuffer: GPUBuffer | null;
+  transparentCount: number;
+  propBuffer: GPUBuffer | null;
+  propCount: number;
 }
 
 export class WorldGeometryPass extends RenderPass {
@@ -283,7 +285,9 @@ export class WorldGeometryPass extends RenderPass {
     for (let i = 0; i < 6; i++) {
       const a = p[i*4], b = p[i*4+1], c = p[i*4+2], d = p[i*4+3];
       // Positive vertex: the corner most in the direction of the plane normal.
-      if (a*(a>=0?mx:ox) + b*(b>=0?my:oy) + c*(c>=0?mz:oz) + d < 0) return false;
+      if (a*(a>=0?mx:ox) + b*(b>=0?my:oy) + c*(c>=0?mz:oz) + d < 0) {
+        return false;
+      }
     }
     return true;
   }
@@ -309,7 +313,9 @@ export class WorldGeometryPass extends RenderPass {
     // Collect visible chunks once — reused across all three pipeline passes.
     const visible: ChunkGpu[] = [];
     for (const gpuData of this._chunks.values()) {
-      if (this._isVisible(gpuData.ox, gpuData.oy, gpuData.oz)) visible.push(gpuData);
+      if (this._isVisible(gpuData.ox, gpuData.oy, gpuData.oz)) {
+        visible.push(gpuData);
+      }
     }
 
     pass.setPipeline(this._opaquePipeline);

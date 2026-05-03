@@ -130,10 +130,10 @@ struct ExposureBuffer {
 
 // ── Bindings ──────────────────────────────────────────────────────────────────
 
-@group(0) @binding(0) var          hdr_tex : texture_2d<f32>;
-@group(0) @binding(1) var          ao_tex  : texture_2d<f32>;
-@group(0) @binding(2) var          dep_tex : texture_depth_2d;
-@group(0) @binding(3) var          samp    : sampler;
+@group(0) @binding(0) var hdr_tex : texture_2d<f32>;
+@group(0) @binding(1) var ao_tex  : texture_2d<f32>;
+@group(0) @binding(2) var dep_tex : texture_depth_2d;
+@group(0) @binding(3) var samp    : sampler;
 
 @group(1) @binding(0) var<uniform> camera  : CameraUniforms;
 @group(1) @binding(1) var<uniform> light   : LightDir;
@@ -234,7 +234,7 @@ fn fs_main(in: VertOut) -> @location(0) vec4<f32> {
 
   // Debug AO mode — short-circuit everything else.
   if ((params.tonemap_flags & 2u) != 0u) {
-    let ao = textureLoad(ao_tex, coord, 0).r;
+    let ao = textureLoad(ao_tex, coord / 2, 0).r;
     return vec4<f32>(ao, ao, ao, 1.0);
   }
 

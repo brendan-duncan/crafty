@@ -110,21 +110,27 @@ function _noise3Internal(
   xWrap: number, yWrap: number, zWrap: number,
   seed: number,
 ): number {
-  const xMask = (xWrap - 1) & 255;
-  const yMask = (yWrap - 1) & 255;
-  const zMask = (zWrap - 1) & 255;
+  const xMask = (xWrap - 1) & 0xFF;
+  const yMask = (yWrap - 1) & 0xFF;
+  const zMask = (zWrap - 1) & 0xFF;
 
   const px = _fastfloor(x);
   const py = _fastfloor(y);
   const pz = _fastfloor(z);
 
-  const x0 = px & xMask,  x1 = (px + 1) & xMask;
-  const y0 = py & yMask,  y1 = (py + 1) & yMask;
-  const z0 = pz & zMask,  z1 = (pz + 1) & zMask;
+  const x0 = px & xMask;
+  const x1 = (px + 1) & xMask;
+  const y0 = py & yMask;
+  const y1 = (py + 1) & yMask;
+  const z0 = pz & zMask;
+  const z1 = (pz + 1) & zMask;
 
-  const fx = x - px;  const u = _ease(fx);
-  const fy = y - py;  const v = _ease(fy);
-  const fz = z - pz;  const w = _ease(fz);
+  const fx = x - px;
+  const u = _ease(fx);
+  const fy = y - py;
+  const v = _ease(fy);
+  const fz = z - pz;
+  const w = _ease(fz);
 
   const r0  = _randtab[x0 + seed];
   const r1  = _randtab[x1 + seed];
@@ -176,15 +182,15 @@ export function perlinRidgeNoise3(
   octaves: number,
 ): number {
   let frequency = 1.0;
-  let prev      = 1.0;
+  let prev = 1.0;
   let amplitude = 0.5;
-  let sum       = 0.0;
+  let sum = 0.0;
   for (let i = 0; i < octaves; i++) {
     let r = _noise3Internal(x * frequency, y * frequency, z * frequency, 0, 0, 0, i & 0xFF);
     r = offset - Math.abs(r);
     r = r * r;
-    sum       += r * amplitude * prev;
-    prev       = r;
+    sum += r * amplitude * prev;
+    prev = r;
     frequency *= lacunarity;
     amplitude *= gain;
   }
@@ -198,9 +204,9 @@ export function perlinFbmNoise3(
 ): number {
   let frequency = 1.0;
   let amplitude = 1.0;
-  let sum       = 0.0;
+  let sum = 0.0;
   for (let i = 0; i < octaves; i++) {
-    sum       += _noise3Internal(x * frequency, y * frequency, z * frequency, 0, 0, 0, i & 0xFF) * amplitude;
+    sum += _noise3Internal(x * frequency, y * frequency, z * frequency, 0, 0, 0, i & 0xFF) * amplitude;
     frequency *= lacunarity;
     amplitude *= gain;
   }
@@ -214,9 +220,9 @@ export function perlinTurbulenceNoise3(
 ): number {
   let frequency = 1.0;
   let amplitude = 1.0;
-  let sum       = 0.0;
+  let sum = 0.0;
   for (let i = 0; i < octaves; i++) {
-    sum       += Math.abs(_noise3Internal(x * frequency, y * frequency, z * frequency, 0, 0, 0, i & 0xFF) * amplitude);
+    sum += Math.abs(_noise3Internal(x * frequency, y * frequency, z * frequency, 0, 0, 0, i & 0xFF) * amplitude);
     frequency *= lacunarity;
     amplitude *= gain;
   }
@@ -237,16 +243,28 @@ export function perlinNoise3WrapNonpow2(
   const py = _fastfloor(y);
   const pz = _fastfloor(z);
 
-  let x0 = px % xWrap2;  if (x0 < 0) x0 += xWrap2;
-  let y0 = py % yWrap2;  if (y0 < 0) y0 += yWrap2;
-  let z0 = pz % zWrap2;  if (z0 < 0) z0 += zWrap2;
+  let x0 = px % xWrap2;
+  if (x0 < 0) {
+    x0 += xWrap2;
+  }
+  let y0 = py % yWrap2;
+  if (y0 < 0) {
+    y0 += yWrap2;
+  }
+  let z0 = pz % zWrap2;
+  if (z0 < 0) {
+    z0 += zWrap2;
+  }
   const x1 = (x0 + 1) % xWrap2;
   const y1 = (y0 + 1) % yWrap2;
   const z1 = (z0 + 1) % zWrap2;
 
-  const fx = x - px;  const u = _ease(fx);
-  const fy = y - py;  const v = _ease(fy);
-  const fz = z - pz;  const w = _ease(fz);
+  const fx = x - px;
+  const u = _ease(fx);
+  const fy = y - py;
+  const v = _ease(fy);
+  const fz = z - pz;
+  const w = _ease(fz);
 
   const s = seed & 0xFF;
   const r0  = _randtab[_randtab[x0] + s];

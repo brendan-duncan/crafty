@@ -215,7 +215,9 @@ function modifierWgsl(mod: ModifierNode): string {
 // ---- Event action injection -----------------------------------------------------
 
 function eventActionsWgsl(events: EventNode[] | undefined, trigger: 'on_spawn' | 'on_death'): string {
-  if (!events) return '';
+  if (!events) {
+    return '';
+  }
   return events
     .filter(e => e.trigger === trigger)
     .flatMap(e => e.actions.map(modifierWgsl))

@@ -4,15 +4,15 @@ export type SpawnShape =
   | { kind: 'box';    halfExtents: [number, number, number] };
 
 export interface EmitterNode {
-  maxParticles : number;
-  spawnRate    : number;                            // particles/second
-  lifetime     : [min: number, max: number];
-  shape        : SpawnShape;
-  initialSpeed : [min: number, max: number];
-  initialColor : [r: number, g: number, b: number, a: number];
-  initialSize  : [min: number, max: number];
-  roughness    : number;
-  metallic     : number;
+  maxParticles: number;
+  spawnRate: number;                            // particles/second
+  lifetime: [min: number, max: number];
+  shape: SpawnShape;
+  initialSpeed: [min: number, max: number];
+  initialColor: [r: number, g: number, b: number, a: number];
+  initialSize: [min: number, max: number];
+  roughness: number;
+  metallic: number;
 }
 
 export type ModifierNode =
@@ -33,13 +33,13 @@ export type RenderNode =
   | { type: 'points' };
 
 export interface EventNode {
-  trigger : 'on_spawn' | 'on_death';
-  actions : ModifierNode[];
+  trigger: 'on_spawn' | 'on_death';
+  actions: ModifierNode[];
 }
 
 export interface ParticleGraphConfig {
-  emitter   : EmitterNode;
-  modifiers : ModifierNode[];
-  renderer  : RenderNode;
-  events?   : EventNode[];
+  emitter: EmitterNode;
+  modifiers: ModifierNode[];
+  renderer: RenderNode;
+  events?: EventNode[];
 }

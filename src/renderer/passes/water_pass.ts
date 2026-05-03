@@ -17,11 +17,13 @@ const BYTES_PER_VERT  = FLOATS_PER_VERT * 4;
 const CHUNK_SIZE = 16;
 
 interface ChunkWaterGpu {
-  ox: number; oy: number; oz: number;
-  buffer        : GPUBuffer | null;
-  vertexCount   : number;
-  uniformBuffer : GPUBuffer;
-  chunkBG       : GPUBindGroup;
+  ox: number; 
+  oy: number; 
+  oz: number;
+  buffer: GPUBuffer | null;
+  vertexCount: number;
+  uniformBuffer: GPUBuffer;
+  chunkBG: GPUBindGroup;
 }
 
 export class WaterPass extends RenderPass {
@@ -174,7 +176,9 @@ export class WaterPass extends RenderPass {
     this._refractionTex.destroy();
     this._hdrTexture = hdrTexture;
     this._hdrView    = hdrView;
-    if (skyTexture) this._skyTexture = skyTexture;
+    if (skyTexture) {
+      this._skyTexture = skyTexture;
+    }
     const { width, height } = hdrTexture;
     const { refractionTex, refractionView } = WaterPass._makeRefractionTex(this._device, width, height);
     this._refractionTex = refractionTex;
@@ -215,7 +219,9 @@ export class WaterPass extends RenderPass {
     const mx = ox + CHUNK_SIZE, my = oy + CHUNK_SIZE, mz = oz + CHUNK_SIZE;
     for (let i = 0; i < 6; i++) {
       const a = p[i*4], b = p[i*4+1], c = p[i*4+2], d = p[i*4+3];
-      if (a*(a>=0?mx:ox) + b*(b>=0?my:oy) + c*(c>=0?mz:oz) + d < 0) return false;
+      if (a*(a>=0?mx:ox) + b*(b>=0?my:oy) + c*(c>=0?mz:oz) + d < 0) {
+        return false;
+      }
     }
     return true;
   }
@@ -244,7 +250,9 @@ export class WaterPass extends RenderPass {
 
   removeChunk(chunk: Chunk): void {
     const gpu = this._chunks.get(chunk);
-    if (!gpu) return;
+    if (!gpu) {
+      return;
+    }
     gpu.buffer?.destroy();
     gpu.uniformBuffer.destroy();
     this._chunks.delete(chunk);
@@ -270,8 +278,12 @@ export class WaterPass extends RenderPass {
     pass.setBindGroup(3, this._sceneBG);
 
     for (const gpu of this._chunks.values()) {
-      if (!gpu.buffer || gpu.vertexCount === 0) continue;
-      if (!this._isVisible(gpu.ox, gpu.oy, gpu.oz)) continue;
+      if (!gpu.buffer || gpu.vertexCount === 0) {
+        continue;
+      }
+      if (!this._isVisible(gpu.ox, gpu.oy, gpu.oz)) {
+        continue;
+      }
       pass.setBindGroup(2, gpu.chunkBG);
       pass.setVertexBuffer(0, gpu.buffer);
       pass.draw(gpu.vertexCount);
@@ -305,12 +317,12 @@ export class WaterPass extends RenderPass {
     return device.createBindGroup({
       label: 'WaterSceneBG', layout,
       entries: [
-        { binding: 0, resource: refractionView   },
-        { binding: 1, resource: depthView         },
-        { binding: 2, resource: dudv.view         },
-        { binding: 3, resource: gradient.view     },
-        { binding: 4, resource: sky.view          },
-        { binding: 5, resource: sampler           },
+        { binding: 0, resource: refractionView },
+        { binding: 1, resource: depthView },
+        { binding: 2, resource: dudv.view },
+        { binding: 3, resource: gradient.view },
+        { binding: 4, resource: sky.view },
+        { binding: 5, resource: sampler },
       ],
     });
   }

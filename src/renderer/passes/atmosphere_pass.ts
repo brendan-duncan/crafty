@@ -10,22 +10,22 @@ const UNIFORM_SIZE = 96;
 export class AtmospherePass extends RenderPass {
   readonly name = 'AtmospherePass';
 
-  private _pipeline  : GPURenderPipeline;
+  private _pipeline: GPURenderPipeline;
   private _uniformBuf: GPUBuffer;
-  private _bg        : GPUBindGroup;
-  private _hdrView   : GPUTextureView;
+  private _bg: GPUBindGroup;
+  private _hdrView: GPUTextureView;
 
   private constructor(
-    pipeline  : GPURenderPipeline,
+    pipeline: GPURenderPipeline,
     uniformBuf: GPUBuffer,
-    bg        : GPUBindGroup,
-    hdrView   : GPUTextureView,
+    bg: GPUBindGroup,
+    hdrView: GPUTextureView,
   ) {
     super();
-    this._pipeline   = pipeline;
+    this._pipeline = pipeline;
     this._uniformBuf = uniformBuf;
-    this._bg         = bg;
-    this._hdrView    = hdrView;
+    this._bg = bg;
+    this._hdrView = hdrView;
   }
 
   static create(ctx: RenderContext, hdrView: GPUTextureView): AtmospherePass {
@@ -33,27 +33,27 @@ export class AtmospherePass extends RenderPass {
 
     const uniformBuf = device.createBuffer({
       label: 'AtmosphereUniform',
-      size : UNIFORM_SIZE,
+      size: UNIFORM_SIZE,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
     const bgl = device.createBindGroupLayout({
-      label  : 'AtmosphereBGL',
+      label: 'AtmosphereBGL',
       entries: [{ binding: 0, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, buffer: { type: 'uniform' } }],
     });
 
     const bg = device.createBindGroup({
-      label  : 'AtmosphereBG',
-      layout : bgl,
+      label: 'AtmosphereBG',
+      layout: bgl,
       entries: [{ binding: 0, resource: { buffer: uniformBuf } }],
     });
 
     const shader = device.createShaderModule({ label: 'AtmosphereShader', code: atmosphereWgsl });
 
     const pipeline = device.createRenderPipeline({
-      label   : 'AtmospherePipeline',
-      layout  : device.createPipelineLayout({ bindGroupLayouts: [bgl] }),
-      vertex  : { module: shader, entryPoint: 'vs_main' },
+      label: 'AtmospherePipeline',
+      layout: device.createPipelineLayout({ bindGroupLayouts: [bgl] }),
+      vertex: { module: shader, entryPoint: 'vs_main' },
       fragment: { module: shader, entryPoint: 'fs_main', targets: [{ format: HDR_FORMAT }] },
       primitive: { topology: 'triangle-list' },
     });
@@ -64,10 +64,10 @@ export class AtmospherePass extends RenderPass {
   // lightDir: directional-light direction (light rays travel in this direction, i.e. toward the scene).
   // Negated inside to produce the toward-sun vector the atmosphere shader expects.
   update(
-    ctx        : RenderContext,
+    ctx: RenderContext,
     invViewProj: Mat4,
-    camPos     : { x: number; y: number; z: number },
-    lightDir   : { x: number; y: number; z: number },
+    camPos: { x: number; y: number; z: number },
+    lightDir: { x: number; y: number; z: number },
   ): void {
     const data = new Float32Array(UNIFORM_SIZE / 4);
     data.set(invViewProj.data, 0);
@@ -87,12 +87,12 @@ export class AtmospherePass extends RenderPass {
 
   execute(encoder: GPUCommandEncoder, _ctx: RenderContext): void {
     const pass = encoder.beginRenderPass({
-      label           : 'AtmospherePass',
+      label: 'AtmospherePass',
       colorAttachments: [{
-        view      : this._hdrView,
+        view: this._hdrView,
         clearValue: [0, 0, 0, 1],
-        loadOp    : 'clear',
-        storeOp   : 'store',
+        loadOp: 'clear',
+        storeOp: 'store',
       }],
     });
     pass.setPipeline(this._pipeline);

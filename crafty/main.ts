@@ -1,18 +1,18 @@
-import industrialUrl  from '../../assets/cubemaps/hdr/industrial.hdr?url';
-import hotbarUrl      from '../../assets/ui/hotbar.png?url';
-import inventoryUrl   from '../../assets/ui/new_inventory.png?url';
-import colorAtlasUrl  from '../../assets/cube_textures/simple_block_atlas.png?url';
-import normalAtlasUrl from '../../assets/cube_textures/simple_block_atlas_normal.png?url';
-import merAtlasUrl    from '../../assets/cube_textures/simple_block_atlas_mer.png?url';
-import heightAtlasUrl from '../../assets/cube_textures/simple_block_atlas_heightmap.png?url';
-import dudvUrl        from '../../assets/water/waterDUDV.png?url';
-import gradientUrl    from '../../assets/water/gradient_map.png?url';
-import { Mat4, Vec3 } from '../../src/math/index.js';
+import industrialUrl from '../assets/cubemaps/hdr/clear_sky.hdr?url';
+import hotbarUrl from '../assets/ui/hotbar.png?url';
+import inventoryUrl from '../assets/ui/new_inventory.png?url';
+import colorAtlasUrl from '../assets/cube_textures/simple_block_atlas.png?url';
+import normalAtlasUrl from '../assets/cube_textures/simple_block_atlas_normal.png?url';
+import merAtlasUrl from '../assets/cube_textures/simple_block_atlas_mer.png?url';
+import heightAtlasUrl from '../assets/cube_textures/simple_block_atlas_heightmap.png?url';
+import dudvUrl from '../assets/water/waterDUDV.png?url';
+import gradientUrl from '../assets/water/gradient_map.png?url';
+import { Mat4, Vec3 } from '../src/math/index.js';
 import {
   GameObject, Scene, Camera, DirectionalLight, PlayerController, CameraControls,
   PointLight, SpotLight,
-} from '../../src/engine/index.js';
-import type { CascadeData } from '../../src/engine/index.js';
+} from '../src/engine/index.js';
+import type { CascadeData, MeshRenderer } from '../src/engine/index.js';
 import {
   RenderContext, RenderGraph, GBuffer,
   ShadowPass, AtmospherePass, GeometryPass, LightingPass,
@@ -21,30 +21,30 @@ import {
   WorldGeometryPass, WaterPass, WorldShadowPass,
   BlockHighlightPass, ParticlePass,
   CloudPass, CloudShadowPass, GodrayPass,
-} from '../../src/renderer/index.js';
-import { createCloudNoiseTextures } from '../../src/assets/cloud_noise.js';
-import type { CloudNoiseTextures } from '../../src/assets/cloud_noise.js';
-import { computeIblGpu } from '../../src/assets/ibl.js';
-import type { IblTextures } from '../../src/assets/ibl.js';
-import type { ParticleGraphConfig } from '../../src/particles/index.js';
-import { Texture } from '../../src/assets/texture.js';
-import { parseHdr, createHdrTexture } from '../../src/assets/hdr_loader.js';
-import { BlockTexture } from '../../src/assets/block_texture.js';
-import { World, BlockType, blockTextureOffsetData, blockTypeName, BiomeType, EnvironmentEffect, getBiomeEnvironmentEffect, getBiomeCloudCoverage, getBiomeCloudBounds } from '../../src/block/index.js';
-import type { Chunk, ChunkMesh } from '../../src/block/index.js';
-import type { DrawItem } from '../../src/renderer/passes/geometry_pass.js';
+} from '../src/renderer/index.js';
+import { createCloudNoiseTextures } from '../src/assets/cloud_noise.js';
+import type { CloudNoiseTextures } from '../src/assets/cloud_noise.js';
+import { computeIblGpu } from '../src/assets/ibl.js';
+import type { IblTextures } from '../src/assets/ibl.js';
+import type { ParticleGraphConfig } from '../src/particles/index.js';
+import { Texture } from '../src/assets/texture.js';
+import { parseHdr, createHdrTexture } from '../src/assets/hdr_loader.js';
+import { BlockTexture } from '../src/assets/block_texture.js';
+import { World, BlockType, blockTextureOffsetData, blockTypeName, BiomeType, EnvironmentEffect, getBiomeEnvironmentEffect, getBiomeCloudCoverage, getBiomeCloudBounds } from '../src/block/index.js';
+import type { Chunk, ChunkMesh } from '../src/block/index.js';
+import type { DrawItem } from '../src/renderer/passes/geometry_pass.js';
 
 // ── Hotbar ────────────────────────────────────────────────────────────────────
 
 const HOTBAR_SLOTS: BlockType[] = [
   BlockType.DIRT,
-  BlockType.GRASS,
+  BlockType.IRON,
   BlockType.STONE,
   BlockType.SAND,
   BlockType.TRUNK,
   BlockType.SPRUCE_PLANKS,
   BlockType.GLASS,
-  BlockType.GLOWSTONE,
+  BlockType.TORCH,
   BlockType.DIAMOND,
 ];
 
@@ -128,13 +128,17 @@ function createHotbar(atlasUrl: string): { getSelected: () => BlockType; refresh
   img.src = atlasUrl;
 
   function refresh(): void {
-    if (!img.complete) return;
+    if (!img.complete) {
+      return;
+    }
     const TILE = 16;
     for (let i = 0; i < N; i++) {
       const tod = blockTextureOffsetData.find(d => d.blockType === HOTBAR_SLOTS[i]);
       const ctx2 = canvases[i].getContext('2d')!;
       ctx2.clearRect(0, 0, 32, 32);
-      if (!tod) continue;
+      if (!tod) {
+        continue;
+      }
       ctx2.imageSmoothingEnabled = false;
       ctx2.drawImage(img, tod.sideFace.x * TILE, tod.sideFace.y * TILE, TILE, TILE, 0, 0, 32, 32);
     }
@@ -144,7 +148,10 @@ function createHotbar(atlasUrl: string): { getSelected: () => BlockType; refresh
   // ── Input ──
   window.addEventListener('keydown', (e) => {
     const n = parseInt(e.key);
-    if (n >= 1 && n <= N) { selected = n - 1; updateSelection(); }
+    if (n >= 1 && n <= N) { 
+      selected = n - 1; 
+      updateSelection(); 
+    }
   });
 
   window.addEventListener('wheel', (e) => {
@@ -166,7 +173,11 @@ function createHotbar(atlasUrl: string): { getSelected: () => BlockType; refresh
 
 function halton(index: number, base: number): number {
   let result = 0, f = 1;
-  while (index > 0) { f /= base; result += f * (index % base); index = Math.floor(index / base); }
+  while (index > 0) { 
+    f /= base; 
+    result += f * (index % base); 
+    index = Math.floor(index / base); 
+  }
   return result;
 }
 
@@ -244,7 +255,9 @@ function createBlockManager(
   // All placeable blocks (skip NONE=0 and WATER)
   const allBlocks: BlockType[] = [];
   for (let i = 1; i < BlockType.MAX; i++) {
-    if (i !== BlockType.WATER) allBlocks.push(i as BlockType);
+    if (i !== BlockType.WATER) {
+      allBlocks.push(i as BlockType);
+    }
   }
 
   // Wrapper with inventory image as visual background
@@ -267,9 +280,13 @@ function createBlockManager(
   function drawIcon(cv: HTMLCanvasElement, bt: BlockType | null): void {
     const ctx2 = cv.getContext('2d')!;
     ctx2.clearRect(0, 0, cv.width, cv.height);
-    if (!bt) return;
+    if (!bt) {
+      return;
+    }
     const tod = blockTextureOffsetData.find(d => d.blockType === bt);
-    if (!tod) return;
+    if (!tod) {
+      return;
+    }
     ctx2.imageSmoothingEnabled = false;
     ctx2.drawImage(atlas, tod.sideFace.x * 16, tod.sideFace.y * 16, 16, 16, 0, 0, cv.width, cv.height);
   }
@@ -306,10 +323,16 @@ function createBlockManager(
   for (let row = 0; row < INV_ROWS; row++) {
     for (let col = 0; col < INV_COLS; col++) {
       const bt = allBlocks[row * INV_COLS + col] ?? null;
-      if (!bt) continue;
+      if (!bt) {
+        continue;
+      }
       const [div, cv] = makeSlot(INV_X + col * STEP, INV_Y + row * STEP, true);
       div.title = String(blockTypeName[bt]);
-      if (atlas.complete) drawIcon(cv, bt); else atlas.addEventListener('load', () => drawIcon(cv, bt), { once: false });
+      if (atlas.complete) {
+        drawIcon(cv, bt); 
+      } else {
+        atlas.addEventListener('load', () => drawIcon(cv, bt), { once: false });
+      }
       div.addEventListener('click', () => {
         HOTBAR_SLOTS[getSelectedSlot()] = bt;
         syncHotbar();
@@ -350,7 +373,9 @@ function createBlockManager(
     div.addEventListener('drop', (e) => {
       e.preventDefault();
       div.style.boxShadow = '';
-      if (!dragBlock) return;
+      if (!dragBlock) {
+        return;
+      }
       if (dragHotbarIdx !== null && dragHotbarIdx !== i) {
         // swap two hotbar slots
         [HOTBAR_SLOTS[i], HOTBAR_SLOTS[dragHotbarIdx]] = [HOTBAR_SLOTS[dragHotbarIdx], HOTBAR_SLOTS[i]];
@@ -365,11 +390,15 @@ function createBlockManager(
 
   // Re-draws the hotbar row in the inventory panel from current HOTBAR_SLOTS
   function syncHotbar(): void {
-    for (let i = 0; i < HOT_COLS; i++) drawIcon(hotbarCanvases[i], HOTBAR_SLOTS[i]);
+    for (let i = 0; i < HOT_COLS; i++) {
+      drawIcon(hotbarCanvases[i], HOTBAR_SLOTS[i]);
+    }
   }
 
   atlas.addEventListener('load', syncHotbar);
-  if (atlas.complete) syncHotbar();
+  if (atlas.complete) {
+    syncHotbar();
+  }
 
   container.appendChild(wrap);
   return { syncHotbar, refreshSlotHighlight };
@@ -377,17 +406,19 @@ function createBlockManager(
 
 async function main(): Promise<void> {
   const canvas = document.getElementById('canvas') as HTMLCanvasElement;
-  if (!canvas) throw new Error('No canvas element');
+  if (!canvas) {
+    throw new Error('No canvas element');
+  }
 
   const ctx = await RenderContext.create(canvas);
   const { device } = ctx;
 
-  const skyTexture    = await createHdrTexture(device, parseHdr(await (await fetch(industrialUrl)).arrayBuffer()));
+  const skyTexture = await createHdrTexture(device, parseHdr(await (await fetch(industrialUrl)).arrayBuffer()));
   const iblTextures: IblTextures = await computeIblGpu(device, skyTexture.gpuTexture);
   const cloudNoises: CloudNoiseTextures = createCloudNoiseTextures(device);
 
-  const blockTexture   = await BlockTexture.load(device, colorAtlasUrl, normalAtlasUrl, merAtlasUrl, heightAtlasUrl);
-  const dudvTexture    = await Texture.fromUrl(device, dudvUrl);
+  const blockTexture = await BlockTexture.load(device, colorAtlasUrl, normalAtlasUrl, merAtlasUrl, heightAtlasUrl);
+  const dudvTexture = await Texture.fromUrl(device, dudvUrl);
   const gradientTexture = await Texture.fromUrl(device, gradientUrl);
 
   // --- Hotbar ---
@@ -397,7 +428,8 @@ async function main(): Promise<void> {
   // --- World ---
 
   //const world = new World(42);
-  const world = new World(454321);
+  //const world = new World(454321);
+  const world = new World(0);
   const chunkMeshCache = new Map<Chunk, ChunkMesh>();
 
   // --- Scene ---
@@ -405,7 +437,7 @@ async function main(): Promise<void> {
   const scene = new Scene();
 
   const sunGO = new GameObject('Sun');
-  const sun   = sunGO.addComponent(new DirectionalLight(new Vec3(0.3, -1, 0.5), Vec3.one(), 3, 3));
+  const sun = sunGO.addComponent(new DirectionalLight(new Vec3(0.3, -1, 0.5), Vec3.one(), 3, 3));
   scene.add(sunGO);
 
   const cameraGO = new GameObject('Camera');
@@ -433,12 +465,12 @@ async function main(): Promise<void> {
   function toggleController(): void {
     usePlayerController = !usePlayerController;
     if (usePlayerController) {
-      player.yaw   = freeCamera.yaw;
+      player.yaw = freeCamera.yaw;
       player.pitch = freeCamera.pitch;
       freeCamera.detach();
       player.attach(canvas);
     } else {
-      freeCamera.yaw   = player.yaw;
+      freeCamera.yaw = player.yaw;
       freeCamera.pitch = player.pitch;
       player.detach();
       freeCamera.attach(canvas);
@@ -451,17 +483,27 @@ async function main(): Promise<void> {
   // Holding Space never triggers this because keyup only fires on release.
   let _lastSpaceUp = -Infinity;
   document.addEventListener('keyup', (e: KeyboardEvent) => {
-    if (e.code === 'Space') _lastSpaceUp = performance.now();
+    if (e.code === 'Space') {
+      _lastSpaceUp = performance.now();
+    }
   });
   document.addEventListener('keydown', (e: KeyboardEvent) => {
-    if (e.code !== 'Space' || e.repeat) return;
+    if (e.code === 'KeyC' && !e.repeat) {
+      toggleController();
+      return;
+    }
+    if (e.code !== 'Space' || e.repeat) {
+      return;
+    }
     if (performance.now() - _lastSpaceUp < 400 && document.pointerLockElement === canvas) {
       const wasPlayer = usePlayerController;
       toggleController();
       _lastSpaceUp = -Infinity;
       // The second Space press is still physically held — inject it into the free
       // camera so holding Space immediately ascends without a re-press.
-      if (wasPlayer) freeCamera.pressKey('Space');
+      if (wasPlayer) {
+        freeCamera.pressKey('Space');
+      }
     }
   });
 
@@ -476,13 +518,15 @@ async function main(): Promise<void> {
 
   function addTorchLight(bx: number, by: number, bz: number): void {
     const key = torchLightKey(bx, by, bz);
-    if (torchLights.has(key)) return;
+    if (torchLights.has(key)) {
+      return;
+    }
     const go = new GameObject('TorchLight');
     go.position.set(bx + 0.5, by + 0.9, bz + 0.5);
     const pl = go.addComponent(new PointLight());
-    pl.color      = new Vec3(1.0, 0.52, 0.18);
-    pl.intensity  = 4.0;
-    pl.radius     = 6.0;
+    pl.color = new Vec3(1.0, 0.52, 0.18);
+    pl.intensity = 4.0;
+    pl.radius = 6.0;
     pl.castShadow = false;
     scene.add(go);
     // Each torch gets a unique phase so they flicker independently.
@@ -493,7 +537,9 @@ async function main(): Promise<void> {
   function removeTorchLight(bx: number, by: number, bz: number): void {
     const key = torchLightKey(bx, by, bz);
     const entry = torchLights.get(key);
-    if (!entry) return;
+    if (!entry) {
+      return;
+    }
     scene.remove(entry.go);
     torchLights.delete(key);
   }
@@ -513,13 +559,15 @@ async function main(): Promise<void> {
 
   function addMagmaLight(bx: number, by: number, bz: number): void {
     const key = torchLightKey(bx, by, bz);
-    if (magmaLights.has(key)) return;
+    if (magmaLights.has(key)) {
+      return;
+    }
     const go = new GameObject('MagmaLight');
     go.position.set(bx + 0.5, by + 0.5, bz + 0.5);
     const pl = go.addComponent(new PointLight());
-    pl.color      = new Vec3(1.0, 0.28, 0.0);
-    pl.intensity  = 6.0;
-    pl.radius     = 10.0;
+    pl.color = new Vec3(1.0, 0.28, 0.0);
+    pl.intensity = 6.0;
+    pl.radius = 10.0;
     pl.castShadow = false;
     scene.add(go);
     const phase = (bx * 127.1 + by * 311.7 + bz * 74.3) % (Math.PI * 2);
@@ -529,7 +577,9 @@ async function main(): Promise<void> {
   function removeMagmaLight(bx: number, by: number, bz: number): void {
     const key = torchLightKey(bx, by, bz);
     const entry = magmaLights.get(key);
-    if (!entry) return;
+    if (!entry) {
+      return;
+    }
     scene.remove(entry.go);
     magmaLights.delete(key);
   }
@@ -554,8 +604,12 @@ async function main(): Promise<void> {
   function doBlockAction(button: number, time: number): void {
     if (button === 0 && targetBlock) {
       const minedType = world.getBlockType(targetBlock.x, targetBlock.y, targetBlock.z);
-      if (minedType === BlockType.TORCH) removeTorchLight(targetBlock.x, targetBlock.y, targetBlock.z);
-      if (minedType === BlockType.MAGMA) removeMagmaLight(targetBlock.x, targetBlock.y, targetBlock.z);
+      if (minedType === BlockType.TORCH) {
+        removeTorchLight(targetBlock.x, targetBlock.y, targetBlock.z);
+      }
+      if (minedType === BlockType.MAGMA) {
+        removeMagmaLight(targetBlock.x, targetBlock.y, targetBlock.z);
+      }
       world.mineBlock(targetBlock.x, targetBlock.y, targetBlock.z);
       lastBlockAction = time;
     } else if (button === 2 && targetHit) {
@@ -565,23 +619,33 @@ async function main(): Promise<void> {
       const newY = hit.position.y + hit.face.y;
       const newZ = hit.position.z + hit.face.z;
       if (world.addBlock(hit.position.x, hit.position.y, hit.position.z, hit.face.x, hit.face.y, hit.face.z, placed)) {
-        if (placed === BlockType.TORCH) addTorchLight(newX, newY, newZ);
-        if (placed === BlockType.MAGMA) addMagmaLight(newX, newY, newZ);
+        if (placed === BlockType.TORCH) {
+          addTorchLight(newX, newY, newZ);
+        }
+        if (placed === BlockType.MAGMA) {
+          addMagmaLight(newX, newY, newZ);
+        }
       }
       lastBlockAction = time;
     }
   }
 
   canvas.addEventListener('mousedown', (e: MouseEvent) => {
-    if (document.pointerLockElement !== canvas) return;
-    if (e.button !== 0 && e.button !== 2) return;
-    mouseHeld     = e.button;
+    if (document.pointerLockElement !== canvas) {
+      return;
+    }
+    if (e.button !== 0 && e.button !== 2) {
+      return;
+    }
+    mouseHeld = e.button;
     mouseHoldTime = e.timeStamp;
     doBlockAction(e.button, e.timeStamp);
   });
 
   canvas.addEventListener('mouseup', (e: MouseEvent) => {
-    if (e.button === mouseHeld) mouseHeld = -1;
+    if (e.button === mouseHeld) {
+      mouseHeld = -1;
+    }
   });
 
   // --- Particle configs ---
@@ -608,8 +672,8 @@ async function main(): Promise<void> {
 
   const snowConfig: ParticleGraphConfig = {
     emitter: {
-      maxParticles: 5000,
-      spawnRate: 150,
+      maxParticles: 50000,
+      spawnRate: 1500,
       lifetime: [30.0, 45.0],
       shape: { kind: 'box', halfExtents: [35, 0.1, 35] },
       initialSpeed: [0, 0],
@@ -621,6 +685,9 @@ async function main(): Promise<void> {
     modifiers: [
       { type: 'gravity', strength: 1.5 },
       { type: 'drag', coefficient: 0.8 },
+      { type: 'curl_noise', scale: 1.0, strength: 10.0, timeScale: 1.0, octaves: 1 },
+      //{ type: 'swirl_force', speed: 1.0, strength: 10.0 },
+      //{ type: 'vortex', strength: 1.0 },
       { type: 'block_collision' },
     ],
     renderer: { type: 'sprites', blendMode: 'alpha', billboard: 'camera', renderTarget: 'hdr' },
@@ -635,29 +702,29 @@ async function main(): Promise<void> {
 
   let currentWeatherEffect: EnvironmentEffect = EnvironmentEffect.None;
 
-  let gbuffer!            : GBuffer;
-  let geometryPass!       : GeometryPass;
-  let worldGeometryPass!  : WorldGeometryPass;
-  let worldShadowPass!    : WorldShadowPass;
-  let waterPass!          : WaterPass;
-  let ssaoPass!           : SSAOPass;
-  let ssgiPass!           : SSGIPass;
-  let lightingPass!       : LightingPass;
-  let atmospherePass!     : AtmospherePass;
+  let gbuffer!: GBuffer;
+  let geometryPass!: GeometryPass;
+  let worldGeometryPass!: WorldGeometryPass;
+  let worldShadowPass!: WorldShadowPass;
+  let waterPass!: WaterPass;
+  let ssaoPass!: SSAOPass;
+  let ssgiPass!: SSGIPass;
+  let lightingPass!: LightingPass;
+  let atmospherePass!: AtmospherePass;
   let pointSpotShadowPass!: PointSpotShadowPass;
-  let pointSpotLightPass! : PointSpotLightPass;
-  let taaPass!            : TAAPass;
-  let dofPass             : DofPass        | null = null;
-  let bloomPass           : BloomPass      | null = null;
-  let rainPass            : ParticlePass   | null = null;
-  let godrayPass          : GodrayPass     | null = null;
-  let cloudPass           : CloudPass      | null = null;
-  let cloudShadowPass     : CloudShadowPass | null = null;
-  let blockHighlightPass! : BlockHighlightPass;
-  let autoExposurePass!   : AutoExposurePass;
-  let compositePass!      : CompositePass;
-  let graph!              : RenderGraph;
-  let prevViewProj        : Mat4 | null = null;
+  let pointSpotLightPass!: PointSpotLightPass;
+  let taaPass!: TAAPass;
+  let dofPass: DofPass | null = null;
+  let bloomPass: BloomPass | null = null;
+  let rainPass: ParticlePass | null = null;
+  let godrayPass: GodrayPass | null = null;
+  let cloudPass: CloudPass | null = null;
+  let cloudShadowPass: CloudShadowPass | null = null;
+  let blockHighlightPass!: BlockHighlightPass;
+  let autoExposurePass!: AutoExposurePass;
+  let compositePass!: CompositePass;
+  let graph!: RenderGraph;
+  let prevViewProj: Mat4 | null = null;
 
   function buildRenderTargets(): void {
     gbuffer?.destroy();
@@ -669,12 +736,12 @@ async function main(): Promise<void> {
     pointSpotShadowPass?.destroy();
     pointSpotLightPass?.destroy();
     taaPass?.destroy();
-    dofPass?.destroy();          dofPass          = null;
-    bloomPass?.destroy();        bloomPass        = null;
-    godrayPass?.destroy();       godrayPass       = null;
-    rainPass?.destroy();         rainPass         = null;
-    cloudPass?.destroy();        cloudPass        = null;
-    cloudShadowPass?.destroy();  cloudShadowPass  = null;
+    dofPass?.destroy(); dofPass = null;
+    bloomPass?.destroy(); bloomPass = null;
+    godrayPass?.destroy(); godrayPass = null;
+    rainPass?.destroy(); rainPass = null;
+    cloudPass?.destroy(); cloudPass = null;
+    cloudShadowPass?.destroy(); cloudShadowPass = null;
     blockHighlightPass?.destroy();
     autoExposurePass?.destroy();
     compositePass?.destroy();
@@ -692,7 +759,7 @@ async function main(): Promise<void> {
 
     if (!worldGeometryPass) {
       worldGeometryPass = WorldGeometryPass.create(ctx, gbuffer, blockTexture);
-      worldShadowPass   = WorldShadowPass.create(ctx, shadowPass.shadowMapArrayViews, 3, blockTexture);
+      worldShadowPass = WorldShadowPass.create(ctx, shadowPass.shadowMapArrayViews, 3, blockTexture);
 
       const onAdded = (chunk: Chunk, mesh: ChunkMesh) => {
         chunkMeshCache.set(chunk, mesh);
@@ -712,29 +779,36 @@ async function main(): Promise<void> {
         worldShadowPass.removeChunk(chunk);
         waterPass.removeChunk(chunk);
       };
-      world.onChunkAdded   = onAdded;
+      world.onChunkAdded = onAdded;
       world.onChunkUpdated = onUpdated;
       world.onChunkRemoved = onRemoved;
     }
 
-    ssaoPass            = SSAOPass.create(ctx, gbuffer);
-    if (effects.clouds) cloudShadowPass = CloudShadowPass.create(ctx, cloudNoises);
-    lightingPass        = LightingPass.create(ctx, gbuffer, shadowPass, ssaoPass.aoView, cloudShadowPass?.shadowView, iblTextures);
+    ssaoPass = SSAOPass.create(ctx, gbuffer);
+    if (effects.clouds) {
+      cloudShadowPass = CloudShadowPass.create(ctx, cloudNoises);
+    }
+    lightingPass = LightingPass.create(ctx, gbuffer, shadowPass, ssaoPass.aoView, cloudShadowPass?.shadowView, iblTextures);
     if (effects.godrays) {
       godrayPass = GodrayPass.create(ctx, gbuffer, shadowPass, lightingPass.hdrView, lightingPass.cameraBuffer, lightingPass.lightBuffer);
     }
-    atmospherePass      = AtmospherePass.create(ctx, lightingPass.hdrView);
-    if (effects.clouds) cloudPass = CloudPass.create(ctx, lightingPass.hdrView, gbuffer.depthView, cloudNoises);
+    atmospherePass = AtmospherePass.create(ctx, lightingPass.hdrView);
+    if (effects.clouds) {
+      cloudPass = CloudPass.create(ctx, lightingPass.hdrView, gbuffer.depthView, cloudNoises);
+    }
     pointSpotShadowPass = PointSpotShadowPass.create(ctx);
-    pointSpotLightPass  = PointSpotLightPass.create(ctx, gbuffer, pointSpotShadowPass, lightingPass.hdrView);
-    taaPass             = TAAPass.create(ctx, lightingPass, gbuffer);
-    ssgiPass            = SSGIPass.create(ctx, gbuffer, taaPass.historyView);
+    pointSpotLightPass = PointSpotLightPass.create(ctx, gbuffer, pointSpotShadowPass, lightingPass.hdrView);
+    taaPass = TAAPass.create(ctx, lightingPass, gbuffer);
+    ssgiPass = SSGIPass.create(ctx, gbuffer, taaPass.historyView);
     lightingPass.updateSSGI(ssgiPass.resultView);
 
     // WaterPass: persistent but needs new render targets on resize.
     if (!waterPass) {
-      waterPass = WaterPass.create(ctx, lightingPass.hdrTexture, lightingPass.hdrView, gbuffer.depthView, skyTexture, dudvTexture, gradientTexture);
-      for (const [chunk, mesh] of chunkMeshCache) waterPass.addChunk(chunk, mesh);
+      waterPass = WaterPass.create(ctx, lightingPass.hdrTexture, lightingPass.hdrView, gbuffer.depthView,
+        skyTexture, dudvTexture, gradientTexture);
+      for (const [chunk, mesh] of chunkMeshCache) {
+        waterPass.addChunk(chunk, mesh);
+      }
     } else {
       waterPass.updateRenderTargets(lightingPass.hdrTexture, lightingPass.hdrView, gbuffer.depthView, skyTexture);
     }
@@ -755,30 +829,42 @@ async function main(): Promise<void> {
     compositePass.depthFogEnabled = effects.fog;
 
     camera.aspect = ctx.width / ctx.height;
-    prevViewProj  = null;
+    prevViewProj = null;
 
     graph = new RenderGraph();
     graph.addPass(shadowPass);
-    if (cloudShadowPass) graph.addPass(cloudShadowPass);
+    if (cloudShadowPass) {
+      graph.addPass(cloudShadowPass);
+    }
     graph.addPass(worldShadowPass);
     graph.addPass(pointSpotShadowPass);
     graph.addPass(geometryPass);
     graph.addPass(worldGeometryPass);
     graph.addPass(ssaoPass);
     graph.addPass(ssgiPass);
-    if (cloudPass) graph.addPass(cloudPass); else graph.addPass(atmospherePass);
+    if (cloudPass) {
+      graph.addPass(cloudPass); 
+    } else {
+      graph.addPass(atmospherePass);
+    }
     graph.addPass(lightingPass);
     graph.addPass(pointSpotLightPass);
     graph.addPass(waterPass);
-    if (godrayPass) graph.addPass(godrayPass);
+    if (godrayPass) {
+      graph.addPass(godrayPass);
+    }
     if (effects.rain && currentWeatherEffect !== EnvironmentEffect.None) {
       const weatherConfig = currentWeatherEffect === EnvironmentEffect.Snow ? snowConfig : rainConfig;
       rainPass = ParticlePass.create(ctx, weatherConfig, gbuffer, lightingPass.hdrView);
       graph.addPass(rainPass);
     }
     graph.addPass(taaPass);
-    if (dofPass)   graph.addPass(dofPass);
-    if (bloomPass) graph.addPass(bloomPass);
+    if (dofPass) {
+      graph.addPass(dofPass);
+    }
+    if (bloomPass) {
+      graph.addPass(bloomPass);
+    }
     graph.addPass(blockHighlightPass);
     graph.addPass(autoExposurePass);
     graph.addPass(compositePass);
@@ -798,8 +884,8 @@ async function main(): Promise<void> {
     world.chunksPerFrame = savedRate;
     const topY = world.getTopBlockY(spawnX, spawnZ, 200);
     if (topY > 0) {
-      cameraGO.position.y = topY + 1.62;  // eye height above feet
-      player.velY = 0;                     // suppress first-frame gravity drop
+      cameraGO.position.y = topY + 1.62; // eye height above feet
+      player.velY = 0; // suppress first-frame gravity drop
     }
   }
 
@@ -813,9 +899,9 @@ async function main(): Promise<void> {
     'pointer-events:none',
   ].join(';');
   reticle.innerHTML = [
-    `<div style="position:absolute;top:50%;left:0;width:100%;height:1px;background:#fff;opacity:0.8;transform:translateY(-50%)"></div>`,
-    `<div style="position:absolute;left:50%;top:0;width:1px;height:100%;background:#fff;opacity:0.8;transform:translateX(-50%)"></div>`,
-    `<div style="position:absolute;top:50%;left:50%;width:3px;height:3px;background:#fff;opacity:0.9;transform:translate(-50%,-50%);border-radius:50%"></div>`,
+    `<div style="position:absolute;top:50%;left:0;width:100%;height:3px;background:#fff;opacity:0.8;transform:translateY(-50%)"></div>`,
+    `<div style="position:absolute;left:50%;top:0;width:3px;height:100%;background:#fff;opacity:0.8;transform:translateX(-50%)"></div>`,
+    `<div style="position:absolute;top:50%;left:50%;width:7px;height:3px;background:#fff;opacity:0.9;transform:translate(-50%,-50%);border-radius:50%"></div>`,
   ].join('');
   document.body.appendChild(reticle);
 
@@ -891,7 +977,9 @@ async function main(): Promise<void> {
   resumeBtn.addEventListener('mouseenter', () => { resumeBtn.style.background = '#243e24'; });
   resumeBtn.addEventListener('mouseleave', () => { resumeBtn.style.background = '#1a3a1a'; });
   resumeBtn.addEventListener('click', async () => {
-    if (!document.fullscreenElement) await document.documentElement.requestFullscreen().catch(() => {});
+    if (!document.fullscreenElement) {
+      await document.documentElement.requestFullscreen().catch(() => {});
+    }
     canvas.requestPointerLock();
   });
   menuCard.appendChild(resumeBtn);
@@ -915,17 +1003,17 @@ async function main(): Promise<void> {
   menuCard.appendChild(effectsLabel);
 
   createControlPanel(effects, (key) => {
-    if (key === 'ssao')    return;
-    if (key === 'ssgi')    return;
+    if (key === 'ssao') return;
+    if (key === 'ssgi') return;
     if (key === 'shadows') return;
-    if (key === 'aces')     return;
-    if (key === 'ao_dbg')   return;
-    if (key === 'shd_dbg')  return;
-    if (key === 'hdr')      return;
+    if (key === 'aces') return;
+    if (key === 'ao_dbg') return;
+    if (key === 'shd_dbg') return;
+    if (key === 'hdr') return;
     if (key === 'auto_exp') { autoExposurePass.enabled = effects.auto_exp; return; }
-    if (key === 'fog')      { compositePass.depthFogEnabled = effects.fog; return; }
-    if (key === 'rain')     { buildRenderTargets(); return; }
-    if (key === 'clouds')   { buildRenderTargets(); return; }
+    if (key === 'fog') { compositePass.depthFogEnabled = effects.fog; return; }
+    if (key === 'rain') { buildRenderTargets(); return; }
+    if (key === 'clouds') { buildRenderTargets(); return; }
     buildRenderTargets();
   }, menuCard);
 
@@ -945,7 +1033,9 @@ async function main(): Promise<void> {
     btn.textContent = label;
     btn.style.cssText = `padding:4px 10px;border-width:1px;border-style:solid;border-radius:4px;cursor:pointer;letter-spacing:0.04em;${i === 0 ? SEL_STYLE : UNSEL_STYLE}`;
     btn.addEventListener('click', () => {
-      if (dofPass) dofPass.mode = i;
+      if (dofPass) {
+        dofPass.mode = i;
+      }
       dofModeBtns.forEach((b, j) => b.setAttribute('style', `padding:4px 10px;border-width:1px;border-style:solid;border-radius:4px;cursor:pointer;letter-spacing:0.04em;${j === i ? SEL_STYLE : UNSEL_STYLE}`));
     });
     dofModeRow.appendChild(btn);
@@ -978,8 +1068,11 @@ async function main(): Promise<void> {
   }
 
   document.addEventListener('pointerlockchange', () => {
-    if (document.pointerLockElement === canvas) closeMenu();
-    else openMenu();
+    if (document.pointerLockElement === canvas) {
+      closeMenu();
+    } else {
+      openMenu();
+    }
   });
 
   document.addEventListener('keydown', (e) => {
@@ -987,7 +1080,9 @@ async function main(): Promise<void> {
       // When ESC exits pointer lock, pointerlockchange and keydown can fire in either
       // order. If pointerlockchange fires first the menu is already open when keydown
       // arrives — the 200ms guard prevents that same ESC from immediately closing it.
-      if (performance.now() - menuOpenedAt < 200) return;
+      if (performance.now() - menuOpenedAt < 200) {
+        return;
+      }
       closeMenu();
       canvas.requestPointerLock();
     }
@@ -996,7 +1091,9 @@ async function main(): Promise<void> {
   const resizeObserver = new ResizeObserver(() => {
     const w = Math.max(1, Math.round(canvas.clientWidth  * devicePixelRatio));
     const h = Math.max(1, Math.round(canvas.clientHeight * devicePixelRatio));
-    if (w === canvas.width && h === canvas.height) return;
+    if (w === canvas.width && h === canvas.height) {
+      return;
+    }
     canvas.width  = w;
     canvas.height = h;
     buildRenderTargets();
@@ -1004,14 +1101,16 @@ async function main(): Promise<void> {
   resizeObserver.observe(canvas);
 
   // Build a 128×128 heightmap (top solid-block Y) centred on the camera.
-  const HM_RES    = 128;
+  const HM_RES = 128;
   const HM_EXTENT = 40.0;  // half-size in blocks — covers the rain emitter (halfExtents 35)
-  const hmData    = new Float32Array(HM_RES * HM_RES);
-  let   hmCamX    = NaN;
-  let   hmCamZ    = NaN;
+  const hmData = new Float32Array(HM_RES * HM_RES);
+  let hmCamX = NaN;
+  let hmCamZ = NaN;
 
   function updateHeightmap(cx: number, cz: number): void {
-    if (Math.abs(cx - hmCamX) < 2 && Math.abs(cz - hmCamZ) < 2) return;
+    if (Math.abs(cx - hmCamX) < 2 && Math.abs(cz - hmCamZ) < 2) {
+      return;
+    }
     hmCamX = cx; hmCamZ = cz;
     const step   = (HM_EXTENT * 2) / HM_RES;
     const startX = cx - HM_EXTENT;
@@ -1026,14 +1125,14 @@ async function main(): Promise<void> {
     }
   }
 
-  let lastTime   = 0;
-  let smoothFps    = 0;
+  let lastTime = 0;
+  let smoothFps = 0;
   let lastHudUpdate = -Infinity;
-  let sunAngle   = Math.PI * 0.3;  // start in morning
-  let waterTime  = 0;
+  let sunAngle = Math.PI * 0.3;  // start in morning
+  let waterTime = 0;
   let frameIndex = 0;
-  let cloudWindX    = 0;
-  let cloudWindZ    = 0;
+  let cloudWindX = 0;
+  let cloudWindZ = 0;
   let cloudCoverage = getBiomeCloudCoverage(world.getBiomeAt(cameraGO.position.x, cameraGO.position.z));
   const _initBounds = getBiomeCloudBounds(world.getBiomeAt(cameraGO.position.x, cameraGO.position.z));
   let cloudBase = _initBounds.cloudBase;
@@ -1073,8 +1172,11 @@ async function main(): Promise<void> {
     const t = Math.max(0, elev);
     sun.color.set(1.0, 0.8 + 0.2 * t, 0.6 + 0.4 * t);
 
-    if (usePlayerController) player.update(cameraGO, dt);
-    else                     freeCamera.update(cameraGO, dt);
+    if (usePlayerController) {
+      player.update(cameraGO, dt);
+    } else {
+      freeCamera.update(cameraGO, dt);
+    }
     updateTorchFlicker(time / 1000);
     updateMagmaFlicker(time / 1000);
     scene.update(dt);
@@ -1082,7 +1184,7 @@ async function main(): Promise<void> {
     const camPos = camera.position();
     world.update(camPos, dt);
 
-    const biome = world.getBiomeAt(camPos.x, camPos.z);
+    const biome = world.getBiomeAt(camPos.x, camPos.y, camPos.z);
 
     const weatherEffect = getBiomeEnvironmentEffect(biome);
     if (weatherEffect !== currentWeatherEffect) {
@@ -1118,13 +1220,13 @@ async function main(): Promise<void> {
     const cascades: CascadeData[] = sun.computeCascadeMatrices(camera, 128);
 
     const meshRenderers = scene.collectMeshRenderers();
-    const drawItems: DrawItem[] = meshRenderers.map(mr => {
+    const drawItems: DrawItem[] = meshRenderers.map((mr: MeshRenderer) => {
       const w = mr.gameObject.localToWorld();
       return { mesh: mr.mesh, modelMatrix: w, normalMatrix: w.normalMatrix(), material: mr.material };
     });
     const shadowItems = meshRenderers
-      .filter(mr => mr.castShadow)
-      .map(mr => ({ mesh: mr.mesh, modelMatrix: mr.gameObject.localToWorld() }));
+      .filter((mr: MeshRenderer) => mr.castShadow)
+      .map((mr: MeshRenderer) => ({ mesh: mr.mesh, modelMatrix: mr.gameObject.localToWorld() }));
 
     shadowPass.setSceneSnapshot(shadowItems);
     shadowPass.updateScene(scene, camera, sun);
@@ -1140,7 +1242,9 @@ async function main(): Promise<void> {
     const cloudSettings = { cloudBase, cloudTop, coverage: cloudCoverage, density: 4.0,
       windOffset: [cloudWindX, cloudWindZ] as [number, number],
       anisotropy: 0.85, extinction: 0.25, ambientColor: cloudAmbient, exposure: 1.0 };
-    if (cloudShadowPass) cloudShadowPass.update(ctx, cloudSettings, [camPos.x, camPos.z], 128);
+    if (cloudShadowPass) {
+      cloudShadowPass.update(ctx, cloudSettings, [camPos.x, camPos.z], 128);
+    }
     if (cloudPass) {
       cloudPass.updateCamera(ctx, invVP, camPos, camera.near, camera.far);
       cloudPass.updateLight(ctx, sun.direction, sun.color, sun.intensity);
@@ -1148,7 +1252,7 @@ async function main(): Promise<void> {
     }
 
     const pointLights = scene.getComponents(PointLight);
-    const spotLights  = scene.getComponents(SpotLight);
+    const spotLights = scene.getComponents(SpotLight);
     pointSpotShadowPass.update(pointLights, spotLights, shadowItems);
     pointSpotLightPass.updateCamera(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far);
     pointSpotLightPass.updateLights(ctx, pointLights, spotLights);
@@ -1172,7 +1276,9 @@ async function main(): Promise<void> {
 
     ssgiPass.enabled = effects.ssgi;
     ssgiPass.updateSettings({ strength: effects.ssgi ? 1.0 : 0.0 });
-    if (effects.ssgi) ssgiPass.updateCamera(ctx, view, proj, invProj, invVP, prevViewProj ?? vp, camPos);
+    if (effects.ssgi) {
+      ssgiPass.updateCamera(ctx, view, proj, invProj, invVP, prevViewProj ?? vp, camPos);
+    }
 
     const cosPitch = Math.cos(player.pitch);
     _forward.x = -Math.sin(player.yaw) * cosPitch;
@@ -1182,7 +1288,7 @@ async function main(): Promise<void> {
     const MAX_REACH = 6;
     const inReach = !!(hit && hit.position.sub(camPos).length() <= MAX_REACH);
     targetBlock = inReach ? hit!.position : null;
-    targetHit   = inReach ? hit : null;
+    targetHit = inReach ? hit : null;
     blockHighlightPass.update(ctx, vp, targetBlock);
 
     if (mouseHeld >= 0 && document.pointerLockElement === canvas) {

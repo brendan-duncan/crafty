@@ -1,8 +1,8 @@
 export interface CloudNoiseTextures {
-  baseNoise   : GPUTexture;         // 64×64×64 rgba8unorm 3D
-  baseView    : GPUTextureView;
-  detailNoise : GPUTexture;         // 32×32×32 rgba8unorm 3D
-  detailView  : GPUTextureView;
+  baseNoise: GPUTexture;         // 64×64×64 rgba8unorm 3D
+  baseView: GPUTextureView;
+  detailNoise: GPUTexture;         // 32×32×32 rgba8unorm 3D
+  detailView: GPUTextureView;
   destroy(): void;
 }
 

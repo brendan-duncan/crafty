@@ -11,41 +11,41 @@ const SHADOW_FORMAT: GPUTextureFormat = 'r8unorm';
 const UNIFORM_SIZE = 48;
 
 export interface CloudShadowSettings {
-  cloudBase   : number;
-  cloudTop    : number;
-  coverage    : number;
-  density     : number;
-  windOffset  : [number, number];
-  extinction  : number;
+  cloudBase: number;
+  cloudTop: number;
+  coverage: number;
+  density: number;
+  windOffset: [number, number];
+  extinction: number;
 }
 
 export class CloudShadowPass extends RenderPass {
   readonly name = 'CloudShadowPass';
 
   readonly shadowTexture: GPUTexture;
-  readonly shadowView   : GPUTextureView;
+  readonly shadowView: GPUTextureView;
 
-  private _pipeline       : GPURenderPipeline;
-  private _uniformBuffer  : GPUBuffer;
-  private _uniformBG      : GPUBindGroup;
-  private _noiseBG        : GPUBindGroup;
-  private _frameCount     = 0;
+  private _pipeline: GPURenderPipeline;
+  private _uniformBuffer: GPUBuffer;
+  private _uniformBG: GPUBindGroup;
+  private _noiseBG: GPUBindGroup;
+  private _frameCount = 0;
 
   private constructor(
     shadowTexture: GPUTexture,
-    shadowView   : GPUTextureView,
-    pipeline     : GPURenderPipeline,
+    shadowView: GPUTextureView,
+    pipeline: GPURenderPipeline,
     uniformBuffer: GPUBuffer,
-    uniformBG    : GPUBindGroup,
-    noiseBG      : GPUBindGroup,
+    uniformBG: GPUBindGroup,
+    noiseBG: GPUBindGroup,
   ) {
     super();
     this.shadowTexture = shadowTexture;
-    this.shadowView    = shadowView;
-    this._pipeline     = pipeline;
+    this.shadowView = shadowView;
+    this._pipeline = pipeline;
     this._uniformBuffer = uniformBuffer;
-    this._uniformBG    = uniformBG;
-    this._noiseBG      = noiseBG;
+    this._uniformBG = uniformBG;
+    this._noiseBG = noiseBG;
   }
 
   static create(ctx: RenderContext, noises: CloudNoiseTextures): CloudShadowPass {
@@ -117,10 +117,10 @@ export class CloudShadowPass extends RenderPass {
   }
 
   update(
-    ctx         : RenderContext,
-    settings    : CloudShadowSettings,
-    worldOrigin : [number, number],
-    worldExtent : number,
+    ctx: RenderContext,
+    settings: CloudShadowSettings,
+    worldOrigin: [number, number],
+    worldExtent: number,
   ): void {
     const data = new Float32Array(UNIFORM_SIZE / 4);
     data[0]  = settings.cloudBase;

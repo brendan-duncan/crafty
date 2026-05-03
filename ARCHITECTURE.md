@@ -52,7 +52,7 @@ crafty/
 │   ├── math/               # Linear algebra + noise
 │   ├── particles/          # GPU particle system
 │   └── shaders/            # WGSL shader sources
-├── game/crafty/
+├── crafty/
 │   └── main.ts             # Game entry point and render graph wiring
 └── tests/                  # Test scenes
 ```
