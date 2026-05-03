@@ -36,6 +36,7 @@ export class Chunk {
   static CHUNK_WIDTH = 16;
   static CHUNK_HEIGHT = 16;
   static CHUNK_DEPTH = 16;
+  static SEA_LEVEL = 15; // Ocean and lake water level
 
   // Vertex positions for 6 faces × 6 verts = 36 verts, matches CUBE_POSITION_VERTICES in lc_chunk.c
   static readonly CUBE_VERTS = new Float32Array([
@@ -629,11 +630,18 @@ export class Chunk {
 
           if (g_y < surfaceHeight) {
             if (Chunk._isCave(g_x, g_y, g_z, seed, surfaceHeight - g_y)) {
-              // Carved: leave as air (no automatic cave flooding)
-              this.setBlock(x, y, z, BlockType.NONE);
+              // Carved: flooded below sea level, air above it
+              if (g_y < Chunk.SEA_LEVEL + 1) {
+                this.setBlock(x, y, z, BlockType.WATER);
+              } else {
+                this.setBlock(x, y, z, BlockType.NONE);
+              }
             } else {
               this.setBlock(x, y, z, this._generateBlockBasedOnBiome(colBiome1[ci] as BiomeType, colBiome2[ci] as BiomeType, colBiomeBlend[ci], g_x, g_y, g_z, surfaceHeight));
             }
+          } else if (g_y < Chunk.SEA_LEVEL + 1) {
+            // Fill areas below sea level with water (oceans and lakes)
+            this.setBlock(x, y, z, BlockType.WATER);
           }
         }
       }
@@ -813,11 +821,12 @@ export class Chunk {
   _generateBlockBasedOnBiome(biome1: BiomeType, biome2: BiomeType, blend: number, p_x: number, p_y: number, p_z: number, surfaceHeight: number): BlockType {
     const biome = (blend > 0 && biome1 !== biome2 && _xzHash(p_x, p_z) < blend) ? biome2 : biome1;
     const depth = Math.floor(surfaceHeight) - p_y; // 0 = surface block, 1 = one below, etc.
+    const underwater = surfaceHeight < Chunk.SEA_LEVEL + 1;
 
     switch (biome) {
       case BiomeType.GrassyPlains: {
         if (depth === 0) {
-          return BlockType.GRASS;
+          return underwater ? BlockType.DIRT : BlockType.GRASS;
         }
         if (depth <= 3) {
           return BlockType.DIRT;
