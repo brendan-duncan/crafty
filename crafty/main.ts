@@ -12,7 +12,8 @@ import {
   GameObject, Scene, Camera, DirectionalLight, PlayerController, CameraControls,
   PointLight, SpotLight,
 } from '../src/engine/index.js';
-import type { CascadeData, MeshRenderer } from '../src/engine/index.js';
+import type { CascadeData } from '../src/engine/index.js';
+import { MeshRenderer } from '../src/engine/index.js';
 import {
   RenderContext, RenderGraph, GBuffer,
   ShadowPass, AtmospherePass, GeometryPass, LightingPass,
@@ -33,6 +34,8 @@ import { BlockTexture } from '../src/assets/block_texture.js';
 import { World, BlockType, blockTextureOffsetData, blockTypeName, BiomeType, EnvironmentEffect, getBiomeEnvironmentEffect, getBiomeCloudCoverage, getBiomeCloudBounds } from '../src/block/index.js';
 import type { Chunk, ChunkMesh } from '../src/block/index.js';
 import type { DrawItem } from '../src/renderer/passes/geometry_pass.js';
+import { createDuckBodyMesh, createDuckHeadMesh, createDuckBillMesh } from '../src/assets/duck_mesh.js';
+import { DuckAI } from '../src/engine/components/duck_ai.js';
 
 // ── Hotbar ────────────────────────────────────────────────────────────────────
 
@@ -427,8 +430,8 @@ async function main(): Promise<void> {
 
   // --- World ---
 
-  //const world = new World(42);
-  const world = new World(454321);
+  const world = new World(345);
+  //const world = new World(454321);
   //const world = new World(0);
   const chunkMeshCache = new Map<Chunk, ChunkMesh>();
 
@@ -875,9 +878,9 @@ async function main(): Promise<void> {
   // Spawn player standing on the terrain surface at the starting X/Z.
   // Force-generate the vertical column before the frame loop begins, centred at y=50
   // so render-distance covers chunks cy=-1..7 (world y 0-112, all realistic terrain).
+  const spawnX = cameraGO.position.x;
+  const spawnZ = cameraGO.position.z;
   {
-    const spawnX = cameraGO.position.x;
-    const spawnZ = cameraGO.position.z;
     const savedRate = world.chunksPerFrame;
     world.chunksPerFrame = 200;
     world.update(new Vec3(spawnX, 50, spawnZ), 0);
@@ -887,6 +890,46 @@ async function main(): Promise<void> {
       cameraGO.position.y = topY + 1.62; // eye height above feet
       player.velY = 0; // suppress first-frame gravity drop
     }
+  }
+
+  // ── Duck spawning ─────────────────────────────────────────────────────────
+  const duckBodyMesh = createDuckBodyMesh(device);
+  const duckHeadMesh = createDuckHeadMesh(device);
+  const duckBillMesh = createDuckBillMesh(device);
+
+  function spawnDuck(wx: number, wz: number): void {
+    const topY = world.getTopBlockY(wx, wz, 200);
+    if (topY <= 0) return;
+    const biome = world.getBiomeAt(wx, topY, wz);
+    if (biome !== BiomeType.GrassyPlains) return;
+
+    const duckRoot = new GameObject('Duck');
+    duckRoot.position.set(wx + 0.5, topY, wz + 0.5);
+
+    const bodyGO = new GameObject('Duck.Body');
+    bodyGO.position.set(0, 0.15, 0);
+    bodyGO.addComponent(new MeshRenderer(duckBodyMesh, { albedo: [0.93, 0.93, 0.93, 1], roughness: 0.9 }));
+    duckRoot.addChild(bodyGO);
+
+    const headGO = new GameObject('Duck.Head');
+    headGO.position.set(0, 0.32, -0.12);
+    headGO.addComponent(new MeshRenderer(duckHeadMesh, { albedo: [0.08, 0.32, 0.10, 1], roughness: 0.9 }));
+    duckRoot.addChild(headGO);
+
+    const billGO = new GameObject('Duck.Bill');
+    billGO.position.set(0, 0.27, -0.205);
+    billGO.addComponent(new MeshRenderer(duckBillMesh, { albedo: [1.0, 0.55, 0.05, 1], roughness: 0.8 }));
+    duckRoot.addChild(billGO);
+
+    duckRoot.addComponent(new DuckAI(world));
+    scene.add(duckRoot);
+  }
+
+  // Scatter 10 ducks in GrassyPlains around the spawn point.
+  for (let i = 0; i < 10; i++) {
+    const angle = (i / 10) * Math.PI * 2 + Math.random() * 0.4;
+    const dist  = 8 + Math.random() * 20;
+    spawnDuck(Math.floor(spawnX + Math.cos(angle) * dist), Math.floor(spawnZ + Math.sin(angle) * dist));
   }
 
   // --- UI ---

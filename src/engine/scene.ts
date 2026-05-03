@@ -47,12 +47,17 @@ export class Scene {
   collectMeshRenderers(): MeshRenderer[] {
     const result: MeshRenderer[] = [];
     for (const go of this.gameObjects) {
-      const mr = go.getComponent(MeshRenderer);
-      if (mr) {
-        result.push(mr);
-      }
+      this._collectMeshRenderersRecursive(go, result);
     }
     return result;
+  }
+
+  private _collectMeshRenderersRecursive(go: GameObject, result: MeshRenderer[]): void {
+    const mr = go.getComponent(MeshRenderer);
+    if (mr) result.push(mr);
+    for (const child of go.children) {
+      this._collectMeshRenderersRecursive(child, result);
+    }
   }
 
   getComponents<T extends Component>(ctor: new (...args: never[]) => T): T[] {
