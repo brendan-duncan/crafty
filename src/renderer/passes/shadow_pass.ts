@@ -127,8 +127,8 @@ export class ShadowPass extends RenderPass {
     );
   }
 
-  updateScene(_scene: Scene, camera: Camera, light: DirectionalLight): void {
-    this._cascades = light.computeCascadeMatrices(camera);
+  updateScene(_scene: Scene, camera: Camera, light: DirectionalLight, shadowFar?: number): void {
+    this._cascades = light.computeCascadeMatrices(camera, shadowFar);
     this._cascadeCount = Math.min(this._cascades.length, MAX_CASCADES);
   }
 

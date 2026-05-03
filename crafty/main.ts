@@ -1276,7 +1276,7 @@ async function main(): Promise<void> {
       .map((mr: MeshRenderer) => ({ mesh: mr.mesh, modelMatrix: mr.gameObject.localToWorld() }));
 
     shadowPass.setSceneSnapshot(shadowItems);
-    shadowPass.updateScene(scene, camera, sun);
+    shadowPass.updateScene(scene, camera, sun, 128);
     worldShadowPass.enabled = sun.intensity > 0;
     worldShadowPass.update(ctx, cascades, camPos.x, camPos.z);
 

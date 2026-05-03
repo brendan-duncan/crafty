@@ -204,9 +204,9 @@ fn reconstruct_world_pos(uv: vec2<f32>, depth: f32) -> vec3<f32> {
 
 // === Shadow ===========================================================
 
-fn pcf_shadow(cascade: u32, sc: vec3<f32>, bias: f32, kernel_radius: f32) -> f32 {
+fn pcf_shadow(cascade: u32, sc: vec3<f32>, bias: f32, kernel_radius: f32, screen_pos: vec2<f32>) -> f32 {
   let texel = vec2<f32>(kernel_radius / SHADOW_MAP_SIZE);
-  let angle = ign(sc.xy * SHADOW_MAP_SIZE) * 6.28318530;
+  let angle = ign(screen_pos) * 6.28318530;
   var s = 0.0;
   for (var i = 0; i < 16; i++) {
     let offset = rotate2d(POISSON16[i], angle) * texel;
@@ -217,9 +217,9 @@ fn pcf_shadow(cascade: u32, sc: vec3<f32>, bias: f32, kernel_radius: f32) -> f32
 }
 
 // Returns average blocker depth, or -1.0 if receiver is fully lit.
-fn pcss_blocker_search(cascade: u32, sc: vec3<f32>, search_radius: f32) -> f32 {
+fn pcss_blocker_search(cascade: u32, sc: vec3<f32>, search_radius: f32, screen_pos: vec2<f32>) -> f32 {
   let texel = vec2<f32>(search_radius / SHADOW_MAP_SIZE);
-  let angle = ign(sc.xy * SHADOW_MAP_SIZE) * 6.28318530;
+  let angle = ign(screen_pos) * 6.28318530;
   var total = 0.0;
   var count = 0.0;
   for (var i = 0; i < 8; i++) {
@@ -258,7 +258,7 @@ fn select_cascade(view_depth: f32) -> u32 {
   return light.cascadeCount - 1u;
 }
 
-fn shadow_factor(world_pos: vec3<f32>, N: vec3<f32>, NdotL: f32, view_depth: f32) -> f32 {
+fn shadow_factor(world_pos: vec3<f32>, N: vec3<f32>, NdotL: f32, view_depth: f32, screen_pos: vec2<f32>) -> f32 {
   if (light.shadowsEnabled == 0u) { return 1.0; }
   let cascade     = select_cascade(view_depth);
   let depth_range = light.cascadeDepthRanges[cascade];
@@ -280,13 +280,15 @@ fn shadow_factor(world_pos: vec3<f32>, N: vec3<f32>, NdotL: f32, view_depth: f32
   if (!in_cascade(sc0)) { return 1.0; }
 
   // PCSS: blocker search → penumbra width → scaled PCF kernel.
+  // Screen-space position drives the Poisson rotation so the pattern is
+  // stable per-pixel rather than jumping with sub-texel shadow UV changes.
   var kernel = 2.0;
-  let avg_blocker = pcss_blocker_search(cascade, sc0, 8.0);
+  let avg_blocker = pcss_blocker_search(cascade, sc0, 8.0, screen_pos);
   if (avg_blocker >= 0.0) {
     let penumbra = light.shadowSoftness * (sc0.z - avg_blocker) / max(avg_blocker, 0.001);
     kernel = clamp(penumbra * SHADOW_MAP_SIZE, 1.0, 16.0);
   }
-  let s0 = pcf_shadow(cascade, sc0, bias, kernel);
+  let s0 = pcf_shadow(cascade, sc0, bias, kernel, screen_pos);
 
   let next = cascade + 1u;
   if (next < light.cascadeCount) {
@@ -299,12 +301,12 @@ fn shadow_factor(world_pos: vec3<f32>, N: vec3<f32>, NdotL: f32, view_depth: f32
       // blending toward an OOB cascade would mix toward depth=1 (fully lit).
       if (in_cascade(sc1)) {
         var kernel1 = 2.0;
-        let ab1 = pcss_blocker_search(next, sc1, 8.0);
+        let ab1 = pcss_blocker_search(next, sc1, 8.0, screen_pos);
         if (ab1 >= 0.0) {
           let pen1 = light.shadowSoftness * (sc1.z - ab1) / max(ab1, 0.001);
           kernel1 = clamp(pen1 * SHADOW_MAP_SIZE, 1.0, 16.0);
         }
-        return mix(s0, pcf_shadow(next, sc1, bias, kernel1), t);
+        return mix(s0, pcf_shadow(next, sc1, bias, kernel1, screen_pos), t);
       }
     }
   }
@@ -423,7 +425,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
   let specular_brdf = D * G * Fd / max(4.0 * NdotV * NdotL, 0.001);
   let diffuse_brdf  = kD_direct * albedo / PI;
 
-  let shad = shadow_factor(world_pos, N, NdotL, view_depth);
+  let shad = shadow_factor(world_pos, N, NdotL, view_depth, in.clip_pos.xy);
 
   // Cloud shadow — sample top-down transmittance map; default 1.0 when extent is zero
   let cloud_ext = max(light.cloudShadowExtent, 0.001);
@@ -478,7 +480,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
       case 2u:    { tint = vec3<f32>(0.25, 0.25, 1.0); } // blue  = far
       default:    { tint = vec3<f32>(1.0,  1.0,  0.25); } // yellow = beyond
     }
-    let shad = shadow_factor(world_pos, N, NdotL, view_depth);
+    let shad = shadow_factor(world_pos, N, NdotL, view_depth, in.clip_pos.xy);
     return vec4<f32>(tint * mix(0.15, 1.0, shad), 1.0);
   }
 
