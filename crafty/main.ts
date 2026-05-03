@@ -1222,9 +1222,13 @@ async function main(): Promise<void> {
     }
     updateTorchFlicker(time / 1000);
     updateMagmaFlicker(time / 1000);
-    scene.update(dt);
 
     const camPos = camera.position();
+    DuckAI.playerPos.x = camPos.x;
+    DuckAI.playerPos.y = camPos.y;
+    DuckAI.playerPos.z = camPos.z;
+
+    scene.update(dt);
     world.update(camPos, dt);
 
     const biome = world.getBiomeAt(camPos.x, camPos.y, camPos.z);
