@@ -31,7 +31,7 @@ import type { ParticleGraphConfig } from '../src/particles/index.js';
 import { Texture } from '../src/assets/texture.js';
 import { parseHdr, createHdrTexture } from '../src/assets/hdr_loader.js';
 import { BlockTexture } from '../src/assets/block_texture.js';
-import { World, BlockType, blockTextureOffsetData, blockTypeName, BiomeType, EnvironmentEffect, getBiomeEnvironmentEffect, getBiomeCloudCoverage, getBiomeCloudBounds } from '../src/block/index.js';
+import { World, BlockType, blockTextureOffsetData, blockTypeName, BiomeType, EnvironmentEffect, getBiomeEnvironmentEffect, getBiomeCloudCoverage, getBiomeCloudBounds, isBlockWater } from '../src/block/index.js';
 import type { Chunk, ChunkMesh } from '../src/block/index.js';
 import type { DrawItem } from '../src/renderer/passes/geometry_pass.js';
 import { createDuckBodyMesh, createDuckHeadMesh, createDuckBillMesh } from '../src/assets/duck_mesh.js';
@@ -48,7 +48,7 @@ const HOTBAR_SLOTS: BlockType[] = [
   BlockType.SPRUCE_PLANKS,
   BlockType.GLASS,
   BlockType.TORCH,
-  BlockType.DIAMOND,
+  BlockType.WATER,
 ];
 
 function createHotbar(atlasUrl: string): { getSelected: () => BlockType; refresh: () => void; getSelectedSlot: () => number; setSelectedSlot: (i: number) => void; setOnSelectionChanged: (cb: () => void) => void } {
@@ -430,8 +430,8 @@ async function main(): Promise<void> {
 
   // --- World ---
 
-  const world = new World(345);
-  //const world = new World(454321);
+  //const world = new World(345);
+  const world = new World(13);
   //const world = new World(0);
   const chunkMeshCache = new Map<Chunk, ChunkMesh>();
 
@@ -1221,7 +1221,7 @@ async function main(): Promise<void> {
       smoothFps += (1 / dt - smoothFps) * 0.1;
     }
 
-    sunAngle  += dt * 0.021;  // full day/night cycle ~5 minutes
+    sunAngle  += dt * 0.01;  // full day/night cycle ~10 minutes
     waterTime += dt;
     cloudWindX += dt * 1.5;
     cloudWindZ += dt * 0.5;
@@ -1363,7 +1363,10 @@ async function main(): Promise<void> {
     const inReach = !!(hit && hit.position.sub(camPos).length() <= MAX_REACH);
     targetBlock = inReach ? hit!.position : null;
     targetHit = inReach ? hit : null;
-    blockHighlightPass.update(ctx, vp, targetBlock);
+
+    // Don't highlight water blocks
+    const highlightBlock = targetBlock && !isBlockWater(world.getBlockType(targetBlock.x, targetBlock.y, targetBlock.z)) ? targetBlock : null;
+    blockHighlightPass.update(ctx, vp, highlightBlock);
 
     if (mouseHeld >= 0 && document.pointerLockElement === canvas) {
       if (time - mouseHoldTime >= BLOCK_INITIAL_DELAY && time - lastBlockAction >= BLOCK_REPEAT_INTERVAL) {
@@ -1381,7 +1384,7 @@ async function main(): Promise<void> {
 
     dofPass?.updateParams(ctx, 8.0, 25.0, 6.0, camera.near, camera.far);
     godrayPass?.updateParams(ctx);
-    const isUnderwater = camPos.y < 15.0;
+    const isUnderwater = isBlockWater(world.getBlockType(Math.floor(camPos.x), Math.floor(camPos.y), Math.floor(camPos.z)));
     // sun_dir toward the sun = negate light.direction (which points from sun to scene)
     const sunDir = { x: -sun.direction.x, y: -sun.direction.y, z: -sun.direction.z };
     compositePass.updateParams(ctx, isUnderwater, waterTime, effects.aces, effects.ao_dbg, effects.hdr);

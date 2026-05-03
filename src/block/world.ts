@@ -20,6 +20,9 @@ export class World {
   renderDistanceV = 4;
   chunksPerFrame   = 2;
   time = 0;
+  waterSimulationRadius = 32; // blocks
+  waterTickInterval = 0.25; // seconds between water updates (slower = more realistic)
+  private _waterTickTimer = 0;
 
   onChunkAdded?: (chunk: Chunk, mesh: ChunkMesh) => void;
   onChunkUpdated?: (chunk: Chunk, mesh: ChunkMesh) => void;
@@ -72,6 +75,22 @@ export class World {
     return chunk.getBlock(rx, ry, rz);
   }
 
+  setBlockType(wx: number, wy: number, wz: number, blockType: BlockType): boolean {
+    let chunk = this.getChunk(wx, wy, wz);
+    if (!chunk) {
+      // Create chunk if it doesn't exist
+      const [cx, cy, cz] = World.normalizeChunkPosition(wx, wy, wz);
+      chunk = new Chunk(cx * Chunk.CHUNK_WIDTH, cy * Chunk.CHUNK_HEIGHT, cz * Chunk.CHUNK_DEPTH);
+      this._insertChunk(chunk);
+    }
+    const rx = Math.round(wx) - chunk.globalPosition.x;
+    const ry = Math.round(wy) - chunk.globalPosition.y;
+    const rz = Math.round(wz) - chunk.globalPosition.z;
+    chunk.setBlock(rx, ry, rz, blockType);
+    this._updateChunk(chunk, rx, ry, rz);
+    return true;
+  }
+
   // Returns the Y coordinate of the first air block above the highest solid/water block
   // in column (wx, wz), scanning down from maxY. Returns 0 if column is empty.
   getTopBlockY(wx: number, wz: number, maxY: number): number {
@@ -120,6 +139,7 @@ export class World {
           const ry = py - chunk.globalPosition.y;
           const rz = pz - chunk.globalPosition.z;
           const blockType = chunk.getBlock(rx, ry, rz);
+          // Skip water blocks - raycast passes through them
           if (blockType !== BlockType.NONE && !isBlockWater(blockType)) {
             return {
               blockType,
@@ -153,14 +173,23 @@ export class World {
     const hitChunk = this.getChunk(gX, gY, gZ);
     if (!hitChunk) return false;
 
-    if (isBlockProp(this.getBlockType(gX, gY, gZ))) return false;
+    const hitBlockType = this.getBlockType(gX, gY, gZ);
+    if (isBlockProp(hitBlockType)) return false;
 
     const newX = gX + faceX;
     const newY = gY + faceY;
     const newZ = gZ + faceZ;
 
     const existing = this.getBlockType(newX, newY, newZ);
-    if (existing !== BlockType.NONE && !isBlockWater(existing)) return false;
+
+    // Allow placing water in water, or replacing air/water with any block
+    if (isBlockWater(blockType)) {
+      // Water can be placed in air or water
+      if (existing !== BlockType.NONE && !isBlockWater(existing)) return false;
+    } else {
+      // Other blocks can replace air or water
+      if (existing !== BlockType.NONE && !isBlockWater(existing)) return false;
+    }
 
     let targetChunk = this.getChunk(newX, newY, newZ);
     if (!targetChunk) {
@@ -187,7 +216,14 @@ export class World {
     const rz = gZ - chunk.globalPosition.z;
 
     const blockType = chunk.getBlock(rx, ry, rz);
-    if (blockType === BlockType.NONE || isBlockWater(blockType)) return false;
+    if (blockType === BlockType.NONE) return false;
+
+    // Allow mining water blocks (just removes them)
+    if (isBlockWater(blockType)) {
+      chunk.setBlock(rx, ry, rz, BlockType.NONE);
+      this._updateChunk(chunk, rx, ry, rz);
+      return true;
+    }
 
     chunk.setBlock(rx, ry, rz, BlockType.NONE);
     this._updateChunk(chunk, rx, ry, rz);
@@ -198,6 +234,13 @@ export class World {
     this.time += dt;
     this._removeDistantChunks(playerPos);
     this._createNearbyChunks(playerPos);
+
+    // Water simulation
+    this._waterTickTimer += dt;
+    if (this._waterTickTimer >= this.waterTickInterval) {
+      this._waterTickTimer = 0;
+      this._updateWaterFlow(playerPos);
+    }
   }
 
   deleteChunk(chunk: Chunk): void {
@@ -370,6 +413,100 @@ export class World {
       // Re-mesh existing neighbors so their edge faces are correctly culled against this chunk.
       for (const [dx, dy, dz] of [[-1,0,0],[1,0,0],[0,-1,0],[0,1,0],[0,0,-1],[0,0,1]] as const) {
         this._remeshSingleNeighbor(cx + dx, cy + dy, cz + dz);
+      }
+    }
+  }
+
+  private _updateWaterFlow(playerPos: Vec3): void {
+    const radius = this.waterSimulationRadius;
+    const minX = Math.floor(playerPos.x - radius);
+    const maxX = Math.floor(playerPos.x + radius);
+    const minY = Math.floor(Math.max(0, playerPos.y - radius));
+    const maxY = Math.floor(playerPos.y + radius);
+    const minZ = Math.floor(playerPos.z - radius);
+    const maxZ = Math.floor(playerPos.z + radius);
+
+    // Collect water blocks that need to flow
+    const waterBlocks: Array<{ x: number; y: number; z: number }> = [];
+
+    for (let x = minX; x <= maxX; x++) {
+      for (let y = minY; y <= maxY; y++) {
+        for (let z = minZ; z <= maxZ; z++) {
+          const blockType = this.getBlockType(x, y, z);
+          if (isBlockWater(blockType)) {
+            waterBlocks.push({ x, y, z });
+          }
+        }
+      }
+    }
+
+    // Process water flow for each water block
+    for (const { x, y, z } of waterBlocks) {
+      this._flowWater(x, y, z);
+    }
+  }
+
+  private _flowWater(wx: number, wy: number, wz: number): void {
+    // Check if water can flow down (can replace air or props)
+    const below = this.getBlockType(wx, wy - 1, wz);
+    if (below === BlockType.NONE || isBlockProp(below)) {
+      // Water flows down - move the water block
+      this.setBlockType(wx, wy - 1, wz, BlockType.WATER);
+      this.setBlockType(wx, wy, wz, BlockType.NONE);
+      return;
+    }
+
+    // Check if this water has support (something solid below it, within 4 blocks)
+    let hasSupport = false;
+    for (let dy = 1; dy <= 4; dy++) {
+      const checkBelow = this.getBlockType(wx, wy - dy, wz);
+      if (checkBelow !== BlockType.NONE && !isBlockWater(checkBelow) && !isBlockProp(checkBelow)) {
+        hasSupport = true;
+        break;
+      }
+      if (checkBelow === BlockType.NONE || isBlockProp(checkBelow)) {
+        // Found air or prop, no support
+        break;
+      }
+    }
+
+    // If no support (floating water), spread horizontally 1 block (fountain effect)
+    if (!hasSupport) {
+      const horizontal = [
+        { x: wx + 1, y: wy, z: wz },
+        { x: wx - 1, y: wy, z: wz },
+        { x: wx, y: wy, z: wz + 1 },
+        { x: wx, y: wy, z: wz - 1 },
+      ];
+
+      for (const pos of horizontal) {
+        const block = this.getBlockType(pos.x, pos.y, pos.z);
+        // Allow water to spread 1 block horizontally into empty space, even without support
+        if (block === BlockType.NONE || isBlockProp(block)) {
+          this.setBlockType(pos.x, pos.y, pos.z, BlockType.WATER);
+          this.setBlockType(wx, wy, wz, BlockType.NONE);
+          return;
+        }
+      }
+    }
+
+    // If has support, try to spread horizontally (can spill over edges)
+    if (hasSupport) {
+      const horizontal = [
+        { x: wx + 1, y: wy, z: wz },
+        { x: wx - 1, y: wy, z: wz },
+        { x: wx, y: wy, z: wz + 1 },
+        { x: wx, y: wy, z: wz - 1 },
+      ];
+
+      for (const pos of horizontal) {
+        const block = this.getBlockType(pos.x, pos.y, pos.z);
+        if (block === BlockType.NONE || isBlockProp(block)) {
+          // Spread to any adjacent empty space (will flow down naturally in next tick)
+          this.setBlockType(pos.x, pos.y, pos.z, BlockType.WATER);
+          // Only spread to one direction per tick to avoid flooding too fast
+          return;
+        }
       }
     }
   }

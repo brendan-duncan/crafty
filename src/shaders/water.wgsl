@@ -1,5 +1,5 @@
 // Water pass — forward-rendered on top of the deferred-lit HDR buffer.
-// Vertex format: [x, z] (2 floats, chunk-local). Y is computed in VS as chunkOffset.y + WATER_HEIGHT.
+// Vertex format: [x, y, z] (3 floats, chunk-local).
 // Group 0: camera uniforms (matches WorldGeometryPass layout — 4 mat4 + vec3 pos + near + far)
 // Group 1: per-frame water uniforms (time)
 // Group 2: per-chunk offset
@@ -48,7 +48,6 @@ struct VertOut {
 }
 
 const PI            : f32 = 3.14159265358979;
-const WATER_HEIGHT  : f32 = 15.0;
 const WAVE_AMPLITUDE: f32 = 3.8;
 
 fn calc_wave(world_pos: vec3<f32>) -> f32 {
@@ -59,8 +58,8 @@ fn calc_wave(world_pos: vec3<f32>) -> f32 {
 }
 
 @vertex
-fn vs_main(@location(0) xz: vec2<f32>) -> VertOut {
-  var world_pos  = vec3<f32>(xz.x + chunk.offset.x, chunk.offset.y + WATER_HEIGHT, xz.y + chunk.offset.z);
+fn vs_main(@location(0) pos: vec3<f32>) -> VertOut {
+  var world_pos  = pos + chunk.offset;
   //world_pos.y   += calc_wave(world_pos);
   let clip       = cam.viewProj * vec4<f32>(world_pos, 1.0);
   var out: VertOut;

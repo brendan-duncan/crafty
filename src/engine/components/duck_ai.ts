@@ -66,7 +66,7 @@ export class DuckAI extends Component {
       const blockBelow = this._world.getBlockType(Math.floor(gx), Math.floor(groundY - 1), Math.floor(gz));
       if (blockBelow === BlockType.WATER) {
         // Float on water surface (water block Y + 1, minus small offset so duck sits slightly in water)
-        go.position.y = groundY - 1;
+        go.position.y = groundY;// - 1;
       } else {
         // Stand on solid ground
         go.position.y = groundY;

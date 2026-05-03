@@ -36,7 +36,6 @@ export class Chunk {
   static CHUNK_WIDTH = 16;
   static CHUNK_HEIGHT = 16;
   static CHUNK_DEPTH = 16;
-  static WATER_HEIGHT = 15;
 
   // Vertex positions for 6 faces × 6 verts = 36 verts, matches CUBE_POSITION_VERTICES in lc_chunk.c
   static readonly CUBE_VERTS = new Float32Array([
@@ -115,7 +114,7 @@ export class Chunk {
     let transparentIdx = 0;
     let propIdx = 0;
     let hasWater = false;
-    const waterXZ = new Uint8Array(W * D);  // [x * D + z] = 1 if water present
+    const waterBlocks: Array<{x: number, y: number, z: number}> = [];
 
     // Build a (W+2)×(H+2)×(D+2) padded copy of this chunk's blocks with one
     // layer of neighbor data on each face. All neighbor lookups become a single
@@ -211,7 +210,7 @@ export class Chunk {
           }
 
           if (isBlockWater(blockType)) {
-            waterXZ[x * D + z] = 1;
+            waterBlocks.push({ x, y, z });
             hasWater = true;
             continue;
           }
@@ -484,24 +483,87 @@ export class Chunk {
       }
     }
 
-    // Water: one quad per (x,z) cell that actually contains a water block.
+    // Water: quads for top and any sides facing non-water blocks
     let waterBuffer: Float32Array | null = null;
     let waterVertCount = 0;
     if (hasWater) {
-      waterBuffer = new Float32Array(W * D * 6 * 2);
+      // Allocate enough space for all possible faces (top + 5 sides = 6 faces per water block)
+      waterBuffer = new Float32Array(waterBlocks.length * 6 * 6 * 3);
       let wi = 0;
-      for (let wx = 0; wx < W; wx++) {
-        for (let wz = 0; wz < D; wz++) {
-          if (!waterXZ[wx * D + wz]) continue;
-          waterBuffer[wi++] = wx;     waterBuffer[wi++] = wz;
-          waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wz;
-          waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wz + 1;
-          waterBuffer[wi++] = wx;     waterBuffer[wi++] = wz;
-          waterBuffer[wi++] = wx;     waterBuffer[wi++] = wz + 1;
-          waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wz + 1;
+
+      for (const block of waterBlocks) {
+        const { x: wx, y: wy, z: wz } = block;
+        const bx = wx + 1, by = wy + 1, bz = wz + 1; // buffer coordinates
+
+        // Top face (only if no water above)
+        const topBlock = padded[bx + (by + 1) * PW + bz * PWPH];
+        if (!isBlockWater(topBlock)) {
+          waterBuffer[wi++] = wx;     waterBuffer[wi++] = wy + 1; waterBuffer[wi++] = wz;
+          waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wy + 1; waterBuffer[wi++] = wz;
+          waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wy + 1; waterBuffer[wi++] = wz + 1;
+          waterBuffer[wi++] = wx;     waterBuffer[wi++] = wy + 1; waterBuffer[wi++] = wz;
+          waterBuffer[wi++] = wx;     waterBuffer[wi++] = wy + 1; waterBuffer[wi++] = wz + 1;
+          waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wy + 1; waterBuffer[wi++] = wz + 1;
+        }
+
+        // Check each side and render if neighbor is not water
+        // Front face (+Z)
+        const frontBlock = padded[bx + (by) * PW + (bz + 1) * PWPH];
+        if (!isBlockWater(frontBlock)) {
+          waterBuffer[wi++] = wx;     waterBuffer[wi++] = wy;     waterBuffer[wi++] = wz + 1;
+          waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wy;     waterBuffer[wi++] = wz + 1;
+          waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wy + 1; waterBuffer[wi++] = wz + 1;
+          waterBuffer[wi++] = wx;     waterBuffer[wi++] = wy;     waterBuffer[wi++] = wz + 1;
+          waterBuffer[wi++] = wx;     waterBuffer[wi++] = wy + 1; waterBuffer[wi++] = wz + 1;
+          waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wy + 1; waterBuffer[wi++] = wz + 1;
+        }
+
+        // Back face (-Z)
+        const backBlock = padded[bx + (by) * PW + (bz - 1) * PWPH];
+        if (!isBlockWater(backBlock)) {
+          waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wy;     waterBuffer[wi++] = wz;
+          waterBuffer[wi++] = wx;     waterBuffer[wi++] = wy;     waterBuffer[wi++] = wz;
+          waterBuffer[wi++] = wx;     waterBuffer[wi++] = wy + 1; waterBuffer[wi++] = wz;
+          waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wy;     waterBuffer[wi++] = wz;
+          waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wy + 1; waterBuffer[wi++] = wz;
+          waterBuffer[wi++] = wx;     waterBuffer[wi++] = wy + 1; waterBuffer[wi++] = wz;
+        }
+
+        // Right face (+X)
+        const rightBlock = padded[(bx + 1) + (by) * PW + bz * PWPH];
+        if (!isBlockWater(rightBlock)) {
+          waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wy;     waterBuffer[wi++] = wz;
+          waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wy + 1; waterBuffer[wi++] = wz;
+          waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wy + 1; waterBuffer[wi++] = wz + 1;
+          waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wy;     waterBuffer[wi++] = wz;
+          waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wy;     waterBuffer[wi++] = wz + 1;
+          waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wy + 1; waterBuffer[wi++] = wz + 1;
+        }
+
+        // Left face (-X)
+        const leftBlock = padded[(bx - 1) + (by) * PW + bz * PWPH];
+        if (!isBlockWater(leftBlock)) {
+          waterBuffer[wi++] = wx;     waterBuffer[wi++] = wy;     waterBuffer[wi++] = wz + 1;
+          waterBuffer[wi++] = wx;     waterBuffer[wi++] = wy + 1; waterBuffer[wi++] = wz + 1;
+          waterBuffer[wi++] = wx;     waterBuffer[wi++] = wy + 1; waterBuffer[wi++] = wz;
+          waterBuffer[wi++] = wx;     waterBuffer[wi++] = wy;     waterBuffer[wi++] = wz + 1;
+          waterBuffer[wi++] = wx;     waterBuffer[wi++] = wy;     waterBuffer[wi++] = wz;
+          waterBuffer[wi++] = wx;     waterBuffer[wi++] = wy + 1; waterBuffer[wi++] = wz;
+        }
+
+        // Bottom face (only if neighbor below is not water)
+        const bottomBlock = padded[bx + (by - 1) * PW + bz * PWPH];
+        if (!isBlockWater(bottomBlock)) {
+          waterBuffer[wi++] = wx;     waterBuffer[wi++] = wy; waterBuffer[wi++] = wz + 1;
+          waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wy; waterBuffer[wi++] = wz + 1;
+          waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wy; waterBuffer[wi++] = wz;
+          waterBuffer[wi++] = wx;     waterBuffer[wi++] = wy; waterBuffer[wi++] = wz + 1;
+          waterBuffer[wi++] = wx;     waterBuffer[wi++] = wy; waterBuffer[wi++] = wz;
+          waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wy; waterBuffer[wi++] = wz;
         }
       }
-      waterVertCount = wi / 2;
+      waterVertCount = wi / 3;
+      waterBuffer = waterBuffer.subarray(0, wi);
     }
 
     return {
@@ -567,17 +629,11 @@ export class Chunk {
 
           if (g_y < surfaceHeight) {
             if (Chunk._isCave(g_x, g_y, g_z, seed, surfaceHeight - g_y)) {
-              // Carved: flooded below the water table, air above it
-              if (g_y < Chunk.WATER_HEIGHT + 1) {
-                this.setBlock(x, y, z, BlockType.WATER);
-              } else {
-                this.setBlock(x, y, z, BlockType.NONE);
-              }
+              // Carved: leave as air (no automatic cave flooding)
+              this.setBlock(x, y, z, BlockType.NONE);
             } else {
               this.setBlock(x, y, z, this._generateBlockBasedOnBiome(colBiome1[ci] as BiomeType, colBiome2[ci] as BiomeType, colBiomeBlend[ci], g_x, g_y, g_z, surfaceHeight));
             }
-          } else if (g_y < Chunk.WATER_HEIGHT + 1) {
-            this.setBlock(x, y, z, BlockType.WATER);
           }
         }
       }
@@ -757,12 +813,11 @@ export class Chunk {
   _generateBlockBasedOnBiome(biome1: BiomeType, biome2: BiomeType, blend: number, p_x: number, p_y: number, p_z: number, surfaceHeight: number): BlockType {
     const biome = (blend > 0 && biome1 !== biome2 && _xzHash(p_x, p_z) < blend) ? biome2 : biome1;
     const depth = Math.floor(surfaceHeight) - p_y; // 0 = surface block, 1 = one below, etc.
-    const aboveWater = surfaceHeight > Chunk.WATER_HEIGHT;
 
     switch (biome) {
       case BiomeType.GrassyPlains: {
         if (depth === 0) {
-          return aboveWater ? BlockType.GRASS : BlockType.DIRT;
+          return BlockType.GRASS;
         }
         if (depth <= 3) {
           return BlockType.DIRT;
@@ -798,7 +853,7 @@ export class Chunk {
         // Rare snow patches on exposed peaks
         if (depth === 0) {
           const patch = Math.abs(perlinTurbulenceNoise3(p_x / 64.0, p_y / 64.0, p_z / 64.0, 2.0, 0.6, 1));
-          if (aboveWater && patch < 0.12) {
+          if (patch < 0.12) {
             return BlockType.SNOW;
           }
         }

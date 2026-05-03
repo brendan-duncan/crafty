@@ -11,7 +11,7 @@ const CAMERA_UNIFORM_SIZE = 64 * 4 + 16 + 16;
 const WATER_UNIFORM_SIZE  = 16;  // time + pad×3
 const CHUNK_UNIFORM_SIZE  = 16;  // vec3f offset + f32 pad
 
-const FLOATS_PER_VERT = 2;  // [x, z]
+const FLOATS_PER_VERT = 3;  // [x, y, z]
 const BYTES_PER_VERT  = FLOATS_PER_VERT * 4;
 
 const CHUNK_SIZE = 16;
@@ -142,7 +142,7 @@ export class WaterPass extends RenderPass {
 
     const vertexLayout: GPUVertexBufferLayout = {
       arrayStride: BYTES_PER_VERT,
-      attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x2' }],
+      attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x3' }],
     };
 
     const pipeline = device.createRenderPipeline({
