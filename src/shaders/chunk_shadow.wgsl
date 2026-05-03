@@ -31,10 +31,10 @@ struct VertexInput {
 }
 
 struct VertexOutput {
-  @builtin(position) clip_pos : vec4<f32>,
-  @location(0)       world_pos: vec3<f32>,
-  @location(1)       face_f   : f32,
-  @location(2)       block_f  : f32,
+  @builtin(position)              clip_pos : vec4<f32>,
+  @location(0)                    world_pos: vec3<f32>,
+  @location(1) @interpolate(flat) face_f   : f32,
+  @location(2) @interpolate(flat) block_f  : f32,
 }
 
 @vertex

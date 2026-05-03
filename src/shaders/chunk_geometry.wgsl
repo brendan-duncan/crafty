@@ -64,12 +64,12 @@ struct VertexInput {
 }
 
 struct VertexOutput {
-  @builtin(position) clip_pos  : vec4<f32>,
-  @location(0)       world_pos : vec3<f32>,
-  @location(1)       world_norm: vec3<f32>,
-  @location(2)       world_tan : vec4<f32>,
-  @location(3)       face_f    : f32,
-  @location(4)       block_f   : f32,
+  @builtin(position)              clip_pos  : vec4<f32>,
+  @location(0)                    world_pos : vec3<f32>,
+  @location(1)                    world_norm: vec3<f32>,
+  @location(2)                    world_tan : vec4<f32>,
+  @location(3) @interpolate(flat) face_f    : f32,
+  @location(4) @interpolate(flat) block_f   : f32,
 }
 
 @vertex
@@ -147,11 +147,11 @@ fn fs_transparent(in: VertexOutput) -> FragOutput {
 // ---- Prop billboard -------------------------------------------------------
 
 struct PropVertexOutput {
-  @builtin(position) clip_pos : vec4<f32>,
-  @location(0)       world_pos: vec3<f32>,
-  @location(1)       uv       : vec2<f32>,
-  @location(2)       block_f  : f32,
-  @location(3)       face_norm: vec3<f32>,
+  @builtin(position)              clip_pos : vec4<f32>,
+  @location(0)                    world_pos: vec3<f32>,
+  @location(1)                    uv       : vec2<f32>,
+  @location(2) @interpolate(flat) block_f  : f32,
+  @location(3)                    face_norm: vec3<f32>,
 }
 
 fn billboard_offset(vid: u32) -> vec2<f32> {
