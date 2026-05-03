@@ -413,17 +413,18 @@ These counters are updated atomically by `setBlock()` so they are always consist
 
 **Pass 1 — Terrain.** For each (X, Z) column in the chunk, the following values are precomputed once:
 
-- `temperature` — `perlinNoise3Seed(x/512, 0, z/512, seed+31337)` in [-1, 1]
-- `cont` (continentalness) — `perlinNoise3Seed(x/2048, 0, z/2048, seed)` in [-1, 1]
+- `temperature` — `perlinNoise3Seed(x/512, -5, z/512, seed+31337)` in [-1, 1]
+- `cont` (continentalness) — `perlinNoise3Seed(x/2048, 10, z/2048, seed)` in [-1, 1]
 - `colHeightMult` — `|perlinNoise3Seed(x/1024, 0, z/1024, seed) × 450| × max(0.1, (cont+1)/2)`
-- `colFlatness` — `perlinRidgeNoise3(x/256, 0, z/256, 2, 0.6, 1.2, 6) × 12`
+- `colFlatness` — `perlinRidgeNoise3(x/256, 15, z/256, 2, 0.6, 1.2, 6) × 12`
+- `colErosion` — hydraulic erosion displacement in blocks (see below); negative = valley carved, positive = fan deposited
 - `colBiome` — determined from `temperature` (see §10)
 
 For each block position `(gx, gy, gz)`:
 
 ```
 surfaceHeight = |perlinNoise3Seed(gx/256, gy/512, gz/256, seed) × colHeightMult|
-              + colFlatness
+              + colFlatness + colErosion
 ```
 
 Using `gy` in the noise input creates overhangs and caves: the noise value at a given world Y differs from its neighbors, so some Y slabs cross below the surface threshold while others stay above it.
@@ -431,6 +432,21 @@ Using `gy` in the noise input creates overhangs and caves: the noise value at a 
 The continentalness scalar `max(0.1, (cont+1)/2)` modulates terrain amplitude: ocean-like continentalness values produce nearly flat low terrain; high continentalness produces dramatic height variation.
 
 **Pass 2 — Props and trees.** After all terrain blocks are placed, a second pass over every block calls `_generateAdditionalBlocks()` to spawn trees, cactus, grass, flowers, and dead bushes on appropriate surfaces.
+
+### Hydraulic Erosion
+
+`colErosion` is supplied by `World.getErosionDisplacement(gx, gz)`, which lazily computes 128×128-block erosion regions on first access and caches them indefinitely (`src/block/erosion.ts`).
+
+**Algorithm.** Each region runs Sebastian Lague's droplet-based hydraulic erosion:
+
+1. Sample the 2D base heightmap for the region (same noise as column generation, at y=0).
+2. Simulate 4 096 water droplets. Each droplet flows downhill for up to 20 steps, eroding steep slopes (adding to a sediment budget) and depositing in flat areas.
+3. Erosion at each step is spread over a 5×5 distance-weighted brush so carved valleys are smooth rather than pixel-wide.
+4. Compute `displacement = eroded − original`. Multiply by an edge-fade factor (0→1 over the inner 12-block border) so displacement is zero at region boundaries, eliminating seams when adjacent regions join.
+
+**Parameters.** `inertia=0.05`, `sedimentCapacity=4`, `erodeSpeed=0.4`, `depositSpeed=0.3`, `evaporateSpeed=0.01`, `gravity=4`. Typical displacement range: −15 to +5 blocks.
+
+**Determinism.** The droplet PRNG is an inline LCG seeded by `worldSeed XOR hash(regionX, regionZ)`, so erosion is fully reproducible per world seed.
 
 ### Noise Functions
 
@@ -446,18 +462,34 @@ The `perlinNoise3Seed` function takes six lattice wrap parameters, which keeps n
 
 ## 10. Biome System
 
-Biome is determined per column from a single noise field (temperature):
+Biome is determined per column from a single noise field (temperature), mapped monotonically across its signed range to avoid ring-banding artifacts:
 
 ```typescript
-const v = Math.abs(temperature * 20);  // [0, 20]
-if (v > 8)   → RockyMountains
-if (v > 4)   → SnowyMountains
-if (v > 2.8) → SnowyPlains
-if (v > 0.5) → Desert
-else         → GrassyPlains
+// temperature ∈ [-1, 1]
+if (temperature > 0.35)  → Desert
+if (temperature > -0.15) → GrassyPlains
+if (temperature > -0.3)  → SnowyPlains
+if (temperature > -0.5)  → SnowyMountains
+else                     → RockyMountains
 ```
 
-Using absolute value produces a symmetric distribution — extreme high and low temperatures both yield mountains and snow, while moderate values produce plains and desert. This gives a natural band-like biome distribution across the world.
+Mapping the raw signed value produces broad, organically shaped biome regions. Using `Math.abs()` would fold positive and negative values onto the same range, creating concentric ring patterns around every noise zero-crossing.
+
+### Biome Blending
+
+Hard threshold transitions produce a visible edge where, for example, grass immediately becomes sand. Biome blending replaces this with a dithered transition band (~50 blocks wide, ≈ 3 chunks) around each threshold.
+
+**`getBiomeBlend(temperature)`** (`src/block/biome_type.ts`) returns `{ biome1, biome2, blend }`:
+- Outside any transition band: `biome1 === biome2`, `blend === 0` (pure biome, no dithering).
+- Inside a band: `biome1` = the cool-side biome, `biome2` = the warm-side biome, `blend ∈ (0, 1)`.
+
+The column precomputation stores all three values (`colBiome1`, `colBiome2`, `colBiomeBlend`). When placing each block, `_generateBlockBasedOnBiome` consults a deterministic position hash:
+
+```typescript
+const biome = _xzHash(p_x, p_z) < blend ? biome2 : biome1;
+```
+
+`_xzHash` is a Wang-hash mix of world X and Z — seed-independent, so the dither pattern is stable across world reloads. At `blend = 0.5` (the threshold itself), approximately half the columns use each biome, producing a natural scattered-block appearance (grass patches in sand, etc.) that grows into the adjacent pure biome over the transition band.
 
 ### Block Assignment Per Biome
 
@@ -748,8 +780,6 @@ The column-major matrix layout is consistent throughout: `Mat4` stores data in c
 **Structure generation.** Villages, ruins, dungeons — multi-chunk structures that span chunk boundaries. Requires a two-phase generation: place structure anchors during chunk generation, then populate surrounding chunks with structure data on first load.
 
 **Cave systems.** 3D Perlin worm caves (carver algorithm) or Voronoi-based open cave chambers. Currently the 3D height noise creates some overhangs; dedicated cave carvers would create true hollow interiors.
-
-**Biome blending.** Restore smooth biome transitions using a blend of multiple heightmap parameters at biome borders. This would eliminate hard edges between desert and plains by interpolating block type probabilities over a 4–8 chunk transition band.
 
 **River generation.** Trace rivers from high-elevation noise peaks downhill using gradient descent. Mark river cells as water; carve a channel 2–4 blocks wide and 1–2 blocks deep.
 

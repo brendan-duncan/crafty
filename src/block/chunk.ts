@@ -1,6 +1,14 @@
 import { Vec3, perlinNoise3Seed, perlinRidgeNoise3, perlinTurbulenceNoise3, Random } from '../math/index.js';
-import { BiomeType } from './biome_type.js';
+import { BiomeType, getBiomeBlend } from './biome_type.js';
 import { BlockType, isBlockWater, isBlockProp, isBlockSemiTransparent, isBlockEmittingLight } from './block_type.js';
+
+// Deterministic per-block hash for biome blend dithering — seed-independent by design.
+function _xzHash(x: number, z: number): number {
+  let h = (Math.imul(x | 0, 0x9e3779b9) ^ Math.imul(z | 0, 0x517cc1b7)) >>> 0;
+  h = Math.imul(h ^ (h >>> 16), 0x45d9f3b) >>> 0;
+  h = (h ^ (h >>> 16)) >>> 0;
+  return h / 0x100000000;
+}
 
 // Pre-loaded blocks from the 6 axis-aligned neighbor chunks.
 // Pass Uint8Array references (not copies) so getType() can index them directly.
@@ -508,7 +516,7 @@ export class Chunk {
     };
   }
 
-  generateBlocks(seed: number): void {
+  generateBlocks(seed: number, getErosion?: (gx: number, gz: number) => number): void {
     const W = Chunk.CHUNK_WIDTH;
     const H = Chunk.CHUNK_HEIGHT;
     const D = Chunk.CHUNK_DEPTH;
@@ -517,7 +525,10 @@ export class Chunk {
     // world XZ are computed once per column — ~5× fewer Perlin evaluations.
     const colHeightMult = new Float64Array(W * D);
     const colFlatness = new Float64Array(W * D);
-    const colBiome = new Uint8Array(W * D);
+    const colErosion = new Float32Array(W * D);
+    const colBiome1 = new Uint8Array(W * D);
+    const colBiome2 = new Uint8Array(W * D);
+    const colBiomeBlend = new Float32Array(W * D);
 
     for (let lz = 0; lz < D; lz++) {
       for (let lx = 0; lx < W; lx++) {
@@ -530,7 +541,11 @@ export class Chunk {
         colHeightMult[ci] = Math.abs(perlinNoise3Seed(gx / 1024.0, 0, gz / 1024.0, 0, 0, 0, seed) * 450)
                             * Math.max(0.1, (cont + 1) * 0.5);
         colFlatness[ci] = perlinRidgeNoise3(gx / 256.0, 15, gz / 256.0, 2.0, 0.6, 1.2, 6) * 12;
-        colBiome[ci] = Chunk._determineBiomeFromNoise(temperature);
+        colErosion[ci] = getErosion ? getErosion(gx, gz) : 0;
+        const bb = getBiomeBlend(temperature);
+        colBiome1[ci] = bb.biome1;
+        colBiome2[ci] = bb.biome2;
+        colBiomeBlend[ci] = bb.blend;
       }
     }
 
@@ -548,7 +563,7 @@ export class Chunk {
 
           const surfaceHeight =
             Math.abs(perlinNoise3Seed(g_x / 256.0, g_y / 512.0, g_z / 256.0, 0, 0, 0, seed) * colHeightMult[ci])
-            + colFlatness[ci];
+            + colFlatness[ci] + colErosion[ci];
 
           if (g_y < surfaceHeight) {
             if (Chunk._isCave(g_x, g_y, g_z, seed, surfaceHeight - g_y)) {
@@ -559,7 +574,7 @@ export class Chunk {
                 this.setBlock(x, y, z, BlockType.NONE);
               }
             } else {
-              this.setBlock(x, y, z, this._generateBlockBasedOnBiome(colBiome[ci] as BiomeType, g_x, g_y, g_z, surfaceHeight));
+              this.setBlock(x, y, z, this._generateBlockBasedOnBiome(colBiome1[ci] as BiomeType, colBiome2[ci] as BiomeType, colBiomeBlend[ci], g_x, g_y, g_z, surfaceHeight));
             }
           } else if (g_y < Chunk.WATER_HEIGHT + 1) {
             this.setBlock(x, y, z, BlockType.WATER);
@@ -739,7 +754,8 @@ export class Chunk {
     }
   }
 
-  _generateBlockBasedOnBiome(biome: BiomeType, p_x: number, p_y: number, p_z: number, surfaceHeight: number): BlockType {
+  _generateBlockBasedOnBiome(biome1: BiomeType, biome2: BiomeType, blend: number, p_x: number, p_y: number, p_z: number, surfaceHeight: number): BlockType {
+    const biome = (blend > 0 && biome1 !== biome2 && _xzHash(p_x, p_z) < blend) ? biome2 : biome1;
     const depth = Math.floor(surfaceHeight) - p_y; // 0 = surface block, 1 = one below, etc.
     const aboveWater = surfaceHeight > Chunk.WATER_HEIGHT;
 

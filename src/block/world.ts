@@ -2,6 +2,7 @@ import { Vec3 } from '../math/index.js';
 import { Chunk, ChunkMesh, ChunkNeighbors } from './chunk.js';
 import { BlockType, isBlockWater, isBlockProp } from './block_type.js';
 import { BiomeType } from './biome_type.js';
+import { buildErosionRegion, EROSION_REGION_SIZE } from './erosion.js';
 
 export interface RaycastResult {
   blockType: number;
@@ -26,6 +27,7 @@ export class World {
 
   private _chunks    = new Map<string, Chunk>();
   private _generated = new Set<string>();
+  private _erosionCache = new Map<string, Float32Array>();
 
   constructor(seed: number) {
     this.seed = seed;
@@ -242,6 +244,25 @@ export class World {
     return level;
   }
 
+  private _getErosionRegion(rx: number, rz: number): Float32Array {
+    const key = `${rx},${rz}`;
+    let region = this._erosionCache.get(key);
+    if (!region) {
+      region = buildErosionRegion(rx, rz, this.seed);
+      this._erosionCache.set(key, region);
+    }
+    return region;
+  }
+
+  getErosionDisplacement(gx: number, gz: number): number {
+    const R  = EROSION_REGION_SIZE;
+    const rx = Math.floor(gx / R);
+    const rz = Math.floor(gz / R);
+    const lx = ((gx % R) + R) % R;
+    const lz = ((gz % R) + R) % R;
+    return this._getErosionRegion(rx, rz)[lx + lz * R];
+  }
+
   private _insertChunk(chunk: Chunk): void {
     const [cx, cy, cz] = World.normalizeChunkPosition(
       chunk.globalPosition.x, chunk.globalPosition.y, chunk.globalPosition.z,
@@ -342,7 +363,7 @@ export class World {
       cy * Chunk.CHUNK_HEIGHT,
       cz * Chunk.CHUNK_DEPTH,
     );
-    chunk.generateBlocks(this.seed);
+    chunk.generateBlocks(this.seed, (gx, gz) => this.getErosionDisplacement(gx, gz));
     if (chunk.aliveBlocks > 0) {
       this._insertChunk(chunk);
       this.onChunkAdded?.(chunk, chunk.generateVertices(this._gatherNeighbors(cx, cy, cz)));
