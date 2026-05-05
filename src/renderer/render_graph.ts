@@ -8,7 +8,9 @@ export class RenderGraph {
     this._passes.push(pass);
   }
 
-  execute(ctx: RenderContext): void {
+  async execute(ctx: RenderContext): Promise<void> {
+    ctx.pushFrameErrorScope();
+
     const encoder = ctx.device.createCommandEncoder();
     for (const pass of this._passes) {
       if (pass.enabled) {
@@ -16,6 +18,8 @@ export class RenderGraph {
       }
     }
     ctx.queue.submit([encoder.finish()]);
+
+    await ctx.popFrameErrorScope();
   }
 
   destroy(): void {

@@ -304,7 +304,7 @@ export class WaterPass extends RenderPass {
   }
 
   private static _makeRefractionTex(device: GPUDevice, width: number, height: number): { refractionTex: GPUTexture; refractionView: GPUTextureView } {
-    const refractionTex  = device.createTexture({ label: 'WaterRefractionTex', size: { width, height }, format: HDR_FORMAT, usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING });
+    const refractionTex  = device.createTexture({ label: 'WaterRefractionTex', size: { width, height }, format: HDR_FORMAT, usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT });
     const refractionView = refractionTex.createView();
     return { refractionTex, refractionView };
   }

@@ -6,9 +6,9 @@ struct DofUniforms {
   bokeh_radius  : f32,  // max blur radius in half-res texels
   near          : f32,
   far           : f32,
-  blur_scale    : f32,  // Litecraft spiral step size (default 1.0)
   _pad1         : f32,
   _pad2         : f32,
+  _pad3         : f32,
 }
 
 @group(0) @binding(0) var<uniform> dof     : DofUniforms;
@@ -98,51 +98,6 @@ fn fs_composite(in: VertexOutput) -> @location(0) vec4<f32> {
   }
   let blurred = accum / weight;
 
-  let blend = smoothstep(0.0, 1.0, coc_px / max(dof.bokeh_radius, 0.001));
-  return vec4<f32>(mix(sharp, blurred, blend), 1.0);
-}
-
-// Litecraft-style Archimedean spiral composite.
-// Radius grows as r += blur_scale/r (uniform area density, same as Fibonacci but variable-tap).
-// Contribution is weighted by CoC comparison, preventing far blur from bleeding into near areas.
-@fragment
-fn fs_litecraft(in: VertexOutput) -> @location(0) vec4<f32> {
-  let sharp  = textureSampleLevel(hdr_tex,  samp, in.uv, 0.0).rgb;
-  let center = textureSampleLevel(half_tex, samp, in.uv, 0.0);
-  let coc_px = center.a;
-
-  if coc_px <= 0.0 {
-    return vec4<f32>(sharp, 1.0);
-  }
-
-  let texel = 1.0 / vec2<f32>(textureDimensions(half_tex));
-  let scale = max(dof.blur_scale, 0.001);
-
-  var color_accum = center;
-  var accum = 1.0;
-  var radius = scale;
-  var ang = 0.0;
-
-  for (var i = 0; i < 128; i++) {
-    if radius >= dof.bokeh_radius { break; }
-
-    let uv2 = in.uv + vec2<f32>(cos(ang), sin(ang)) * texel * radius;
-    let s = textureSampleLevel(half_tex, samp, uv2, 0.0);
-
-    var limit = abs(s.a);
-    if s.a > coc_px {
-      limit = clamp(limit, 0.0, abs(coc_px) * 2.0);
-    }
-
-    let m = smoothstep(radius - 0.5, radius + 0.5, limit);
-    color_accum += mix(color_accum / accum, s, m);
-    accum += 1.0;
-
-    ang += GOLDEN_ANGLE;
-    radius += scale / radius;
-  }
-
-  let blurred = color_accum.rgb / accum;
   let blend = smoothstep(0.0, 1.0, coc_px / max(dof.bokeh_radius, 0.001));
   return vec4<f32>(mix(sharp, blurred, blend), 1.0);
 }

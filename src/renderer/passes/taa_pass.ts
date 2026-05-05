@@ -66,7 +66,7 @@ export class TAAPass extends RenderPass {
       label: 'TAA History',
       size: { width, height },
       format: HDR_FORMAT,
-      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
     });
 
     const resolvedView = resolved.createView();

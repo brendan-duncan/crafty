@@ -442,7 +442,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
   let direct = (diffuse_brdf + specular_brdf) * light.color * light.intensity * NdotL * shad * cloud_shadow * horizon_fade;
 
   // === IBL Ambient ====================================================
-  let ao = textureSampleLevel(ao_tex, ao_samp, in.uv, 0.0).r * 10.0;
+  let ao = textureSampleLevel(ao_tex, ao_samp, in.uv, 0.0).r;
 
   // Roughness-corrected Fresnel — avoids energy gain on rough metals at grazing angles.
   let kS_ibl = fresnel_schlick_roughness(NdotV, F0, roughness);
@@ -456,7 +456,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
   let R           = reflect(-V, N);
   let prefiltered = textureSampleLevel(prefilter_cube, ibl_samp, R, roughness * (IBL_MIP_LEVELS - 1.0)).rgb;
   let brdf        = textureSampleLevel(brdf_lut, ibl_samp, vec2<f32>(NdotV, roughness), 0.0).rg;
-  let specular_ibl = prefiltered * (kS_ibl * brdf.x + brdf.y);
+  let specular_ibl = 0.0;//prefiltered * (kS_ibl * brdf.x + brdf.y);
 
   // Shadow-darken ambient during the day; at night remove shadow influence.
   let shadow_scale = mix(1.0, max(shad, 0.05), horizon_fade);

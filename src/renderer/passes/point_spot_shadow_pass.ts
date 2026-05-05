@@ -122,11 +122,12 @@ export class PointSpotShadowPass extends RenderPass {
     });
 
     // Projection texture array — default all-white (no gobo)
+    // RENDER_ATTACHMENT is required for copyTextureToTexture destination
     const projTexArray = device.createTexture({
       label: 'ProjTexArray',
       size: { width: PROJ_TEX_SIZE, height: PROJ_TEX_SIZE, depthOrArrayLayers: MAX_SHADOW_SPOT_LIGHTS },
       format: 'rgba8unorm',
-      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
     });
     // Fill all layers with white
     const whitePixels = new Uint8Array(PROJ_TEX_SIZE * PROJ_TEX_SIZE * 4).fill(255);
@@ -249,6 +250,15 @@ export class PointSpotShadowPass extends RenderPass {
     const { device } = ctx;
     const items = this._snapshot;
     this._ensureModelBuffers(device, items.length);
+
+    // Copy projection textures for ALL spotlights (not just shadow-casting ones)
+    // The index in the array corresponds to the spotlight's index in the list
+    for (let i = 0; i < this._spotLights.length && i < MAX_SHADOW_SPOT_LIGHTS; i++) {
+      const sl = this._spotLights[i];
+      if (sl.projectionTexture) {
+        this.setProjectionTexture(encoder, i, sl.projectionTexture);
+      }
+    }
 
     // Write model matrices once (same across all shadow passes)
     for (let i = 0; i < items.length; i++) {

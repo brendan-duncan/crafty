@@ -16,12 +16,8 @@ export class DofPass extends RenderPass {
   private _half    : GPUTexture;
   private _halfView: GPUTextureView;
 
-  // 0 = Crafty (48-tap Fibonacci), 1 = Litecraft (Archimedean spiral)
-  mode = 0;
-
   private _prefilterPipeline   : GPURenderPipeline;
   private _compositePipeline   : GPURenderPipeline;
-  private _litecraftPipeline   : GPURenderPipeline;
 
   private _uniformBuffer: GPUBuffer;
 
@@ -34,7 +30,6 @@ export class DofPass extends RenderPass {
     half: GPUTexture, halfView: GPUTextureView,
     prefilterPipeline: GPURenderPipeline,
     compositePipeline: GPURenderPipeline,
-    litecraftPipeline: GPURenderPipeline,
     uniformBuffer: GPUBuffer,
     prefilterBG: GPUBindGroup,
     compBG0: GPUBindGroup,
@@ -47,7 +42,6 @@ export class DofPass extends RenderPass {
     this._halfView = halfView;
     this._prefilterPipeline = prefilterPipeline;
     this._compositePipeline = compositePipeline;
-    this._litecraftPipeline = litecraftPipeline;
     this._uniformBuffer = uniformBuffer;
     this._prefilterBG   = prefilterBG;
     this._compBG0       = compBG0;
@@ -133,14 +127,6 @@ export class DofPass extends RenderPass {
       primitive: { topology: 'triangle-list' },
     });
 
-    const litecraftPipeline = device.createRenderPipeline({
-      label: 'DofLitecraftPipeline',
-      layout: device.createPipelineLayout({ bindGroupLayouts: [bgl0Composite, bgl1] }),
-      vertex:   { module: shader, entryPoint: 'vs_main' },
-      fragment: { module: shader, entryPoint: 'fs_litecraft', targets: [{ format: HDR_FORMAT }] },
-      primitive: { topology: 'triangle-list' },
-    });
-
     const prefilterBG = device.createBindGroup({
       label: 'DofPrefilterBG', layout: bgl0Prefilter,
       entries: [
@@ -167,7 +153,7 @@ export class DofPass extends RenderPass {
 
     return new DofPass(
       result, resultView, half, halfView,
-      prefilterPipeline, compositePipeline, litecraftPipeline,
+      prefilterPipeline, compositePipeline,
       uniformBuffer, prefilterBG, compBG0, compBG1,
     );
   }
@@ -207,7 +193,7 @@ export class DofPass extends RenderPass {
         label: 'DofComposite',
         colorAttachments: [{ view: this.resultView, clearValue: [0, 0, 0, 1], loadOp: 'clear', storeOp: 'store' }],
       });
-      pass.setPipeline(this.mode === 1 ? this._litecraftPipeline : this._compositePipeline);
+      pass.setPipeline(this._compositePipeline);
       pass.setBindGroup(0, this._compBG0);
       pass.setBindGroup(1, this._compBG1);
       pass.draw(3);

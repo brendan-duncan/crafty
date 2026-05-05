@@ -140,7 +140,9 @@ export class ShadowPass extends RenderPass {
     this._ensureModelBuffers(device, meshRenderers.length);
 
     for (let c = 0; c < this._cascadeCount; c++) {
-      if (c >= this._cascades.length) break;
+      if (c >= this._cascades.length) {
+        break;
+      }
       const cascade = this._cascades[c];
 
       ctx.queue.writeBuffer(this._shadowUniformBuffers[c], 0, cascade.lightViewProj.data.buffer as ArrayBuffer);
@@ -201,7 +203,11 @@ export class ShadowPass extends RenderPass {
 
   destroy(): void {
     this.shadowMap.destroy();
-    for (const buf of this._shadowUniformBuffers) buf.destroy();
-    for (const buf of this._modelUniformBuffers) buf.destroy();
+    for (const buf of this._shadowUniformBuffers) {
+      buf.destroy();
+    }
+    for (const buf of this._modelUniformBuffers) {
+      buf.destroy();
+    }
   }
 }

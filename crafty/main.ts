@@ -7,6 +7,7 @@ import merAtlasUrl from '../assets/cube_textures/simple_block_atlas_mer.png?url'
 import heightAtlasUrl from '../assets/cube_textures/simple_block_atlas_heightmap.png?url';
 import dudvUrl from '../assets/water/waterDUDV.png?url';
 import gradientUrl from '../assets/water/gradient_map.png?url';
+import flashlightUrl from '../assets/flashlight.jpg?url';
 import { Mat4, Vec3 } from '../src/math/index.js';
 import {
   GameObject, Scene, Camera, DirectionalLight, PlayerController, CameraControls,
@@ -413,7 +414,7 @@ async function main(): Promise<void> {
     throw new Error('No canvas element');
   }
 
-  const ctx = await RenderContext.create(canvas);
+  const ctx = await RenderContext.create(canvas, { enableErrorHandling: false });
   const { device } = ctx;
 
   const skyTexture = await createHdrTexture(device, parseHdr(await (await fetch(industrialUrl)).arrayBuffer()));
@@ -423,6 +424,13 @@ async function main(): Promise<void> {
   const blockTexture = await BlockTexture.load(device, colorAtlasUrl, normalAtlasUrl, merAtlasUrl, heightAtlasUrl);
   const dudvTexture = await Texture.fromUrl(device, dudvUrl);
   const gradientTexture = await Texture.fromUrl(device, gradientUrl);
+  // Resize flashlight texture to 256x256 to match PROJ_TEX_SIZE and add COPY_SRC usage
+  // TEXTURE_BINDING (0x04) | COPY_DST (0x02) | COPY_SRC (0x01) = 0x07
+  const flashlightTexture = await Texture.fromUrl(device, flashlightUrl, {
+    resizeWidth: 256,
+    resizeHeight: 256,
+    usage: 0x07,
+  });
 
   // --- Hotbar ---
 
@@ -447,6 +455,20 @@ async function main(): Promise<void> {
   cameraGO.position.set(64, 25, 64);
   const camera = cameraGO.addComponent(new Camera(70, 0.1, 1000, ctx.width / ctx.height));
   scene.add(cameraGO);
+
+  // Flashlight spotlight attached to camera
+  const flashlightGO = new GameObject('Flashlight');
+  const flashlight = flashlightGO.addComponent(new SpotLight());
+  flashlight.color = new Vec3(1.0, 0.95, 0.9); // Slightly warm white
+  flashlight.intensity = 0.0; // Start disabled
+  flashlight.range = 40.0;
+  flashlight.innerAngle = 12;
+  flashlight.outerAngle = 25;
+  flashlight.castShadow = false;
+  flashlight.projectionTexture = flashlightTexture.gpuTexture;
+  cameraGO.addChild(flashlightGO);  // Child of camera for transform inheritance
+  scene.add(flashlightGO);  // Also add to scene so it's found by getComponents(SpotLight)
+  let flashlightEnabled = false;
 
   const player = new PlayerController(world, Math.PI, 0.1);
   player.attach(canvas);
@@ -729,7 +751,7 @@ async function main(): Promise<void> {
   let graph!: RenderGraph;
   let prevViewProj: Mat4 | null = null;
 
-  function buildRenderTargets(): void {
+  async function buildRenderTargets(): Promise<void> {
     gbuffer?.destroy();
     geometryPass?.destroy();
     ssaoPass?.destroy();
@@ -799,7 +821,9 @@ async function main(): Promise<void> {
     if (effects.clouds) {
       cloudPass = CloudPass.create(ctx, lightingPass.hdrView, gbuffer.depthView, cloudNoises);
     }
+    ctx.pushInitErrorScope();
     pointSpotShadowPass = PointSpotShadowPass.create(ctx);
+    await ctx.popInitErrorScope('PointSpotShadowPass');
     pointSpotLightPass = PointSpotLightPass.create(ctx, gbuffer, pointSpotShadowPass, lightingPass.hdrView);
     taaPass = TAAPass.create(ctx, lightingPass, gbuffer);
     ssgiPass = SSGIPass.create(ctx, gbuffer, taaPass.historyView);
@@ -873,7 +897,7 @@ async function main(): Promise<void> {
     graph.addPass(compositePass);
   }
 
-  buildRenderTargets();
+  await buildRenderTargets();
 
   // Spawn player standing on the terrain surface at the starting X/Z.
   // Force-generate the vertical column before the frame loop begins, centred at y=50
@@ -946,6 +970,12 @@ async function main(): Promise<void> {
     if (e.ctrlKey && e.key === 'w') {
       e.preventDefault();
       window.location.reload();
+    }
+    // Toggle flashlight with F key
+    if (e.code === 'KeyF' && !e.repeat) {
+      flashlightEnabled = !flashlightEnabled;
+      flashlight.intensity = flashlightEnabled ? 25.0 : 0.0;
+      console.log(`Flashlight ${flashlightEnabled ? 'ON' : 'OFF'} (intensity: ${flashlight.intensity})`);
     }
   });
 
@@ -1046,9 +1076,9 @@ async function main(): Promise<void> {
   resumeBtn.addEventListener('mouseenter', () => { resumeBtn.style.background = '#243e24'; });
   resumeBtn.addEventListener('mouseleave', () => { resumeBtn.style.background = '#1a3a1a'; });
   resumeBtn.addEventListener('click', async () => {
-    if (!document.fullscreenElement) {
+    /*if (!document.fullscreenElement) {
       await document.documentElement.requestFullscreen().catch(() => {});
-    }
+    }*/
     canvas.requestPointerLock();
   });
   menuCard.appendChild(resumeBtn);
@@ -1071,7 +1101,7 @@ async function main(): Promise<void> {
   ].join(';');
   menuCard.appendChild(effectsLabel);
 
-  createControlPanel(effects, (key) => {
+  createControlPanel(effects, async (key) => {
     if (key === 'ssao') return;
     if (key === 'ssgi') return;
     if (key === 'shadows') return;
@@ -1081,36 +1111,10 @@ async function main(): Promise<void> {
     if (key === 'hdr') return;
     if (key === 'auto_exp') { autoExposurePass.enabled = effects.auto_exp; return; }
     if (key === 'fog') { compositePass.depthFogEnabled = effects.fog; return; }
-    if (key === 'rain') { buildRenderTargets(); return; }
-    if (key === 'clouds') { buildRenderTargets(); return; }
-    buildRenderTargets();
+    if (key === 'rain') { await buildRenderTargets(); return; }
+    if (key === 'clouds') { await buildRenderTargets(); return; }
+    await buildRenderTargets();
   }, menuCard);
-
-  // DoF mode selector — switches between the two composite algorithms
-  const dofModeRow = document.createElement('div');
-  dofModeRow.style.cssText = 'display:flex;align-items:center;gap:8px;font-family:ui-monospace,monospace;font-size:13px;user-select:none';
-  const dofModeLabel = document.createElement('span');
-  dofModeLabel.textContent = 'DOF';
-  dofModeLabel.style.cssText = 'color:rgba(255,255,255,0.5);letter-spacing:0.05em';
-  dofModeRow.appendChild(dofModeLabel);
-
-  const DOF_MODES = ['CRAFTY', 'LITECRAFT'] as const;
-  const SEL_STYLE  = 'background:#1a2e1a;color:#5f5;border-color:#5f5';
-  const UNSEL_STYLE = 'background:#222;color:#888;border-color:#555';
-  const dofModeBtns = DOF_MODES.map((label, i) => {
-    const btn = document.createElement('button');
-    btn.textContent = label;
-    btn.style.cssText = `padding:4px 10px;border-width:1px;border-style:solid;border-radius:4px;cursor:pointer;letter-spacing:0.04em;${i === 0 ? SEL_STYLE : UNSEL_STYLE}`;
-    btn.addEventListener('click', () => {
-      if (dofPass) {
-        dofPass.mode = i;
-      }
-      dofModeBtns.forEach((b, j) => b.setAttribute('style', `padding:4px 10px;border-width:1px;border-style:solid;border-radius:4px;cursor:pointer;letter-spacing:0.04em;${j === i ? SEL_STYLE : UNSEL_STYLE}`));
-    });
-    dofModeRow.appendChild(btn);
-    return btn;
-  });
-  menuCard.appendChild(dofModeRow);
 
   hotbar.setOnSelectionChanged(refreshSlotHighlight);
 
@@ -1157,7 +1161,7 @@ async function main(): Promise<void> {
     }
   });
 
-  const resizeObserver = new ResizeObserver(() => {
+  const resizeObserver = new ResizeObserver(async () => {
     const w = Math.max(1, Math.round(canvas.clientWidth  * devicePixelRatio));
     const h = Math.max(1, Math.round(canvas.clientHeight * devicePixelRatio));
     if (w === canvas.width && h === canvas.height) {
@@ -1165,7 +1169,7 @@ async function main(): Promise<void> {
     }
     canvas.width  = w;
     canvas.height = h;
-    buildRenderTargets();
+    await buildRenderTargets();
   });
   resizeObserver.observe(canvas);
 
@@ -1202,8 +1206,8 @@ async function main(): Promise<void> {
   let frameIndex = 0;
   let cloudWindX = 0;
   let cloudWindZ = 0;
-  let cloudCoverage = getBiomeCloudCoverage(world.getBiomeAt(cameraGO.position.x, cameraGO.position.z));
-  const _initBounds = getBiomeCloudBounds(world.getBiomeAt(cameraGO.position.x, cameraGO.position.z));
+  let cloudCoverage = getBiomeCloudCoverage(world.getBiomeAt(cameraGO.position.x, cameraGO.position.y, cameraGO.position.z));
+  const _initBounds = getBiomeCloudBounds(world.getBiomeAt(cameraGO.position.x, cameraGO.position.y, cameraGO.position.z));
   let cloudBase = _initBounds.cloudBase;
   let cloudTop  = _initBounds.cloudTop;
 
@@ -1212,7 +1216,8 @@ async function main(): Promise<void> {
   // Identity matrix with mutable translation (col 3 = [tx, ty, tz, 1]).
   const _rainMat = new Mat4([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]);
 
-  function frame(time: number): void {
+  async function frame(time: number): Promise<void> {
+    ctx.pushPassErrorScope('frame');
     const dt = Math.min((time - lastTime) / 1000, 0.1);
     lastTime = time;
     const updateHud = time - lastHudUpdate >= 1000;
@@ -1262,7 +1267,7 @@ async function main(): Promise<void> {
     const weatherEffect = getBiomeEnvironmentEffect(biome);
     if (weatherEffect !== currentWeatherEffect) {
       currentWeatherEffect = weatherEffect;
-      buildRenderTargets();
+      await buildRenderTargets();
     }
 
     const targetCloudCoverage = getBiomeCloudCoverage(biome);
@@ -1395,7 +1400,10 @@ async function main(): Promise<void> {
     prevViewProj = vp;
     frameIndex++;
 
-    graph.execute(ctx);
+    await graph.execute(ctx);
+
+    await ctx.popPassErrorScope('frame');
+
     requestAnimationFrame(frame);
   }
 

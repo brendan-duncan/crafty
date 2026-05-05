@@ -32,12 +32,14 @@ export class Texture {
 
   // Create from an ImageBitmap (e.g. from createImageBitmap).
   // srgb=true uses rgba8unorm-srgb so the GPU automatically linearises on sample.
-  static fromBitmap(device: GPUDevice, bitmap: ImageBitmap, { srgb = false } = {}): Texture {
+  // usage: custom usage flags (defaults to standard binding/copy/render)
+  static fromBitmap(device: GPUDevice, bitmap: ImageBitmap, { srgb = false, usage }: { srgb?: boolean; usage?: GPUTextureUsageFlags } = {}): Texture {
     const format: GPUTextureFormat = srgb ? 'rgba8unorm-srgb' : 'rgba8unorm';
+    usage = usage ? usage | (GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT) : (GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT);
     const tex = device.createTexture({
       size: { width: bitmap.width, height: bitmap.height },
       format,
-      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+      usage: usage,
     });
     device.queue.copyExternalImageToTexture(
       { source: bitmap, flipY: false },
@@ -49,9 +51,17 @@ export class Texture {
 
   // Fetch an image URL and upload it as a GPU texture.
   // Use srgb=true for albedo/colour maps; keep false for normal/ORM maps.
-  static async fromUrl(device: GPUDevice, url: string, options: { srgb?: boolean } = {}): Promise<Texture> {
+  // resizeWidth/resizeHeight: optional dimensions to resize the image to
+  // usage: custom usage flags (e.g., add COPY_SRC for copyTextureToTexture)
+  static async fromUrl(device: GPUDevice, url: string, options: { srgb?: boolean; resizeWidth?: number; resizeHeight?: number; usage?: GPUTextureUsageFlags } = {}): Promise<Texture> {
     const blob = await (await fetch(url)).blob();
-    const bitmap = await createImageBitmap(blob, { colorSpaceConversion: 'none' });
+    const bitmapOptions: ImageBitmapOptions = { colorSpaceConversion: 'none' };
+    if (options.resizeWidth !== undefined && options.resizeHeight !== undefined) {
+      bitmapOptions.resizeWidth = options.resizeWidth;
+      bitmapOptions.resizeHeight = options.resizeHeight;
+      bitmapOptions.resizeQuality = 'high';
+    }
+    const bitmap = await createImageBitmap(blob, bitmapOptions);
     return Texture.fromBitmap(device, bitmap, options);
   }
 }

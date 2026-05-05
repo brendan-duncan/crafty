@@ -1,3 +1,7 @@
+export interface RenderContextOptions {
+  enableErrorHandling?: boolean;
+}
+
 export class RenderContext {
   readonly device: GPUDevice;
   readonly queue: GPUQueue;
@@ -5,6 +9,7 @@ export class RenderContext {
   readonly format: GPUTextureFormat;
   readonly canvas: HTMLCanvasElement;
   readonly hdr: boolean;
+  readonly enableErrorHandling: boolean;
 
   private constructor(
     device: GPUDevice,
@@ -12,6 +17,7 @@ export class RenderContext {
     format: GPUTextureFormat,
     canvas: HTMLCanvasElement,
     hdr: boolean,
+    enableErrorHandling: boolean,
   ) {
     this.device = device;
     this.queue = device.queue;
@@ -19,12 +25,13 @@ export class RenderContext {
     this.format = format;
     this.canvas = canvas;
     this.hdr = hdr;
+    this.enableErrorHandling = enableErrorHandling;
   }
 
   get width(): number { return this.canvas.width; }
   get height(): number { return this.canvas.height; }
 
-  static async create(canvas: HTMLCanvasElement): Promise<RenderContext> {
+  static async create(canvas: HTMLCanvasElement, options: RenderContextOptions = {}): Promise<RenderContext> {
     if (!navigator.gpu) {
       throw new Error('WebGPU not supported');
     }
@@ -38,6 +45,20 @@ export class RenderContext {
       requiredFeatures: [],
     });
 
+    if (options.enableErrorHandling) {
+      device.addEventListener('uncapturederror', (event) => {
+        const err = event.error;
+        if (err instanceof GPUValidationError) {
+          console.error('[WebGPU Validation Error]', err.message);
+        } else if (err instanceof GPUOutOfMemoryError) {
+          console.error('[WebGPU Out of Memory]');
+        } else {
+          console.error('[WebGPU Internal Error]', err);
+        }
+      });
+
+    }
+    
     const context = canvas.getContext('webgpu') as GPUCanvasContext;
 
     // Attempt HDR canvas: rgba16float + display-p3 + extended tonemapping.
@@ -62,7 +83,7 @@ export class RenderContext {
     canvas.width = canvas.clientWidth * devicePixelRatio;
     canvas.height = canvas.clientHeight * devicePixelRatio;
 
-    return new RenderContext(device, context, format, canvas, hdr);
+    return new RenderContext(device, context, format, canvas, hdr, options.enableErrorHandling ?? false);
   }
 
   getCurrentTexture(): GPUTexture {
@@ -78,6 +99,63 @@ export class RenderContext {
       this.queue.writeBuffer(buffer, offset, data);
     } else {
       this.queue.writeBuffer(buffer, offset, data.buffer as ArrayBuffer, data.byteOffset, data.byteLength);
+    }
+  }
+
+  pushInitErrorScope(): void {
+    if (this.enableErrorHandling) {
+      this.device.pushErrorScope('validation');
+    }
+  }
+
+  async popInitErrorScope(label: string): Promise<void> {
+    if (this.enableErrorHandling) {
+      const validationError = await this.device.popErrorScope();
+      if (validationError) {
+        console.error(`[Init:${label}] Validation Error:`, validationError.message);
+        console.trace();
+      }
+    }
+  }
+
+  pushFrameErrorScope(): void {
+    if (this.enableErrorHandling) {
+      this.device.pushErrorScope('validation');
+    }
+  }
+
+  async popFrameErrorScope(): Promise<void> {
+    if (this.enableErrorHandling) {
+      const validationError = await this.device.popErrorScope();
+      if (validationError) {
+        console.error('[Frame] Validation Error:', validationError.message);
+        console.trace();
+      }
+    }
+  }
+
+  pushPassErrorScope(passName: string): void {
+    if (this.enableErrorHandling) {
+      this.device.pushErrorScope('validation');
+      this.device.pushErrorScope('out-of-memory');
+      this.device.pushErrorScope('internal');
+    }
+  }
+
+  async popPassErrorScope(passName: string): Promise<void> {
+    if (this.enableErrorHandling) {
+      const internalError = await this.device.popErrorScope();
+      if (internalError) {
+        console.error(`[${passName}] Internal Error:`, internalError);
+      }
+      const oomError = await this.device.popErrorScope();
+      if (oomError) {
+        console.error(`[${passName}] Out of Memory`);
+      }
+      const validationError = await this.device.popErrorScope();
+      if (validationError) {
+        console.error(`[${passName}] Validation Error:`, validationError.message);
+      }
     }
   }
 }
