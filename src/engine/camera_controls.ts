@@ -75,12 +75,28 @@ export class CameraControls {
     // Horizontal forward = (-sinY, 0, -cosY); right = (cosY, 0, -sinY)
     let dx = 0, dy = 0, dz = 0;
 
-    if (this._keys.has('KeyW') || this._keys.has('ArrowUp'))    { dx -= sinY; dz -= cosY; }
-    if (this._keys.has('KeyS') || this._keys.has('ArrowDown'))  { dx += sinY; dz += cosY; }
-    if (this._keys.has('KeyA') || this._keys.has('ArrowLeft'))  { dx -= cosY; dz += sinY; }
-    if (this._keys.has('KeyD') || this._keys.has('ArrowRight')) { dx += cosY; dz -= sinY; }
-    if (this._keys.has('Space'))                                 dy += 1;
-    if (this._keys.has('ShiftLeft'))                             dy -= 1;
+    if (this._keys.has('KeyW') || this._keys.has('ArrowUp')) {
+      dx -= sinY;
+      dz -= cosY;
+    }
+    if (this._keys.has('KeyS') || this._keys.has('ArrowDown')) {
+      dx += sinY;
+      dz += cosY;
+    }
+    if (this._keys.has('KeyA') || this._keys.has('ArrowLeft')) {
+      dx -= cosY;
+      dz += sinY;
+    }
+    if (this._keys.has('KeyD') || this._keys.has('ArrowRight')) {
+      dx += cosY;
+      dz -= sinY;
+    }
+    if (this._keys.has('Space')) {
+      dy += 1;
+    }
+    if (this._keys.has('ShiftLeft')) {
+      dy -= 1;
+    }
 
     const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
     if (len > 0) {

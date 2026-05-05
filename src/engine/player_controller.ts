@@ -110,11 +110,15 @@ export class PlayerController {
 
     if (inWater) {
       // Space swims upward; no jump off the ground required.
-      if (this._keys.has('Space')) this._velY = SWIM_VEL;
+      if (this._keys.has('Space')) {
+        this._velY = SWIM_VEL;
+      }
       this._velY = Math.max(this._velY + WATER_GRAVITY * dt, -2);
     } else {
       // Kill residual upward swim velocity on the first frame out of water.
-      if (this._prevInWater && this._velY > 0) this._velY = 0;
+      if (this._prevInWater && this._velY > 0) {
+        this._velY = 0;
+      }
 
       // Jump: on ground OR within coyote window (preserves jump ability briefly
       // after leaving ground, including when swimming up off the pool floor).
@@ -129,7 +133,9 @@ export class PlayerController {
     fx = this._slideX(fx + mx * dt, fy, fz, mx);
     fz = this._slideZ(fx, fy, fz + mz * dt, mz);
     const [newFY, landed, headBump] = this._slideY(fx, fy + this._velY * dt, fz);
-    if (landed || headBump) this._velY = 0;
+    if (landed || headBump) {
+      this._velY = 0;
+    }
     fy = newFY;
     this._onGround   = landed;
     this._prevInWater = inWater;
@@ -154,7 +160,9 @@ export class PlayerController {
 
   // Slide along X: only checks the leading face against blocks on the Y/Z span.
   private _slideX(newFX: number, fy: number, fz: number, dx: number): number {
-    if (Math.abs(dx) < 1e-6) return newFX;
+    if (Math.abs(dx) < 1e-6) {
+      return newFX;
+    }
     const xEdge = dx > 0 ? newFX + HALF_W : newFX - HALF_W;
     const bx    = Math.floor(xEdge);
     const yLo   = Math.floor(fy + 0.01);
@@ -172,7 +180,9 @@ export class PlayerController {
 
   // Slide along Z: only checks the leading face against blocks on the X/Y span.
   private _slideZ(fx: number, fy: number, newFZ: number, dz: number): number {
-    if (Math.abs(dz) < 1e-6) return newFZ;
+    if (Math.abs(dz) < 1e-6) {
+      return newFZ;
+    }
     const zEdge = dz > 0 ? newFZ + HALF_W : newFZ - HALF_W;
     const bz    = Math.floor(zEdge);
     const yLo   = Math.floor(fy + 0.01);

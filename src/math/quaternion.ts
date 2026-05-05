@@ -60,7 +60,9 @@ export class Quaternion {
       cosHalfTheta = -cosHalfTheta;
       bx=-bx; by=-by; bz=-bz; bw=-bw;
     }
-    if (cosHalfTheta >= 1) return this.clone();
+    if (cosHalfTheta >= 1) {
+      return this.clone();
+    }
     const halfTheta = Math.acos(cosHalfTheta);
     const sinHalfTheta = Math.sqrt(1 - cosHalfTheta*cosHalfTheta);
     if (Math.abs(sinHalfTheta) < 0.001) {

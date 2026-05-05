@@ -325,7 +325,9 @@ export class WorldShadowPass extends RenderPass {
   }
 
   destroy(): void {
-    for (const buf of this._cascadeBuffers) buf.destroy();
+    for (const buf of this._cascadeBuffers) {
+      buf.destroy();
+    }
     for (const gpu of this._chunks.values()) {
       gpu.opaqueBuffer?.destroy();
       gpu.transparentBuffer?.destroy();

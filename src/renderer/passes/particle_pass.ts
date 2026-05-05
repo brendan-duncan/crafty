@@ -140,7 +140,9 @@ export class ParticlePass extends RenderPass {
     });
     // Initialize all life fields to -1.0 (dead). Particle struct: life is at float index 3.
     const initData = new Float32Array(maxParticles * (PARTICLE_STRIDE / 4));
-    for (let i = 0; i < maxParticles; i++) initData[i * 16 + 3] = -1.0;
+    for (let i = 0; i < maxParticles; i++) {
+      initData[i * 16 + 3] = -1.0;
+    }
     device.queue.writeBuffer(particleBuffer, 0, initData.buffer as ArrayBuffer);
 
     const aliveList = device.createBuffer({
@@ -541,7 +543,9 @@ export class ParticlePass extends RenderPass {
     compute.setPipeline(this._updatePipeline);
     compute.setBindGroup(0, this._computeDataBG);
     compute.setBindGroup(1, this._computeUniBG);
-    if (this._heightmapBG) compute.setBindGroup(2, this._heightmapBG);
+    if (this._heightmapBG) {
+      compute.setBindGroup(2, this._heightmapBG);
+    }
     compute.dispatchWorkgroups(Math.ceil(this._maxParticles / 64));
 
     // Compact: scan all slots, rebuild alive_list and indirect instanceCount.

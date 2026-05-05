@@ -28,7 +28,9 @@ export class GameObject {
 
   getComponent<T extends Component>(ctor: new (...args: never[]) => T): T | null {
     for (const c of this._components) {
-      if (c instanceof ctor) return c as T;
+      if (c instanceof ctor) {
+        return c as T;
+      }
     }
     return null;
   }
@@ -56,12 +58,18 @@ export class GameObject {
       this.rotation.x, this.rotation.y, this.rotation.z, this.rotation.w,
       this.scale,
     );
-    if (this.parent) return this.parent.localToWorld().multiply(local);
+    if (this.parent) {
+      return this.parent.localToWorld().multiply(local);
+    }
     return local;
   }
 
   update(dt: number): void {
-    for (const c of this._components) c.update(dt);
-    for (const child of this.children) child.update(dt);
+    for (const c of this._components) {
+      c.update(dt);
+    }
+    for (const child of this.children) {
+      child.update(dt);
+    }
   }
 }

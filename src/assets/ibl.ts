@@ -85,17 +85,27 @@ function encodeF16(v: number): number {
   const sign     = (u32 >> 31) & 1;
   const exponent = (u32 >> 23) & 0xff;
   const mantissa = u32 & 0x7fffff;
-  if (exponent === 0xff) return (sign << 15) | 0x7c00 | (mantissa ? 1 : 0);
-  if (exponent === 0)    return (sign << 15);
+  if (exponent === 0xff) {
+    return (sign << 15) | 0x7c00 | (mantissa ? 1 : 0);
+  }
+  if (exponent === 0) {
+    return (sign << 15);
+  }
   const e16 = exponent - 127 + 15;
-  if (e16 >= 0x1f) return (sign << 15) | 0x7c00;
-  if (e16 <= 0)    return (sign << 15);
+  if (e16 >= 0x1f) {
+    return (sign << 15) | 0x7c00;
+  }
+  if (e16 <= 0) {
+    return (sign << 15);
+  }
   return (sign << 15) | (e16 << 10) | (mantissa >> 13);
 }
 
 function toF16(src: Float32Array): Uint16Array {
   const dst = new Uint16Array(src.length);
-  for (let i = 0; i < src.length; i++) dst[i] = encodeF16(src[i]);
+  for (let i = 0; i < src.length; i++) {
+    dst[i] = encodeF16(src[i]);
+  }
   return dst;
 }
 
@@ -103,7 +113,9 @@ const _brdfCache = new WeakMap<GPUDevice, GPUTexture>();
 
 function getOrCreateBrdfLut(device: GPUDevice): GPUTexture {
   const cached = _brdfCache.get(device);
-  if (cached) return cached;
+  if (cached) {
+    return cached;
+  }
   const data = toF16(computeBrdfLutData(64, 64, 512));
   const tex  = device.createTexture({
     label: 'IBL BRDF LUT', size: { width: 64, height: 64 },
@@ -134,7 +146,9 @@ const _pipelineCache = new WeakMap<GPUDevice, IblPipelines>();
 
 function getOrCreatePipelines(device: GPUDevice): IblPipelines {
   const cached = _pipelineCache.get(device);
-  if (cached) return cached;
+  if (cached) {
+    return cached;
+  }
 
   const bgl0 = device.createBindGroupLayout({
     label: 'IblBGL0',

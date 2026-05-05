@@ -167,13 +167,23 @@ export class CompositePass extends RenderPass {
     const u   = new Uint32Array(buf);
 
     let fogFlags = 0;
-    if (this.depthFogEnabled)  fogFlags |= 1;
-    if (this.heightFogEnabled) fogFlags |= 2;
+    if (this.depthFogEnabled) {
+      fogFlags |= 1;
+    }
+    if (this.heightFogEnabled) {
+      fogFlags |= 2;
+    }
 
     let tonemapFlags = 0;
-    if (aces)     tonemapFlags |= 1;
-    if (debugAO)  tonemapFlags |= 2;
-    if (hdrCanvas) tonemapFlags |= 4;
+    if (aces) {
+      tonemapFlags |= 1;
+    }
+    if (debugAO) {
+      tonemapFlags |= 2;
+    }
+    if (hdrCanvas) {
+      tonemapFlags |= 4;
+    }
 
     f[0]  = this.fogColor[0];
     f[1]  = this.fogColor[1];

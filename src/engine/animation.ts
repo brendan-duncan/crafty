@@ -20,7 +20,9 @@ function lerpN(
   t: number, n: number,
   out: Float32Array, oi: number,
 ): void {
-  for (let k = 0; k < n; k++) out[oi + k] = a[ai + k] + (b[bi + k] - a[ai + k]) * t;
+  for (let k = 0; k < n; k++) {
+    out[oi + k] = a[ai + k] + (b[bi + k] - a[ai + k]) * t;
+  }
 }
 
 function slerpQuat(
@@ -57,7 +59,11 @@ function findKeyframe(times: Float32Array, t: number): number {
   let lo = 0, hi = times.length - 2;
   while (lo < hi) {
     const mid = (lo + hi + 1) >> 1;
-    if (times[mid] <= t) lo = mid; else hi = mid - 1;
+    if (times[mid] <= t) {
+      lo = mid;
+    } else {
+      hi = mid - 1;
+    }
   }
   return lo;
 }
@@ -86,14 +92,18 @@ export function sampleClip(
     // Clamp to first keyframe
     if (time <= times[0]) {
       const base = interpolation === 'CUBICSPLINE' ? n : 0;
-      for (let k = 0; k < n; k++) outArr[oi + k] = values[base + k];
+      for (let k = 0; k < n; k++) {
+        outArr[oi + k] = values[base + k];
+      }
       continue;
     }
     // Clamp to last keyframe
     if (time >= times[times.length - 1]) {
       const stride = interpolation === 'CUBICSPLINE' ? n * 3 : n;
       const base   = (times.length - 1) * stride + (interpolation === 'CUBICSPLINE' ? n : 0);
-      for (let k = 0; k < n; k++) outArr[oi + k] = values[base + k];
+      for (let k = 0; k < n; k++) {
+        outArr[oi + k] = values[base + k];
+      }
       continue;
     }
 
@@ -102,7 +112,9 @@ export function sampleClip(
     const alpha = (time - t0) / (t1 - t0);
 
     if (interpolation === 'STEP') {
-      for (let k = 0; k < n; k++) outArr[oi + k] = values[i * n + k];
+      for (let k = 0; k < n; k++) {
+        outArr[oi + k] = values[i * n + k];
+      }
     } else if (interpolation === 'CUBICSPLINE') {
       // Layout: [inTangent(n), value(n), outTangent(n)] per keyframe
       const stride = n * 3;

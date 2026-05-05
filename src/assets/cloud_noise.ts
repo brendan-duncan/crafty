@@ -99,7 +99,9 @@ function worleyTile(px: number, py: number, pz: number, freq: number, seed: numb
         const fpz = cz + hashS(w(cx), w(cy), w(cz), seed + 2);
         const ddx = fx - fpx, ddy = fy - fpy, ddz = fz - fpz;
         const d2 = ddx * ddx + ddy * ddy + ddz * ddz;
-        if (d2 < minD2) minD2 = d2;
+        if (d2 < minD2) {
+          minD2 = d2;
+        }
       }
     }
   }

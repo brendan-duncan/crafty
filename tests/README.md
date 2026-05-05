@@ -23,7 +23,6 @@ npm run test:coverage
 - `tests/math/` - Tests for math utilities (Vec3, Mat4, etc.)
 - `tests/block/` - Tests for block types and materials
 - `tests/utils/` - Tests for utility functions (halton sequence, etc.)
-- `tests/samples/` - Visual test samples (cube_test, etc.)
 
 ## Writing Tests
 

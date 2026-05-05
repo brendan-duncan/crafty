@@ -373,7 +373,11 @@ export class PointSpotShadowPass extends RenderPass {
     this._projTexArray.destroy();
     this._pointDepth.destroy();
     this._spotDepth.destroy();
-    for (const buf of this._shadowBufs) buf.destroy();
-    for (const buf of this._modelBufs)  buf.destroy();
+    for (const buf of this._shadowBufs) {
+      buf.destroy();
+    }
+    for (const buf of this._modelBufs) {
+      buf.destroy();
+    }
   }
 }

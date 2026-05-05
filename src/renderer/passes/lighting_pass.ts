@@ -289,7 +289,9 @@ export class LightingPass extends RenderPass {
     data[o++] = color.x; data[o++] = color.y; data[o++] = color.z;
     new Uint32Array(data.buffer)[o++] = cascades.length;
     for (let i = 0; i < 4; i++) {
-      if (i < cascades.length) data.set(cascades[i].lightViewProj.data, o);
+      if (i < cascades.length) {
+        data.set(cascades[i].lightViewProj.data, o);
+      }
       o += 16;
     }
     for (let i = 0; i < 4; i++) {

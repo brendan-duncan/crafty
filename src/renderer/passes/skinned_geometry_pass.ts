@@ -292,9 +292,15 @@ export class SkinnedGeometryPass extends RenderPass {
 
   destroy(): void {
     this._cameraBuffer.destroy();
-    for (const b of this._modelBuffers)    b.destroy();
-    for (const b of this._jointBuffers)    b?.destroy();
-    for (const b of this._materialBuffers) b.destroy();
+    for (const b of this._modelBuffers) {
+      b.destroy();
+    }
+    for (const b of this._jointBuffers) {
+      b?.destroy();
+    }
+    for (const b of this._materialBuffers) {
+      b.destroy();
+    }
     this._whiteTex.destroy();
     this._flatNormalTex.destroy();
     this._merDefaultTex.destroy();

@@ -14,10 +14,14 @@ export function parseHdr(buffer: ArrayBuffer): HdrData {
   function readAsciiLine(): string {
     let s = '';
     while (pos < bytes.length && bytes[pos] !== 0x0a) {
-      if (bytes[pos] !== 0x0d) s += String.fromCharCode(bytes[pos]);
+      if (bytes[pos] !== 0x0d) {
+        s += String.fromCharCode(bytes[pos]);
+      }
       pos++;
     }
-    if (pos < bytes.length) pos++; // consume LF
+    if (pos < bytes.length) {
+      pos++; // consume LF
+    }
     return s;
   }
 
@@ -37,7 +41,9 @@ export function parseHdr(buffer: ArrayBuffer): HdrData {
   // Resolution line: -Y height +X width
   const resLine = readAsciiLine();
   const m = resLine.match(/-Y\s+(\d+)\s+\+X\s+(\d+)/);
-  if (!m) throw new Error(`Unrecognized HDR resolution: "${resLine}"`);
+  if (!m) {
+    throw new Error(`Unrecognized HDR resolution: "${resLine}"`);
+  }
   const height = parseInt(m[1], 10);
   const width  = parseInt(m[2], 10);
 
@@ -113,7 +119,9 @@ export function parseHdr(buffer: ArrayBuffer): HdrData {
     const r = bytes[pos++], g = bytes[pos++], b = bytes[pos++], e = bytes[pos++];
     if (r === 2 && g === 2 && (b & 0x80) === 0) {
       const sw = (b << 8) | e;
-      if (sw !== width) throw new Error(`HDR scanline width mismatch: ${sw} vs ${width}`);
+      if (sw !== width) {
+        throw new Error(`HDR scanline width mismatch: ${sw} vs ${width}`);
+      }
       readNewScanline(y);
     } else {
       readOldScanline(y, r, g, b, e);
@@ -135,7 +143,9 @@ const _decodeCache = new WeakMap<GPUDevice, DecodeResources>();
 
 function getOrCreateDecodeResources(device: GPUDevice): DecodeResources {
   const cached = _decodeCache.get(device);
-  if (cached) return cached;
+  if (cached) {
+    return cached;
+  }
 
   const srcBGL = device.createBindGroupLayout({
     label: 'RgbeSrcBGL',

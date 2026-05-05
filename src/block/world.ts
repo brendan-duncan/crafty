@@ -68,7 +68,9 @@ export class World {
 
   getBlockType(wx: number, wy: number, wz: number): number {
     const chunk = this.getChunk(wx, wy, wz);
-    if (!chunk) return BlockType.NONE;
+    if (!chunk) {
+      return BlockType.NONE;
+    }
     const rx = Math.round(wx) - chunk.globalPosition.x;
     const ry = Math.round(wy) - chunk.globalPosition.y;
     const rz = Math.round(wz) - chunk.globalPosition.z;
@@ -106,7 +108,9 @@ export class World {
       const rz = bz - chunk.globalPosition.z;
       for (let ry = H - 1; ry >= 0; ry--) {
         const bt = chunk.getBlock(rx, ry, rz);
-        if (bt !== BlockType.NONE && !isBlockProp(bt)) return chunk.globalPosition.y + ry + 1;
+        if (bt !== BlockType.NONE && !isBlockProp(bt)) {
+          return chunk.globalPosition.y + ry + 1;
+        }
       }
     }
     return 0;
@@ -170,13 +174,19 @@ export class World {
   }
 
   addBlock(gX: number, gY: number, gZ: number, faceX: number, faceY: number, faceZ: number, blockType: number): boolean {
-    if (blockType === BlockType.NONE) return false;
+    if (blockType === BlockType.NONE) {
+      return false;
+    }
 
     const hitChunk = this.getChunk(gX, gY, gZ);
-    if (!hitChunk) return false;
+    if (!hitChunk) {
+      return false;
+    }
 
     const hitBlockType = this.getBlockType(gX, gY, gZ);
-    if (isBlockProp(hitBlockType)) return false;
+    if (isBlockProp(hitBlockType)) {
+      return false;
+    }
 
     const newX = gX + faceX;
     const newY = gY + faceY;
@@ -187,10 +197,14 @@ export class World {
     // Allow placing water in water, or replacing air/water with any block
     if (isBlockWater(blockType)) {
       // Water can be placed in air or water
-      if (existing !== BlockType.NONE && !isBlockWater(existing)) return false;
+      if (existing !== BlockType.NONE && !isBlockWater(existing)) {
+        return false;
+      }
     } else {
       // Other blocks can replace air or water
-      if (existing !== BlockType.NONE && !isBlockWater(existing)) return false;
+      if (existing !== BlockType.NONE && !isBlockWater(existing)) {
+        return false;
+      }
     }
 
     let targetChunk = this.getChunk(newX, newY, newZ);
@@ -211,14 +225,18 @@ export class World {
 
   mineBlock(gX: number, gY: number, gZ: number): boolean {
     const chunk = this.getChunk(gX, gY, gZ);
-    if (!chunk) return false;
+    if (!chunk) {
+      return false;
+    }
 
     const rx = gX - chunk.globalPosition.x;
     const ry = gY - chunk.globalPosition.y;
     const rz = gZ - chunk.globalPosition.z;
 
     const blockType = chunk.getBlock(rx, ry, rz);
-    if (blockType === BlockType.NONE) return false;
+    if (blockType === BlockType.NONE) {
+      return false;
+    }
 
     // Allow mining water blocks (just removes them)
     if (isBlockWater(blockType)) {
@@ -258,7 +276,9 @@ export class World {
 
   calcWaterLevel(wx: number, wy: number, wz: number): number {
     const chunk = this.getChunk(wx, wy, wz);
-    if (!chunk || chunk.waterBlocks <= 0) return 0;
+    if (!chunk || chunk.waterBlocks <= 0) {
+      return 0;
+    }
 
     let level = this._calcWaterLevelInChunk(chunk, wy);
 
@@ -284,10 +304,18 @@ export class World {
     const base = chunk.globalPosition.y;
     const H = Chunk.CHUNK_HEIGHT;
     let level = 0;
-    if (wy <= base + H * 0.8) level++;
-    if (wy <= base + H * 0.7) level++;
-    if (wy <= base + H * 0.6) level++;
-    if (wy <= base + H * 0.5) level++;
+    if (wy <= base + H * 0.8) {
+      level++;
+    }
+    if (wy <= base + H * 0.7) {
+      level++;
+    }
+    if (wy <= base + H * 0.6) {
+      level++;
+    }
+    if (wy <= base + H * 0.5) {
+      level++;
+    }
     return level;
   }
 
@@ -347,12 +375,24 @@ export class World {
       return;
     }
     const W = Chunk.CHUNK_WIDTH, H = Chunk.CHUNK_HEIGHT, D = Chunk.CHUNK_DEPTH;
-    if (rx === 0)     this._remeshSingleNeighbor(cx - 1, cy, cz);
-    if (rx === W - 1) this._remeshSingleNeighbor(cx + 1, cy, cz);
-    if (ry === 0)     this._remeshSingleNeighbor(cx, cy - 1, cz);
-    if (ry === H - 1) this._remeshSingleNeighbor(cx, cy + 1, cz);
-    if (rz === 0)     this._remeshSingleNeighbor(cx, cy, cz - 1);
-    if (rz === D - 1) this._remeshSingleNeighbor(cx, cy, cz + 1);
+    if (rx === 0) {
+      this._remeshSingleNeighbor(cx - 1, cy, cz);
+    }
+    if (rx === W - 1) {
+      this._remeshSingleNeighbor(cx + 1, cy, cz);
+    }
+    if (ry === 0) {
+      this._remeshSingleNeighbor(cx, cy - 1, cz);
+    }
+    if (ry === H - 1) {
+      this._remeshSingleNeighbor(cx, cy + 1, cz);
+    }
+    if (rz === 0) {
+      this._remeshSingleNeighbor(cx, cy, cz - 1);
+    }
+    if (rz === D - 1) {
+      this._remeshSingleNeighbor(cx, cy, cz + 1);
+    }
   }
 
   private _createNearbyChunks(playerPos: Vec3): void {
@@ -409,7 +449,9 @@ export class World {
         toDelete.push(chunk);
       }
     }
-    for (const chunk of toDelete) this.deleteChunk(chunk);
+    for (const chunk of toDelete) {
+      this.deleteChunk(chunk);
+    }
   }
 
   private _createChunkAt(cx: number, cy: number, cz: number): void {

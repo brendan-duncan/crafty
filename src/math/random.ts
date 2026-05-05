@@ -44,7 +44,9 @@ export class Random extends Uint32Array {
   // Returns a random float in [0, 1], or [min, max] if provided.
   randomFloat(min?: number, max?: number): number {
     const value = (this.randomUint32() & 0x007FFFFF) * (1.0 / 8388607.0);
-    if (min === undefined) return value;
+    if (min === undefined) {
+      return value;
+    }
     return value * ((max ?? 1) - min) + min;
   }
 
@@ -53,7 +55,9 @@ export class Random extends Uint32Array {
     const a = this.randomUint32() >>> 5;
     const b = this.randomUint32() >>> 6;
     const value = (a * 67108864 + b) * (1.0 / 9007199254740992.0);
-    if (min === undefined) return value;
+    if (min === undefined) {
+      return value;
+    }
     return value * ((max ?? 1) - min) + min;
   }
 }

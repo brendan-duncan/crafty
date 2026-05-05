@@ -54,7 +54,9 @@ export class Scene {
 
   private _collectMeshRenderersRecursive(go: GameObject, result: MeshRenderer[]): void {
     const mr = go.getComponent(MeshRenderer);
-    if (mr) result.push(mr);
+    if (mr) {
+      result.push(mr);
+    }
     for (const child of go.children) {
       this._collectMeshRenderersRecursive(child, result);
     }

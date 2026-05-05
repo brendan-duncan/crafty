@@ -9,7 +9,9 @@ export class Mat4 {
 
   constructor(data?: ArrayLike<number>) {
     this.data = new Float32Array(16);
-    if (data) this.data.set(data);
+    if (data) {
+      this.data.set(data);
+    }
   }
 
   clone(): Mat4 { return new Mat4(this.data); }
@@ -87,7 +89,9 @@ export class Mat4 {
     const b10=a21*a33-a23*a31, b11=a22*a33-a23*a32;
 
     let det = b00*b11 - b01*b10 + b02*b09 + b03*b08 - b04*b07 + b05*b06;
-    if (det === 0) return Mat4.identity();
+    if (det === 0) {
+      return Mat4.identity();
+    }
     det = 1 / det;
 
     out[0]  = (a11*b11-a12*b10+a13*b09)*det;
@@ -122,7 +126,9 @@ export class Mat4 {
     const b21= a21*a10-a11*a20;
 
     let det = a00*b01 + a01*b11 + a02*b21;
-    if (det === 0) return Mat4.identity();
+    if (det === 0) {
+      return Mat4.identity();
+    }
     det = 1 / det;
 
     const out = new Float32Array(16);
