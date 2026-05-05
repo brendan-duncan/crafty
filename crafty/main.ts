@@ -382,7 +382,7 @@ async function main(): Promise<void> {
       passes.rainPass.update(ctx, dt, view, proj, vp, invVP, camPos, camera.near, camera.far, _rainMat);
     }
 
-    passes.dofPass?.updateParams(ctx, 8.0, 25.0, 6.0, camera.near, camera.far);
+    passes.dofPass?.updateParams(ctx, 8.0, 75.0, 3.0, camera.near, camera.far);
     passes.godrayPass?.updateParams(ctx);
     const isUnderwater = isBlockWater(world.getBlockType(Math.floor(camPos.x), Math.floor(camPos.y), Math.floor(camPos.z)));
     const sunDir = { x: -sun.direction.x, y: -sun.direction.y, z: -sun.direction.z };
