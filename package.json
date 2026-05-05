@@ -6,17 +6,23 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "build-atlas": "node scripts/build_atlas.js",
     "build-atlas:help": "echo Usage: npm run build-atlas <path-to-texture-pack>"
   },
   "devDependencies": {
+    "@vitest/ui": "^4.1.5",
     "@webgpu/types": "^0.1.69",
     "typescript": "^5.4.5",
     "vite": "^5.2.11",
-    "vite-plugin-glsl": "^1.3.1"
+    "vite-plugin-glsl": "^1.3.1",
+    "vitest": "^4.1.5"
   },
   "dependencies": {
     "sharp": "^0.33.0",
-    "utif": "^4.0.0"
+    "utif": "^3.1.0"
   }
 }
