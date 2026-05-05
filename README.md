@@ -4,7 +4,7 @@
 
 Crafty is a Minecraft-style voxel game engine written in TypeScript with a WebGPU rendering backend. It is designed around a deferred, HDR, multi-pass render graph, a chunk-based infinite world with procedural terrain, and a component-based game object model. The rendering feature set is comparable to a modern PC game engine: cascaded shadow maps, PBR with image-based lighting, screen-space ambient occlusion, screen-space global illumination, temporal anti-aliasing, volumetric clouds, god rays, depth-of-field, bloom, and water with screen-space reflections.
 
-### [Play Crafty](https://brendan-duncan.github.io/crafty/dist/crafty/)
+### [Play Crafty](https://brendan-duncan.github.io/crafty/dist)
 
 ---
 
