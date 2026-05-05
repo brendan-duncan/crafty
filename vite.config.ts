@@ -1,16 +1,16 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+  base: './',
   server: {
     port: 5173,
     open: 'crafty/index.html',
   },
   build: {
+    outDir: 'dist',
+    emptyOutDir: true,
     rollupOptions: {
-      input: {
-        crafty: 'crafty/index.html',
-        cube_test: 'tests/cube_test.html',
-      },
+      input: 'crafty/index.html',
     },
   },
 });
