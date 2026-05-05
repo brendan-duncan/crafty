@@ -151,17 +151,43 @@ async function main(): Promise<void> {
   menu.card.appendChild(effectsLabel);
 
   createControlPanel(effects, async (key) => {
-    if (key === 'ssao') return;
-    if (key === 'ssgi') return;
-    if (key === 'shadows') return;
-    if (key === 'aces') return;
-    if (key === 'ao_dbg') return;
-    if (key === 'shd_dbg') return;
-    if (key === 'hdr') return;
-    if (key === 'auto_exp') { passes.autoExposurePass!.enabled = effects.auto_exp; return; }
-    if (key === 'fog') { passes.compositePass!.depthFogEnabled = effects.fog; return; }
-    if (key === 'rain') { await rebuildRenderTargets(); return; }
-    if (key === 'clouds') { await rebuildRenderTargets(); return; }
+    if (key === 'ssao') {
+      return;
+    }
+    if (key === 'ssgi') {
+      return;
+    }
+    if (key === 'shadows') {
+      return;
+    }
+    if (key === 'aces') {
+      return;
+    }
+    if (key === 'ao_dbg') {
+      return;
+    }
+    if (key === 'shd_dbg') {
+      return;
+    }
+    if (key === 'hdr') {
+      return;
+    }
+    if (key === 'auto_exp') {
+      passes.autoExposurePass!.enabled = effects.auto_exp;
+      return;
+    }
+    if (key === 'fog') {
+      passes.compositePass!.depthFogEnabled = effects.fog;
+      return;
+    }
+    if (key === 'rain') {
+      await rebuildRenderTargets();
+      return;
+    }
+    if (key === 'clouds') {
+      await rebuildRenderTargets();
+      return;
+    }
     await rebuildRenderTargets();
   }, menu.card);
 
@@ -176,7 +202,9 @@ async function main(): Promise<void> {
   const resizeObserver = new ResizeObserver(async () => {
     const w = Math.max(1, Math.round(canvas.clientWidth  * devicePixelRatio));
     const h = Math.max(1, Math.round(canvas.clientHeight * devicePixelRatio));
-    if (w === canvas.width && h === canvas.height) return;
+    if (w === canvas.width && h === canvas.height) {
+      return;
+    }
     canvas.width  = w;
     canvas.height = h;
     await rebuildRenderTargets();
@@ -206,8 +234,12 @@ async function main(): Promise<void> {
     const dt = Math.min((time - lastTime) / 1000, 0.1);
     lastTime = time;
     const updateHud = time - lastHudUpdate >= 1000;
-    if (updateHud) lastHudUpdate = time;
-    if (dt > 0) smoothFps += (1 / dt - smoothFps) * 0.1;
+    if (updateHud) {
+      lastHudUpdate = time;
+    }
+    if (dt > 0) {
+      smoothFps += (1 / dt - smoothFps) * 0.1;
+    }
 
     sunAngle  += dt * 0.01;
     waterTime += dt;

@@ -64,7 +64,9 @@ function _erode(heights: Float32Array, size: number, seed: number): void {
       }
     }
   }
-  for (let i = 0; i < brushW.length; i++) brushW[i] /= brushTotal;
+  for (let i = 0; i < brushW.length; i++) {
+    brushW[i] /= brushTotal;
+  }
 
   const maxSafe = size - 2;
   let rng = (seed ^ 0xDEAD_BEEF) >>> 0;
@@ -82,7 +84,9 @@ function _erode(heights: Float32Array, size: number, seed: number): void {
     for (let life = 0; life < maxLife; life++) {
       const nx = px | 0;
       const ny = py | 0;
-      if (nx < 0 || nx >= maxSafe || ny < 0 || ny >= maxSafe) break;
+      if (nx < 0 || nx >= maxSafe || ny < 0 || ny >= maxSafe) {
+        break;
+      }
 
       const cellX = px - nx;
       const cellY = py - ny;
@@ -92,13 +96,17 @@ function _erode(heights: Float32Array, size: number, seed: number): void {
       dirX = dirX * inertia - gx * (1 - inertia);
       dirY = dirY * inertia - gy * (1 - inertia);
       const len = Math.sqrt(dirX * dirX + dirY * dirY);
-      if (len < 1e-6) break;
+      if (len < 1e-6) {
+        break;
+      }
       dirX /= len;
       dirY /= len;
 
       const npx = px + dirX;
       const npy = py + dirY;
-      if (npx < 0 || npx >= maxSafe || npy < 0 || npy >= maxSafe) break;
+      if (npx < 0 || npx >= maxSafe || npy < 0 || npy >= maxSafe) {
+        break;
+      }
 
       const [, , nh] = _sampleGradient(heights, size, npx, npy);
       const dh = nh - h;
@@ -119,7 +127,9 @@ function _erode(heights: Float32Array, size: number, seed: number): void {
           for (let bx = -brushR; bx <= brushR; bx++) {
             const ex = nx + bx;
             const ey = ny + by;
-            if (ex < 0 || ex >= size || ey < 0 || ey >= size) continue;
+            if (ex < 0 || ex >= size || ey < 0 || ey >= size) {
+              continue;
+            }
             heights[ex + ey * size] -= brushW[(bx + brushR) + (by + brushR) * brushD] * erode;
           }
         }

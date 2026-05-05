@@ -43,7 +43,9 @@ export class PlayerController {
 
     const HALF_PI = Math.PI / 2 - 0.001;
     this._onMouseMove = (e: MouseEvent) => {
-      if (document.pointerLockElement !== this._canvas) return;
+      if (document.pointerLockElement !== this._canvas) {
+        return;
+      }
       this.yaw   -= e.movementX * this.sensitivity;
       this.pitch  = Math.max(-HALF_PI, Math.min(HALF_PI,
         this.pitch + e.movementY * this.sensitivity));
@@ -62,7 +64,9 @@ export class PlayerController {
   }
 
   detach(): void {
-    if (!this._canvas) return;
+    if (!this._canvas) {
+      return;
+    }
     this._canvas.removeEventListener('click',       this._onClick);
     document.removeEventListener('mousemove', this._onMouseMove);
     document.removeEventListener('keydown',   this._onKeyDown);

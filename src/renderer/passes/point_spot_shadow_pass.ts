@@ -270,7 +270,9 @@ export class PointSpotShadowPass extends RenderPass {
     // ---- Point light shadow passes ------------------------------------------
     let shadowPointIdx = 0;
     for (const pl of this._pointLights) {
-      if (!pl.castShadow || shadowPointIdx >= MAX_SHADOW_POINT_LIGHTS) continue;
+      if (!pl.castShadow || shadowPointIdx >= MAX_SHADOW_POINT_LIGHTS) {
+        continue;
+      }
 
       const pos       = pl.worldPosition();
       const faceVPs   = pl.cubeFaceViewProjs();
@@ -307,7 +309,9 @@ export class PointSpotShadowPass extends RenderPass {
     // ---- Spot light shadow passes -------------------------------------------
     let shadowSpotIdx = 0;
     for (const sl of this._spotLights) {
-      if (!sl.castShadow || shadowSpotIdx >= MAX_SHADOW_SPOT_LIGHTS) continue;
+      if (!sl.castShadow || shadowSpotIdx >= MAX_SHADOW_SPOT_LIGHTS) {
+        continue;
+      }
 
       const vp      = sl.lightViewProj();
       const pos     = sl.worldPosition();

@@ -178,7 +178,9 @@ export async function buildRenderTargets(
   const { RenderGraph } = await import('../src/renderer/index.js');
   const graph = new RenderGraph();
   graph.addPass(passes.shadowPass!);
-  if (cloudShadowPass) graph.addPass(cloudShadowPass);
+  if (cloudShadowPass) {
+    graph.addPass(cloudShadowPass);
+  }
   graph.addPass(worldShadowPass);
   graph.addPass(pointSpotShadowPass);
   graph.addPass(geometryPass);
@@ -193,11 +195,19 @@ export async function buildRenderTargets(
   graph.addPass(lightingPass);
   graph.addPass(pointSpotLightPass);
   graph.addPass(waterPass);
-  if (godrayPass) graph.addPass(godrayPass);
-  if (rainPass) graph.addPass(rainPass);
+  if (godrayPass) {
+    graph.addPass(godrayPass);
+  }
+  if (rainPass) {
+    graph.addPass(rainPass);
+  }
   graph.addPass(taaPass);
-  if (dofPass) graph.addPass(dofPass);
-  if (bloomPass) graph.addPass(bloomPass);
+  if (dofPass) {
+    graph.addPass(dofPass);
+  }
+  if (bloomPass) {
+    graph.addPass(bloomPass);
+  }
   graph.addPass(blockHighlightPass);
   graph.addPass(autoExposurePass);
   graph.addPass(compositePass);

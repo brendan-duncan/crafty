@@ -243,7 +243,9 @@ export class WorldShadowPass extends RenderPass {
 
   removeChunk(chunk: Chunk): void {
     const gpu = this._chunks.get(chunk);
-    if (!gpu) return;
+    if (!gpu) {
+      return;
+    }
     gpu.opaqueBuffer?.destroy();
     gpu.transparentBuffer?.destroy();
     gpu.propBuffer?.destroy();
@@ -271,9 +273,13 @@ export class WorldShadowPass extends RenderPass {
       // Opaque geometry: depth-only pipeline, no fragment shader.
       pass.setPipeline(this._pipeline);
       for (const gpu of this._chunks.values()) {
-        if (!gpu.opaqueBuffer || gpu.opaqueCount === 0) continue;
+        if (!gpu.opaqueBuffer || gpu.opaqueCount === 0) {
+          continue;
+        }
         const dx = gpu.ox - this._camX, dz = gpu.oz - this._camZ;
-        if (dx * dx + dz * dz > maxDist2) continue;
+        if (dx * dx + dz * dz > maxDist2) {
+          continue;
+        }
         pass.setBindGroup(1, gpu.modelBG);
         pass.setVertexBuffer(0, gpu.opaqueBuffer);
         pass.draw(gpu.opaqueCount);
@@ -283,9 +289,13 @@ export class WorldShadowPass extends RenderPass {
       pass.setPipeline(this._transparentPipeline);
       pass.setBindGroup(2, this._atlasBG);
       for (const gpu of this._chunks.values()) {
-        if (!gpu.transparentBuffer || gpu.transparentCount === 0) continue;
+        if (!gpu.transparentBuffer || gpu.transparentCount === 0) {
+          continue;
+        }
         const dx = gpu.ox - this._camX, dz = gpu.oz - this._camZ;
-        if (dx * dx + dz * dz > maxDist2) continue;
+        if (dx * dx + dz * dz > maxDist2) {
+          continue;
+        }
         pass.setBindGroup(1, gpu.modelBG);
         pass.setVertexBuffer(0, gpu.transparentBuffer);
         pass.draw(gpu.transparentCount);
@@ -297,9 +307,13 @@ export class WorldShadowPass extends RenderPass {
       for (const orientBG of [this._orientBG_X, this._orientBG_Z]) {
         pass.setBindGroup(3, orientBG);
         for (const gpu of this._chunks.values()) {
-          if (!gpu.propBuffer || gpu.propCount === 0) continue;
+          if (!gpu.propBuffer || gpu.propCount === 0) {
+            continue;
+          }
           const dx = gpu.ox - this._camX, dz = gpu.oz - this._camZ;
-          if (dx * dx + dz * dz > maxDist2) continue;
+          if (dx * dx + dz * dz > maxDist2) {
+            continue;
+          }
           pass.setBindGroup(1, gpu.modelBG);
           pass.setVertexBuffer(0, gpu.propBuffer);
           pass.draw(gpu.propCount);

@@ -232,7 +232,9 @@ export class WorldGeometryPass extends RenderPass {
 
   removeChunk(chunk: Chunk): void {
     const gpuData = this._chunks.get(chunk);
-    if (!gpuData) return;
+    if (!gpuData) {
+      return;
+    }
     gpuData.opaqueBuffer?.destroy();
     gpuData.transparentBuffer?.destroy();
     gpuData.propBuffer?.destroy();

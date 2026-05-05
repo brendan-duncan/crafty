@@ -181,7 +181,9 @@ export class SkinnedGeometryPass extends RenderPass {
   }
 
   execute(encoder: GPUCommandEncoder, ctx: RenderContext): void {
-    if (this._drawItems.length === 0) return;
+    if (this._drawItems.length === 0) {
+      return;
+    }
 
     const { device } = ctx;
     this._ensurePerDrawBuffers(device, this._drawItems.length);

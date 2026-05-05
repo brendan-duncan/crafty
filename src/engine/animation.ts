@@ -79,7 +79,9 @@ export function sampleClip(
     const outArr = prop === 'translation' ? translations : prop === 'rotation' ? rotations : scales;
     const oi     = ji * n;
 
-    if (times.length === 0) continue;
+    if (times.length === 0) {
+      continue;
+    }
 
     // Clamp to first keyframe
     if (time <= times[0]) {

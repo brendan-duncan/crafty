@@ -100,7 +100,9 @@ export class DebugLightPass extends RenderPass {
   }
 
   execute(encoder: GPUCommandEncoder, _ctx: RenderContext): void {
-    if (!this._mesh) return;
+    if (!this._mesh) {
+      return;
+    }
 
     const pass = encoder.beginRenderPass({
       label: 'DebugLightPass',

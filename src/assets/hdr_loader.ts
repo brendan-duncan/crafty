@@ -29,7 +29,9 @@ export function parseHdr(buffer: ArrayBuffer): HdrData {
   // Skip header key=value lines until blank line
   while (true) {
     const line = readAsciiLine();
-    if (line.length === 0) break;
+    if (line.length === 0) {
+      break;
+    }
   }
 
   // Resolution line: -Y height +X width
@@ -105,7 +107,9 @@ export function parseHdr(buffer: ArrayBuffer): HdrData {
   }
 
   for (let y = 0; y < height; y++) {
-    if (pos + 4 > bytes.length) break;
+    if (pos + 4 > bytes.length) {
+      break;
+    }
     const r = bytes[pos++], g = bytes[pos++], b = bytes[pos++], e = bytes[pos++];
     if (r === 2 && g === 2 && (b & 0x80) === 0) {
       const sw = (b << 8) | e;

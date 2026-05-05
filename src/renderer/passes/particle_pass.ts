@@ -441,7 +441,9 @@ export class ParticlePass extends RenderPass {
   // Upload a new heightmap. heights[z * HEIGHTMAP_RES + x] = top block Y at that cell.
   // originX/Z: world-space XZ centre of the covered area. extent: half-size in blocks.
   updateHeightmap(ctx: RenderContext, heights: Float32Array, originX: number, originZ: number, extent: number): void {
-    if (!this._heightmapDataBuf || !this._heightmapUniBuf) return;
+    if (!this._heightmapDataBuf || !this._heightmapUniBuf) {
+      return;
+    }
     ctx.queue.writeBuffer(this._heightmapDataBuf, 0, heights.buffer as ArrayBuffer);
     const uni = this._hmUniBuf;
     uni[0] = originX; uni[1] = originZ; uni[2] = extent;

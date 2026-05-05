@@ -62,7 +62,9 @@ export class AnimatedModel extends Component {
   }
 
   override update(dt: number): void {
-    if (!this._clip || this._paused) return;
+    if (!this._clip || this._paused) {
+      return;
+    }
 
     this._time += dt * this.speed;
 

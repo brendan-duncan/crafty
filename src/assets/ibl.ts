@@ -52,11 +52,15 @@ function computeBrdfLutData(outW: number, outH: number, samples: number): Float3
         const Hx    = sinT * Math.cos(phiH);
         const Hz    = cosT;
         const VdotH = Vx * Hx + Vz * Hz;
-        if (VdotH <= 0) continue;
+        if (VdotH <= 0) {
+          continue;
+        }
         const Lz    = 2 * VdotH * Hz - Vz;
         const NdotL = Math.max(0, Lz);
         const NdotH = Math.max(0, cosT);
-        if (NdotL <= 0) continue;
+        if (NdotL <= 0) {
+          continue;
+        }
         const k     = a2 / 2;
         const G_v   = NdotV / (NdotV * (1 - k) + k);
         const G_l   = NdotL / (NdotL * (1 - k) + k);

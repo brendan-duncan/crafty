@@ -72,10 +72,18 @@ export function getBiomeBlend(temperature: number): BiomeBlend {
 }
 
 function _pureFromTemperature(temperature: number): BiomeType {
-  if (temperature > 0.35)  return BiomeType.Desert;
-  if (temperature > -0.15) return BiomeType.GrassyPlains;
-  if (temperature > -0.3)  return BiomeType.SnowyPlains;
-  if (temperature > -0.5)  return BiomeType.SnowyMountains;
+  if (temperature > 0.35) {
+    return BiomeType.Desert;
+  }
+  if (temperature > -0.15) {
+    return BiomeType.GrassyPlains;
+  }
+  if (temperature > -0.3) {
+    return BiomeType.SnowyPlains;
+  }
+  if (temperature > -0.5) {
+    return BiomeType.SnowyMountains;
+  }
   return BiomeType.RockyMountains;
 }
 

@@ -42,7 +42,8 @@ export function doBlockAction(
     }
     world.mineBlock(state.targetBlock.x, state.targetBlock.y, state.targetBlock.z);
     state.lastBlockAction = time;
-  } else if (button === 2 && state.targetHit) {
+  }
+  else if (button === 2 && state.targetHit) {
     const hit = state.targetHit;
     const placed = getSelectedBlock();
     const newX = hit.position.x + hit.face.x;

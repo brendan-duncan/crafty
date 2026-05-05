@@ -99,7 +99,9 @@ export class World {
     const bz = Math.floor(wz);
     for (let cy = Math.floor(maxY / H); cy >= 0; cy--) {
       const chunk = this.getChunk(bx, cy * H, bz);
-      if (!chunk) continue;
+      if (!chunk) {
+        continue;
+      }
       const rx = bx - chunk.globalPosition.x;
       const rz = bz - chunk.globalPosition.z;
       for (let ry = H - 1; ry >= 0; ry--) {
@@ -262,7 +264,9 @@ export class World {
 
     for (let i = 1; i <= 4; i++) {
       const above = this.getChunk(wx, wy + i * Chunk.CHUNK_HEIGHT, wz);
-      if (!above) break;
+      if (!above) {
+        break;
+      }
       const [nx, , nz] = World.normalizeChunkPosition(wx, wy, wz);
       const rx = nx * Chunk.CHUNK_WIDTH - above.globalPosition.x;
       const rz = nz * Chunk.CHUNK_DEPTH - above.globalPosition.z;
@@ -339,7 +343,9 @@ export class World {
       chunk.globalPosition.x, chunk.globalPosition.y, chunk.globalPosition.z,
     );
     this.onChunkUpdated?.(chunk, chunk.generateVertices(this._gatherNeighbors(cx, cy, cz)));
-    if (rx === undefined) return;
+    if (rx === undefined) {
+      return;
+    }
     const W = Chunk.CHUNK_WIDTH, H = Chunk.CHUNK_HEIGHT, D = Chunk.CHUNK_DEPTH;
     if (rx === 0)     this._remeshSingleNeighbor(cx - 1, cy, cz);
     if (rx === W - 1) this._remeshSingleNeighbor(cx + 1, cy, cz);
@@ -358,7 +364,9 @@ export class World {
     const candidates: [number, number, number, number][] = []; // [dist2, cx, cy, cz]
     for (let dx = -rdH; dx <= rdH; dx++) {
       for (let dz = -rdH; dz <= rdH; dz++) {
-        if (dx * dx + dz * dz > rdH * rdH) continue;
+        if (dx * dx + dz * dz > rdH * rdH) {
+          continue;
+        }
         for (let dy = -rdV; dy <= rdV; dy++) {
           const cx = cpx + dx, cy = cpy + dy, cz = cpz + dz;
           const key = World._key(cx, cy, cz);
@@ -371,11 +379,17 @@ export class World {
 
     candidates.sort((a, b) => a[0] - b[0]);
     this.pendingChunks = candidates.length;
-    if (this._chunks.size >= World.MAX_CHUNKS) return;
+    if (this._chunks.size >= World.MAX_CHUNKS) {
+      return;
+    }
     let created = 0;
     for (const [, cx, cy, cz] of candidates) {
-      if (created >= this.chunksPerFrame) break;
-      if (this._chunks.size >= World.MAX_CHUNKS) break;
+      if (created >= this.chunksPerFrame) {
+        break;
+      }
+      if (this._chunks.size >= World.MAX_CHUNKS) {
+        break;
+      }
       this._createChunkAt(cx, cy, cz);
       created++;
     }

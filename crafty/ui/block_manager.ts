@@ -150,7 +150,8 @@ export function createBlockManager(
       if (dragHotbarIdx !== null && dragHotbarIdx !== i) {
         // swap two hotbar slots
         [hotbarSlots[i], hotbarSlots[dragHotbarIdx]] = [hotbarSlots[dragHotbarIdx], hotbarSlots[i]];
-      } else if (dragHotbarIdx === null) {
+      }
+      else if (dragHotbarIdx === null) {
         hotbarSlots[i] = dragBlock;
       }
       syncHotbar();
