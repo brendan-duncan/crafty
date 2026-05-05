@@ -9,8 +9,25 @@ import sharp from 'sharp';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const TEXTURE_PACK_PATH = 'C:\\Users\\brendanduncan\\Downloads\\Vanilla-RTX-1.26.12';
+// Read texture pack path from command line argument
+const TEXTURE_PACK_PATH = process.argv[2];
+if (!TEXTURE_PACK_PATH) {
+  console.error('Usage: node build_atlas.js <path-to-texture-pack>');
+  console.error('Example: node build_atlas.js Downloads\\Vanilla-RTX-1.26.12');
+  process.exit(1);
+}
+
+if (!fs.existsSync(TEXTURE_PACK_PATH)) {
+  console.error(`Error: Texture pack path does not exist: ${TEXTURE_PACK_PATH}`);
+  process.exit(1);
+}
+
 const TEXTURE_LIST_PATH = path.join(TEXTURE_PACK_PATH, 'textures', 'textures_list.json');
+if (!fs.existsSync(TEXTURE_LIST_PATH)) {
+  console.error(`Error: textures_list.json not found at: ${TEXTURE_LIST_PATH}`);
+  console.error('Make sure the texture pack path is correct.');
+  process.exit(1);
+}
 const OUTPUT_DIR = path.join(__dirname, '../assets/generated_atlas');
 const TILE_SIZE = 16; // Size of each texture tile
 const ATLAS_COLS = 25; // Number of columns in atlas
