@@ -890,7 +890,7 @@ export class Chunk {
     return BiomeType.RockyMountains;
   }
 
-  static _determineBiome(p_x: number, p_y: number, p_z: number, seed: number): BiomeType {
+  static _determineBiome(p_x: number, _p_y: number, p_z: number, seed: number): BiomeType {
     const temperature = perlinNoise3Seed(p_x / 512.0, -5/*p_y / 2028.0*/, p_z / 512.0, 0, 0, 0, seed + 31337);
     return Chunk._determineBiomeFromNoise(temperature);
   }

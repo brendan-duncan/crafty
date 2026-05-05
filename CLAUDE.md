@@ -11,7 +11,7 @@ normal maps, hdr color.
 
 The game engine will be object/component. Components will include camera, player, light, mesh, particle.
 
-Use PascalCase for classes; camelCase for methods and variables, _privateMembers, and snake_case for files.
+Use PascalCase for classes; camelCase for methods and variables, _privateMembers, and snake_case for files. Do not use same-line blocks, always putting the block on the next line, and always use braces.
 
 Make sure matrices are column-major for WebGPU. Make sure to winding order for mesh triangles is correct so faces aren't
 incorrectly backface culled.

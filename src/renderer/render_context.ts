@@ -134,7 +134,7 @@ export class RenderContext {
     }
   }
 
-  pushPassErrorScope(passName: string): void {
+  pushPassErrorScope(_passName: string): void {
     if (this.enableErrorHandling) {
       this.device.pushErrorScope('validation');
       this.device.pushErrorScope('out-of-memory');
