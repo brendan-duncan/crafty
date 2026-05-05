@@ -122,7 +122,7 @@ export class GeometryPass extends RenderPass {
     }
     const [whiteTex,      whiteView]      = makeTex('GeomWhite',      255, 255, 255, 255);
     const [flatNormalTex, flatNormalView] = makeTex('GeomFlatNormal', 128, 128, 255, 255);
-    const [merDefaultTex, merDefaultView] = makeTex('GeomMerDefault', 255, 255, 255, 255);
+    const [merDefaultTex, merDefaultView] = makeTex('GeomMerDefault', 255, 0, 255, 255); // R=metallic, G=emission(0), B=roughness
 
     const materialSampler = device.createSampler({
       label: 'GeomMaterialSampler',

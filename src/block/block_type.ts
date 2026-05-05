@@ -243,7 +243,7 @@ export const blockMaterialData: BlockMaterialData[] = [
   new BlockMaterialData(BlockType.GLASS, MaterialType.SEMI_TRANSPARENT, 0, 1),
   new BlockMaterialData(BlockType.FLOWER, MaterialType.PROP, 0, 0),
   new BlockMaterialData(BlockType.GLOWSTONE, MaterialType.OPAQUE, 1, 1),
-  new BlockMaterialData(BlockType.MAGMA, MaterialType.OPAQUE, 0, 1),
+  new BlockMaterialData(BlockType.MAGMA, MaterialType.OPAQUE, 1, 1),
   new BlockMaterialData(BlockType.OBSIDIAN, MaterialType.OPAQUE, 0, 1),
   new BlockMaterialData(BlockType.DIAMOND, MaterialType.OPAQUE, 0, 1),
   new BlockMaterialData(BlockType.IRON, MaterialType.OPAQUE, 0, 1),

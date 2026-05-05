@@ -387,12 +387,13 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
   if (depth >= 1.0) { discard; } // sky pixels handled by SkyPass
 
   let albedo_rough = textureLoad(albedoRoughnessTex, coord, 0);
-  let normal_metal = textureLoad(normalMetallicTex,  coord, 0);
+  let normal_emiss = textureLoad(normalMetallicTex,  coord, 0);
 
   let albedo    = albedo_rough.rgb;
   let roughness = max(albedo_rough.a, 0.04); // clamp to avoid division issues
-  let N         = normalize(normal_metal.rgb * 2.0 - 1.0);
-  let metallic  = normal_metal.a;
+  let N         = normalize(normal_emiss.rgb * 2.0 - 1.0);
+  let emission  = normal_emiss.a;
+  let metallic  = 0.0; // Replaced with emission channel
 
   let world_pos = reconstruct_world_pos(in.uv, depth);
   let V         = normalize(camera.position - world_pos);
@@ -469,7 +470,10 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
   let ssgi_irr     = textureSampleLevel(ssgi_tex, ssgi_samp, in.uv, 0.0).rgb;
   let ssgi_contrib = ssgi_irr * albedo * (1.0 - metallic);
 
-  let color = direct + ambient + ssgi_contrib;
+  // Add emission (scaled by albedo for colored glow)
+  let emissive = albedo * emission * 2.0;
+
+  let color = direct + ambient + ssgi_contrib + emissive;
 
   if (light.debugCascades != 0u) {
     let cascade = select_cascade(view_depth);

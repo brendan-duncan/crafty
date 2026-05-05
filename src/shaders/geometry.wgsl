@@ -67,7 +67,7 @@ fn vs_main(vin: VertexInput) -> VertexOutput {
 
 struct FragmentOutput {
   @location(0) albedo_roughness: vec4<f32>,
-  @location(1) normal_metallic : vec4<f32>,
+  @location(1) normal_emission : vec4<f32>,
 }
 
 @fragment
@@ -79,10 +79,11 @@ fn fs_main(in: VertexOutput) -> FragmentOutput {
   let tex_albedo = textureSample(albedo_map, mat_samp, atlas_uv);
   let albedo     = tex_albedo.rgb * material.albedo.rgb;
 
-  // MER: r=metallic multiplier, g=emissive (unused), b=roughness multiplier
+  // MER: r=metallic multiplier, g=emissive, b=roughness multiplier
   let mer      = textureSample(mer_map, mat_samp, atlas_uv);
   let roughness = material.roughness * mer.b;
   let metallic  = material.metallic  * mer.r;
+  let emission  = mer.g;
 
   // Build TBN in world space for normal mapping
   let N = normalize(in.world_norm);
@@ -98,7 +99,7 @@ fn fs_main(in: VertexOutput) -> FragmentOutput {
 
   var out: FragmentOutput;
   out.albedo_roughness = vec4<f32>(albedo, roughness);
-  // Store world normal in [0,1] range (decoded in lighting pass with n*2-1)
-  out.normal_metallic  = vec4<f32>(mapped_N * 0.5 + 0.5, metallic);
+  // Store world normal in [0,1] range (decoded in lighting pass with n*2-1) and emission
+  out.normal_emission  = vec4<f32>(mapped_N * 0.5 + 0.5, emission);
   return out;
 }

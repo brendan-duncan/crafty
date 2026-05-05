@@ -1,6 +1,6 @@
 // GBuffer fill pass for voxel chunk geometry.
 // Vertex layout: position(vec3f) + face(f32, 0-5) + blockType(f32).
-// Writes albedo+roughness and normal+metallic (same encoding as geometry.wgsl).
+// Writes albedo+roughness and normal+emission (same encoding as geometry.wgsl).
 
 struct CameraUniforms {
   view       : mat4x4<f32>,
@@ -88,7 +88,7 @@ fn vs_main(vin: VertexInput) -> VertexOutput {
 
 struct FragOutput {
   @location(0) albedo_roughness: vec4<f32>,
-  @location(1) normal_metallic : vec4<f32>,
+  @location(1) normal_emission : vec4<f32>,
 }
 
 fn atlas_uv(world_pos: vec3<f32>, face: u32, block_type: u32) -> vec2<f32> {
@@ -133,7 +133,7 @@ fn shade(in: VertexOutput, uv: vec2<f32>) -> FragOutput {
 
   var out: FragOutput;
   out.albedo_roughness = vec4<f32>(albedo_samp.rgb * albedo_scale, mer.b);
-  out.normal_metallic  = vec4<f32>(mapped_N * 0.5 + 0.5, mer.r);
+  out.normal_emission  = vec4<f32>(mapped_N * 0.5 + 0.5, mer.g);
   return out;
 }
 
@@ -218,6 +218,6 @@ fn fs_prop(in: PropVertexOutput) -> FragOutput {
 
   var out: FragOutput;
   out.albedo_roughness = vec4<f32>(albedo_samp.rgb, mer.b);
-  out.normal_metallic  = vec4<f32>(N * 0.5 + 0.5, mer.r);
+  out.normal_emission  = vec4<f32>(N * 0.5 + 0.5, mer.g);
   return out;
 }
