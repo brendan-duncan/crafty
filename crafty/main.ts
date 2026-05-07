@@ -1,4 +1,4 @@
-import industrialUrl from '../assets/cubemaps/hdr/clear_sky.hdr?url';
+import skyHdrUrl from '../assets/cubemaps/hdr/clear_sky.hdr?url';
 import colorAtlasUrl from '../assets/cube_textures/simple_block_atlas.png?url';
 import normalAtlasUrl from '../assets/cube_textures/simple_block_atlas_normal.png?url';
 import merAtlasUrl from '../assets/cube_textures/simple_block_atlas_mer.png?url';
@@ -60,7 +60,7 @@ async function main(): Promise<void> {
   const { device } = ctx;
 
   // Load assets
-  const skyTexture = await createHdrTexture(device, parseHdr(await (await fetch(industrialUrl)).arrayBuffer()));
+  const skyTexture = await createHdrTexture(device, parseHdr(await (await fetch(skyHdrUrl)).arrayBuffer()));
   const iblTextures: IblTextures = await computeIblGpu(device, skyTexture.gpuTexture);
   const cloudNoises: CloudNoiseTextures = createCloudNoiseTextures(device);
   const blockTexture = await BlockTexture.load(device, colorAtlasUrl, normalAtlasUrl, merAtlasUrl, heightAtlasUrl);

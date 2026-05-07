@@ -8,7 +8,7 @@ import skyWgsl from '../../shaders/sky.wgsl?raw';
 // invViewProj (mat4x4 = 64 bytes) + cameraPos (vec3 = 12 bytes) + pad (4 bytes) = 80 bytes
 const SKY_UNIFORM_SIZE = 80;
 
-export class SkyPass extends RenderPass {
+export class SkyTexturePass extends RenderPass {
   readonly name = 'SkyPass';
 
   private _pipeline: GPURenderPipeline;
@@ -32,7 +32,7 @@ export class SkyPass extends RenderPass {
     this._hdrView = hdrView;
   }
 
-  static create(ctx: RenderContext, hdrView: GPUTextureView, skyTexture: Texture): SkyPass {
+  static create(ctx: RenderContext, hdrView: GPUTextureView, skyTexture: Texture): SkyTexturePass {
     const { device } = ctx;
 
     const uniformBuffer = device.createBuffer({
@@ -84,7 +84,7 @@ export class SkyPass extends RenderPass {
       primitive: { topology: 'triangle-list' },
     });
 
-    return new SkyPass(pipeline, uniformBuffer, uniformBG, textureBG, hdrView);
+    return new SkyTexturePass(pipeline, uniformBuffer, uniformBG, textureBG, hdrView);
   }
 
   updateCamera(ctx: RenderContext, invViewProj: Mat4, cameraPos: { x: number; y: number; z: number }, exposure = 0.2): void {
