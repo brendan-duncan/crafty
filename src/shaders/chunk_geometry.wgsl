@@ -13,8 +13,10 @@ struct CameraUniforms {
 }
 
 struct ChunkUniforms {
-  offset: vec3<f32>,
-  _pad  : f32,
+  offset    : vec3<f32>,
+  debugMode : u32,       // 0 = normal, 1 = debug chunks with color
+  debugColor: vec3<f32>,
+  _pad      : f32,
 }
 
 struct BlockData {
@@ -113,6 +115,15 @@ fn atlas_uv(world_pos: vec3<f32>, face: u32, block_type: u32) -> vec2<f32> {
 }
 
 fn shade(in: VertexOutput, uv: vec2<f32>) -> FragOutput {
+  // Debug mode: use solid chunk color
+  if (chunk.debugMode != 0u) {
+    let N = normalize(in.world_norm);
+    var out: FragOutput;
+    out.albedo_roughness = vec4<f32>(chunk.debugColor, 0.8);
+    out.normal_emission  = vec4<f32>(N * 0.5 + 0.5, 0.0);
+    return out;
+  }
+
   let albedo_samp = textureSample(color_atlas,  atlas_samp, uv);
   let mer         = textureSample(mer_atlas,     atlas_samp, uv);
   let n_ts        = textureSample(normal_atlas,  atlas_samp, uv).rgb * 2.0 - 1.0;

@@ -51,6 +51,7 @@ export class WorldGeometryPass extends RenderPass {
   drawCalls  = 0;
   triangles  = 0;
   private readonly _cameraData = new Float32Array(CAMERA_UNIFORM_SIZE / 4);
+  private _debugChunks = false;
 
   private constructor(
     device              : GPUDevice,
@@ -98,7 +99,7 @@ export class WorldGeometryPass extends RenderPass {
 
     const chunkBGL = device.createBindGroupLayout({
       label: 'ChunkOffsetBGL',
-      entries: [{ binding: 0, visibility: GPUShaderStage.VERTEX, buffer: { type: 'uniform', hasDynamicOffset: true, minBindingSize: 16 } }],
+      entries: [{ binding: 0, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, buffer: { type: 'uniform', hasDynamicOffset: true, minBindingSize: 32 } }],
     });
 
     // Build block data storage buffer: 4 u32s per block type (sideTile, bottomTile, topTile, pad)
@@ -202,7 +203,7 @@ export class WorldGeometryPass extends RenderPass {
     const chunkBindGroup = device.createBindGroup({
       label  : 'ChunkOffsetBG',
       layout : chunkBGL,
-      entries: [{ binding: 0, resource: { buffer: chunkUniformBuffer, size: 16 } }],
+      entries: [{ binding: 0, resource: { buffer: chunkUniformBuffer, size: 32 } }],
     });
 
     return new WorldGeometryPass(device, gbuffer, opaquePipeline, transparentPipeline, propPipeline, cameraBuffer, cameraBindGroup, sharedBindGroup, chunkUniformBuffer, chunkBindGroup);
@@ -281,6 +282,17 @@ export class WorldGeometryPass extends RenderPass {
   }
 
   // AABB vs frustum test. Returns false if the chunk is fully outside any plane.
+  setDebugChunks(enabled: boolean): void {
+    if (this._debugChunks === enabled) {
+      return;
+    }
+    this._debugChunks = enabled;
+    // Update all existing chunk uniforms
+    for (const [chunk, gpu] of this._chunks) {
+      this._writeChunkUniforms(gpu.slot, gpu.ox, gpu.oy, gpu.oz);
+    }
+  }
+
   private _isVisible(ox: number, oy: number, oz: number): boolean {
     const p = this._frustumPlanes;
     const mx = ox + CHUNK_SIZE, my = oy + CHUNK_SIZE, mz = oz + CHUNK_SIZE;
@@ -377,10 +389,32 @@ export class WorldGeometryPass extends RenderPass {
     this._slotFreeList.push(slot);
   }
 
+  private _writeChunkUniforms(slot: number, cx: number, cy: number, cz: number): void {
+    // Generate a deterministic random color based on chunk position
+    const hash = (cx * 73856093) ^ (cy * 19349663) ^ (cz * 83492791);
+    const r = ((hash & 0xFF) / 255.0) * 0.6 + 0.4;
+    const g = (((hash >> 8) & 0xFF) / 255.0) * 0.6 + 0.4;
+    const b = (((hash >> 16) & 0xFF) / 255.0) * 0.6 + 0.4;
+
+    const buf = new ArrayBuffer(32);
+    const f = new Float32Array(buf);
+    const u = new Uint32Array(buf);
+
+    f[0] = cx;
+    f[1] = cy;
+    f[2] = cz;
+    u[3] = this._debugChunks ? 1 : 0;
+    f[4] = r;
+    f[5] = g;
+    f[6] = b;
+    f[7] = 0;
+
+    this._device.queue.writeBuffer(this._chunkUniformBuffer, slot * CHUNK_UNIFORM_ALIGNMENT, buf);
+  }
+
   private _createChunkGpu(chunk: Chunk, mesh: ChunkMesh): ChunkGpu {
     const slot = this._allocSlot();
-    const offsetData = new Float32Array([chunk.globalPosition.x, chunk.globalPosition.y, chunk.globalPosition.z, 0]);
-    this._device.queue.writeBuffer(this._chunkUniformBuffer, slot * CHUNK_UNIFORM_ALIGNMENT, offsetData);
+    this._writeChunkUniforms(slot, chunk.globalPosition.x, chunk.globalPosition.y, chunk.globalPosition.z);
 
     const gpuData: ChunkGpu = {
       ox: chunk.globalPosition.x,

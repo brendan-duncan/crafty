@@ -17,6 +17,9 @@ const POINT_LIGHT_SIZE = 48;
 const SPOT_LIGHT_SIZE = 128; // 13 floats + 1 u32 (castShadows) + 1 u32 (shadowMapIndex) + 1 u32 padding + 16 floats (viewProj) = 32 * 4 = 128
 const MAX_POINT_LIGHTS = 8;
 const MAX_SPOT_LIGHTS = 4;
+const POINT_SHADOW_SIZE = 1024;
+
+export { MAX_POINT_LIGHTS, MAX_SPOT_LIGHTS };
 
 export interface ForwardDrawItem {
   mesh: Mesh;
@@ -75,6 +78,7 @@ export class ForwardPass extends RenderPass {
   private _lightingIblBindGroup: GPUBindGroup;
 
   private _shadowMapArray: GPUTexture;
+  private _pointShadowCubeArray: GPUTexture;
 
   private _whiteTex: GPUTexture;
   private _flatNormalTex: GPUTexture;
@@ -110,6 +114,7 @@ export class ForwardPass extends RenderPass {
     spotLightsBuffer: GPUBuffer,
     lightingIblBindGroup: GPUBindGroup,
     shadowMapArray: GPUTexture,
+    pointShadowCubeArray: GPUTexture,
     whiteTex: GPUTexture,
     whiteView: GPUTextureView,
     flatNormalTex: GPUTexture,
@@ -135,6 +140,7 @@ export class ForwardPass extends RenderPass {
     this._spotLightsBuffer = spotLightsBuffer;
     this._lightingIblBindGroup = lightingIblBindGroup;
     this._shadowMapArray = shadowMapArray;
+    this._pointShadowCubeArray = pointShadowCubeArray;
     this._whiteTex = whiteTex;
     this._whiteView = whiteView;
     this._flatNormalTex = flatNormalTex;
@@ -190,6 +196,7 @@ export class ForwardPass extends RenderPass {
         { binding: 7, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float', viewDimension: 'cube' } }, // prefilter
         { binding: 8, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } }, // brdf lut
         { binding: 9, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } }, // ibl sampler
+        { binding: 10, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'depth', viewDimension: 'cube-array' } }, // point shadow cube array
       ],
     });
 
@@ -277,6 +284,16 @@ export class ForwardPass extends RenderPass {
     });
     const shadowMapArrayView = shadowMapArray.createView({ dimension: '2d-array' });
 
+    // Cube-array shadow texture for point lights (6 layers per light)
+    const pointShadowCubeArray = device.createTexture({
+      label: 'ForwardPointShadowCubeArray',
+      size: { width: POINT_SHADOW_SIZE, height: POINT_SHADOW_SIZE, depthOrArrayLayers: 6 * MAX_POINT_LIGHTS },
+      dimension: '2d',
+      format: 'depth32float',
+      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+    });
+    const pointShadowCubeArrayView = pointShadowCubeArray.createView({ dimension: 'cube-array' });
+
     // Create combined lighting+IBL bind group (to stay under 4 bind group limit)
     const lightingIblBindGroup = device.createBindGroup({
       label: 'ForwardLightingIblBindGroup',
@@ -292,6 +309,7 @@ export class ForwardPass extends RenderPass {
         { binding: 7, resource: iblTextures.prefilteredView },
         { binding: 8, resource: iblTextures.brdfLut.createView() },
         { binding: 9, resource: iblSampler },
+        { binding: 10, resource: pointShadowCubeArrayView },
       ],
     });
 
@@ -399,6 +417,7 @@ export class ForwardPass extends RenderPass {
       spotLightsBuffer,
       lightingIblBindGroup,
       shadowMapArray,
+      pointShadowCubeArray,
       whiteTex,
       whiteView,
       flatNormalTex,
@@ -419,6 +438,10 @@ export class ForwardPass extends RenderPass {
 
   get shadowMapArray(): GPUTexture {
     return this._shadowMapArray;
+  }
+
+  get pointShadowCubeArray(): GPUTexture {
+    return this._pointShadowCubeArray;
   }
 
   resize(device: GPUDevice, width: number, height: number): void {
@@ -716,6 +739,8 @@ export class ForwardPass extends RenderPass {
   destroy(): void {
     this._depthTexture.destroy();
     this._outputTexture.destroy();
+    this._shadowMapArray.destroy();
+    this._pointShadowCubeArray.destroy();
     this._whiteTex.destroy();
     this._flatNormalTex.destroy();
     this._merDefaultTex.destroy();

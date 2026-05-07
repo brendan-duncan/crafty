@@ -169,6 +169,10 @@ async function main(): Promise<void> {
     if (key === 'shd_dbg') {
       return;
     }
+    if (key === 'chunk_dbg') {
+      passes.worldGeometryPass!.setDebugChunks(effects.chunk_dbg);
+      return;
+    }
     if (key === 'hdr') {
       return;
     }

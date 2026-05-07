@@ -95,6 +95,7 @@ struct LightingUniforms {
 @group(3) @binding(7) var prefilter_cube     : texture_cube<f32>;
 @group(3) @binding(8) var brdf_lut           : texture_2d<f32>;
 @group(3) @binding(9) var ibl_sampler        : sampler;
+@group(3) @binding(10) var pointShadowCubeArray : texture_depth_cube_array;
 
 const IBL_MIP_LEVELS: f32 = 5.0;
 
@@ -207,6 +208,24 @@ fn sample_spot_shadow(world_pos: vec3<f32>, light: SpotLight) -> f32 {
   return textureSampleCompareLevel(shadowMapArray, shadowSampler, shadow_coord.xy, arrayIndex, shadow_coord.z - bias);
 }
 
+// Shadow sampling for point light (cube array, linear normalized depth)
+fn sample_point_shadow(world_pos: vec3<f32>, light: PointLight, slot: i32) -> f32 {
+  if (light.castShadows == 0u) {
+    return 1.0;
+  }
+
+  let to_frag = world_pos - light.position;
+  let dist = length(to_frag);
+  if (dist >= light.range) {
+    return 1.0;
+  }
+
+  let dir = to_frag / dist;
+  let compare = dist / light.range;
+  let bias = 0.005;
+  return textureSampleCompareLevel(pointShadowCubeArray, shadowSampler, dir, slot, compare - bias);
+}
+
 // Lighting calculations
 fn calculate_pbr_lighting(
   albedo: vec3<f32>,
@@ -273,7 +292,8 @@ fn calculate_pbr_lighting(
         let kD = (vec3<f32>(1.0) - F) * (1.0 - metallic);
         let diffuse = kD * albedo / PI;
 
-        Lo += (diffuse + specular) * radiance * NdotL;
+        let shadow = sample_point_shadow(world_pos, light, i32(i));
+        Lo += (diffuse + specular) * radiance * NdotL * shadow;
       }
     }
   }

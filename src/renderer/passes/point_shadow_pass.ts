@@ -6,7 +6,7 @@ import type { Mat4 } from '../../math/mat4.js';
 import { Vec3 } from '../../math/vec3.js';
 import shadowCubeWgsl from '../../shaders/shadow_cube.wgsl?raw';
 
-const CAMERA_UNIFORM_SIZE = 6 * 64 + 16; // 6 mat4s + vec3 + f32 (with padding)
+const CAMERA_UNIFORM_SIZE = 80; // mat4 (64) + vec3 lightPos (12) + f32 farPlane (4)
 const MODEL_UNIFORM_SIZE = 64;
 
 export interface PointShadowDrawItem {
@@ -18,11 +18,11 @@ export class PointShadowPass extends RenderPass {
   readonly name = 'PointShadowPass';
 
   private _pipeline: GPURenderPipeline;
-  private _cameraBGL: GPUBindGroupLayout;
   private _modelBGL: GPUBindGroupLayout;
 
-  private _cameraBuffer: GPUBuffer;
-  private _cameraBindGroup: GPUBindGroup | null = null;
+  private _cameraBuffers: GPUBuffer[];
+  private _cameraBindGroups: GPUBindGroup[];
+  private _cameraInitialized: boolean = false;
 
   private _modelBuffers: GPUBuffer[] = [];
   private _modelBindGroups: GPUBindGroup[] = [];
@@ -34,20 +34,20 @@ export class PointShadowPass extends RenderPass {
 
   private constructor(
     pipeline: GPURenderPipeline,
-    cameraBGL: GPUBindGroupLayout,
     modelBGL: GPUBindGroupLayout,
-    cameraBuffer: GPUBuffer,
+    cameraBuffers: GPUBuffer[],
+    cameraBindGroups: GPUBindGroup[],
     shadowCubeFaceViews: GPUTextureView[],
   ) {
     super();
     this._pipeline = pipeline;
-    this._cameraBGL = cameraBGL;
     this._modelBGL = modelBGL;
-    this._cameraBuffer = cameraBuffer;
+    this._cameraBuffers = cameraBuffers;
+    this._cameraBindGroups = cameraBindGroups;
     this._shadowCubeFaceViews = shadowCubeFaceViews;
   }
 
-  static create(ctx: RenderContext, shadowCubeTexture: GPUTexture): PointShadowPass {
+  static create(ctx: RenderContext, shadowCubeTexture: GPUTexture, baseArrayLayer: number = 0): PointShadowPass {
     const { device } = ctx;
 
     // Create views for each cube face
@@ -56,7 +56,7 @@ export class PointShadowPass extends RenderPass {
       shadowCubeFaceViews.push(
         shadowCubeTexture.createView({
           dimension: '2d',
-          baseArrayLayer: i,
+          baseArrayLayer: baseArrayLayer + i,
           arrayLayerCount: 1,
         })
       );
@@ -76,11 +76,23 @@ export class PointShadowPass extends RenderPass {
       ],
     });
 
-    const cameraBuffer = device.createBuffer({
-      label: 'PointShadowCameraBuffer',
-      size: CAMERA_UNIFORM_SIZE,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-    });
+    // One camera buffer/bind group per cube face so each render pass binds the
+    // correct view-projection matrix.
+    const cameraBuffers: GPUBuffer[] = [];
+    const cameraBindGroups: GPUBindGroup[] = [];
+    for (let i = 0; i < 6; i++) {
+      const buffer = device.createBuffer({
+        label: `PointShadowCameraBuffer_Face${i}`,
+        size: CAMERA_UNIFORM_SIZE,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+      });
+      cameraBuffers.push(buffer);
+      cameraBindGroups.push(device.createBindGroup({
+        label: `PointShadowCameraBindGroup_Face${i}`,
+        layout: cameraBGL,
+        entries: [{ binding: 0, resource: { buffer } }],
+      }));
+    }
 
     const shaderModule = device.createShaderModule({
       label: 'PointShadowShader',
@@ -114,11 +126,13 @@ export class PointShadowPass extends RenderPass {
       },
       primitive: {
         topology: 'triangle-list',
-        cullMode: 'back',
+        // Y-flip in the vertex shader reverses triangle winding, so cull the
+        // opposite side to keep "front faces are rendered" semantics.
+        cullMode: 'front',
       },
     });
 
-    return new PointShadowPass(pipeline, cameraBGL, modelBGL, cameraBuffer, shadowCubeFaceViews);
+    return new PointShadowPass(pipeline, modelBGL, cameraBuffers, cameraBindGroups, shadowCubeFaceViews);
   }
 
   setDrawItems(items: PointShadowDrawItem[]): void {
@@ -127,30 +141,19 @@ export class PointShadowPass extends RenderPass {
 
   updateCamera(ctx: RenderContext, lightPosition: Vec3, viewProjections: Mat4[], farPlane: number): void {
     const data = new Float32Array(CAMERA_UNIFORM_SIZE / 4);
-    // Write 6 view-projection matrices
-    for (let i = 0; i < 6; i++) {
-      data.set(viewProjections[i].data, i * 16);
+    for (let face = 0; face < 6; face++) {
+      data.set(viewProjections[face].data, 0);
+      data[16] = lightPosition.x;
+      data[17] = lightPosition.y;
+      data[18] = lightPosition.z;
+      data[19] = farPlane;
+      ctx.queue.writeBuffer(this._cameraBuffers[face], 0, data);
     }
-    // Write light position and far plane
-    const offset = 6 * 16;
-    data[offset + 0] = lightPosition.x;
-    data[offset + 1] = lightPosition.y;
-    data[offset + 2] = lightPosition.z;
-    data[offset + 3] = farPlane;
-
-    ctx.queue.writeBuffer(this._cameraBuffer, 0, data);
-
-    if (!this._cameraBindGroup) {
-      this._cameraBindGroup = ctx.device.createBindGroup({
-        label: 'PointShadowCameraBindGroup',
-        layout: this._cameraBGL,
-        entries: [{ binding: 0, resource: { buffer: this._cameraBuffer } }],
-      });
-    }
+    this._cameraInitialized = true;
   }
 
   execute(encoder: GPUCommandEncoder, ctx: RenderContext): void {
-    if (!this._cameraBindGroup) {
+    if (!this._cameraInitialized) {
       return;
     }
 
@@ -163,7 +166,7 @@ export class PointShadowPass extends RenderPass {
       ctx.queue.writeBuffer(this._modelBuffers[i], 0, this._modelData);
     }
 
-    // Render to each cube face
+    // Render to each cube face with the matching per-face camera bind group
     for (let face = 0; face < 6; face++) {
       const pass = encoder.beginRenderPass({
         label: `PointShadowPass_Face${face}`,
@@ -177,7 +180,7 @@ export class PointShadowPass extends RenderPass {
       });
 
       pass.setPipeline(this._pipeline);
-      pass.setBindGroup(0, this._cameraBindGroup);
+      pass.setBindGroup(0, this._cameraBindGroups[face]);
 
       for (let i = 0; i < this._drawItems.length; i++) {
         const item = this._drawItems[i];
@@ -211,7 +214,9 @@ export class PointShadowPass extends RenderPass {
   }
 
   destroy(): void {
-    this._cameraBuffer.destroy();
+    for (const buffer of this._cameraBuffers) {
+      buffer.destroy();
+    }
     for (const buffer of this._modelBuffers) {
       buffer.destroy();
     }

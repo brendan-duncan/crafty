@@ -508,9 +508,11 @@ export class Chunk {
         }
 
         // Check each side and render if neighbor is not water
+        // Skip side faces at chunk boundaries if neighbor chunk is missing (BlockType.NONE)
         // Front face (+Z)
         const frontBlock = padded[bx + (by) * PW + (bz + 1) * PWPH];
-        if (!isBlockWater(frontBlock)) {
+        const atFrontEdge = wz === D - 1;
+        if (!isBlockWater(frontBlock) && !(atFrontEdge && frontBlock === BlockType.NONE)) {
           waterBuffer[wi++] = wx;     waterBuffer[wi++] = wy;     waterBuffer[wi++] = wz + 1;
           waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wy;     waterBuffer[wi++] = wz + 1;
           waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wy + 1; waterBuffer[wi++] = wz + 1;
@@ -521,7 +523,8 @@ export class Chunk {
 
         // Back face (-Z)
         const backBlock = padded[bx + (by) * PW + (bz - 1) * PWPH];
-        if (!isBlockWater(backBlock)) {
+        const atBackEdge = wz === 0;
+        if (!isBlockWater(backBlock) && !(atBackEdge && backBlock === BlockType.NONE)) {
           waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wy;     waterBuffer[wi++] = wz;
           waterBuffer[wi++] = wx;     waterBuffer[wi++] = wy;     waterBuffer[wi++] = wz;
           waterBuffer[wi++] = wx;     waterBuffer[wi++] = wy + 1; waterBuffer[wi++] = wz;
@@ -532,7 +535,8 @@ export class Chunk {
 
         // Right face (+X)
         const rightBlock = padded[(bx + 1) + (by) * PW + bz * PWPH];
-        if (!isBlockWater(rightBlock)) {
+        const atRightEdge = wx === W - 1;
+        if (!isBlockWater(rightBlock) && !(atRightEdge && rightBlock === BlockType.NONE)) {
           waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wy;     waterBuffer[wi++] = wz;
           waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wy + 1; waterBuffer[wi++] = wz;
           waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wy + 1; waterBuffer[wi++] = wz + 1;
@@ -543,7 +547,8 @@ export class Chunk {
 
         // Left face (-X)
         const leftBlock = padded[(bx - 1) + (by) * PW + bz * PWPH];
-        if (!isBlockWater(leftBlock)) {
+        const atLeftEdge = wx === 0;
+        if (!isBlockWater(leftBlock) && !(atLeftEdge && leftBlock === BlockType.NONE)) {
           waterBuffer[wi++] = wx;     waterBuffer[wi++] = wy;     waterBuffer[wi++] = wz + 1;
           waterBuffer[wi++] = wx;     waterBuffer[wi++] = wy + 1; waterBuffer[wi++] = wz + 1;
           waterBuffer[wi++] = wx;     waterBuffer[wi++] = wy + 1; waterBuffer[wi++] = wz;

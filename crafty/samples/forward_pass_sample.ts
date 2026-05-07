@@ -281,25 +281,11 @@ async function main() {
   const dirShadowPass = DirectionalShadowPass.create(renderContext, dirShadowMapView);
   const spotShadowPass = SpotShadowPass.create(renderContext, spotShadowMapView);
 
-  // Point light shadow cube maps (2 point lights) - these still use separate textures
-  const shadowCubeSize = 1024;
-  const pointShadowCubes: GPUTexture[] = [];
-  for (let i = 0; i < 2; i++) {
-    const cube = device.createTexture({
-      label: `PointShadowCube${i}`,
-      size: { width: shadowCubeSize, height: shadowCubeSize, depthOrArrayLayers: 6 },
-      format: 'depth32float',
-      dimension: '2d',
-      usage: 0x10 | 0x04, // RENDER_ATTACHMENT | TEXTURE_BINDING
-    });
-    pointShadowCubes.push(cube);
-  }
-
-  // Create point shadow passes for each point light
+  // Point light shadow passes share the forward pass's cube-array texture
+  const pointShadowCubeArray = forwardPass.pointShadowCubeArray;
   const pointShadowPasses: PointShadowPass[] = [];
   for (let i = 0; i < 2; i++) {
-    const pass = PointShadowPass.create(renderContext, pointShadowCubes[i]);
-    pointShadowPasses.push(pass);
+    pointShadowPasses.push(PointShadowPass.create(renderContext, pointShadowCubeArray, i * 6));
   }
 
   // Create render graph
@@ -321,6 +307,25 @@ async function main() {
   let lastTime = performance.now();
   let frameCount = 0;
   let fpsTime = 0;
+
+  // Light toggle states
+  let directionalLightEnabled = true;
+  let spotLightEnabled = true;
+  let pointLightsEnabled = true;
+
+  // Hotkeys: 1 = directional, 2 = spot, 3 = point
+  window.addEventListener('keydown', (e) => {
+    if (e.key === '1') {
+      directionalLightEnabled = !directionalLightEnabled;
+      console.log(`Directional light: ${directionalLightEnabled ? 'ON' : 'OFF'}`);
+    } else if (e.key === '2') {
+      spotLightEnabled = !spotLightEnabled;
+      console.log(`Spot light: ${spotLightEnabled ? 'ON' : 'OFF'}`);
+    } else if (e.key === '3') {
+      pointLightsEnabled = !pointLightsEnabled;
+      console.log(`Point lights: ${pointLightsEnabled ? 'ON' : 'OFF'}`);
+    }
+  });
 
   // Render loop
   async function render() {
@@ -408,14 +413,7 @@ async function main() {
         color: new Vec3(1.0, 0.3, 0.3),
         intensity: 10,
         castShadows: true,
-      },
-      {
-        position: new Vec3(Math.sin(time + Math.PI) * 3, 2, Math.cos(time + Math.PI) * 3),
-        range: 8,
-        color: new Vec3(0.3, 0.3, 1.0),
-        intensity: 10,
-        castShadows: true,
-      },
+      }
     ];
 
     // Compute spot light view-projection matrix
@@ -543,8 +541,22 @@ async function main() {
       }
     }
 
+    // Apply light toggles
+    const activeDirectionalLight: DirectionalLightData = directionalLightEnabled
+      ? directionalLight
+      : { ...directionalLight, intensity: 0, castShadows: false };
+    const activePointLights = pointLightsEnabled ? pointLights : [];
+    const activeSpotLights = spotLightEnabled ? spotLights : [];
+
+    // Disable shadow passes for toggled-off lights
+    dirShadowPass.enabled = activeDirectionalLight.castShadows;
+    spotShadowPass.enabled = activeSpotLights.length > 0 && activeSpotLights[0].castShadows === true;
+    for (let i = 0; i < pointShadowPasses.length; i++) {
+      pointShadowPasses[i].enabled = i < activePointLights.length && activePointLights[i].castShadows === true;
+    }
+
     // Update forward pass
-    forwardPass.updateLights(renderContext, directionalLight, pointLights, spotLights);
+    forwardPass.updateLights(renderContext, activeDirectionalLight, activePointLights, activeSpotLights);
     forwardPass.setDrawItems(drawItems);
 
     // Manual execution to control pass order

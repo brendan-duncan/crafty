@@ -9,6 +9,7 @@ export const DEFAULT_EFFECTS = {
   aces: true,
   ao_dbg: false,
   shd_dbg: false,
+  chunk_dbg: false,
   hdr: true,
   auto_exp: false,
   rain: true,
