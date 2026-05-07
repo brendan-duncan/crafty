@@ -1,9 +1,13 @@
 import { Vec3 } from './vec3.js';
 import { Vec4 } from './vec4.js';
 
-// Column-major 4x4 matrix, compatible with WebGPU/WGSL.
-// Internal storage: Float32Array of 16 elements.
-// Column c, row r = data[c * 4 + r]
+/**
+ * Column-major 4x4 matrix compatible with WebGPU/WGSL.
+ *
+ * Internal storage is a Float32Array of 16 elements where the element at column `c`,
+ * row `r` lives at `data[c * 4 + r]`. All instance methods are non-mutating (they
+ * return a new Mat4); the underlying `data` buffer is exposed as readonly.
+ */
 export class Mat4 {
   readonly data: Float32Array;
 
@@ -14,11 +18,15 @@ export class Mat4 {
     }
   }
 
+  /** Returns a deep copy of this matrix. */
   clone(): Mat4 { return new Mat4(this.data); }
 
+  /** Returns the element at the given column and row. */
   get(col: number, row: number): number { return this.data[col * 4 + row]; }
+  /** Writes a value at the given column and row. */
   set(col: number, row: number, v: number): void { this.data[col * 4 + row] = v; }
 
+  /** Returns the matrix product this * b (column-major composition: b applied first). */
   multiply(b: Mat4): Mat4 {
     const a = this.data, bd = b.data;
     const out = new Float32Array(16);
@@ -34,6 +42,7 @@ export class Mat4 {
     return new Mat4(out);
   }
 
+  /** Transforms a 3D point (w = 1), applying the full affine transform and performing perspective divide. */
   transformPoint(v: Vec3): Vec3 {
     const d = this.data;
     const x = d[0]*v.x + d[4]*v.y + d[8]*v.z + d[12];
@@ -43,6 +52,7 @@ export class Mat4 {
     return new Vec3(x / w, y / w, z / w);
   }
 
+  /** Transforms a 3D direction (w = 0), ignoring the translation column. */
   transformDirection(v: Vec3): Vec3 {
     const d = this.data;
     return new Vec3(
@@ -52,6 +62,7 @@ export class Mat4 {
     );
   }
 
+  /** Transforms a homogeneous 4D vector. */
   transformVec4(v: Vec4): Vec4 {
     const d = this.data;
     return new Vec4(
@@ -62,6 +73,7 @@ export class Mat4 {
     );
   }
 
+  /** Returns the transpose. */
   transpose(): Mat4 {
     const d = this.data;
     return new Mat4([
@@ -72,6 +84,7 @@ export class Mat4 {
     ]);
   }
 
+  /** Returns the inverse, or the identity matrix if this matrix is singular. */
   invert(): Mat4 {
     const m = this.data;
     const out = new Float32Array(16);
@@ -114,7 +127,11 @@ export class Mat4 {
     return new Mat4(out);
   }
 
-  // Upper-left 3x3 inverse-transpose for transforming normals
+  /**
+   * Returns the inverse-transpose of the upper-left 3x3, embedded in a 4x4 matrix.
+   *
+   * Use this to transform normals when the model matrix contains non-uniform scale.
+   */
   normalMatrix(): Mat4 {
     const m = this.data;
     const a00=m[0], a01=m[1], a02=m[2];
@@ -140,33 +157,40 @@ export class Mat4 {
     return new Mat4(out);
   }
 
+  /** Returns the 4x4 identity matrix. */
   static identity(): Mat4 {
     return new Mat4([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]);
   }
 
+  /** Returns a translation matrix by (x, y, z). */
   static translation(x: number, y: number, z: number): Mat4 {
     return new Mat4([1,0,0,0, 0,1,0,0, 0,0,1,0, x,y,z,1]);
   }
 
+  /** Returns a non-uniform scale matrix with the given per-axis factors. */
   static scale(x: number, y: number, z: number): Mat4 {
     return new Mat4([x,0,0,0, 0,y,0,0, 0,0,z,0, 0,0,0,1]);
   }
 
+  /** Returns a rotation matrix of `rad` radians around the X axis. */
   static rotationX(rad: number): Mat4 {
     const c = Math.cos(rad), s = Math.sin(rad);
     return new Mat4([1,0,0,0, 0,c,s,0, 0,-s,c,0, 0,0,0,1]);
   }
 
+  /** Returns a rotation matrix of `rad` radians around the Y axis. */
   static rotationY(rad: number): Mat4 {
     const c = Math.cos(rad), s = Math.sin(rad);
     return new Mat4([c,0,-s,0, 0,1,0,0, s,0,c,0, 0,0,0,1]);
   }
 
+  /** Returns a rotation matrix of `rad` radians around the Z axis. */
   static rotationZ(rad: number): Mat4 {
     const c = Math.cos(rad), s = Math.sin(rad);
     return new Mat4([c,s,0,0, -s,c,0,0, 0,0,1,0, 0,0,0,1]);
   }
 
+  /** Builds a rotation matrix from quaternion components (qx, qy, qz, qw). */
   static fromQuaternion(qx: number, qy: number, qz: number, qw: number): Mat4 {
     const x2=qx+qx, y2=qy+qy, z2=qz+qz;
     const xx=qx*x2, yx=qy*x2, yy=qy*y2;
@@ -180,7 +204,14 @@ export class Mat4 {
     ]);
   }
 
-  // Right-handed perspective projection, depth range [0, 1] for WebGPU
+  /**
+   * Builds a right-handed perspective projection with the WebGPU clip-space depth range [0, 1].
+   *
+   * @param fovY - vertical field of view in radians
+   * @param aspect - viewport width / height
+   * @param near - near plane distance (positive)
+   * @param far - far plane distance (positive)
+   */
   static perspective(fovY: number, aspect: number, near: number, far: number): Mat4 {
     const f = 1 / Math.tan(fovY / 2);
     const nf = 1 / (near - far);
@@ -192,7 +223,9 @@ export class Mat4 {
     ]);
   }
 
-  // Orthographic projection, depth range [0, 1] for WebGPU
+  /**
+   * Builds an orthographic projection with the WebGPU clip-space depth range [0, 1].
+   */
   static orthographic(left: number, right: number, bottom: number, top: number, near: number, far: number): Mat4 {
     const lr = 1 / (left - right);
     const bt = 1 / (bottom - top);
@@ -205,6 +238,10 @@ export class Mat4 {
     ]);
   }
 
+  /**
+   * Builds a right-handed view matrix that places the camera at `eye` looking at `target`,
+   * with `up` defining the camera's roll. View space uses -Z as forward.
+   */
   static lookAt(eye: Vec3, target: Vec3, up: Vec3): Mat4 {
     const f = target.sub(eye).normalize();
     const r = f.cross(up).normalize();
@@ -217,6 +254,16 @@ export class Mat4 {
     ]);
   }
 
+  /**
+   * Builds a Translate * Rotate * Scale matrix.
+   *
+   * @param t - translation
+   * @param qx - quaternion x component
+   * @param qy - quaternion y component
+   * @param qz - quaternion z component
+   * @param qw - quaternion w (scalar) component
+   * @param s - per-axis scale factors
+   */
   static trs(t: Vec3, qx: number, qy: number, qz: number, qw: number, s: Vec3): Mat4 {
     const r = Mat4.fromQuaternion(qx, qy, qz, qw);
     const d = r.data;

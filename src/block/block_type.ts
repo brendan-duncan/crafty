@@ -1,14 +1,22 @@
 import { Vec2 } from "../math/vec2.js"
 import { Vec3 } from "../math/vec3.js"
 
+/** Reference horizontal resolution used for UI layout scaling. */
 export const BASE_RESOLUTION_WIDTH = 1280;
+/** Reference vertical resolution used for UI layout scaling. */
 export const BASE_RESOLUTION_HEIGHT = 720;
+/** Width in pixels of the block texture atlas. */
 export const BLOCK_ATLAS_WIDTH = 400;
+/** Height in pixels of the block texture atlas. */
 export const BLOCK_ATLAS_HEIGHT = 400;
+/** Width and height in pixels of a single block texture tile in the atlas. */
 export const BLOCK_ATLAS_TEX_SIZE = 16;
+/** Number of tile columns in the atlas. */
 export const BLOCK_ATLAS_WIDTH_DIVIDED = BLOCK_ATLAS_WIDTH / BLOCK_ATLAS_TEX_SIZE;
+/** Number of tile rows in the atlas. */
 export const BLOCK_ATLAS_HEIGHT_DIVIDED = BLOCK_ATLAS_HEIGHT / BLOCK_ATLAS_TEX_SIZE;
 
+/** Identifier for every distinct block kind. `NONE` is air, `MAX` is a sentinel. */
 export enum BlockType {
   NONE,
   GRASS,
@@ -38,12 +46,29 @@ export enum BlockType {
   MAX
 }
 
+/**
+ * Per-block atlas tile coordinates for each face group.
+ *
+ * Each `Vec2` is a tile (column, row) index into the texture atlas.
+ */
 export class BlockTextureOffsetData {
+  /** Block this entry describes. */
   blockType: BlockType;
+  /** Atlas tile for the four side faces. */
   sideFace: Vec2;
+  /** Atlas tile for the bottom face. */
   bottomFace: Vec2;
+  /** Atlas tile for the top face. */
   topFace: Vec2;
 
+  /**
+   * Creates a new block texture offset entry.
+   *
+   * @param bt - block type
+   * @param sf - side face tile coordinate
+   * @param bf - bottom face tile coordinate
+   * @param tf - top face tile coordinate
+   */
   constructor(bt: BlockType, sf: Vec2, bf: Vec2, tf: Vec2) {
     this.blockType = bt;
     this.sideFace = sf;
@@ -52,6 +77,7 @@ export class BlockTextureOffsetData {
   }
 }
 
+/** Texture atlas offsets indexed by `BlockType`. */
 export const blockTextureOffsetData: BlockTextureOffsetData[] = [
   //NONE
   new BlockTextureOffsetData(BlockType.NONE,
@@ -210,6 +236,7 @@ export const blockTextureOffsetData: BlockTextureOffsetData[] = [
     new Vec2(0, 0)),
 ];
 
+/** Render/material category controlling render pass and shader path. */
 export enum MaterialType {
   OPAQUE,
   SEMI_TRANSPARENT,
@@ -217,12 +244,27 @@ export enum MaterialType {
   PROP
 }
 
+/**
+ * Material/physics flags for a block.
+ */
 export class BlockMaterialData {
+  /** Block this entry describes. */
   blockType: BlockType;
-  materialType: MaterialType; //0 == opaque, 1 == semi transparent, 2 == water, 3 == prop
+  /** Render category (opaque, semi-transparent, water, prop). */
+  materialType: MaterialType;
+  /** 1 if the block emits light, 0 otherwise. */
   emitsLight: number;
+  /** 1 if the block collides with entities, 0 otherwise. */
   collidable: number;
 
+  /**
+   * Creates a new block material entry.
+   *
+   * @param blockType - block type
+   * @param materialType - render category
+   * @param emitsLight - 1 if the block emits light
+   * @param collidable - 1 if the block is collidable
+   */
   constructor(blockType: BlockType, materialType: MaterialType, emitsLight: number, collidable: number) {
     this.blockType = blockType;
     this.materialType = materialType;
@@ -231,6 +273,7 @@ export class BlockMaterialData {
   }
 }
 
+/** Material data indexed by `BlockType`. */
 export const blockMaterialData: BlockMaterialData[] = [
   new BlockMaterialData(BlockType.NONE, MaterialType.SEMI_TRANSPARENT, 0, 0),
   new BlockMaterialData(BlockType.GRASS, MaterialType.OPAQUE, 0, 1),
@@ -259,16 +302,35 @@ export const blockMaterialData: BlockMaterialData[] = [
   new BlockMaterialData(BlockType.AMETHYST, MaterialType.OPAQUE, 0, 1)
 ];
 
+/**
+ * Point-light parameters emitted by a block.
+ */
 export class BlockLightData {
+  /** Block this entry describes. */
   blockType: BlockType;
 
+  /** Linear RGB light color. */
   color: Vec3;
+  /** Ambient contribution intensity. */
   ambientIntensity: number;
+  /** Specular contribution intensity. */
   specularIntensity: number;
 
+  /** Light radius in world units. */
   radius: number;
+  /** Falloff exponent. */
   attenuation: number;
 
+  /**
+   * Creates a new block light entry.
+   *
+   * @param bt - block type
+   * @param c - light color
+   * @param ai - ambient intensity
+   * @param si - specular intensity
+   * @param r - radius
+   * @param atten - attenuation exponent
+   */
   constructor(bt: BlockType, c: Vec3, ai: number, si: number, r: number, atten: number) {
     this.blockType = bt;
     this.color = c;
@@ -279,6 +341,7 @@ export class BlockLightData {
   }
 }
 
+/** Light parameters for every light-emitting block. Order is unrelated to `BlockType` index. */
 export const blockLightData: BlockLightData[] = [
   //GLOWSTONE
   new BlockLightData(BlockType.GLOWSTONE,
@@ -313,6 +376,7 @@ export const blockLightData: BlockLightData[] = [
     1.20),
 ];
 
+/** Human-readable display name indexed by `BlockType`. */
 export const blockTypeName: String[] = [
   //NONE
   "None",
@@ -393,34 +457,77 @@ export const blockTypeName: String[] = [
   "Max"
 ];
 
+/**
+ * Returns true if the block is water.
+ *
+ * @param blockType - block to test
+ */
 export function isBlockWater(blockType: BlockType): boolean {
   return blockMaterialData[blockType].materialType === 2;
 }
 
+/**
+ * Returns true if the block is fully opaque.
+ *
+ * @param blockType - block to test
+ */
 export function isBlockOpaque(blockType: BlockType): boolean {
   return blockMaterialData[blockType].materialType === 0;
 }
 
+/**
+ * Returns true if the block is semi-transparent or a prop (rendered in the alpha pass).
+ *
+ * @param blockType - block to test
+ */
 export function isBlockSemiTransparent(blockType: BlockType): boolean {
   return blockMaterialData[blockType].materialType === 1 || blockMaterialData[blockType].materialType === 3;
 }
 
+/**
+ * Returns true if the block collides with entities.
+ *
+ * @param blockType - block to test
+ */
 export function isBlockCollidable(blockType: BlockType): boolean {
   return blockMaterialData[blockType].collidable === 1;
 }
 
+/**
+ * Returns true if the block emits light.
+ *
+ * @param blockType - block to test
+ */
 export function isBlockEmittingLight(blockType: BlockType): boolean {
   return blockMaterialData[blockType].emitsLight === 1;
 }
 
+/**
+ * Returns true if the block is a prop (billboard, non-collidable foliage, etc.).
+ *
+ * @param blockType - block to test
+ */
 export function isBlockProp(blockType: BlockType): boolean {
   return blockMaterialData[blockType].materialType === 3;
 }
 
+/**
+ * Returns the display name for the block.
+ *
+ * @param blockType - block to query
+ */
 export function getBlockName(blockType: BlockType): String {
     return blockTypeName[blockType];
 }
 
+/**
+ * Writes the block's local-space AABB into `dest[0]` (min) and `dest[1]` (max).
+ *
+ * Props use a smaller bounding box than full cubes.
+ *
+ * @param blockType - block to query
+ * @param dest - two-element array of Vec3 to populate (min, max)
+ */
 export function getBlockTypeAABB(blockType: BlockType, dest: Vec3[]) {
   let width = 1;
   let height = 1;
@@ -446,7 +553,13 @@ export function getBlockTypeAABB(blockType: BlockType, dest: Vec3[]) {
   dest[1].z = length - (length * 0.5);
 }
 
-export function getBlockLightingData(block_type: BlockType): BlockLightData {	
+/**
+ * Returns the light parameters for the block, or the first entry as a fallback.
+ *
+ * @param block_type - block to query
+ * @returns the matching `BlockLightData`, or `blockLightData[0]` if none
+ */
+export function getBlockLightingData(block_type: BlockType): BlockLightData {
   for (const bld of blockLightData) {
     if (bld.blockType === block_type) {
       return bld;
@@ -455,6 +568,13 @@ export function getBlockLightingData(block_type: BlockType): BlockLightData {
   return blockLightData[0];
 }
 
+/**
+ * Builds and uploads the per-block-type uniform buffer used by chunk shaders.
+ *
+ * Each entry packs the six face atlas indices and a prop flag.
+ *
+ * @param device - WebGPU device used to allocate the buffer
+ */
 export function generateBlockInfoUniformBuffer(device: GPUDevice) {
   const elementSize = 28; // { float[6], float }
   const bufferSize = elementSize * BlockType.MAX;

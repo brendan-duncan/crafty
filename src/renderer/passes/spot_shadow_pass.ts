@@ -8,11 +8,25 @@ import shadowWgsl from '../../shaders/shadow.wgsl?raw';
 const CAMERA_UNIFORM_SIZE = 64; // 1 mat4
 const MODEL_UNIFORM_SIZE = 64;  // 1 mat4
 
+/**
+ * A single mesh draw submission for the spot-light shadow pass, pairing a mesh
+ * with its world-space model matrix.
+ */
 export interface SpotShadowDrawItem {
+  /** Mesh whose positions are rasterized into the shadow map. */
   mesh: Mesh;
+  /** Column-major world transform applied to the mesh vertices. */
   modelMatrix: Mat4;
 }
 
+/**
+ * Renders scene meshes into a single 2D depth texture from a spot light's perspective
+ * (perspective projection), producing a shadow map sampled later during lighting.
+ *
+ * Inputs: per-draw mesh vertex/index buffers (position attribute only) and a
+ * light view-projection matrix. Output: depth32float values written to the
+ * provided shadow map texture view.
+ */
 export class SpotShadowPass extends RenderPass {
   readonly name = 'SpotShadowPass';
 
@@ -46,6 +60,14 @@ export class SpotShadowPass extends RenderPass {
     this._shadowMapView = shadowMapView;
   }
 
+  /**
+   * Build the pass, allocating the camera uniform buffer, bind-group layouts, and
+   * depth-only render pipeline that targets the supplied shadow map view.
+   *
+   * @param ctx Render context providing the GPU device.
+   * @param shadowMapView Depth32Float texture view that will receive the shadow map.
+   * @returns A ready-to-use SpotShadowPass instance.
+   */
   static create(ctx: RenderContext, shadowMapView: GPUTextureView): SpotShadowPass {
     const { device } = ctx;
 
@@ -108,10 +130,22 @@ export class SpotShadowPass extends RenderPass {
     return new SpotShadowPass(pipeline, cameraBGL, modelBGL, cameraBuffer, shadowMapView);
   }
 
+  /**
+   * Replace the list of meshes that will be rasterized on the next execute.
+   *
+   * @param items Draw items to record; the array is retained by reference.
+   */
   setDrawItems(items: SpotShadowDrawItem[]): void {
     this._drawItems = items;
   }
 
+  /**
+   * Upload the spot light's view-projection matrix to the camera uniform and
+   * lazily create the camera bind group.
+   *
+   * @param ctx Render context providing the GPU queue and device.
+   * @param lightViewProj Combined view-projection matrix in the light's perspective space.
+   */
   updateCamera(ctx: RenderContext, lightViewProj: Mat4): void {
     const data = new Float32Array(16);
     data.set(lightViewProj.data, 0);
@@ -126,6 +160,14 @@ export class SpotShadowPass extends RenderPass {
     }
   }
 
+  /**
+   * Record the depth-only render pass, clearing the shadow map and drawing every
+   * registered item from the spot light's perspective. Skips work entirely if
+   * the camera bind group has not yet been initialized via updateCamera.
+   *
+   * @param encoder Command encoder to record into.
+   * @param ctx Render context providing the GPU device and queue.
+   */
   execute(encoder: GPUCommandEncoder, ctx: RenderContext): void {
     if (!this._cameraBindGroup) {
       return;
@@ -184,6 +226,9 @@ export class SpotShadowPass extends RenderPass {
     }
   }
 
+  /**
+   * Release all GPU resources owned by this pass (camera and per-model uniform buffers).
+   */
   destroy(): void {
     this._cameraBuffer.destroy();
     for (const buffer of this._modelBuffers) {

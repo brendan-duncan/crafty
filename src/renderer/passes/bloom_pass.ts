@@ -7,10 +7,24 @@ import bloomCompositeWgsl from '../../shaders/bloom_composite.wgsl?raw';
 // threshold (f32) + knee (f32) + strength (f32) + pad (f32)
 const UNIFORM_SIZE = 16;
 
+/**
+ * HDR bloom: prefilters bright pixels of the incoming HDR target into a
+ * half-res texture, applies a separable Gaussian blur ping-pong (two H/V
+ * iterations), and composites the result back over the original HDR into
+ * `resultView`. Downstream passes (e.g. tonemap) sample `resultView`.
+ *
+ * Pipeline summary:
+ *   1. Prefilter (full-res HDR → half-res half1)
+ *   2. Two iterations of horizontal+vertical blur (half1 ↔ half2)
+ *   3. Composite (HDR + blurred bloom → full-res result)
+ */
 export class BloomPass extends RenderPass {
   readonly name = 'BloomPass';
 
-  // Full-res result — read by TonemapPass instead of raw TAA output.
+  /**
+   * Full-resolution HDR output containing the original scene composited with
+   * the blurred bloom. Sampled by the tonemap pass instead of the raw HDR.
+   */
   readonly resultView: GPUTextureView;
 
   private _result: GPUTexture;
@@ -63,6 +77,16 @@ export class BloomPass extends RenderPass {
     this._compositeBG = compositeBG;
   }
 
+  /**
+   * Builds the bloom pass: allocates the half-res ping-pong textures, the
+   * full-res result texture, all bind groups, and the prefilter, blur, and
+   * composite pipelines.
+   *
+   * @param ctx     Renderer context (provides device and target dimensions).
+   * @param hdrView The full-resolution HDR scene color to bloom.
+   * @returns A configured BloomPass with default parameters
+   *          (threshold=1.0, knee=0.5, strength=0.3).
+   */
   static create(ctx: RenderContext, hdrView: GPUTextureView): BloomPass {
     const { device, width, height } = ctx;
     const halfW = Math.max(1, width  >> 1);
@@ -168,13 +192,24 @@ export class BloomPass extends RenderPass {
     );
   }
 
-  // threshold: HDR luminance above which pixels bloom (default 1.0)
-  // knee: width of the smooth ramp below the threshold (default 0.5)
-  // strength: how much bloom is added to the composite (default 0.3)
+  /**
+   * Updates the bloom shader parameters.
+   *
+   * @param ctx       Renderer context (used for the queue).
+   * @param threshold HDR luminance above which pixels begin to bloom.
+   * @param knee      Width of the smooth ramp below the threshold (soft knee).
+   * @param strength  Multiplier for the blurred bloom added during composite.
+   */
   updateParams(ctx: RenderContext, threshold = 1.0, knee = 0.5, strength = 0.3): void {
     ctx.queue.writeBuffer(this._uniformBuffer, 0, new Float32Array([threshold, knee, strength, 0]).buffer as ArrayBuffer);
   }
 
+  /**
+   * Records the prefilter, blur ping-pong, and composite render passes.
+   *
+   * @param encoder Active command encoder to record into.
+   * @param _ctx    Render context (unused).
+   */
   execute(encoder: GPUCommandEncoder, _ctx: RenderContext): void {
     const draw = (label: string, attachment: GPUTextureView, pipeline: GPURenderPipeline, bg: GPUBindGroup) => {
       const pass = encoder.beginRenderPass({
@@ -200,6 +235,9 @@ export class BloomPass extends RenderPass {
     draw('BloomComposite', this.resultView, this._compositePipeline, this._compositeBG);
   }
 
+  /**
+   * Releases the textures and uniform buffer owned by this pass.
+   */
   destroy(): void {
     this._result.destroy();
     this._half1.destroy();

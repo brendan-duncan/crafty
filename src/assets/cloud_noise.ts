@@ -1,8 +1,15 @@
+/**
+ * Pair of tileable 3D noise textures used for volumetric cloud rendering.
+ *
+ * Contains a low-frequency base shape texture and a higher-frequency detail
+ * texture that erodes cloud edges.
+ */
 export interface CloudNoiseTextures {
   baseNoise: GPUTexture;         // 64×64×64 rgba8unorm 3D
   baseView: GPUTextureView;
   detailNoise: GPUTexture;         // 32×32×32 rgba8unorm 3D
   detailView: GPUTextureView;
+  /** Releases both GPU textures. */
   destroy(): void;
 }
 
@@ -124,6 +131,17 @@ function make3dTexture(device: GPUDevice, label: string, size: number, data: Uin
   return tex;
 }
 
+/**
+ * Generates and uploads the cloud base and detail 3D noise textures.
+ *
+ * The base texture packs a tileable Perlin FBM in R (cloud bulk shape) and
+ * three increasing-frequency Worley layers in GBA (erosion). The detail
+ * texture packs three higher-frequency Worley layers in RGB for fine edge
+ * erosion.
+ *
+ * @param device - WebGPU device used to create the textures.
+ * @returns Both 3D textures with views; caller owns them and must `destroy()`.
+ */
 export function createCloudNoiseTextures(device: GPUDevice): CloudNoiseTextures {
   // ---- Base noise: 64×64×64 ----
   // R = 4-octave tileable Perlin FBM (cloud bulk shape), 4 tiles across the texture

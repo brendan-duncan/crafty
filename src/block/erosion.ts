@@ -1,5 +1,6 @@
 import { perlinNoise3Seed, perlinRidgeNoise3 } from '../math/index.js';
 
+/** Side length in blocks of one cached erosion region tile. */
 export const EROSION_REGION_SIZE = 128;
 
 // Mirrors the base-height sampling from chunk.ts generateBlocks (y=0 slice for a stable 2D field).
@@ -145,10 +146,18 @@ function _erode(heights: Float32Array, size: number, seed: number): void {
 }
 
 /**
- * Builds a 128×128 erosion displacement map for the given region.
- * Returns Float32Array indexed [lx + lz * EROSION_REGION_SIZE].
- * Positive values = sediment deposition (higher terrain); negative = erosion (carved valley).
- * A 12-block edge fade forces displacement to zero at region borders, eliminating seams.
+ * Builds a 128x128 hydraulic erosion displacement map for one region.
+ *
+ * Runs Sebastian Lague's droplet-based hydraulic erosion simulation on a sampled
+ * base-height field, then returns the per-cell delta from the original heights.
+ * Positive values are sediment deposition (higher terrain); negative values are
+ * erosion (carved valleys). A 12-block edge fade forces displacement to zero at
+ * region borders, eliminating seams between adjacent regions.
+ *
+ * @param regionX - region X index (region world origin = `regionX * EROSION_REGION_SIZE`)
+ * @param regionZ - region Z index
+ * @param seed - world seed
+ * @returns flat array indexed `[lx + lz * EROSION_REGION_SIZE]`
  */
 export function buildErosionRegion(regionX: number, regionZ: number, seed: number): Float32Array {
   const R  = EROSION_REGION_SIZE;

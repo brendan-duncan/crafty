@@ -14,12 +14,23 @@ const FOG_FORMAT: GPUTextureFormat = HDR_FORMAT;
 // BlurCompositeParams: blur_dir(vec2) + fog_curve(f32) + _pad = 16 bytes
 const PARAMS_SIZE = 16;
 
+/**
+ * Volumetric light shaft (godray) pass. Raymarches the sun direction through the
+ * shadow map to accumulate in-scattered fog into a half-resolution buffer,
+ * separable-blurs it, then composites additively onto the HDR target.
+ *
+ * Inputs sampled: G-buffer depth, cascade shadow map, camera + light uniforms.
+ * Outputs written: additive contribution into the bound HDR view.
+ */
 export class GodrayPass extends RenderPass {
   readonly name = 'GodrayPass';
 
   // Tweakable properties — apply before the next frame by calling updateParams().
+  /** Henyey-Greenstein anisotropy g in [0,1): 0 = isotropic, ~1 = fully forward-scattering. */
   scattering = 0.3;   // Henyey-Greenstein g: 0 = isotropic, 1 = fully forward
+  /** Power curve applied to accumulated fog; values >1 compress low intensities. */
   fogCurve   = 2.0;   // power applied to accumulated fog (>1 = compress low values)
+  /** Number of raymarch samples per pixel during the march pass. */
   maxSteps   = 16;    // raymarch sample count per pixel
 
   private _fogA    : GPUTexture;
@@ -80,6 +91,21 @@ export class GodrayPass extends RenderPass {
     this._compParamsBuf  = compParamsBuf;
   }
 
+  /**
+   * Constructs the pass, allocating the half-resolution ping-pong fog textures,
+   * pipelines, and bind groups.
+   *
+   * `cameraBuffer` and `lightBuffer` should be the same GPUBuffers used by
+   * LightingPass so per-frame uniform writes stay shared and consistent.
+   *
+   * @param ctx Render context (device, dimensions).
+   * @param gbuffer G-buffer providing the depth view sampled during the march.
+   * @param shadowPass Shadow pass providing the cascade shadow map.
+   * @param hdrView HDR color target the composite step blends into.
+   * @param cameraBuffer Shared camera uniform buffer.
+   * @param lightBuffer Shared directional-light uniform buffer.
+   * @returns Configured GodrayPass instance.
+   */
   // cameraBuffer / lightBuffer: the same GPUBuffers used by LightingPass.
   // Sharing them means no extra per-frame writes and guaranteed data consistency.
   static create(
@@ -239,6 +265,12 @@ export class GodrayPass extends RenderPass {
     );
   }
 
+  /**
+   * Uploads the current `scattering`, `maxSteps`, and `fogCurve` values to the
+   * GPU uniform buffers. Call whenever any of those properties change.
+   *
+   * @param ctx Render context whose queue receives the buffer writes.
+   */
   // Call whenever scattering / fogCurve / maxSteps change.
   updateParams(ctx: RenderContext): void {
     ctx.queue.writeBuffer(this._marchParamsBuf, 0,
@@ -249,6 +281,13 @@ export class GodrayPass extends RenderPass {
       new Float32Array([0.0, 0.0, this.fogCurve, 0.0]).buffer as ArrayBuffer);
   }
 
+  /**
+   * Records the four sub-passes: raymarch, horizontal blur, vertical blur, and
+   * additive composite into the HDR target.
+   *
+   * @param encoder Command encoder to record into.
+   * @param _ctx Render context (unused).
+   */
   execute(encoder: GPUCommandEncoder, _ctx: RenderContext): void {
     const draw = (label: string, target: GPUTextureView, pipeline: GPURenderPipeline, bg: GPUBindGroup, clear = true) => {
       const pass = encoder.beginRenderPass({
@@ -276,6 +315,7 @@ export class GodrayPass extends RenderPass {
     draw('GodrayComposite', this._hdrView, this._compositePipeline, this._compositeBG, false);
   }
 
+  /** Releases all GPU resources owned by this pass (textures and uniform buffers). */
   destroy(): void {
     this._fogA.destroy();
     this._fogB.destroy();

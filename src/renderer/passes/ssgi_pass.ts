@@ -9,14 +9,23 @@ import ssgiTemporalWgsl from '../../shaders/ssgi_temporal.wgsl?raw';
 // 5×mat4(320) + camPos(12) + numRays+numSteps+radius+thickness+strength+frameIndex(24) = 356 → padded to 368
 const UNIFORM_SIZE = 368;
 
+/**
+ * Tuning parameters for the screen-space global illumination ray march.
+ */
 export interface SSGISettings {
+  /** Number of stochastic rays cast per pixel per frame. */
   numRays  : number;
+  /** Number of march steps along each ray. */
   numSteps : number;
+  /** Maximum march distance in view-space units. */
   radius   : number;
+  /** Surface thickness used for hit acceptance during ray marching. */
   thickness: number;
+  /** Output intensity multiplier for the GI contribution. */
   strength : number;
 }
 
+/** Default SSGI settings tuned for typical scenes. */
 export const DEFAULT_SSGI: SSGISettings = {
   numRays: 4, numSteps: 16, radius: 3.0, thickness: 0.5, strength: 1.0,
 };
@@ -33,9 +42,19 @@ function generateNoise(): Uint8Array<ArrayBuffer> {
   return noise;
 }
 
+/**
+ * Screen-space global illumination pass. Casts stochastic rays in screen space
+ * against the previous frame's lit radiance to estimate one bounce of indirect
+ * light, then accumulates the result temporally using a reprojected history.
+ *
+ * Inputs sampled: G-buffer depth and normal/metallic, previous-frame radiance,
+ * tiled noise, and the SSGI history buffer.
+ * Output: temporally-stable indirect radiance exposed as `resultView`.
+ */
 export class SSGIPass extends RenderPass {
   readonly name = 'SSGIPass';
 
+  /** Final temporally-accumulated GI texture view, consumed by downstream passes. */
   readonly resultView: GPUTextureView;
 
   private _uniformBuffer : GPUBuffer;
@@ -95,6 +114,16 @@ export class SSGIPass extends RenderPass {
     this._height = height;
   }
 
+  /**
+   * Constructs the pass and allocates uniform buffer, noise, raw/history/result
+   * textures, pipelines, and bind groups.
+   *
+   * @param ctx Render context providing the device and screen size.
+   * @param gbuffer G-buffer providing depth and normal/metallic views.
+   * @param prevRadianceView Previous-frame lit radiance texture sampled by ray hits.
+   * @param settings Initial SSGI tuning parameters.
+   * @returns Configured SSGIPass instance.
+   */
   static create(
     ctx: RenderContext,
     gbuffer: GBuffer,
@@ -232,6 +261,19 @@ export class SSGIPass extends RenderPass {
     );
   }
 
+  /**
+   * Uploads the per-frame camera matrices, camera position, current SSGI
+   * settings, and increments the frame index used to decorrelate noise.
+   * Call once per frame before {@link execute}.
+   *
+   * @param ctx Render context whose queue receives the buffer write.
+   * @param view World-to-view matrix.
+   * @param proj View-to-clip matrix.
+   * @param invProj Inverse of `proj` for view-space reconstruction.
+   * @param invViewProj Inverse of view*proj for world-space reconstruction.
+   * @param prevViewProj Previous frame's view*proj for temporal reprojection.
+   * @param camPos Current world-space camera position.
+   */
   updateCamera(
     ctx: RenderContext,
     view: Mat4, proj: Mat4, invProj: Mat4, invViewProj: Mat4, prevViewProj: Mat4,
@@ -256,10 +298,22 @@ export class SSGIPass extends RenderPass {
     ctx.queue.writeBuffer(this._uniformBuffer, 0, data.buffer as ArrayBuffer);
   }
 
+  /**
+   * Merges the given fields into the current SSGI settings; the new values
+   * take effect on the next {@link updateCamera} call that uploads them.
+   *
+   * @param settings Partial settings to overlay onto the current ones.
+   */
   updateSettings(settings: Partial<SSGISettings>): void {
     this._settings = { ...this._settings, ...settings };
   }
 
+  /**
+   * Records the ray-march, temporal accumulation, and history copy sub-passes.
+   *
+   * @param encoder Command encoder to record into.
+   * @param _ctx Render context (unused).
+   */
   execute(encoder: GPUCommandEncoder, _ctx: RenderContext): void {
     // 1. Ray march → raw SSGI
     {
@@ -295,6 +349,7 @@ export class SSGIPass extends RenderPass {
     );
   }
 
+  /** Releases the uniform buffer, noise texture, and raw/history/result textures. */
   destroy(): void {
     this._uniformBuffer.destroy();
     this._noiseTexture.destroy();

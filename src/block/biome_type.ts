@@ -1,3 +1,4 @@
+/** Discrete biome categories used by world generation. */
 export enum BiomeType {
   None,
   SnowyMountains,
@@ -8,12 +9,19 @@ export enum BiomeType {
   Max
 }
 
+/** Ambient weather/particle effect associated with a biome. */
 export enum EnvironmentEffect {
   None,
   Rain,
   Snow,
 }
 
+/**
+ * Returns the weather/particle effect that should play in the given biome.
+ *
+ * @param biome - biome to query
+ * @returns the environment effect, or `EnvironmentEffect.None` if none
+ */
 export function getBiomeEnvironmentEffect(biome: BiomeType): EnvironmentEffect {
   switch (biome) {
     //case BiomeType.GrassyPlains:
@@ -27,6 +35,12 @@ export function getBiomeEnvironmentEffect(biome: BiomeType): EnvironmentEffect {
   }
 }
 
+/**
+ * Returns the vertical cloud layer bounds (in world units) for the biome.
+ *
+ * @param biome - biome to query
+ * @returns the cloud base and top altitudes
+ */
 export function getBiomeCloudBounds(biome: BiomeType): { cloudBase: number; cloudTop: number } {
   switch (biome) {
     case BiomeType.SnowyMountains: 
@@ -50,15 +64,25 @@ const _THRESHOLDS: [number, BiomeType, BiomeType][] = [
   [-0.5,   BiomeType.SnowyMountains, BiomeType.RockyMountains ],
 ];
 
+/**
+ * Two-biome blend descriptor produced when sampling near a temperature threshold.
+ */
 export interface BiomeBlend {
-  biome1: BiomeType; // cool-side (or pure biome when blend === 0)
-  biome2: BiomeType; // warm-side (equals biome1 outside blend zone)
-  blend: number;     // 0 = fully biome1, 1 = fully biome2
+  /** Cool-side biome (or pure biome when blend === 0). */
+  biome1: BiomeType;
+  /** Warm-side biome (equals biome1 outside blend zone). */
+  biome2: BiomeType;
+  /** Interpolation factor: 0 = fully biome1, 1 = fully biome2. */
+  blend: number;
 }
 
 /**
  * Returns the two biomes on either side of the nearest threshold and a blend weight.
- * Outside all blend zones, biome1 === biome2 and blend === 0.
+ *
+ * Outside all blend zones, `biome1 === biome2` and `blend === 0`.
+ *
+ * @param temperature - sampled temperature noise in `[-1, 1]`
+ * @returns the blend descriptor
  */
 export function getBiomeBlend(temperature: number): BiomeBlend {
   for (const [t, warm, cool] of _THRESHOLDS) {
@@ -87,6 +111,12 @@ function _pureFromTemperature(temperature: number): BiomeType {
   return BiomeType.RockyMountains;
 }
 
+/**
+ * Returns the cloud coverage density multiplier for the biome.
+ *
+ * @param biome - biome to query
+ * @returns coverage multiplier (higher = more clouds)
+ */
 export function getBiomeCloudCoverage(biome: BiomeType): number {
   switch (biome) {
     case BiomeType.SnowyMountains: return 1.2;

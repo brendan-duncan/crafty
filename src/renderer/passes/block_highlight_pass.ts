@@ -7,6 +7,14 @@ import blockHighlightWgsl from '../../shaders/block_highlight.wgsl?raw';
 // viewProj(64) + blockPos(12) + pad(4) = 80 bytes
 const UNIFORM_SIZE = 80;
 
+/**
+ * Draws a selection outline around the currently-targeted block. Reads the
+ * existing depth buffer (load-only) and blends a dark face overlay plus thick
+ * edge quads into the HDR color target.
+ *
+ * Uses two pipelines sharing a single shader: a face overlay (with depth bias
+ * to avoid z-fighting) and an edge outline made of thin perpendicular quads.
+ */
 export class BlockHighlightPass extends RenderPass {
   readonly name = 'BlockHighlightPass';
 
@@ -35,6 +43,15 @@ export class BlockHighlightPass extends RenderPass {
     this._depthView    = depthView;
   }
 
+  /**
+   * Builds the pass, allocating the uniform buffer, bind group, and the face
+   * and edge pipelines.
+   *
+   * @param ctx       Renderer context providing the GPU device.
+   * @param hdrView   HDR color attachment to draw the highlight into.
+   * @param depthView Depth attachment used for occlusion (load-only).
+   * @returns A ready-to-execute BlockHighlightPass.
+   */
   static create(ctx: RenderContext, hdrView: GPUTextureView, depthView: GPUTextureView): BlockHighlightPass {
     const { device } = ctx;
 
@@ -100,7 +117,15 @@ export class BlockHighlightPass extends RenderPass {
     return new BlockHighlightPass(facePipeline, edgePipeline, uniformBuf, bg, hdrView, depthView);
   }
 
-  // Call each frame with the integer block position, or null when nothing is targeted.
+  /**
+   * Updates the per-frame uniforms. Pass `null` for `blockPos` to disable the
+   * highlight for this frame.
+   *
+   * @param ctx      Renderer context (used for the queue).
+   * @param viewProj Combined view-projection matrix (column-major).
+   * @param blockPos Integer world-space coordinate of the targeted block, or
+   *                 `null` when nothing is targeted.
+   */
   update(ctx: RenderContext, viewProj: { data: Float32Array }, blockPos: Vec3 | null): void {
     if (!blockPos) { this._active = false; return; }
     this._active = true;
@@ -112,6 +137,13 @@ export class BlockHighlightPass extends RenderPass {
     ctx.queue.writeBuffer(this._uniformBuf, 0, data.buffer as ArrayBuffer);
   }
 
+  /**
+   * Records the highlight draw calls. Becomes a no-op when no block is
+   * currently targeted (i.e. `update` was last called with `null`).
+   *
+   * @param encoder Active command encoder to record into.
+   * @param _ctx    Render context (unused).
+   */
   execute(encoder: GPUCommandEncoder, _ctx: RenderContext): void {
     if (!this._active) {
       return;
@@ -140,6 +172,9 @@ export class BlockHighlightPass extends RenderPass {
     pass.end();
   }
 
+  /**
+   * Releases GPU resources owned by this pass.
+   */
   destroy(): void {
     this._uniformBuf.destroy();
   }

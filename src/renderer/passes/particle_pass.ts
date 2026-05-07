@@ -17,6 +17,20 @@ const CAMERA_UNI_SIZE   = 288;
 const HEIGHTMAP_UNI_SIZE = 16;  // HeightmapUniforms: origin_x, origin_z, extent, resolution
 const HEIGHTMAP_RES     = 128;  // Fixed heightmap resolution for block_collision
 
+/**
+ * GPU particle system pass: simulates particles in compute (spawn → update →
+ * compact) and draws them as billboards via an indirect draw. Spawn and
+ * update WGSL is generated from the {@link ParticleGraphConfig}; the compact
+ * step rebuilds the alive list and writes the indirect-draw `instanceCount`.
+ *
+ * Two render flavours are supported:
+ *   - Forward HDR (alpha-blended sprites, depth read-only) writing into
+ *     `hdrView`.
+ *   - Deferred GBuffer (opaque billboards) writing albedo + normal into the
+ *     supplied {@link GBuffer}.
+ *
+ * Optionally consumes a heightmap for cheap block-collision against terrain.
+ */
 export class ParticlePass extends RenderPass {
   readonly name = 'ParticlePass';
 
@@ -126,6 +140,23 @@ export class ParticlePass extends RenderPass {
     this._heightmapBG      = heightmapBG;
   }
 
+  /**
+   * Builds the particle pass: allocates the particle storage buffer, alive
+   * list, atomic counter, indirect draw buffer, all uniform buffers and bind
+   * groups, generates and compiles the spawn/update shaders from `config`,
+   * and creates the appropriate render pipeline (forward HDR or GBuffer).
+   *
+   * If the config uses block_collision, also allocates the heightmap data
+   * and uniform buffers (populate them via {@link updateHeightmap}).
+   *
+   * @param ctx     Renderer context (provides GPU device).
+   * @param config  Particle system definition (emitter + modules + renderer).
+   * @param gbuffer GBuffer attachments (depth always sampled; color used in
+   *                deferred mode).
+   * @param hdrView HDR color attachment, required when `config.renderer`
+   *                targets HDR.
+   * @returns A configured ParticlePass with all particles initialized dead.
+   */
   static create(ctx: RenderContext, config: ParticleGraphConfig, gbuffer: GBuffer, hdrView?: GPUTextureView): ParticlePass {
     const { device } = ctx;
     const isForward = config.renderer.type === 'sprites' && config.renderer.renderTarget === 'hdr';
@@ -440,8 +471,20 @@ export class ParticlePass extends RenderPass {
     );
   }
 
-  // Upload a new heightmap. heights[z * HEIGHTMAP_RES + x] = top block Y at that cell.
-  // originX/Z: world-space XZ centre of the covered area. extent: half-size in blocks.
+  /**
+   * Uploads a new collision heightmap covering an axis-aligned XZ region.
+   * No-op when the configured particle graph does not use block collision.
+   *
+   * `heights[z * HEIGHTMAP_RES + x]` stores the top solid-block Y at that
+   * cell. The covered region is centred on `(originX, originZ)` and spans
+   * `±extent` blocks on each axis.
+   *
+   * @param ctx     Renderer context (used for the queue).
+   * @param heights Top-block Y per cell (`HEIGHTMAP_RES * HEIGHTMAP_RES` values).
+   * @param originX World-space X centre of the covered region.
+   * @param originZ World-space Z centre of the covered region.
+   * @param extent  Half-size of the covered region in blocks.
+   */
   updateHeightmap(ctx: RenderContext, heights: Float32Array, originX: number, originZ: number, extent: number): void {
     if (!this._heightmapDataBuf || !this._heightmapUniBuf) {
       return;
@@ -454,6 +497,23 @@ export class ParticlePass extends RenderPass {
     ctx.queue.writeBuffer(this._heightmapUniBuf, 12, this._hmRes);
   }
 
+  /**
+   * Advances internal time, accumulates the spawn count for this frame,
+   * decomposes the emitter's world transform into position+rotation, and
+   * uploads compute and camera uniforms.
+   *
+   * @param ctx            Renderer context (used for the queue).
+   * @param dt             Frame delta time, seconds.
+   * @param view           View matrix (column-major).
+   * @param proj           Projection matrix (column-major).
+   * @param viewProj       Combined view-projection matrix.
+   * @param invViewProj    Inverse view-projection matrix.
+   * @param camPos         World-space camera position.
+   * @param near           Near plane distance.
+   * @param far            Far plane distance.
+   * @param worldTransform Emitter world transform; only translation and
+   *                       rotation are used (scale is normalized away).
+   */
   update(
     ctx: RenderContext,
     dt: number,
@@ -529,6 +589,14 @@ export class ParticlePass extends RenderPass {
     ctx.queue.writeBuffer(this._cameraBuffer, 0, camData.buffer as ArrayBuffer);
   }
 
+  /**
+   * Records the simulation compute pass (spawn → update → compact → indirect
+   * write) followed by the billboard draw (forward HDR or deferred GBuffer
+   * variant, selected at construction).
+   *
+   * @param encoder Active command encoder to record into.
+   * @param _ctx    Render context (unused).
+   */
   execute(encoder: GPUCommandEncoder, _ctx: RenderContext): void {
     // ---- Compute: spawn → update → compact-fill → compact-indirect-write -------
     const compute = encoder.beginComputePass({ label: 'ParticleCompute' });
@@ -600,6 +668,10 @@ export class ParticlePass extends RenderPass {
     }
   }
 
+  /**
+   * Releases all GPU buffers owned by this pass, including the optional
+   * heightmap buffers when present.
+   */
   destroy(): void {
     this._particleBuffer.destroy();
     this._aliveList.destroy();

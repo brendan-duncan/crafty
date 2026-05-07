@@ -19,6 +19,15 @@ const LIGHT_COUNTS_SIZE = 8;
 const POINT_STRIDE = 48;   // matches PointLightGpu in shader
 const SPOT_STRIDE  = 128;  // matches SpotLightGpu in shader
 
+/**
+ * Deferred lighting pass that accumulates contributions from all point and spot
+ * lights into the HDR scene buffer.
+ *
+ * Reads the GBuffer (albedo+roughness, normal+metallic, depth) and the VSM/projection
+ * texture arrays produced by {@link PointSpotShadowPass}, applies a PBR shading model,
+ * and additively blends the result on top of the HDR target previously written by the
+ * directional {@link LightingPass} and {@link SkyTexturePass}.
+ */
 export class PointSpotLightPass extends RenderPass {
   readonly name = 'PointSpotLightPass';
 
@@ -68,6 +77,14 @@ export class PointSpotLightPass extends RenderPass {
     this._hdrView          = hdrView;
   }
 
+  /**
+   * Allocates the camera/light-counts uniform buffers, the point and spot light storage
+   * buffers, samplers, bind group layouts/groups, and the additively-blended fragment
+   * pipeline that writes into the HDR target.
+   *
+   * @param shadowPass - Source of the point cube-array VSM, spot 2D-array VSM, and projection texture array.
+   * @param hdrView - HDR colour target previously written by sky/directional lighting.
+   */
   static create(ctx: RenderContext, gbuffer: GBuffer, shadowPass: PointSpotShadowPass, hdrView: GPUTextureView): PointSpotLightPass {
     const { device } = ctx;
 
@@ -202,6 +219,10 @@ export class PointSpotLightPass extends RenderPass {
     );
   }
 
+  /**
+   * Uploads the per-frame camera matrices, world-space camera position, and near/far
+   * planes into the camera uniform buffer.
+   */
   updateCamera(ctx: RenderContext, view: Mat4, proj: Mat4, viewProj: Mat4, invViewProj: Mat4, camPos: { x: number; y: number; z: number }, near: number, far: number): void {
     const data = this._cameraData;
     data.set(view.data,         0);
@@ -213,6 +234,12 @@ export class PointSpotLightPass extends RenderPass {
     ctx.queue.writeBuffer(this._cameraBuffer, 0, data.buffer as ArrayBuffer);
   }
 
+  /**
+   * Packs and uploads the active point and spot lights into their storage buffers and
+   * writes the light-count uniform. Light arrays are clamped to {@link MAX_POINT_LIGHTS}
+   * / {@link MAX_SPOT_LIGHTS}; shadow-casting lights are assigned VSM array slot indices
+   * up to {@link MAX_SHADOW_POINT_LIGHTS} / {@link MAX_SHADOW_SPOT_LIGHTS}.
+   */
   updateLights(ctx: RenderContext, pointLights: PointLight[], spotLights: SpotLight[]): void {
     // Light counts
     const counts = this._lightCountsArr;
@@ -270,6 +297,10 @@ export class PointSpotLightPass extends RenderPass {
     ctx.queue.writeBuffer(this._spotBuffer, 0, this._spotBuf);
   }
 
+  /**
+   * Issues a single full-screen-triangle draw that additively accumulates all point
+   * and spot light contributions onto the HDR target.
+   */
   execute(encoder: GPUCommandEncoder, _ctx: RenderContext): void {
     const pass = encoder.beginRenderPass({
       label: 'PointSpotLightPass',
@@ -286,6 +317,9 @@ export class PointSpotLightPass extends RenderPass {
     pass.end();
   }
 
+  /**
+   * Releases the camera, light-counts, and per-light storage buffers.
+   */
   destroy(): void {
     this._cameraBuffer.destroy();
     this._lightCountsBuffer.destroy();

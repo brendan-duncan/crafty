@@ -1,5 +1,12 @@
 import iblWgsl from '../shaders/ibl.wgsl?raw';
 
+/**
+ * Precomputed image-based lighting textures derived from a sky environment.
+ *
+ * Bundles the diffuse irradiance cube, the GGX-prefiltered specular
+ * environment cube (one mip per roughness level), and the view-independent
+ * split-sum BRDF lookup table.
+ */
 export interface IblTextures {
   readonly irradiance    : GPUTexture;   // rgba16float cube, 32×32 — pre-integrated diffuse
   readonly prefiltered   : GPUTexture;   // rgba16float cube, 128×128 × IBL_LEVELS mips — GGX pre-filtered
@@ -8,11 +15,15 @@ export interface IblTextures {
   readonly prefilteredView: GPUTextureView;   // dimension: 'cube', all mips
   readonly brdfLutView    : GPUTextureView;
   readonly levels         : number;
+  /** Releases the irradiance and prefiltered cubes (BRDF LUT is device-cached). */
   destroy(): void;
 }
 
+/** Number of mip levels in the prefiltered specular cube (one per roughness step). */
 export const IBL_LEVELS  = 5;
+/** Base mip size of each face of the prefiltered specular cube. */
 export const CUBE_SIZE   = 128;   // prefilter base mip (mip 0 = 128, mip 4 = 8)
+/** Face size of each face of the irradiance cube. */
 export const IRR_SIZE    = 32;    // irradiance cube face size
 
 const ROUGHNESSES = [0, 0.25, 0.5, 0.75, 1.0];
@@ -190,10 +201,19 @@ function getOrCreatePipelines(device: GPUDevice): IblPipelines {
 
 // ---- Public API -------------------------------------------------------------
 
-// Bakes IBL cube textures from the equirectangular sky texture on the GPU.
-// Irradiance: 32×32 per face, 6 faces.
-// Prefiltered: 128×128 base, IBL_LEVELS mip levels, 6 faces per mip.
-// Dispatches 6 × (1 + IBL_LEVELS) compute passes; completes before returning.
+/**
+ * Bakes IBL cube textures from an equirectangular sky texture on the GPU.
+ *
+ * Computes the diffuse irradiance cube (6 faces at {@link IRR_SIZE}) and the
+ * GGX-prefiltered specular cube ({@link IBL_LEVELS} mips at {@link CUBE_SIZE}),
+ * then attaches the device-cached split-sum BRDF LUT. Dispatches
+ * 6 + 6 × IBL_LEVELS compute groups and awaits GPU completion before returning.
+ *
+ * @param device - WebGPU device used to create textures and dispatch compute.
+ * @param skyTexture - Equirectangular HDR sky texture sampled as the radiance source.
+ * @param exposure - Linear scale applied to the sky radiance during convolution.
+ * @returns The baked IBL textures; caller must `destroy()` to release the cubes.
+ */
 export async function computeIblGpu(
   device     : GPUDevice,
   skyTexture : GPUTexture,

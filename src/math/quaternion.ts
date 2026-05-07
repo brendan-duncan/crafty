@@ -1,6 +1,9 @@
 import { Vec3 } from './vec3.js';
 import { Mat4 } from './mat4.js';
 
+/**
+ * Unit quaternion representing a 3D rotation, stored as (x, y, z, w) with w as the scalar part.
+ */
 export class Quaternion {
   x: number;
   y: number;
@@ -11,11 +14,15 @@ export class Quaternion {
     this.x = x; this.y = y; this.z = z; this.w = w;
   }
 
+  /** Returns a copy of this quaternion. */
   clone(): Quaternion { return new Quaternion(this.x, this.y, this.z, this.w); }
 
+  /** Returns the squared length. */
   lengthSq(): number { return this.x*this.x + this.y*this.y + this.z*this.z + this.w*this.w; }
+  /** Returns the Euclidean length. */
   length(): number { return Math.sqrt(this.lengthSq()); }
 
+  /** Returns a unit-length copy, or the identity quaternion if length is 0. */
   normalize(): Quaternion {
     const len = this.length();
     return len > 0
@@ -23,8 +30,10 @@ export class Quaternion {
       : Quaternion.identity();
   }
 
+  /** Returns the conjugate (-x, -y, -z, w), which is the inverse for unit quaternions. */
   conjugate(): Quaternion { return new Quaternion(-this.x, -this.y, -this.z, this.w); }
 
+  /** Returns the Hamilton product this * b, which composes rotations (this applied after b). */
   multiply(b: Quaternion): Quaternion {
     const ax=this.x, ay=this.y, az=this.z, aw=this.w;
     const bx=b.x,   by=b.y,   bz=b.z,   bw=b.w;
@@ -36,6 +45,7 @@ export class Quaternion {
     );
   }
 
+  /** Rotates vector v by this quaternion and returns the result. */
   rotateVec3(v: Vec3): Vec3 {
     const qx=this.x, qy=this.y, qz=this.z, qw=this.w;
     const ix= qw*v.x + qy*v.z - qz*v.y;
@@ -49,10 +59,17 @@ export class Quaternion {
     );
   }
 
+  /** Converts this quaternion to its equivalent column-major 4x4 rotation matrix. */
   toMat4(): Mat4 {
     return Mat4.fromQuaternion(this.x, this.y, this.z, this.w);
   }
 
+  /**
+   * Spherical linear interpolation from this to b at parameter t in [0, 1].
+   *
+   * Picks the shorter arc (negates b if the dot product is negative) and falls back to
+   * normalized linear interpolation when the angle between the quaternions is tiny.
+   */
   slerp(b: Quaternion, t: number): Quaternion {
     let cosHalfTheta = this.x*b.x + this.y*b.y + this.z*b.z + this.w*b.w;
     let bx=b.x, by=b.y, bz=b.z, bw=b.w;
@@ -79,14 +96,23 @@ export class Quaternion {
     );
   }
 
+  /** Returns the identity quaternion (0, 0, 0, 1). */
   static identity(): Quaternion { return new Quaternion(0, 0, 0, 1); }
 
+  /** Builds a quaternion representing a rotation of `rad` radians around `axis` (axis is normalized internally). */
   static fromAxisAngle(axis: Vec3, rad: number): Quaternion {
     const s = Math.sin(rad / 2);
     const n = axis.normalize();
     return new Quaternion(n.x*s, n.y*s, n.z*s, Math.cos(rad/2));
   }
 
+  /**
+   * Builds a quaternion from intrinsic Euler angles (radians) applied in XYZ order.
+   *
+   * @param x - rotation around the X axis (pitch)
+   * @param y - rotation around the Y axis (yaw)
+   * @param z - rotation around the Z axis (roll)
+   */
   static fromEuler(x: number, y: number, z: number): Quaternion {
     const cx=Math.cos(x/2), sx=Math.sin(x/2);
     const cy=Math.cos(y/2), sy=Math.sin(y/2);

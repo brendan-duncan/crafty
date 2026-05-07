@@ -43,8 +43,15 @@ function _addBox(
   }
 }
 
-// White duck body + tail stub, centered at local origin (feet at y = -0.15).
-// The root duck GameObject is placed so feet are at ground level.
+/**
+ * Builds the duck body mesh: a white box body with a small tail nub.
+ *
+ * Centered at local origin (feet at y = -0.15). The root duck GameObject is
+ * placed so feet are at ground level.
+ *
+ * @param device - WebGPU device used to create the GPU buffers.
+ * @returns A Mesh with position, normal, uv, and tangent attributes.
+ */
 export function createDuckBodyMesh(device: GPUDevice): Mesh {
   const verts: number[] = [];
   const indices: number[] = [];
@@ -55,7 +62,14 @@ export function createDuckBodyMesh(device: GPUDevice): Mesh {
   return Mesh.fromData(device, new Float32Array(verts), new Uint32Array(indices));
 }
 
-// Dark-green head, centered at local origin so the parent positions it above the body.
+/**
+ * Builds the duck head mesh: a small box centered at local origin.
+ *
+ * Intended to be parented above the body by the caller.
+ *
+ * @param device - WebGPU device used to create the GPU buffers.
+ * @returns A Mesh with position, normal, uv, and tangent attributes.
+ */
 export function createDuckHeadMesh(device: GPUDevice): Mesh {
   const verts: number[] = [];
   const indices: number[] = [];
@@ -63,7 +77,12 @@ export function createDuckHeadMesh(device: GPUDevice): Mesh {
   return Mesh.fromData(device, new Float32Array(verts), new Uint32Array(indices));
 }
 
-// Orange bill, centered at local origin, flat and wide.
+/**
+ * Builds the duck bill mesh: a flat, wide box centered at local origin.
+ *
+ * @param device - WebGPU device used to create the GPU buffers.
+ * @returns A Mesh with position, normal, uv, and tangent attributes.
+ */
 export function createDuckBillMesh(device: GPUDevice): Mesh {
   const verts: number[] = [];
   const indices: number[] = [];

@@ -232,6 +232,13 @@ function eventActionsWgsl(events: EventNode[] | undefined, trigger: 'on_spawn' |
 
 // ---- Spawn compute shader -------------------------------------------------------
 
+/**
+ * Builds the WGSL source for the spawn compute shader for the given particle graph.
+ *
+ * The returned shader inlines the emitter's spawn shape, initial-state ranges, and any
+ * `on_spawn` event actions so each system gets a specialized shader rather than branching
+ * on uniforms.
+ */
 export function buildSpawnShader(config: ParticleGraphConfig): string {
   const { emitter, events } = config;
   const [lifeMin, lifeMax] = emitter.lifetime.map(v => v.toFixed(6));
@@ -275,6 +282,7 @@ fn cs_main(@builtin(global_invocation_id) gid: vec3<u32>) {
 `;
 }
 
+/** Returns true if the particle graph contains a `block_collision` modifier and therefore needs heightmap bindings. */
 export function hasBlockCollision(config: ParticleGraphConfig): boolean {
   return config.modifiers.some(m => m.type === 'block_collision');
 }
@@ -294,6 +302,13 @@ struct HeightmapUniforms {
 
 // ---- Update compute shader ------------------------------------------------------
 
+/**
+ * Builds the WGSL source for the per-frame update compute shader for the given particle graph.
+ *
+ * The returned shader inlines all modifiers in declared order plus any `on_death` event
+ * actions, and conditionally includes heightmap bindings when a `block_collision` modifier
+ * is present.
+ */
 export function buildUpdateShader(config: ParticleGraphConfig): string {
   const hasBlockCollision = config.modifiers.some(m => m.type === 'block_collision');
   const modifierCode = config.modifiers.map(modifierWgsl).join('\n  ');

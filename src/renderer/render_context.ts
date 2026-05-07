@@ -1,7 +1,17 @@
+/**
+ * Options accepted by {@link RenderContext.create}.
+ */
 export interface RenderContextOptions {
+  /** Install an `uncapturederror` listener and enable per-pass/frame validation scopes. */
   enableErrorHandling?: boolean;
 }
 
+/**
+ * Owns the WebGPU device, queue and canvas configuration for the renderer.
+ *
+ * Acts as the single shared handle to GPU resources, and exposes helpers for
+ * buffer creation, swap-chain access and scoped validation error capture.
+ */
 export class RenderContext {
   readonly device: GPUDevice;
   readonly queue: GPUQueue;
@@ -28,9 +38,23 @@ export class RenderContext {
     this.enableErrorHandling = enableErrorHandling;
   }
 
+  /** Backing canvas pixel width. */
   get width(): number { return this.canvas.width; }
+  /** Backing canvas pixel height. */
   get height(): number { return this.canvas.height; }
 
+  /**
+   * Requests a WebGPU adapter and device, configures the canvas swap chain and
+   * returns a ready-to-use context.
+   *
+   * Attempts an HDR (`rgba16float` + display-p3 + extended tonemapping) swap
+   * chain and falls back to the preferred SDR format if unsupported.
+   *
+   * @param canvas - canvas to bind the swap chain to
+   * @param options - optional context configuration
+   * @returns initialized render context
+   * @throws if WebGPU is unavailable or no adapter can be acquired
+   */
   static async create(canvas: HTMLCanvasElement, options: RenderContextOptions = {}): Promise<RenderContext> {
     if (!navigator.gpu) {
       throw new Error('WebGPU not supported');
@@ -86,14 +110,31 @@ export class RenderContext {
     return new RenderContext(device, context, format, canvas, hdr, options.enableErrorHandling ?? false);
   }
 
+  /**
+   * Returns the swap chain texture for the current frame.
+   */
   getCurrentTexture(): GPUTexture {
     return this.context.getCurrentTexture();
   }
 
+  /**
+   * Convenience wrapper around `device.createBuffer`.
+   *
+   * @param size - buffer size in bytes
+   * @param usage - usage flags
+   * @param label - optional debug label
+   */
   createBuffer(size: number, usage: GPUBufferUsageFlags, label?: string): GPUBuffer {
     return this.device.createBuffer({ size, usage, label });
   }
 
+  /**
+   * Uploads CPU data into a GPU buffer, handling both ArrayBuffer and typed-array sources.
+   *
+   * @param buffer - destination GPU buffer
+   * @param data - source bytes to copy
+   * @param offset - destination byte offset
+   */
   writeBuffer(buffer: GPUBuffer, data: ArrayBuffer | ArrayBufferView, offset = 0): void {
     if (data instanceof ArrayBuffer) {
       this.queue.writeBuffer(buffer, offset, data);
@@ -102,12 +143,21 @@ export class RenderContext {
     }
   }
 
+  /**
+   * Pushes a validation error scope used during one-time resource initialization.
+   * No-op when error handling is disabled.
+   */
   pushInitErrorScope(): void {
     if (this.enableErrorHandling) {
       this.device.pushErrorScope('validation');
     }
   }
 
+  /**
+   * Pops the matching init error scope and logs any validation failure.
+   *
+   * @param label - identifier included in the log message
+   */
   async popInitErrorScope(label: string): Promise<void> {
     if (this.enableErrorHandling) {
       const validationError = await this.device.popErrorScope();
@@ -118,12 +168,18 @@ export class RenderContext {
     }
   }
 
+  /**
+   * Pushes a per-frame validation error scope. No-op when error handling is disabled.
+   */
   pushFrameErrorScope(): void {
     if (this.enableErrorHandling) {
       this.device.pushErrorScope('validation');
     }
   }
 
+  /**
+   * Pops the matching per-frame error scope and logs any validation failure.
+   */
   async popFrameErrorScope(): Promise<void> {
     if (this.enableErrorHandling) {
       const validationError = await this.device.popErrorScope();
@@ -134,6 +190,12 @@ export class RenderContext {
     }
   }
 
+  /**
+   * Pushes nested validation, out-of-memory and internal error scopes around a
+   * single render pass. No-op when error handling is disabled.
+   *
+   * @param _passName - pass identifier (currently unused; reserved for diagnostics)
+   */
   pushPassErrorScope(_passName: string): void {
     if (this.enableErrorHandling) {
       this.device.pushErrorScope('validation');
@@ -142,6 +204,12 @@ export class RenderContext {
     }
   }
 
+  /**
+   * Pops the three pass-level error scopes pushed by {@link pushPassErrorScope}
+   * and logs any captured errors.
+   *
+   * @param passName - pass identifier included in log messages
+   */
   async popPassErrorScope(passName: string): Promise<void> {
     if (this.enableErrorHandling) {
       const internalError = await this.device.popErrorScope();

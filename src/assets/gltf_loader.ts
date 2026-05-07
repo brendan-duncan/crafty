@@ -99,15 +99,27 @@ interface GltfAnimationJson {
 
 // ---- Public output types ----------------------------------------------------
 
+/**
+ * One renderable primitive parsed from a glTF mesh.
+ *
+ * Pairs a GPU-resident skinned mesh with the resolved PBR material.
+ */
 export interface GltfMeshData {
   skinnedMesh  : SkinnedMesh;
   material     : Material;
 }
 
+/**
+ * Result of loading a glTF 2.0 (.glb) file.
+ *
+ * Owns GPU resources (vertex/index buffers and textures) for every mesh and
+ * material; the caller must call `destroy()` to release them.
+ */
 export interface GltfModel {
   meshes   : GltfMeshData[];
   skin     : Skeleton | null;
   clips    : AnimationClip[];
+  /** Releases all GPU buffers and textures created by the loader. */
   destroy  : () => void;
 }
 
@@ -324,7 +336,25 @@ function mat4MulF32(a: Float32Array, b: Float32Array): Float32Array {
 
 // ---- Main loader ------------------------------------------------------------
 
+/**
+ * Loader for binary glTF 2.0 (.glb) assets.
+ *
+ * Parses the GLB container, decodes accessors/buffer views, computes missing
+ * tangents, builds skinned meshes, materials, skeletons, and animation clips,
+ * and uploads textures to the GPU.
+ */
 export class GltfLoader {
+  /**
+   * Fetches and parses a GLB file at `url` into GPU-ready resources.
+   *
+   * Creates GPU vertex/index buffers and textures owned by the returned
+   * model; the caller must invoke `model.destroy()` to release them.
+   *
+   * @param device - WebGPU device used to create buffers and textures.
+   * @param url - URL of a binary glTF 2.0 (.glb) file.
+   * @returns Parsed meshes, optional skeleton, and animation clips.
+   * @throws If the file is not a valid GLB 2.0 container or the JSON chunk is missing.
+   */
   static async load(device: GPUDevice, url: string): Promise<GltfModel> {
     const response = await fetch(url);
     const arrayBuf = await response.arrayBuffer();

@@ -1,17 +1,34 @@
 import { Vec3, Quaternion, Mat4 } from '../math/index.js';
 import { Component } from './component.js';
 
+/**
+ * Container for transform, children, and components.
+ *
+ * Forms a parent/child scene graph: each GameObject has its own local TRS
+ * (position/rotation/scale) and inherits its parent's world transform via
+ * {@link GameObject.localToWorld}. Behavior is added by attaching {@link Component}
+ * instances; per-frame updates flow recursively through {@link GameObject.update}.
+ */
 export class GameObject {
+  /** Display/lookup name (not unique). */
   name: string;
+  /** Local-space position relative to parent. */
   position: Vec3;
+  /** Local-space rotation relative to parent. */
   rotation: Quaternion;
+  /** Local-space scale relative to parent. */
   scale: Vec3;
 
+  /** Child GameObjects whose transforms are relative to this one. */
   readonly children: GameObject[] = [];
+  /** Parent GameObject, or null if this is a root. */
   parent: GameObject | null = null;
 
   private _components: Component[] = [];
 
+  /**
+   * @param name - Optional display name; defaults to 'GameObject'.
+   */
   constructor(name = 'GameObject') {
     this.name = name;
     this.position = Vec3.zero();
@@ -19,6 +36,12 @@ export class GameObject {
     this.scale = Vec3.one();
   }
 
+  /**
+   * Attaches a component, binds its {@link Component.gameObject}, and runs onAttach.
+   *
+   * @param component - Component instance to attach.
+   * @returns The same component, for chaining.
+   */
   addComponent<T extends Component>(component: T): T {
     component.gameObject = this;
     this._components.push(component);
@@ -26,6 +49,11 @@ export class GameObject {
     return component;
   }
 
+  /**
+   * Returns the first attached component matching the given constructor, or null.
+   *
+   * @param ctor - Component subclass constructor used as a type filter.
+   */
   getComponent<T extends Component>(ctor: new (...args: never[]) => T): T | null {
     for (const c of this._components) {
       if (c instanceof ctor) {
@@ -35,10 +63,20 @@ export class GameObject {
     return null;
   }
 
+  /**
+   * Returns all attached components matching the given constructor.
+   *
+   * @param ctor - Component subclass constructor used as a type filter.
+   */
   getComponents<T extends Component>(ctor: new (...args: never[]) => T): T[] {
     return this._components.filter((c): c is T => c instanceof ctor);
   }
 
+  /**
+   * Detaches a component (calling its onDetach) if it is attached to this GameObject.
+   *
+   * @param component - The component instance to remove.
+   */
   removeComponent(component: Component): void {
     const idx = this._components.indexOf(component);
     if (idx !== -1) {
@@ -47,11 +85,21 @@ export class GameObject {
     }
   }
 
+  /**
+   * Reparents another GameObject under this one.
+   *
+   * Note: this does not remove the child from any previous parent's children list.
+   *
+   * @param child - GameObject to add as a child.
+   */
   addChild(child: GameObject): void {
     child.parent = this;
     this.children.push(child);
   }
 
+  /**
+   * Computes this GameObject's world transform by walking up the parent chain.
+   */
   localToWorld(): Mat4 {
     const local = Mat4.trs(
       this.position,
@@ -64,6 +112,11 @@ export class GameObject {
     return local;
   }
 
+  /**
+   * Updates every attached component, then recursively updates each child.
+   *
+   * @param dt - Frame delta time in seconds.
+   */
   update(dt: number): void {
     for (const c of this._components) {
       c.update(dt);

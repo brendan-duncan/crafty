@@ -24,20 +24,48 @@ import compositeWgsl from '../../shaders/composite.wgsl?raw';
 const PARAMS_SIZE   = 64;
 const STAR_UNI_SIZE = 96; // mat4(64) + vec3+pad(16) + vec3+pad(16)
 
+/**
+ * Final fullscreen pass that composes the post-processed HDR scene with fog,
+ * stars, the underwater effect and tonemapping into the swap-chain target.
+ *
+ * Inputs sampled:
+ *  - `hdrView`: post-bloom (or DOF/TAA) HDR colour
+ *  - `aoView`: SSAO occlusion (used for the debug-AO output mode)
+ *  - `depthView`: GBuffer depth32float (for fog reconstruction and stars)
+ *  - shared camera, light and auto-exposure buffers
+ *
+ * Output: writes LDR/HDR colour to the swap-chain texture acquired from the
+ * render context.
+ *
+ * Shader: `composite.wgsl`. Replaces the legacy fog + underwater + tonemap
+ * passes to save two intermediate HDR textures and two render-pass boundaries.
+ */
 export class CompositePass extends RenderPass {
+  /** Identifier used in render-graph diagnostics. */
   readonly name = 'CompositePass';
 
   // ── Fog properties ────────────────────────────────────────────────────────
+  /** When true, depth-based exponential fog is applied. */
   depthFogEnabled  = true;
+  /** Depth fog density multiplier. */
   depthDensity     = 1.0;
+  /** World-space distance at which depth fog begins to accumulate. */
   depthBegin       = 32;
+  /** World-space distance at which depth fog reaches full strength. */
   depthEnd         = 128;
+  /** Power curve applied to the depth-fog interpolation in [begin, end]. */
   depthCurve       = 1.5;
+  /** When true, height-based fog is applied (heavier near {@link heightMin}). */
   heightFogEnabled = false;
+  /** Height fog density multiplier. */
   heightDensity    = 0.7;
+  /** World-space Y at which height fog reaches its strongest contribution. */
   heightMin        = 48;
+  /** World-space Y at which height fog vanishes. */
   heightMax        = 80;
+  /** Power curve applied to the height-fog interpolation. */
   heightCurve      = 1.0;
+  /** Linear RGB fog tint shared by both fog modes. */
   fogColor: [number, number, number] = [1.0, 1.0, 1.0];
 
   private _pipeline  : GPURenderPipeline;
@@ -64,12 +92,19 @@ export class CompositePass extends RenderPass {
     this._starBuf   = starBuf;
   }
 
-  // hdrView      — post-Bloom (or post-DOF / TAA resolved) HDR texture
-  // aoView       — SSAO AO texture (used by debug_ao mode)
-  // depthView    — GBuffer depth32float (for fog world-position reconstruction + stars)
-  // cameraBuffer — shared with LightingPass (CameraUniforms)
-  // lightBuffer  — shared with LightingPass (LightUniforms — only direction is read)
-  // exposureBuf  — shared with AutoExposurePass
+  /**
+   * Allocates the pipeline, bind groups and uniform buffers for the composite
+   * pass.
+   *
+   * @param ctx - Active render context (provides device and swap-chain format).
+   * @param hdrView - Post-bloom (or post-DOF/TAA) HDR scene texture.
+   * @param aoView - SSAO ambient-occlusion texture (used for debug visualisation).
+   * @param depthView - GBuffer depth32float view for world-position reconstruction and stars.
+   * @param cameraBuffer - Shared `CameraUniforms` buffer (also used by lighting).
+   * @param lightBuffer - Shared `LightUniforms` buffer (only the sun direction is read).
+   * @param exposureBuf - Auto-exposure storage buffer used for tonemapping.
+   * @returns A configured composite pass instance.
+   */
   static create(
     ctx          : RenderContext,
     hdrView      : GPUTextureView,
@@ -152,8 +187,17 @@ export class CompositePass extends RenderPass {
     return new CompositePass(pipeline, bg0, bg1, bg2, paramsBuf, starBuf);
   }
 
-  // Write all per-frame params in one buffer write.
-  // Call after setting fog property fields.
+  /**
+   * Packs all fog, underwater and tonemap parameters into a single GPU
+   * buffer write. Call once per frame after mutating the fog property fields.
+   *
+   * @param ctx - Active render context providing the GPU queue.
+   * @param isUnderwater - Whether the camera is currently submerged.
+   * @param uwTime - Animation time used for underwater distortion.
+   * @param aces - Enable ACES tonemapping (otherwise Reinhard is used).
+   * @param debugAO - Output the SSAO buffer instead of the final image.
+   * @param hdrCanvas - Skip the SDR clamp when the canvas is HDR-capable.
+   */
   updateParams(
     ctx         : RenderContext,
     isUnderwater: boolean,
@@ -205,6 +249,15 @@ export class CompositePass extends RenderPass {
     ctx.queue.writeBuffer(this._paramsBuf, 0, buf);
   }
 
+  /**
+   * Uploads the data needed by the analytic star field rendered when the sun
+   * is below the horizon.
+   *
+   * @param ctx - Active render context providing the GPU queue.
+   * @param invViewProj - Inverse view-projection matrix for ray reconstruction.
+   * @param camPos - World-space camera position.
+   * @param sunDir - Normalised sun direction (used to fade stars at dawn/dusk).
+   */
   updateStars(
     ctx        : RenderContext,
     invViewProj: Mat4,
@@ -218,6 +271,12 @@ export class CompositePass extends RenderPass {
     ctx.queue.writeBuffer(this._starBuf, 0, data.buffer as ArrayBuffer);
   }
 
+  /**
+   * Encodes the composite pass into the swap-chain texture for the current frame.
+   *
+   * @param encoder - GPU command encoder to record into.
+   * @param ctx - Active render context (used to acquire the current swap-chain texture).
+   */
   execute(encoder: GPUCommandEncoder, ctx: RenderContext): void {
     const pass = encoder.beginRenderPass({
       label: 'CompositePass',
@@ -236,6 +295,7 @@ export class CompositePass extends RenderPass {
     pass.end();
   }
 
+  /** Releases the params and star uniform buffers owned by this pass. */
   destroy(): void {
     this._paramsBuf.destroy();
     this._starBuf.destroy();

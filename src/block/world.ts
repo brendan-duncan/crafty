@@ -4,15 +4,34 @@ import { BlockType, isBlockWater, isBlockProp } from './block_type.js';
 import { BiomeType } from './biome_type.js';
 import { buildErosionRegion, EROSION_REGION_SIZE } from './erosion.js';
 
+/**
+ * Result of a successful voxel raycast.
+ */
 export interface RaycastResult {
+  /** Hit block type. */
   blockType: number;
+  /** World-space integer block position that was hit. */
   position: Vec3;
+  /** Outward normal of the hit face (one component is +/-1, others are 0). */
   face: Vec3;
+  /** Chunk containing the hit block. */
   chunk: Chunk;
+  /** Hit position relative to the chunk's local origin. */
   relativePosition: Vec3;
 }
 
+/**
+ * Streaming voxel world built from `Chunk`s keyed by integer chunk coordinates.
+ *
+ * Chunks are stored in a `Map<string, Chunk>` keyed by `"cx,cy,cz"`, where chunk
+ * coordinates are world coords floor-divided by chunk dimensions. `update()`
+ * generates chunks within `renderDistanceH`/`renderDistanceV` of the player and
+ * removes ones outside that radius. New chunks are created at most
+ * `chunksPerFrame` per call, sorted by distance to the player. Generation uses
+ * a cached 128x128 hydraulic erosion displacement field per region.
+ */
 export class World {
+  /** Hard cap on the number of resident chunks. */
   static readonly MAX_CHUNKS = 2048;
 
   seed: number;
@@ -32,19 +51,41 @@ export class World {
   private _generated = new Set<string>();
   private _erosionCache = new Map<string, Float32Array>();
 
+  /**
+   * Creates an empty world with the given generation seed.
+   *
+   * @param seed - master seed for terrain, biome, and erosion noise
+   */
   constructor(seed: number) {
     this.seed = seed;
   }
 
+  /** Number of chunks currently resident in memory. */
   get chunkCount(): number { return this._chunks.size; }
+  /** Iterator over all resident chunks. */
   get chunks(): IterableIterator<Chunk> { return this._chunks.values(); }
 
   pendingChunks = 0;
 
+  /**
+   * Returns the biome at a world-space block position (does not require the chunk to exist).
+   *
+   * @param wx - world X
+   * @param wy - world Y
+   * @param wz - world Z
+   */
   getBiomeAt(wx: number, wy: number, wz: number): BiomeType {
     return Chunk._determineBiome(wx, wy, wz, this.seed);
   }
 
+  /**
+   * Converts a world-space block position to integer chunk coordinates.
+   *
+   * @param wx - world X
+   * @param wy - world Y
+   * @param wz - world Z
+   * @returns `[cx, cy, cz]` chunk coordinates
+   */
   static normalizeChunkPosition(wx: number, wy: number, wz: number): [number, number, number] {
     return [
       Math.floor(wx / Chunk.CHUNK_WIDTH),
@@ -57,15 +98,36 @@ export class World {
     return `${cx},${cy},${cz}`;
   }
 
+  /**
+   * Returns the chunk containing the given world-space block position, or `undefined` if not loaded.
+   *
+   * @param wx - world X
+   * @param wy - world Y
+   * @param wz - world Z
+   */
   getChunk(wx: number, wy: number, wz: number): Chunk | undefined {
     const [cx, cy, cz] = World.normalizeChunkPosition(wx, wy, wz);
     return this._chunks.get(World._key(cx, cy, cz));
   }
 
+  /**
+   * Returns true if a chunk exists at the given world-space block position.
+   *
+   * @param wx - world X
+   * @param wy - world Y
+   * @param wz - world Z
+   */
   chunkExists(wx: number, wy: number, wz: number): boolean {
     return this.getChunk(wx, wy, wz) !== undefined;
   }
 
+  /**
+   * Returns the block type at a world-space position, or `BlockType.NONE` if the chunk is not loaded.
+   *
+   * @param wx - world X
+   * @param wy - world Y
+   * @param wz - world Z
+   */
   getBlockType(wx: number, wy: number, wz: number): number {
     const chunk = this.getChunk(wx, wy, wz);
     if (!chunk) {
@@ -77,6 +139,15 @@ export class World {
     return chunk.getBlock(rx, ry, rz);
   }
 
+  /**
+   * Sets the block at a world-space position, creating the chunk if needed and re-meshing it.
+   *
+   * @param wx - world X
+   * @param wy - world Y
+   * @param wz - world Z
+   * @param blockType - new block type
+   * @returns true on success
+   */
   setBlockType(wx: number, wy: number, wz: number, blockType: BlockType): boolean {
     let chunk = this.getChunk(wx, wy, wz);
     if (!chunk) {
@@ -93,8 +164,15 @@ export class World {
     return true;
   }
 
-  // Returns the Y coordinate of the first air block above the highest solid/water block
-  // in column (wx, wz), scanning down from maxY. Returns 0 if column is empty.
+  /**
+   * Returns the Y of the first air block above the highest solid/water block in column `(wx, wz)`.
+   *
+   * Scans downward from `maxY`. Returns 0 if the column is empty.
+   *
+   * @param wx - world X
+   * @param wz - world Z
+   * @param maxY - upper bound to start scanning from
+   */
   getTopBlockY(wx: number, wz: number, maxY: number): number {
     const H = Chunk.CHUNK_HEIGHT;
     const bx = Math.floor(wx);
@@ -116,7 +194,17 @@ export class World {
     return 0;
   }
 
-  // "A Fast Voxel Traversal Algorithm for Ray Tracing" — Amanatides & Woo
+  /**
+   * Casts a ray through the voxel grid and returns the first non-water block hit.
+   *
+   * Implements the Amanatides & Woo "Fast Voxel Traversal Algorithm for Ray Tracing".
+   * Water blocks are skipped (the ray passes through them).
+   *
+   * @param from - ray origin in world space
+   * @param dir - ray direction (need not be normalized)
+   * @param maxSteps - maximum number of voxel steps before giving up
+   * @returns hit description, or `null` if no block was hit
+   */
   getBlockByRay(from: Vec3, dir: Vec3, maxSteps: number): RaycastResult | null {
     const BIG = Number.MAX_VALUE;
     let px = Math.floor(from.x);
@@ -173,6 +261,21 @@ export class World {
     return null;
   }
 
+  /**
+   * Places a block adjacent to the hit block on the given face.
+   *
+   * The new block goes at `(gX + faceX, gY + faceY, gZ + faceZ)`. Existing
+   * non-air, non-water blocks block placement. Creates the target chunk if needed.
+   *
+   * @param gX - hit block world X
+   * @param gY - hit block world Y
+   * @param gZ - hit block world Z
+   * @param faceX - face normal X
+   * @param faceY - face normal Y
+   * @param faceZ - face normal Z
+   * @param blockType - block type to place
+   * @returns true if a block was placed
+   */
   addBlock(gX: number, gY: number, gZ: number, faceX: number, faceY: number, faceZ: number, blockType: number): boolean {
     if (blockType === BlockType.NONE) {
       return false;
@@ -223,6 +326,14 @@ export class World {
     return true;
   }
 
+  /**
+   * Removes the block at the given world position and re-meshes the affected chunk(s).
+   *
+   * @param gX - world X
+   * @param gY - world Y
+   * @param gZ - world Z
+   * @returns true if a block was removed
+   */
   mineBlock(gX: number, gY: number, gZ: number): boolean {
     const chunk = this.getChunk(gX, gY, gZ);
     if (!chunk) {
@@ -250,6 +361,12 @@ export class World {
     return true;
   }
 
+  /**
+   * Advances world time, streams chunks around the player, and ticks water flow.
+   *
+   * @param playerPos - current player position
+   * @param dt - elapsed time in seconds
+   */
   update(playerPos: Vec3, dt: number): void {
     this.time += dt;
     this._removeDistantChunks(playerPos);
@@ -263,6 +380,11 @@ export class World {
     }
   }
 
+  /**
+   * Removes a chunk from the world, marks it deleted, and notifies listeners.
+   *
+   * @param chunk - chunk to delete
+   */
   deleteChunk(chunk: Chunk): void {
     const [cx, cy, cz] = World.normalizeChunkPosition(
       chunk.globalPosition.x, chunk.globalPosition.y, chunk.globalPosition.z,
@@ -274,6 +396,17 @@ export class World {
     this.onChunkRemoved?.(chunk);
   }
 
+  /**
+   * Computes a discrete water depth value at the given world position.
+   *
+   * Walks upward through stacked chunks of water and accumulates a per-chunk
+   * level contribution based on the height of the water column.
+   *
+   * @param wx - world X
+   * @param wy - world Y
+   * @param wz - world Z
+   * @returns aggregate water level (0 if not in water)
+   */
   calcWaterLevel(wx: number, wy: number, wz: number): number {
     const chunk = this.getChunk(wx, wy, wz);
     if (!chunk || chunk.waterBlocks <= 0) {
@@ -329,6 +462,14 @@ export class World {
     return region;
   }
 
+  /**
+   * Returns the cached hydraulic-erosion displacement at world XZ.
+   *
+   * Looks up (and lazily generates) the 128x128 region containing `(gx, gz)`.
+   *
+   * @param gx - world X
+   * @param gz - world Z
+   */
   getErosionDisplacement(gx: number, gz: number): number {
     const R  = EROSION_REGION_SIZE;
     const rx = Math.floor(gx / R);

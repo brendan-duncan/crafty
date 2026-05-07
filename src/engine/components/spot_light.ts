@@ -1,23 +1,49 @@
 import { Mat4, Vec3 } from '../../math/index.js';
 import { Component } from '../component.js';
 
+/**
+ * Cone-restricted spot light component.
+ *
+ * Supplies the deferred lighting pass with a directional cone (range,
+ * inner/outer angles, optional projected texture) and, when shadowing is
+ * enabled, a single perspective view-projection consumed by the spot-light
+ * shadow pass.
+ */
 export class SpotLight extends Component {
+  /** Linear RGB colour multiplier. */
   color            : Vec3    = Vec3.one();
+  /** Scalar intensity multiplier. */
   intensity        : number  = 1.0;
+  /** Maximum range in world units. */
   range            : number  = 20.0;
-  innerAngle       : number  = 15;   // degrees, half-angle of full-bright cone
-  outerAngle       : number  = 30;   // degrees, half-angle of fade-to-zero cone
+  /** Half-angle of the full-bright cone, in degrees. */
+  innerAngle       : number  = 15;
+  /** Half-angle of the fade-to-zero cone, in degrees. */
+  outerAngle       : number  = 30;
+  /** Whether this light renders a shadow map. */
   castShadow       : boolean = false;
+  /** Optional cookie/projector texture sampled with the light's view-proj. */
   projectionTexture: GPUTexture | null = null;
 
+  /**
+   * World-space position of the light, taken from the GameObject's transform.
+   */
   worldPosition(): Vec3 {
     return this.gameObject.localToWorld().transformPoint(Vec3.zero());
   }
 
+  /**
+   * World-space forward direction of the light (GameObject local -Z, normalised).
+   */
   worldDirection(): Vec3 {
     return this.gameObject.localToWorld().transformDirection(new Vec3(0, 0, -1)).normalize();
   }
 
+  /**
+   * Builds the perspective view-projection used by the spot shadow pass and projection texture sampling.
+   *
+   * @param near - Near plane for the perspective frustum.
+   */
   lightViewProj(near = 0.1): Mat4 {
     const pos  = this.worldPosition();
     const dir  = this.worldDirection();

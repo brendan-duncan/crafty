@@ -7,6 +7,10 @@ import type { CascadeData } from '../../engine/components/directional_light.js';
 import type { IblTextures } from '../../assets/ibl.js';
 import lightingWgsl from '../../shaders/lighting.wgsl?raw';
 
+/**
+ * Pixel format used for the HDR colour target the lighting pass writes into and
+ * that downstream tonemap / post passes read from.
+ */
 export const HDR_FORMAT: GPUTextureFormat = 'rgba16float';
 
 // CameraUniforms: 4 mat4 (256 bytes) + vec3+f32 near (16 bytes) + f32 far + pad (8 bytes) = 280 bytes
@@ -16,14 +20,25 @@ const CAMERA_SIZE = 64 * 4 + 16 + 16;
 //   _pad(2)+cascadeDepthRanges(4)+cascadeTexelSizes(4) = 368 bytes
 const LIGHT_SIZE = 368;
 
+/**
+ * Deferred lighting pass: samples the G-buffer, cascade shadow maps, AO/SSGI,
+ * cloud transmittance and IBL textures, then writes shaded HDR colour into
+ * `hdrTexture`.
+ *
+ * Runs as a fullscreen triangle. Camera and directional-light uniforms are
+ * exposed as `cameraBuffer` / `lightBuffer` so other passes (e.g. godrays)
+ * can read the same per-frame state without duplicate uploads.
+ */
 export class LightingPass extends RenderPass {
   readonly name = 'LightingPass';
 
+  /** HDR colour target written by the lighting pass. */
   readonly hdrTexture   : GPUTexture;
+  /** Default view of `hdrTexture`. */
   readonly hdrView      : GPUTextureView;
-  // Exposed so other passes (e.g. GodrayPass) can share the same GPU buffers
-  // without duplicating per-frame writes.
+  /** Per-frame camera uniform buffer; shared with other passes. */
   readonly cameraBuffer : GPUBuffer;
+  /** Per-frame directional-light + cascade uniform buffer; shared with other passes. */
   readonly lightBuffer  : GPUBuffer;
 
   private _pipeline: GPURenderPipeline;
@@ -78,6 +93,19 @@ export class LightingPass extends RenderPass {
     this._ssgiSampler = ssgiSampler;
   }
 
+  /**
+   * Build the lighting pass and all its bind-group resources.
+   *
+   * @param ctx Render context (provides device + framebuffer dimensions).
+   * @param gbuffer G-buffer sampled for surface attributes.
+   * @param shadowPass Source of the cascade shadow-map array view.
+   * @param aoView Single-channel AO factor sampled per-pixel.
+   * @param cloudShadowView Optional volumetric cloud transmittance map. When
+   *   omitted a 1×1 white texture is bound (no cloud occlusion).
+   * @param iblTextures Optional IBL set (irradiance cube, pre-filtered cube,
+   *   BRDF LUT). When omitted, 1×1 black fallbacks are used.
+   * @returns A configured `LightingPass`.
+   */
   static create(ctx: RenderContext, gbuffer: GBuffer, shadowPass: ShadowPass, aoView: GPUTextureView, cloudShadowView?: GPUTextureView, iblTextures?: IblTextures): LightingPass {
     const { device, width, height } = ctx;
 
@@ -257,7 +285,15 @@ export class LightingPass extends RenderPass {
     );
   }
 
-  // Wire in the live SSGIPass result; recreates the combined AO+SSGI bind group.
+  /**
+   * Bind a live SSGI texture to slot 2 of the AO bind group.
+   *
+   * Recreates the merged AO+SSGI bind group; call once after `SSGIPass` has
+   * been constructed. Until then, a 1×1 black fallback contributes zero
+   * indirect light.
+   *
+   * @param ssgiView Texture view produced by the SSGI pass.
+   */
   updateSSGI(ssgiView: GPUTextureView): void {
     this._aoBindGroup = this._device.createBindGroup({
       label: 'LightAoBG', layout: this._aoBGL,
@@ -270,6 +306,19 @@ export class LightingPass extends RenderPass {
     });
   }
 
+  /**
+   * Upload per-frame camera state (matrices, world-space position, clip planes)
+   * into `cameraBuffer`.
+   *
+   * @param ctx Render context for queue access.
+   * @param view World-to-view matrix.
+   * @param proj View-to-clip matrix.
+   * @param viewProj Pre-multiplied `proj * view`.
+   * @param invViewProj Inverse of `viewProj` (used for screen-space reconstruction).
+   * @param camPos Camera world-space position.
+   * @param near Near clip-plane distance.
+   * @param far Far clip-plane distance.
+   */
   updateCamera(ctx: RenderContext, view: Mat4, proj: Mat4, viewProj: Mat4, invViewProj: Mat4, camPos: { x: number; y: number; z: number }, near: number, far: number): void {
     const data = new Float32Array(CAMERA_SIZE / 4);
     data.set(view.data,         0);
@@ -281,6 +330,21 @@ export class LightingPass extends RenderPass {
     ctx.queue.writeBuffer(this.cameraBuffer, 0, data.buffer as ArrayBuffer);
   }
 
+  /**
+   * Upload directional-light + cascade-shadow state into `lightBuffer`.
+   *
+   * Overwrites the entire buffer; call `updateCloudShadow` after this each frame
+   * if cloud-shadow params should be preserved.
+   *
+   * @param ctx Render context for queue access.
+   * @param dir Normalised direction the light travels in (world-space).
+   * @param color Linear RGB light colour.
+   * @param intensity Scalar light intensity multiplier.
+   * @param cascades Up to 4 shadow cascades (extra entries are ignored).
+   * @param shadowsEnabled When `false`, the shader skips shadow sampling.
+   * @param debugCascades When `true`, the shader tints each cascade for visualisation.
+   * @param shadowSoftness PCSS light-size factor used for softening shadow edges.
+   */
   updateLight(ctx: RenderContext, dir: { x: number; y: number; z: number }, color: { x: number; y: number; z: number }, intensity: number, cascades: CascadeData[], shadowsEnabled = true, debugCascades = false, shadowSoftness = 0.02): void {
     const data = new Float32Array(LIGHT_SIZE / 4);
     let o = 0;
@@ -315,8 +379,17 @@ export class LightingPass extends RenderPass {
     ctx.queue.writeBuffer(this.lightBuffer, 0, data.buffer as ArrayBuffer);
   }
 
-  // Must be called after updateLight() each frame (updateLight overwrites the whole buffer).
-  // Writes only 3 floats (12 bytes) to avoid clobbering shadowSoftness at offset 324.
+  /**
+   * Patch the cloud-shadow projection origin and extent in `lightBuffer`.
+   *
+   * Must be called after `updateLight` each frame (which overwrites the buffer).
+   * Writes only 12 bytes at offset 312 to avoid clobbering `shadowSoftness`.
+   *
+   * @param ctx Render context for queue access.
+   * @param originX World-space X origin of the cloud shadow projection.
+   * @param originZ World-space Z origin of the cloud shadow projection.
+   * @param extent World-space side length covered by the cloud shadow texture.
+   */
   updateCloudShadow(ctx: RenderContext, originX: number, originZ: number, extent: number): void {
     const data = new Float32Array(3);
     data[0] = originX;
@@ -325,6 +398,14 @@ export class LightingPass extends RenderPass {
     ctx.queue.writeBuffer(this.lightBuffer, 312, data.buffer as ArrayBuffer);
   }
 
+  /**
+   * Encode the lighting pass: a single fullscreen triangle that loads the HDR
+   * target (no clear), samples the G-buffer + shadow + AO/SSGI + IBL bind groups
+   * and writes the shaded result.
+   *
+   * @param encoder Command encoder to record into.
+   * @param _ctx Render context (unused; kept for the `RenderPass` interface).
+   */
   execute(encoder: GPUCommandEncoder, _ctx: RenderContext): void {
     const pass = encoder.beginRenderPass({
       label: 'LightingPass',
@@ -341,6 +422,10 @@ export class LightingPass extends RenderPass {
     pass.end();
   }
 
+  /**
+   * Release all GPU resources owned by the pass: HDR target, uniform buffers,
+   * and the 1×1 cloud-shadow / SSGI fallback textures (if they were created).
+   */
   destroy(): void {
     this.hdrTexture.destroy();
     this.cameraBuffer.destroy();

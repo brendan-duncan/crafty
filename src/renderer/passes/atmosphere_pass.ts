@@ -7,6 +7,13 @@ import atmosphereWgsl from '../../shaders/atmosphere.wgsl?raw';
 // invViewProj(64) + cameraPos+pad(16) + sunDir+pad(16) = 96 bytes
 const UNIFORM_SIZE = 96;
 
+/**
+ * Renders an atmospheric sky dome into the HDR scene texture.
+ *
+ * Uses a full-screen triangle and reconstructs view rays via the inverse view-projection
+ * matrix; the atmosphere shader evaluates a procedural sky model from the camera position
+ * and the toward-sun vector. Typically the first colour-writing pass — clears the HDR target.
+ */
 export class AtmospherePass extends RenderPass {
   readonly name = 'AtmospherePass';
 
@@ -28,6 +35,14 @@ export class AtmospherePass extends RenderPass {
     this._hdrView = hdrView;
   }
 
+  /**
+   * Allocates the uniform buffer, bind group, shader module and render pipeline that
+   * targets the supplied HDR view (`HDR_FORMAT` — `rgba16float`).
+   *
+   * @param ctx Render context providing the GPU device.
+   * @param hdrView HDR colour attachment the sky is drawn into.
+   * @returns A ready-to-use `AtmospherePass`.
+   */
   static create(ctx: RenderContext, hdrView: GPUTextureView): AtmospherePass {
     const { device } = ctx;
 
@@ -61,8 +76,16 @@ export class AtmospherePass extends RenderPass {
     return new AtmospherePass(pipeline, uniformBuf, bg, hdrView);
   }
 
-  // lightDir: directional-light direction (light rays travel in this direction, i.e. toward the scene).
-  // Negated inside to produce the toward-sun vector the atmosphere shader expects.
+  /**
+   * Uploads the per-frame uniform block (inverse view-proj, camera position, normalised
+   * sun direction) to the GPU.
+   *
+   * @param ctx Render context (used for the queue).
+   * @param invViewProj Inverse view-projection matrix used to reconstruct view rays.
+   * @param camPos World-space camera position.
+   * @param lightDir Directional light direction (rays travelling toward the scene); the
+   *   shader receives `normalize(-lightDir)` as the toward-sun vector.
+   */
   update(
     ctx: RenderContext,
     invViewProj: Mat4,

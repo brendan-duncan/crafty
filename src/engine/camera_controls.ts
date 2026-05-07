@@ -6,15 +6,24 @@ const AXIS_X = new Vec3(1, 0, 0);
 
 const FLY_FAST_MULT = 3.0; // ControlLeft speed multiplier
 
-// Free-fly camera controller. Call attach() once, then update() every frame.
-// WASD: horizontal, Space: ascend, ShiftLeft: descend, ControlLeft: fast fly.
-// Click the canvas to acquire pointer lock for mouse look.
-
+/**
+ * Free-fly debug/editor camera controller with FPS-style mouse look.
+ *
+ * Bindings: WASD (or arrows) for horizontal movement, Space to ascend,
+ * ShiftLeft to descend, ControlLeft (or AltLeft) for a 3× speed boost.
+ * Clicking the canvas acquires pointer lock; mouse motion drives yaw/pitch.
+ * Call {@link CameraControls.attach} once, then {@link CameraControls.update}
+ * every frame against the camera's GameObject.
+ */
 export class CameraControls {
-  yaw        : number;  // radians, rotation around world Y
-  pitch      : number;  // radians, rotation around local X (clamped ±89°)
-  speed      : number;  // units per second
-  sensitivity: number;  // radians per pixel
+  /** Yaw in radians, rotation around world Y. */
+  yaw        : number;
+  /** Pitch in radians, rotation around local X (clamped to ±89°). */
+  pitch      : number;
+  /** Movement speed in world units per second. */
+  speed      : number;
+  /** Mouse sensitivity in radians per pixel of movement. */
+  sensitivity: number;
 
   private _keys  = new Set<string>();
   private _canvas: HTMLCanvasElement | null = null;
@@ -24,6 +33,12 @@ export class CameraControls {
   private readonly _onKeyUp    : (e: KeyboardEvent) => void;
   private readonly _onClick    : () => void;
 
+  /**
+   * @param yaw - Initial yaw in radians.
+   * @param pitch - Initial pitch in radians.
+   * @param speed - Base movement speed in units/sec.
+   * @param sensitivity - Mouse sensitivity in radians per pixel.
+   */
   constructor(yaw = 0, pitch = 0, speed = 5, sensitivity = 0.002) {
     this.yaw         = yaw;
     this.pitch       = pitch;
@@ -45,6 +60,11 @@ export class CameraControls {
     this._onClick   = () => this._canvas?.requestPointerLock();
   }
 
+  /**
+   * Registers DOM event listeners on the supplied canvas and document.
+   *
+   * @param canvas - Canvas element that will receive click-to-lock and feed pointer lock.
+   */
   attach(canvas: HTMLCanvasElement): void {
     this._canvas = canvas;
     canvas.addEventListener('click',     this._onClick);
@@ -53,10 +73,19 @@ export class CameraControls {
     document.addEventListener('keyup',     this._onKeyUp);
   }
 
-  // Inject a key as if it were currently held — use when the controller is
-  // attached after the physical keydown event already fired (e.g. double-tap toggle).
+  /**
+   * Injects a key as if it were currently held.
+   *
+   * Use when the controller is attached after the physical keydown event
+   * already fired (e.g. double-tap toggle).
+   *
+   * @param code - KeyboardEvent.code value, e.g. 'KeyW'.
+   */
   pressKey(code: string): void { this._keys.add(code); }
 
+  /**
+   * Removes all DOM event listeners and clears the canvas reference.
+   */
   detach(): void {
     if (!this._canvas) {
       return;
@@ -68,6 +97,15 @@ export class CameraControls {
     this._canvas = null;
   }
 
+  /**
+   * Advances the controller, applying input to the GameObject's position and rotation.
+   *
+   * Yaw and pitch are composed as independent quaternions so the camera never
+   * accumulates roll.
+   *
+   * @param gameObject - GameObject whose transform represents the camera.
+   * @param dt - Frame delta time in seconds.
+   */
   update(gameObject: GameObject, dt: number): void {
     const sinY = Math.sin(this.yaw);
     const cosY = Math.cos(this.yaw);

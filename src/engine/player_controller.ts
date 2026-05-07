@@ -17,12 +17,26 @@ const HALF_W         =   0.3;   // player AABB half-width/depth
 const HEIGHT         =   1.8;   // player AABB height
 const EYE_HEIGHT     =   1.62;  // camera above feet
 
+/**
+ * First-person Minecraft-style player controller.
+ *
+ * Handles WASD movement, mouse-look (with pointer lock), jumping with coyote
+ * time, sprint/sneak speed modifiers, and AABB-vs-blocks collision against
+ * the {@link World}. Includes water detection so the player swims (Space rises,
+ * reduced gravity) when chest-deep in a water block. Call {@link PlayerController.attach}
+ * once with a canvas, then {@link PlayerController.update} with the eye GameObject
+ * each frame.
+ */
 export class PlayerController {
+  /** Yaw in radians, rotation around world Y. */
   yaw        : number;
+  /** Pitch in radians, rotation around local X (clamped to ±89°). */
   pitch      : number;
+  /** Mouse sensitivity in radians per pixel. */
   sensitivity: number = 0.002;
 
   private _velY         = 0;
+  /** Sets vertical velocity (used to inject jumps/launches from external code). */
   set velY(v: number) { this._velY = v; }
   private _onGround     = false;
   private _prevInWater  = false;
@@ -36,6 +50,11 @@ export class PlayerController {
   private readonly _onKeyUp    : (e: KeyboardEvent) => void;
   private readonly _onClick    : () => void;
 
+  /**
+   * @param world - World used for collision and water sampling.
+   * @param yaw - Initial yaw in radians.
+   * @param pitch - Initial pitch in radians.
+   */
   constructor(world: World, yaw = Math.PI, pitch = 0.1) {
     this._world = world;
     this.yaw    = yaw;
@@ -55,6 +74,11 @@ export class PlayerController {
     this._onClick   = () => this._canvas?.requestPointerLock();
   }
 
+  /**
+   * Registers DOM event listeners on the supplied canvas and document.
+   *
+   * @param canvas - Canvas element that receives click-to-lock and feeds pointer lock.
+   */
   attach(canvas: HTMLCanvasElement): void {
     this._canvas = canvas;
     canvas.addEventListener('click',       this._onClick);
@@ -63,6 +87,9 @@ export class PlayerController {
     document.addEventListener('keyup',     this._onKeyUp);
   }
 
+  /**
+   * Removes all DOM event listeners and clears the canvas reference.
+   */
   detach(): void {
     if (!this._canvas) {
       return;
@@ -74,8 +101,15 @@ export class PlayerController {
     this._canvas = null;
   }
 
-  // eyeGO.position is the camera/eye world position.
-  // Feet position = eye - (0, EYE_HEIGHT, 0).
+  /**
+   * Steps the controller: applies input, gravity/swim, and per-axis collision.
+   *
+   * eyeGO.position is treated as the camera/eye world position; feet are at
+   * eye − (0, EYE_HEIGHT, 0). dt is clamped to 50 ms to keep the integrator stable.
+   *
+   * @param eyeGO - GameObject whose transform represents the player's eye.
+   * @param dt - Frame delta time in seconds.
+   */
   update(eyeGO: GameObject, dt: number): void {
     dt = Math.min(dt, 0.05);
 

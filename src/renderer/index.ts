@@ -1,3 +1,11 @@
+/**
+ * Renderer barrel module.
+ *
+ * Re-exports the render-graph framework (RenderContext, RenderGraph,
+ * RenderPass, GBuffer) along with all built-in render passes (shadow, sky,
+ * geometry, lighting, post-processing, etc.) and their associated settings
+ * types. See the individual pass modules for per-symbol documentation.
+ */
 export { RenderContext } from './render_context.js';
 export { RenderPass } from './render_pass.js';
 export { RenderGraph } from './render_graph.js';

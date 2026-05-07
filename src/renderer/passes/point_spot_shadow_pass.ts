@@ -7,12 +7,19 @@ import type { Mat4 } from '../../math/mat4.js';
 import { VERTEX_ATTRIBUTES, VERTEX_STRIDE } from '../../assets/mesh.js';
 import shadowWgsl from '../../shaders/point_spot_shadow.wgsl?raw';
 
+/** Maximum number of point lights uploaded to the lighting shader. */
 export const MAX_POINT_LIGHTS        = 32;
+/** Maximum number of spot lights uploaded to the lighting shader. */
 export const MAX_SPOT_LIGHTS         = 32;
+/** Maximum number of point lights that can cast (VSM cube) shadows simultaneously. */
 export const MAX_SHADOW_POINT_LIGHTS = 4;
+/** Maximum number of spot lights that can cast (VSM 2D) shadows simultaneously. */
 export const MAX_SHADOW_SPOT_LIGHTS  = 8;
+/** Per-face resolution of each point-light cube VSM. */
 export const VSM_POINT_SIZE          = 256;
+/** Resolution of each spot-light VSM. */
 export const VSM_SPOT_SIZE           = 512;
+/** Resolution of each projection ("gobo") texture slot. */
 export const PROJ_TEX_SIZE           = 256;
 
 const SHADOW_UNIFORM_SIZE = 80;  // mat4(64) + vec3(12, at align16) + f32(4) = 80
@@ -22,14 +29,27 @@ const MODEL_UNIFORM_SIZE  = 64;  // mat4(64)
 const POINT_SHADOW_PASSES = 6 * MAX_SHADOW_POINT_LIGHTS;
 const TOTAL_SHADOW_PASSES = POINT_SHADOW_PASSES + MAX_SHADOW_SPOT_LIGHTS;
 
+/** A mesh + world matrix to render into every active point/spot shadow map this frame. */
 export type DrawItem = { mesh: Mesh; modelMatrix: Mat4 };
 
+/**
+ * Builds the variance shadow maps (VSMs) and projection texture array for all
+ * shadow-casting point and spot lights.
+ *
+ * Renders each shadow-casting point light into 6 cube faces (point pipeline writes
+ * moment data into an `rgba16float` cube-array) and each shadow-casting spot light
+ * into a slot of the spot VSM `2d-array`. Spot projection ("gobo") textures are
+ * copied into the projection array. The resulting views ({@link pointVsmView},
+ * {@link spotVsmView}, {@link projTexView}) are consumed by {@link PointSpotLightPass}.
+ */
 export class PointSpotShadowPass extends RenderPass {
   readonly name = 'PointSpotShadowPass';
 
-  // Public VSM textures — consumed by PointSpotLightPass
+  /** Cube-array view (`MAX_SHADOW_POINT_LIGHTS` cubes) of the point VSM. */
   readonly pointVsmView: GPUTextureView;
+  /** 2D-array view (`MAX_SHADOW_SPOT_LIGHTS` layers) of the spot VSM. */
   readonly spotVsmView : GPUTextureView;
+  /** 2D-array view (`MAX_SHADOW_SPOT_LIGHTS` layers) of the projection ("gobo") textures. */
   readonly projTexView : GPUTextureView;
 
   private _pointVsmTex : GPUTexture;
@@ -103,6 +123,11 @@ export class PointSpotShadowPass extends RenderPass {
     this.projTexView = projTexArray.createView({ dimension: '2d-array' });
   }
 
+  /**
+   * Allocates the point and spot VSM textures, the projection texture array (initialised
+   * to white), temporary depth buffers, the per-pass shadow uniform pool, and both the
+   * point and spot render pipelines.
+   */
   static create(ctx: RenderContext): PointSpotShadowPass {
     const { device } = ctx;
 
@@ -231,13 +256,19 @@ export class PointSpotShadowPass extends RenderPass {
     );
   }
 
+  /**
+   * Stores the lights and the snapshot of meshes to render in the next {@link execute}.
+   */
   update(pointLights: PointLight[], spotLights: SpotLight[], snapshot: DrawItem[]): void {
     this._pointLights = pointLights;
     this._spotLights  = spotLights;
     this._snapshot    = snapshot;
   }
 
-  // Copy a 256×256 rgba8unorm GPUTexture into projection texture slot `slot`.
+  /**
+   * Copies a 256x256 `rgba8unorm` source texture into the projection texture array
+   * at layer `slot`. The source must have `COPY_SRC` usage.
+   */
   setProjectionTexture(encoder: GPUCommandEncoder, slot: number, src: GPUTexture): void {
     encoder.copyTextureToTexture(
       { texture: src },
@@ -246,6 +277,11 @@ export class PointSpotShadowPass extends RenderPass {
     );
   }
 
+  /**
+   * For each shadow-casting point light, renders the snapshot meshes into all six VSM
+   * cube faces; for each shadow-casting spot light, renders into one VSM slot. Also
+   * copies any per-spot-light projection textures into the projection texture array.
+   */
   execute(encoder: GPUCommandEncoder, ctx: RenderContext): void {
     const { device } = ctx;
     const items = this._snapshot;
@@ -367,6 +403,9 @@ export class PointSpotShadowPass extends RenderPass {
     }
   }
 
+  /**
+   * Releases all VSM/projection/depth textures and the shadow & model uniform buffer pools.
+   */
   destroy(): void {
     this._pointVsmTex.destroy();
     this._spotVsmTex.destroy();

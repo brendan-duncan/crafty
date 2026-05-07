@@ -1,10 +1,11 @@
-// Vertex layout (interleaved, 48 bytes per vertex):
-//   position: vec3  (12 bytes)
-//   normal:   vec3  (12 bytes)
-//   uv:       vec2  ( 8 bytes)
-//   tangent:  vec4  (16 bytes)
+/**
+ * Byte stride of a `Mesh` vertex: 48 bytes = position(12) + normal(12) + uv(8) + tangent(16).
+ */
 export const VERTEX_STRIDE = 48;
 
+/**
+ * WebGPU vertex attribute layout matching `VERTEX_STRIDE`: position, normal, uv, tangent.
+ */
 export const VERTEX_ATTRIBUTES: GPUVertexAttribute[] = [
   { shaderLocation: 0, offset: 0,  format: 'float32x3' }, // position
   { shaderLocation: 1, offset: 12, format: 'float32x3' }, // normal
@@ -12,6 +13,12 @@ export const VERTEX_ATTRIBUTES: GPUVertexAttribute[] = [
   { shaderLocation: 3, offset: 32, format: 'float32x4' }, // tangent
 ];
 
+/**
+ * Static (non-skinned) GPU mesh: an interleaved vertex buffer plus a 32-bit index buffer.
+ *
+ * Vertex layout matches `VERTEX_STRIDE` / `VERTEX_ATTRIBUTES`. The mesh owns
+ * both buffers; call `destroy()` to release them.
+ */
 export class Mesh {
   readonly vertexBuffer: GPUBuffer;
   readonly indexBuffer: GPUBuffer;
@@ -23,11 +30,20 @@ export class Mesh {
     this.indexCount = indexCount;
   }
 
+  /** Destroys the underlying GPU vertex and index buffers. */
   destroy(): void {
     this.vertexBuffer.destroy();
     this.indexBuffer.destroy();
   }
 
+  /**
+   * Creates a mesh from interleaved vertex data and 32-bit indices.
+   *
+   * @param device - The WebGPU device.
+   * @param vertices - Interleaved vertex data laid out per `VERTEX_ATTRIBUTES` (12 floats per vertex).
+   * @param indices - Triangle list indices.
+   * @returns A new mesh owning the uploaded GPU buffers.
+   */
   static fromData(device: GPUDevice, vertices: Float32Array, indices: Uint32Array): Mesh {
     const vb = device.createBuffer({
       label: 'Mesh VertexBuffer',
@@ -46,7 +62,13 @@ export class Mesh {
     return new Mesh(vb, ib, indices.length);
   }
 
-  // Counter-clockwise winding, +Y up
+  /**
+   * Creates an axis-aligned cube centered at the origin with outward-facing CCW winding.
+   *
+   * @param device - The WebGPU device.
+   * @param size - Edge length of the cube (defaults to 1).
+   * @returns The cube mesh.
+   */
   static createCube(device: GPUDevice, size = 1): Mesh {
     const h = size / 2;
     // Each face: 4 verts, normal, uvs, tangent
@@ -77,7 +99,17 @@ export class Mesh {
     return Mesh.fromData(device, new Float32Array(vertData), new Uint32Array(idxData));
   }
 
-  // UV sphere, normals point outward, tangent along +longitude (phi) direction.
+  /**
+   * Creates a UV sphere centered at the origin with outward normals.
+   *
+   * Tangents follow the `+phi` (longitude) direction.
+   *
+   * @param device - The WebGPU device.
+   * @param radius - Sphere radius (defaults to 0.5).
+   * @param latSegments - Latitude (theta) subdivisions.
+   * @param lonSegments - Longitude (phi) subdivisions.
+   * @returns The sphere mesh.
+   */
   static createSphere(device: GPUDevice, radius = 0.5, latSegments = 32, lonSegments = 32): Mesh {
     const vertData: number[] = [];
     const idxData: number[] = [];
@@ -119,8 +151,17 @@ export class Mesh {
     return Mesh.fromData(device, new Float32Array(vertData), new Uint32Array(idxData));
   }
 
-  // Cone pointing along +Y: apex at (0, height, 0), base circle at Y=0, radius r.
-  // Rotate the returned mesh so local +Y aligns with the desired direction.
+  /**
+   * Creates a cone with apex at `(0, height, 0)` and base circle on the XZ plane.
+   *
+   * Rotate the returned mesh so local `+Y` aligns with the desired axis.
+   *
+   * @param device - The WebGPU device.
+   * @param radius - Base circle radius (defaults to 0.5).
+   * @param height - Apex height above the base (defaults to 1.0).
+   * @param segments - Number of base ring segments.
+   * @returns The cone mesh.
+   */
   static createCone(device: GPUDevice, radius = 0.5, height = 1.0, segments = 16): Mesh {
     const vertData: number[] = [];
     const idxData: number[] = [];
@@ -165,6 +206,16 @@ export class Mesh {
     return Mesh.fromData(device, new Float32Array(vertData), new Uint32Array(idxData));
   }
 
+  /**
+   * Creates a flat plane on the XZ plane (normal `+Y`) centered at the origin.
+   *
+   * @param device - The WebGPU device.
+   * @param width - Size along X (defaults to 10).
+   * @param depth - Size along Z (defaults to 10).
+   * @param segX - Subdivisions along X.
+   * @param segZ - Subdivisions along Z.
+   * @returns The plane mesh.
+   */
   static createPlane(device: GPUDevice, width = 10, depth = 10, segX = 1, segZ = 1): Mesh {
     const vertData: number[] = [];
     const idxData: number[] = [];

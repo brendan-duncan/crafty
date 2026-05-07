@@ -12,6 +12,10 @@ const CLOUD_UNIFORM_SIZE = 48;
 // LightUniforms: direction(12) + intensity(4) + color(12) + _pad(4) = 32 bytes
 const CLOUD_LIGHT_UNIFORM_SIZE = 32;
 
+/**
+ * Per-frame parameters controlling the volumetric cloud raymarch and the
+ * procedural sky lit alongside it.
+ */
 export interface CloudSettings {
   cloudBase   : number;               // world Y of cloud bottom (default 5)
   cloudTop    : number;               // world Y of cloud top (default 15)
@@ -24,6 +28,9 @@ export interface CloudSettings {
   exposure    : number;               // HDR sky exposure (default 0.2)
 }
 
+/**
+ * Reasonable default {@link CloudSettings} for a daytime overcast-leaning sky.
+ */
 export const DEFAULT_CLOUD_SETTINGS: CloudSettings = {
   cloudBase   : 5,
   cloudTop    : 15,
@@ -36,6 +43,16 @@ export const DEFAULT_CLOUD_SETTINGS: CloudSettings = {
   exposure    : 0.2,
 };
 
+/**
+ * Volumetric cloud + procedural sky pass. Renders a fullscreen triangle that
+ * raymarches a horizontal cloud slab using two 3D noise textures (base shape
+ * + detail erosion), with Beer's law transmittance and a secondary light
+ * march for self-shadowing. Reads the scene depth (to early-out behind solid
+ * geometry) and clears+writes the HDR color target.
+ *
+ * Sky color is computed analytically (Rayleigh+Mie) inside the same shader,
+ * so no sky cubemap is required.
+ */
 export class CloudPass extends RenderPass {
   readonly name = 'CloudPass';
 
@@ -72,6 +89,16 @@ export class CloudPass extends RenderPass {
     this._noiseSkyBG  = noiseSkyBG;
   }
 
+  /**
+   * Builds the cloud pass: allocates uniform buffers, bind groups, and the
+   * raymarching pipeline.
+   *
+   * @param ctx       Renderer context (provides GPU device).
+   * @param hdrView   HDR color attachment that will be cleared and written.
+   * @param depthView Scene depth attachment, sampled for occlusion.
+   * @param noises    Pre-built 3D base and detail noise textures.
+   * @returns A configured CloudPass.
+   */
   static create(
     ctx      : RenderContext,
     hdrView  : GPUTextureView,
@@ -173,6 +200,16 @@ export class CloudPass extends RenderPass {
       sceneBG, lightBG, depthBG, noiseSkyBG);
   }
 
+  /**
+   * Updates the per-frame camera uniforms used to reconstruct view rays and
+   * linearize the depth buffer.
+   *
+   * @param ctx         Renderer context (used for the queue).
+   * @param invViewProj Inverse view-projection matrix (column-major).
+   * @param camPos      World-space camera position.
+   * @param near        Near plane distance.
+   * @param far         Far plane distance.
+   */
   updateCamera(
     ctx        : RenderContext,
     invViewProj: Mat4,
@@ -188,6 +225,15 @@ export class CloudPass extends RenderPass {
     ctx.queue.writeBuffer(this._cameraBuffer, 0, data.buffer as ArrayBuffer);
   }
 
+  /**
+   * Updates the directional sun light used by both the cloud scattering
+   * solution and the procedural sky.
+   *
+   * @param ctx       Renderer context (used for the queue).
+   * @param dir       Normalized direction *to* the sun in world space.
+   * @param color     Linear RGB sun color.
+   * @param intensity Scalar light intensity.
+   */
   updateLight(
     ctx      : RenderContext,
     dir      : { x: number; y: number; z: number },
@@ -200,6 +246,12 @@ export class CloudPass extends RenderPass {
     ctx.queue.writeBuffer(this._lightBuffer, 0, data.buffer as ArrayBuffer);
   }
 
+  /**
+   * Uploads the {@link CloudSettings} struct to the cloud uniform buffer.
+   *
+   * @param ctx Renderer context (used for the queue).
+   * @param s   Cloud parameters for this frame.
+   */
   updateSettings(ctx: RenderContext, s: CloudSettings): void {
     const data = new Float32Array(CLOUD_UNIFORM_SIZE / 4);
     data[0]  = s.cloudBase;
@@ -217,6 +269,12 @@ export class CloudPass extends RenderPass {
     ctx.queue.writeBuffer(this._cloudBuffer, 0, data.buffer as ArrayBuffer);
   }
 
+  /**
+   * Records the fullscreen cloud+sky draw, clearing the HDR target.
+   *
+   * @param encoder Active command encoder to record into.
+   * @param _ctx    Render context (unused).
+   */
   execute(encoder: GPUCommandEncoder, _ctx: RenderContext): void {
     const pass = encoder.beginRenderPass({
       label: 'CloudPass',
@@ -236,6 +294,9 @@ export class CloudPass extends RenderPass {
     pass.end();
   }
 
+  /**
+   * Releases the uniform buffers owned by this pass.
+   */
   destroy(): void {
     this._cameraBuffer.destroy();
     this._cloudBuffer.destroy();

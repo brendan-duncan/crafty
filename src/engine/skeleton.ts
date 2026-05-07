@@ -1,20 +1,42 @@
 const IDENTITY_MAT4 = new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]);
 
+/**
+ * GLTF-style joint hierarchy with rest pose and inverse-bind matrices.
+ *
+ * Joints are stored as a flat array; {@link parentIndices} encodes the hierarchy
+ * (-1 = root). The skeleton itself is static — animation state lives in TRS
+ * arrays passed into {@link Skeleton.computeJointMatrices}, which produces the
+ * final joint matrices used for skinning. The skin layout matches the source
+ * GLTF: parents always appear before their children.
+ */
 export class Skeleton {
   readonly jointCount    : number;
+  /** Parent joint index per joint, or -1 for roots. */
   readonly parentIndices : Int16Array;
-  readonly invBindMats   : Float32Array;  // jointCount × 16, column-major
-  readonly rootTransform : Float32Array;  // 16 floats, column-major — accumulated ancestor transform above root joint
+  /** Inverse-bind matrices, jointCount × 16 column-major. */
+  readonly invBindMats   : Float32Array;
+  /** Accumulated ancestor transform above the skeleton root joint (16 floats, column-major). */
+  readonly rootTransform : Float32Array;
 
-  // Rest-pose per joint (from node defaults)
-  readonly restTranslations: Float32Array;  // jointCount × 3
-  readonly restRotations   : Float32Array;  // jointCount × 4 (xyzw)
-  readonly restScales      : Float32Array;  // jointCount × 3
+  /** Rest-pose translations from GLTF node defaults (jointCount × 3). */
+  readonly restTranslations: Float32Array;
+  /** Rest-pose rotations from GLTF node defaults (jointCount × 4, xyzw). */
+  readonly restRotations   : Float32Array;
+  /** Rest-pose scales from GLTF node defaults (jointCount × 3). */
+  readonly restScales      : Float32Array;
 
   // Pre-allocated scratch buffers for computeJointMatrices — avoids per-frame GC.
   private readonly _globalMats: Float32Array;
   private readonly _localMat   = new Float32Array(16);
 
+  /**
+   * @param parentIndices - Parent joint per joint (-1 for roots); also defines jointCount.
+   * @param invBindMats - Inverse-bind matrices, jointCount × 16 column-major.
+   * @param restTranslations - Rest-pose translations, jointCount × 3.
+   * @param restRotations - Rest-pose rotations (xyzw), jointCount × 4.
+   * @param restScales - Rest-pose scales, jointCount × 3.
+   * @param rootTransform - Optional ancestor transform above the root joint; defaults to identity.
+   */
   constructor(
     parentIndices    : Int16Array,
     invBindMats      : Float32Array,
@@ -33,9 +55,16 @@ export class Skeleton {
     this._globalMats      = new Float32Array(this.jointCount * 16);
   }
 
-  // Computes final joint matrices from per-joint TRS arrays.
-  // Parents must appear before children in the joint list (guaranteed by GLTF).
-  // out: Float32Array of length jointCount × 16, column-major.
+  /**
+   * Computes final skinning matrices (`global × invBind` per joint) from per-joint TRS arrays.
+   *
+   * Parents must appear before children in the joint list (guaranteed by GLTF).
+   *
+   * @param translations - Per-joint translations (jointCount × 3).
+   * @param rotations - Per-joint rotations as xyzw quaternions (jointCount × 4).
+   * @param scales - Per-joint scales (jointCount × 3).
+   * @param out - Destination buffer for the final joint matrices (jointCount × 16, column-major).
+   */
   computeJointMatrices(
     translations: Float32Array,
     rotations   : Float32Array,

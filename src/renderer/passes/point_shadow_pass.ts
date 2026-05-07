@@ -9,11 +9,21 @@ import shadowCubeWgsl from '../../shaders/shadow_cube.wgsl?raw';
 const CAMERA_UNIFORM_SIZE = 80; // mat4 (64) + vec3 lightPos (12) + f32 farPlane (4)
 const MODEL_UNIFORM_SIZE = 64;
 
+/**
+ * A single mesh draw call to record into the point-light shadow cube map.
+ */
 export interface PointShadowDrawItem {
   mesh: Mesh;
   modelMatrix: Mat4;
 }
 
+/**
+ * Renders depth-only shadows for a single point light into a cube map.
+ *
+ * Performs six render passes, one per cube face, each using a per-face view-projection
+ * matrix supplied via {@link PointShadowPass.updateCamera}. The vertex shader y-flips
+ * the output, so triangles are front-face culled to keep correct winding.
+ */
 export class PointShadowPass extends RenderPass {
   readonly name = 'PointShadowPass';
 
@@ -47,6 +57,15 @@ export class PointShadowPass extends RenderPass {
     this._shadowCubeFaceViews = shadowCubeFaceViews;
   }
 
+  /**
+   * Creates the depth-only render pipeline and the per-face camera uniform buffers
+   * (six in total) plus their bind groups, and builds 2D views into each face of the
+   * supplied shadow cube texture starting at `baseArrayLayer`.
+   *
+   * @param ctx - The render context owning the GPU device.
+   * @param shadowCubeTexture - A cube (or cube-array) depth texture to write into.
+   * @param baseArrayLayer - First array layer of the cube within `shadowCubeTexture`.
+   */
   static create(ctx: RenderContext, shadowCubeTexture: GPUTexture, baseArrayLayer: number = 0): PointShadowPass {
     const { device } = ctx;
 
@@ -135,10 +154,19 @@ export class PointShadowPass extends RenderPass {
     return new PointShadowPass(pipeline, modelBGL, cameraBuffers, cameraBindGroups, shadowCubeFaceViews);
   }
 
+  /**
+   * Replaces the list of meshes to render into all six cube faces this frame.
+   */
   setDrawItems(items: PointShadowDrawItem[]): void {
     this._drawItems = items;
   }
 
+  /**
+   * Uploads the six per-face view-projection matrices, the light world position, and the
+   * far-plane distance into the per-face camera uniform buffers.
+   *
+   * @param viewProjections - Length-6 array of cube-face view-projection matrices.
+   */
   updateCamera(ctx: RenderContext, lightPosition: Vec3, viewProjections: Mat4[], farPlane: number): void {
     const data = new Float32Array(CAMERA_UNIFORM_SIZE / 4);
     for (let face = 0; face < 6; face++) {
@@ -152,6 +180,11 @@ export class PointShadowPass extends RenderPass {
     this._cameraInitialized = true;
   }
 
+  /**
+   * Uploads per-mesh model matrices, then renders the current draw items into each of
+   * the six cube faces in turn (depth-only, clearing depth between passes). No-op
+   * until {@link PointShadowPass.updateCamera} has been called at least once.
+   */
   execute(encoder: GPUCommandEncoder, ctx: RenderContext): void {
     if (!this._cameraInitialized) {
       return;
@@ -213,6 +246,9 @@ export class PointShadowPass extends RenderPass {
     }
   }
 
+  /**
+   * Releases all per-face camera buffers and the model uniform buffer pool.
+   */
   destroy(): void {
     for (const buffer of this._cameraBuffers) {
       buffer.destroy();

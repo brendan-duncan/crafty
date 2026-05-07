@@ -38,9 +38,18 @@ function generateNoise(): Uint8Array {
   return noise;
 }
 
+/**
+ * Screen-space ambient occlusion pass. Samples a hemispherical kernel around
+ * each pixel using the G-buffer view-space normal and depth, then runs a
+ * separable bilateral-style blur to produce the AO term consumed by lighting.
+ *
+ * Inputs sampled: G-buffer normal/metallic, G-buffer depth, tiled noise.
+ * Output: single-channel AO texture exposed as `aoView` (half resolution).
+ */
 export class SSAOPass extends RenderPass {
   readonly name = 'SSAOPass';
 
+  /** Blurred AO texture view, intended to be bound by LightingPass. */
   // Blurred AO texture — bound by LightingPass as group 3.
   readonly aoView: GPUTextureView;
 
@@ -83,6 +92,14 @@ export class SSAOPass extends RenderPass {
     this._blurBG  = blurBG;
   }
 
+  /**
+   * Constructs the pass and allocates the half-resolution AO textures, kernel,
+   * noise texture, pipelines, and bind groups.
+   *
+   * @param ctx Render context providing device and screen size.
+   * @param gbuffer G-buffer providing the normal/metallic and depth views.
+   * @returns Configured SSAOPass instance.
+   */
   static create(ctx: RenderContext, gbuffer: GBuffer): SSAOPass {
     const { device, width, height } = ctx;
 
@@ -201,6 +218,15 @@ export class SSAOPass extends RenderPass {
     );
   }
 
+  /**
+   * Uploads the per-frame camera matrices used for view-space reconstruction.
+   * Call once per frame before {@link execute}.
+   *
+   * @param ctx Render context whose queue receives the buffer write.
+   * @param view World-to-view matrix.
+   * @param proj View-to-clip matrix.
+   * @param invProj Inverse of `proj`, used to reconstruct view-space positions.
+   */
   // Call each frame before execute(). view and proj are the camera matrices; invProj is proj.invert().
   updateCamera(ctx: RenderContext, view: Mat4, proj: Mat4, invProj: Mat4): void {
     const data = new Float32Array(48); // 3 × mat4 = 48 floats
@@ -210,6 +236,14 @@ export class SSAOPass extends RenderPass {
     ctx.device.queue.writeBuffer(this._uniformBuffer, 0, data.buffer as ArrayBuffer);
   }
 
+  /**
+   * Updates the SSAO tuning parameters in the GPU uniform buffer.
+   *
+   * @param ctx Render context whose queue receives the buffer write.
+   * @param radius Hemisphere sample radius in view-space units.
+   * @param bias Depth bias to suppress self-occlusion.
+   * @param strength Final AO intensity multiplier.
+   */
   // radius   : hemisphere sample radius in view space (default 1.0)
   // bias     : depth bias to avoid self-occlusion (default 0.005)
   // strength : AO intensity multiplier (default 2.0)
@@ -218,6 +252,12 @@ export class SSAOPass extends RenderPass {
       new Float32Array([radius, bias, strength, 0]).buffer as ArrayBuffer);
   }
 
+  /**
+   * Records the raw SSAO render and the subsequent blur into the AO target.
+   *
+   * @param encoder Command encoder to record into.
+   * @param _ctx Render context (unused).
+   */
   execute(encoder: GPUCommandEncoder, _ctx: RenderContext): void {
     // 1. SSAO: gbuffer → raw AO
     {
@@ -245,6 +285,7 @@ export class SSAOPass extends RenderPass {
     }
   }
 
+  /** Releases the raw and blurred AO textures, the uniform buffer, and the noise texture. */
   destroy(): void {
     this._raw.destroy();
     this._blurred.destroy();

@@ -10,8 +10,11 @@ function _xzHash(x: number, z: number): number {
   return h / 0x100000000;
 }
 
-// Pre-loaded blocks from the 6 axis-aligned neighbor chunks.
-// Pass Uint8Array references (not copies) so getType() can index them directly.
+/**
+ * References to the block arrays of the six axis-aligned neighbor chunks.
+ *
+ * Pass `Uint8Array` references (not copies) so the mesher can index them directly.
+ */
 export interface ChunkNeighbors {
   negX?: Uint8Array;
   posX?: Uint8Array;
@@ -21,6 +24,12 @@ export interface ChunkNeighbors {
   posZ?: Uint8Array;
 }
 
+/**
+ * Vertex buffers and counts produced by `Chunk.generateVertices`.
+ *
+ * Opaque/transparent/prop vertices are 5 floats each (`x, y, z, normal, blockType`);
+ * water vertices are 3 floats each (`x, y, z`).
+ */
 export interface ChunkMesh {
   opaque: Float32Array;
   opaqueCount: number;
@@ -32,13 +41,24 @@ export interface ChunkMesh {
   propCount: number;
 }
 
+/**
+ * A 16x16x16 cube of blocks with axis convention X = width, Y = height (vertical), Z = depth.
+ *
+ * Owns the raw block array, tracks per-category block counts, and generates both terrain
+ * (`generateBlocks`) and renderable vertex meshes (`generateVertices`). Chunks are
+ * positioned in world space by `globalPosition`, which is the min-corner of the chunk.
+ */
 export class Chunk {
+  /** Chunk size in blocks along the X axis. */
   static CHUNK_WIDTH = 16;
+  /** Chunk size in blocks along the vertical Y axis. */
   static CHUNK_HEIGHT = 16;
+  /** Chunk size in blocks along the Z axis. */
   static CHUNK_DEPTH = 16;
-  static SEA_LEVEL = 15; // Ocean and lake water level
+  /** Global Y level at which oceans and lakes are filled with water. */
+  static SEA_LEVEL = 15;
 
-  // Vertex positions for 6 faces × 6 verts = 36 verts, matches CUBE_POSITION_VERTICES in lc_chunk.c
+  /** Unit-cube vertex positions for 6 faces × 6 verts = 36 verts, ordered back/front/left/right/bottom/top. */
   static readonly CUBE_VERTS = new Float32Array([
     // Back face (face 0, normal -Z)
     -0.5, -0.5, -0.5,   0.5,  0.5, -0.5,   0.5, -0.5, -0.5,
@@ -74,12 +94,27 @@ export class Chunk {
   lightBlocks = 0;
   isDeleted = false;
 
+  /**
+   * Creates an empty chunk anchored at the given world-space min corner.
+   *
+   * @param px - world X of the chunk min corner
+   * @param py - world Y of the chunk min corner
+   * @param pz - world Z of the chunk min corner
+   */
   constructor(px: number, py: number, pz: number) {
     this.globalPosition.set(px, py, pz);
   }
 
-  // Vertex layout: [x, y, z, normal(0-5), blockType] — 5 floats per vertex.
-  // Water vertices: [x, z] pairs — 2 floats per vertex.
+  /**
+   * Builds opaque, semi-transparent, water, and prop vertex buffers for the chunk.
+   *
+   * Uses greedy meshing across X/Y/Z for cube faces and a padded copy of the block grid
+   * (with one layer of neighbor data) so boundary checks have no per-axis branching in
+   * the hot loop. Vertex layout is `[x, y, z, normal(0-5 or 6 for billboard), blockType]`.
+   *
+   * @param neighbors - optional block arrays of the six neighbor chunks for face culling
+   * @returns the populated `ChunkMesh`
+   */
   generateVertices(neighbors?: ChunkNeighbors): ChunkMesh {
     const W = Chunk.CHUNK_WIDTH;
     const H = Chunk.CHUNK_HEIGHT;
@@ -584,6 +619,13 @@ export class Chunk {
     };
   }
 
+  /**
+   * Populates the chunk's blocks via 3D Perlin terrain, biome selection, caves, and a
+   * second pass that places trees and props.
+   *
+   * @param seed - world seed driving all noise
+   * @param getErosion - optional per-column hydraulic erosion displacement sampler
+   */
   generateBlocks(seed: number, getErosion?: (gx: number, gz: number) => number): void {
     const W = Chunk.CHUNK_WIDTH;
     const H = Chunk.CHUNK_HEIGHT;
@@ -668,6 +710,16 @@ export class Chunk {
     }
   }
 
+  /**
+   * Sets the block at local coordinates and updates per-category counts.
+   *
+   * Out-of-bounds coordinates are silently ignored.
+   *
+   * @param x - local X in `[0, CHUNK_WIDTH)`
+   * @param y - local Y in `[0, CHUNK_HEIGHT)`
+   * @param z - local Z in `[0, CHUNK_DEPTH)`
+   * @param blockId - new block type
+   */
   setBlock(x: number, y: number, z: number, blockId: number): void {
     if (x < 0 || x >= Chunk.CHUNK_WIDTH || y < 0 || y >= Chunk.CHUNK_HEIGHT || z < 0 || z >= Chunk.CHUNK_DEPTH) {
       return;
@@ -706,6 +758,13 @@ export class Chunk {
     }
   }
 
+  /**
+   * Returns the block at local coordinates, or `BlockType.NONE` if out of bounds.
+   *
+   * @param x - local X
+   * @param y - local Y
+   * @param z - local Z
+   */
   getBlock(x: number, y: number, z: number): number {
     if (x < 0 || x >= Chunk.CHUNK_WIDTH || y < 0 || y >= Chunk.CHUNK_HEIGHT || z < 0 || z >= Chunk.CHUNK_DEPTH) {
       return BlockType.NONE; // Air for out-of-bounds
@@ -714,6 +773,13 @@ export class Chunk {
     return this.blocks[index];
   }
 
+  /**
+   * Returns the flat index into `blocks` for local coordinates, or -1 if out of bounds.
+   *
+   * @param x - local X
+   * @param y - local Y
+   * @param z - local Z
+   */
   getBlockIndex(x: number, y: number, z: number): number {
     if (x < 0 || x >= Chunk.CHUNK_WIDTH || y < 0 || y >= Chunk.CHUNK_HEIGHT || z < 0 || z >= Chunk.CHUNK_DEPTH) {
       return -1; // Invalid index for out-of-bounds

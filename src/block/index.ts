@@ -1,3 +1,4 @@
+/** Public surface of the voxel block, chunk, biome, and world generation system. */
 export { BiomeType, EnvironmentEffect, getBiomeEnvironmentEffect, getBiomeCloudCoverage, getBiomeCloudBounds } from './biome_type.js';
 export {
   BASE_RESOLUTION_WIDTH,

@@ -6,10 +6,26 @@ import dofWgsl from '../../shaders/dof.wgsl?raw';
 // focus_distance, focus_range, bokeh_radius, near, far, _pad×3  →  8 × f32 = 32 bytes
 const UNIFORM_SIZE = 32;
 
+/**
+ * Two-stage depth-of-field post-process: a half-resolution prefilter writes
+ * scene colour and signed circle-of-confusion into the alpha channel, then a
+ * full-resolution composite blurs the half-res buffer and blends it with the
+ * sharp source.
+ *
+ * Inputs sampled:
+ *  - `hdrView`: full-res HDR colour (typically the TAA resolved output)
+ *  - `depthView`: GBuffer depth32float used to compute the CoC
+ *
+ * Output: a full-res HDR texture exposed as {@link resultView}, intended as
+ * the input to the bloom pass.
+ *
+ * Shader: `dof.wgsl` (entry points `fs_prefilter` and `fs_composite`).
+ */
 export class DofPass extends RenderPass {
+  /** Identifier used in render-graph diagnostics. */
   readonly name = 'DofPass';
 
-  // Full-res composited result — read by BloomPass.
+  /** Full-res composited DOF result, intended to be sampled by the bloom pass. */
   readonly resultView: GPUTextureView;
 
   private _result  : GPUTexture;
@@ -48,8 +64,15 @@ export class DofPass extends RenderPass {
     this._compBG1       = compBG1;
   }
 
-  // hdrView   — TAA resolved output (rgba16float, full-res)
-  // depthView — GBuffer depth (depth32float, full-res)
+  /**
+   * Allocates the half-res working texture, full-res result texture, both
+   * pipelines (prefilter + composite) and their bind groups.
+   *
+   * @param ctx - Active render context (provides device and target dimensions).
+   * @param hdrView - Full-res HDR colour to read (e.g. TAA resolved rgba16float).
+   * @param depthView - Full-res GBuffer depth32float view.
+   * @returns A configured DOF pass instance.
+   */
   static create(
     ctx: RenderContext,
     hdrView: GPUTextureView,
@@ -158,9 +181,17 @@ export class DofPass extends RenderPass {
     );
   }
 
-  // focusDistance : nearest depth that starts to blur (world units) — everything closer is sharp
-  // focusRange    : distance over which blur ramps from 0 to max beyond focusDistance
-  // bokehRadius   : max blur in half-res texels
+  /**
+   * Uploads the depth-of-field tuning parameters to the GPU uniform buffer.
+   *
+   * @param ctx - Active render context providing the GPU queue.
+   * @param focusDistance - Nearest world-space depth that starts to blur; everything closer remains sharp.
+   * @param focusRange - World-space distance over which blur ramps from zero to {@link bokehRadius}.
+   * @param bokehRadius - Maximum blur radius expressed in half-resolution texels.
+   * @param near - Camera near-plane distance, used to linearise depth.
+   * @param far - Camera far-plane distance, used to linearise depth.
+   * @param blurScale - Scalar multiplier applied to the final blur radius.
+   */
   updateParams(
     ctx: RenderContext,
     focusDistance = 30.0,
@@ -174,6 +205,14 @@ export class DofPass extends RenderPass {
       new Float32Array([focusDistance, focusRange, bokehRadius, near, far, blurScale, 0, 0]).buffer as ArrayBuffer);
   }
 
+  /**
+   * Encodes both DOF render passes: a half-res prefilter that packs colour
+   * and signed circle-of-confusion, followed by a full-res composite that
+   * blurs the half-res image and mixes it with the sharp source.
+   *
+   * @param encoder - GPU command encoder to record into.
+   * @param _ctx - Active render context (unused).
+   */
   execute(encoder: GPUCommandEncoder, _ctx: RenderContext): void {
     // 1. Prefilter: full-res HDR + depth → half-res (RGB=colour, A=signed CoC)
     {
@@ -201,6 +240,7 @@ export class DofPass extends RenderPass {
     }
   }
 
+  /** Releases the half-res working texture, full-res result and uniform buffer. */
   destroy(): void {
     this._result.destroy();
     this._half.destroy();

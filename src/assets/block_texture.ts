@@ -1,9 +1,17 @@
 import { Texture } from './texture.js';
 
-// BlockID is a zero-based index into the horizontal texture atlas.
-// BlockID 0 = leftmost 16×16 tile, BlockID 1 = next tile, etc.
+/**
+ * Zero-based tile index into a horizontal block texture atlas (tile 0 = leftmost).
+ */
 export type BlockID = number;
 
+/**
+ * A set of four aligned block atlases (color, normal, MER, height) for voxel-style rendering.
+ *
+ * All four atlases share a common tile size and layout. Each atlas is stored
+ * horizontally as a strip of `blockSize`-pixel square tiles. Owns the
+ * underlying GPU textures; call `destroy()` to release them.
+ */
 export class BlockTexture {
   readonly colorAtlas : Texture;   // albedo (sRGB)
   readonly normalAtlas: Texture;   // tangent-space normals (linear)
@@ -34,6 +42,17 @@ export class BlockTexture {
     this.blockCount  = Math.floor(atlasWidth / blockSize);
   }
 
+  /**
+   * Fetches and uploads the four atlas images, creating sRGB color and linear data textures.
+   *
+   * @param device - The WebGPU device.
+   * @param colorUrl - URL of the albedo atlas (uploaded as sRGB).
+   * @param normalUrl - URL of the tangent-space normal atlas (linear).
+   * @param merUrl - URL of the MER atlas (R=metallic, G=emissive, B=roughness, linear).
+   * @param heightUrl - URL of the greyscale heightmap atlas (linear).
+   * @param blockSize - Pixels per tile (default 16).
+   * @returns A `BlockTexture` owning the four uploaded GPU textures.
+   */
   static async load(
     device    : GPUDevice,
     colorUrl  : string,
@@ -65,8 +84,15 @@ export class BlockTexture {
     return new BlockTexture(colorAtlas, normalAtlas, merAtlas, heightAtlas, blockSize, atlasWidth, atlasHeight);
   }
 
-  // Returns [uvOffsetX, uvOffsetY, uvScaleX, uvScaleY] for sampling blockId in the atlas.
-  // Multiply mesh UVs (0..1) by uvScale then add uvOffset to land exactly on the block tile.
+  /**
+   * Computes the atlas UV transform for sampling a specific tile.
+   *
+   * Mesh UVs in `[0,1]` should be multiplied by `(uvScaleX, uvScaleY)` then
+   * offset by `(uvOffsetX, uvOffsetY)` to land on the requested tile.
+   *
+   * @param blockId - Tile index into the atlas.
+   * @returns Tuple `[uvOffsetX, uvOffsetY, uvScaleX, uvScaleY]`.
+   */
   uvTransform(blockId: BlockID): [number, number, number, number] {
     const scaleX = this.blockSize / this._atlasWidth;
     const scaleY = this.blockSize / this._atlasHeight;

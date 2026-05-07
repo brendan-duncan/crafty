@@ -27,9 +27,22 @@ interface ChunkShadowGpu {
   modelBG: GPUBindGroup;
 }
 
+/**
+ * Renders voxel-world chunk geometry (opaque blocks, alpha-tested transparent
+ * blocks, and cross-billboard props) into each cascade of the directional-light
+ * shadow map array.
+ *
+ * Runs after the main ShadowPass with depthLoadOp:'load', appending world
+ * occluders to the same depth32float cascade views. Uses three pipelines: a
+ * depth-only pipeline for opaque chunks, an alpha-test pipeline that samples
+ * the block atlas for transparent foliage, and a billboard-expansion pipeline
+ * that draws each prop twice (X- and Z-axis quads) to form a cross-shaped
+ * shadow. Chunks are culled against a square radius around the camera.
+ */
 export class WorldShadowPass extends RenderPass {
   readonly name = 'WorldShadowPass';
 
+  /** Square chunk radius around the camera within which shadow geometry is drawn. Independent of render distance. */
   shadowChunkRadius = 4;   // chunks; independent of render distance
 
   private _camX = 0;
@@ -75,6 +88,17 @@ export class WorldShadowPass extends RenderPass {
     this._orientBG_Z          = orientBG_Z;
   }
 
+  /**
+   * Build the pass and create the three pipelines (opaque, transparent alpha-test,
+   * prop billboard), per-cascade uniform buffers, atlas/sampler bind group, and
+   * the two orientation bind groups used to expand prop quads.
+   *
+   * @param ctx Render context providing the GPU device.
+   * @param shadowMapArrayViews One depth32float view per cascade slice; written with depthLoadOp:'load'.
+   * @param cascadeCount Number of cascades to allocate uniforms for; clamped to MAX_CASCADES.
+   * @param blockTexture Block atlas (color) and per-block tile offset metadata used for alpha discard.
+   * @returns A ready-to-use WorldShadowPass instance.
+   */
   static create(ctx: RenderContext, shadowMapArrayViews: GPUTextureView[], cascadeCount: number, blockTexture: BlockTexture): WorldShadowPass {
     const { device } = ctx;
 
@@ -212,7 +236,15 @@ export class WorldShadowPass extends RenderPass {
     return new WorldShadowPass(device, shadowMapArrayViews, pipeline, transparentPipeline, propPipeline, cascadeBGs, cascadeBuffers, modelBGL, atlasBG, orientBG_X, orientBG_Z);
   }
 
-  // Feed cascade data and camera world position for distance culling.
+  /**
+   * Upload per-cascade light view-projection matrices and cache the camera's
+   * horizontal position for chunk distance culling on the next execute.
+   *
+   * @param ctx Render context providing the GPU queue.
+   * @param cascades Per-cascade data containing light view-projection matrices.
+   * @param camX Camera world X used for radius culling.
+   * @param camZ Camera world Z used for radius culling.
+   */
   update(ctx: RenderContext, cascades: CascadeData[], camX: number, camZ: number): void {
     this._cascades = cascades;
     this._camX = camX;
@@ -223,6 +255,14 @@ export class WorldShadowPass extends RenderPass {
     }
   }
 
+  /**
+   * Register a chunk for shadow rendering, allocating its model uniform and
+   * vertex buffers (opaque, transparent, prop). If the chunk is already
+   * registered the buffers are replaced in place.
+   *
+   * @param chunk Chunk to register.
+   * @param mesh Mesh data containing opaque, transparent, and prop vertex streams.
+   */
   addChunk(chunk: Chunk, mesh: ChunkMesh): void {
     const existing = this._chunks.get(chunk);
     if (existing) {
@@ -232,6 +272,13 @@ export class WorldShadowPass extends RenderPass {
     }
   }
 
+  /**
+   * Replace the GPU vertex buffers for an already-registered chunk, or register
+   * it if it has not been seen before.
+   *
+   * @param chunk Chunk whose mesh has changed.
+   * @param mesh Updated mesh data.
+   */
   updateChunk(chunk: Chunk, mesh: ChunkMesh): void {
     const existing = this._chunks.get(chunk);
     if (existing) {
@@ -241,6 +288,11 @@ export class WorldShadowPass extends RenderPass {
     }
   }
 
+  /**
+   * Drop a chunk and free its GPU buffers. No-op if the chunk has not been registered.
+   *
+   * @param chunk Chunk to remove.
+   */
   removeChunk(chunk: Chunk): void {
     const gpu = this._chunks.get(chunk);
     if (!gpu) {
@@ -253,6 +305,15 @@ export class WorldShadowPass extends RenderPass {
     this._chunks.delete(chunk);
   }
 
+  /**
+   * For each cascade, append world chunk geometry to its shadow map: opaque
+   * blocks first (depth-only), then alpha-tested transparent blocks, then props
+   * drawn twice (X and Z orientations) to form a cross-shaped shadow. Chunks
+   * outside shadowChunkRadius from the camera are skipped.
+   *
+   * @param encoder Command encoder to record into.
+   * @param _ctx Render context (unused; resources are owned by the pass).
+   */
   execute(encoder: GPUCommandEncoder, _ctx: RenderContext): void {
     const cascadeCount = Math.min(this._cascades.length, this._cascadeBuffers.length);
     for (let c = 0; c < cascadeCount; c++) {
@@ -324,6 +385,10 @@ export class WorldShadowPass extends RenderPass {
     }
   }
 
+  /**
+   * Release all GPU resources owned by the pass: cascade uniform buffers and
+   * every per-chunk model/vertex buffer. Clears the chunk registry.
+   */
   destroy(): void {
     for (const buf of this._cascadeBuffers) {
       buf.destroy();

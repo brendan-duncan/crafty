@@ -9,10 +9,20 @@ import taaWgsl from '../../shaders/taa.wgsl?raw';
 // invViewProj (mat4) + prevViewProj (mat4) = 128 bytes
 const TAA_UNIFORM_SIZE = 128;
 
+/**
+ * Temporal anti-aliasing pass. Reprojects the previous-frame history into the
+ * current frame using depth + camera matrices, then blends it with the jittered
+ * lit color to converge sub-pixel detail across frames.
+ *
+ * Inputs sampled: lit HDR color, TAA history, G-buffer depth.
+ * Output: resolved HDR color exposed as `resolvedView`; the result is also
+ * copied back into the history texture for the next frame.
+ */
 export class TAAPass extends RenderPass {
   readonly name = 'TAAPass';
 
   private _resolved: GPUTexture;
+  /** Final anti-aliased HDR view consumed by downstream post-processing. */
   readonly resolvedView: GPUTextureView;
   private _history: GPUTexture;
   private _historyView: GPUTextureView;
@@ -25,6 +35,7 @@ export class TAAPass extends RenderPass {
   private readonly _width: number;
   private readonly _height: number;
 
+  /** View of the history texture, useful for debugging or external consumers. */
   get historyView(): GPUTextureView { return this._historyView; }
 
   private constructor(
@@ -52,6 +63,15 @@ export class TAAPass extends RenderPass {
     this._height = height;
   }
 
+  /**
+   * Constructs the pass and allocates the resolved + history textures, the
+   * uniform buffer, the pipeline, and bind groups.
+   *
+   * @param ctx Render context providing device and screen size.
+   * @param lightingPass Lighting pass providing the HDR color view to anti-alias.
+   * @param gbuffer G-buffer providing the depth view for reprojection.
+   * @returns Configured TAAPass instance.
+   */
   static create(ctx: RenderContext, lightingPass: LightingPass, gbuffer: GBuffer): TAAPass {
     const { device, width, height } = ctx;
 
@@ -132,6 +152,14 @@ export class TAAPass extends RenderPass {
     );
   }
 
+  /**
+   * Uploads the matrices needed to reproject the previous frame's history into
+   * the current frame. Call once per frame before {@link execute}.
+   *
+   * @param ctx Render context whose queue receives the buffer write.
+   * @param invViewProj Inverse view*proj for the current (jittered) frame.
+   * @param prevViewProj Previous frame's view*proj used for reprojection.
+   */
   updateCamera(ctx: RenderContext, invViewProj: Mat4, prevViewProj: Mat4): void {
     const data = new Float32Array(TAA_UNIFORM_SIZE / 4);
     data.set(invViewProj.data,  0);
@@ -139,6 +167,13 @@ export class TAAPass extends RenderPass {
     ctx.queue.writeBuffer(this._uniformBuffer, 0, data.buffer as ArrayBuffer);
   }
 
+  /**
+   * Records the resolve render and the resolved-to-history copy used by the
+   * next frame's reprojection.
+   *
+   * @param encoder Command encoder to record into.
+   * @param _ctx Render context (unused).
+   */
   execute(encoder: GPUCommandEncoder, _ctx: RenderContext): void {
     const pass = encoder.beginRenderPass({
       label: 'TAAPass',
@@ -163,6 +198,7 @@ export class TAAPass extends RenderPass {
     );
   }
 
+  /** Releases the resolved + history textures and the uniform buffer. */
   destroy(): void {
     this._resolved.destroy();
     this._history.destroy();

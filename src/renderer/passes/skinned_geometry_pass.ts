@@ -11,14 +11,28 @@ const CAMERA_UNIFORM_SIZE   = 64 * 4 + 16 + 16;
 const MODEL_UNIFORM_SIZE    = 128;
 const MATERIAL_UNIFORM_SIZE = 48;
 
+/**
+ * One skinned mesh draw call for {@link SkinnedGeometryPass}.
+ *
+ * `jointMatrices` is a contiguous column-major buffer of `jointCount × 16` floats.
+ */
 export interface SkinnedDrawItem {
   mesh         : SkinnedMesh;
   modelMatrix  : Mat4;
   normalMatrix : Mat4;
   material     : Material;
-  jointMatrices: Float32Array;  // jointCount × 16 floats, column-major
+  jointMatrices: Float32Array;
 }
 
+/**
+ * Geometry pass for skinned (animated) meshes.
+ *
+ * Performs GPU skinning in the vertex shader using a per-mesh joint matrix storage
+ * buffer, then writes albedo+roughness and normal+metallic into the GBuffer (loading
+ * existing contents so it composites with prior geometry passes). Uses the same
+ * material model (PBR with optional albedo/normal/MER textures) as the static
+ * geometry pass.
+ */
 export class SkinnedGeometryPass extends RenderPass {
   readonly name = 'SkinnedGeometryPass';
 
@@ -86,6 +100,11 @@ export class SkinnedGeometryPass extends RenderPass {
     this._materialSampler  = materialSampler;
   }
 
+  /**
+   * Creates the GBuffer-writing render pipeline, the camera uniform, the bind group
+   * layouts for model+joints/material/textures, and the 1x1 fallback textures
+   * (white albedo, flat normal, default MER) used when a material omits a map.
+   */
   static create(ctx: RenderContext, gbuffer: GBuffer): SkinnedGeometryPass {
     const { device } = ctx;
 
@@ -168,10 +187,17 @@ export class SkinnedGeometryPass extends RenderPass {
     );
   }
 
+  /**
+   * Replaces the list of skinned mesh draws to render in the next {@link execute}.
+   */
   setDrawItems(items: SkinnedDrawItem[]): void {
     this._drawItems = items;
   }
 
+  /**
+   * Uploads the per-frame camera matrices, world-space camera position, and near/far
+   * planes into the camera uniform buffer.
+   */
   updateCamera(ctx: RenderContext, view: Mat4, proj: Mat4, viewProj: Mat4, invViewProj: Mat4, camPos: { x: number; y: number; z: number }, near: number, far: number): void {
     const data = new Float32Array(CAMERA_UNIFORM_SIZE / 4);
     data.set(view.data, 0); data.set(proj.data, 16); data.set(viewProj.data, 32); data.set(invViewProj.data, 48);
@@ -180,6 +206,11 @@ export class SkinnedGeometryPass extends RenderPass {
     ctx.queue.writeBuffer(this._cameraBuffer, 0, data.buffer as ArrayBuffer);
   }
 
+  /**
+   * For every skinned draw item, uploads the model+normal matrices, material
+   * parameters, and joint matrix array (recreating the storage buffer if the joint
+   * count grew), then renders into the GBuffer (loading existing albedo/normal/depth).
+   */
   execute(encoder: GPUCommandEncoder, ctx: RenderContext): void {
     if (this._drawItems.length === 0) {
       return;
@@ -290,6 +321,10 @@ export class SkinnedGeometryPass extends RenderPass {
     }
   }
 
+  /**
+   * Releases the camera, model, joint, and material uniform/storage buffers and the
+   * 1x1 fallback textures.
+   */
   destroy(): void {
     this._cameraBuffer.destroy();
     for (const b of this._modelBuffers) {

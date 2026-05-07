@@ -10,19 +10,44 @@ const SHADOW_FORMAT: GPUTextureFormat = 'r8unorm';
 // Layout mirrors CloudShadowUniforms in cloud_shadow.wgsl
 const UNIFORM_SIZE = 48;
 
+/**
+ * Tunable parameters describing the volumetric cloud layer used to project
+ * shadows from the directional sun light onto the world below.
+ */
 export interface CloudShadowSettings {
+  /** World-space altitude of the bottom of the cloud layer. */
   cloudBase: number;
+  /** World-space altitude of the top of the cloud layer. */
   cloudTop: number;
+  /** Cloud coverage in [0, 1]; higher values produce denser overcast. */
   coverage: number;
+  /** Density multiplier applied when accumulating extinction through the layer. */
   density: number;
+  /** Per-frame XZ wind translation applied to the noise sample position. */
   windOffset: [number, number];
+  /** Beer-law extinction coefficient controlling shadow darkness. */
   extinction: number;
 }
 
+/**
+ * Renders a top-down cloud shadow map by ray-marching the sampled cloud
+ * volume against two 3D noise textures.
+ *
+ * Inputs: base/detail 3D noise textures (CloudNoiseTextures) plus per-frame
+ * uniforms describing the cloud layer.
+ * Output: an r8unorm 1024x1024 shadow texture (`shadowView`) sampled by the
+ * lighting pass to attenuate sun light. Updates every other frame because
+ * clouds animate slowly.
+ *
+ * Shader: `cloud_shadow.wgsl`.
+ */
 export class CloudShadowPass extends RenderPass {
+  /** Identifier used in render-graph diagnostics. */
   readonly name = 'CloudShadowPass';
 
+  /** The r8unorm texture holding the latest cloud shadow map. */
   readonly shadowTexture: GPUTexture;
+  /** Default view of {@link shadowTexture} for sampling by downstream passes. */
   readonly shadowView: GPUTextureView;
 
   private _pipeline: GPURenderPipeline;
@@ -48,6 +73,14 @@ export class CloudShadowPass extends RenderPass {
     this._noiseBG = noiseBG;
   }
 
+  /**
+   * Allocates the shadow texture, uniform buffer, bind groups and pipeline
+   * for the cloud shadow pass.
+   *
+   * @param ctx - Active render context providing the GPU device.
+   * @param noises - Pre-baked base and detail 3D noise textures sampled by the shader.
+   * @returns A ready-to-use cloud shadow pass instance.
+   */
   static create(ctx: RenderContext, noises: CloudNoiseTextures): CloudShadowPass {
     const { device } = ctx;
 
@@ -116,6 +149,15 @@ export class CloudShadowPass extends RenderPass {
     return new CloudShadowPass(shadowTexture, shadowView, pipeline, uniformBuffer, uniformBG, noiseBG);
   }
 
+  /**
+   * Uploads the per-frame cloud parameters and shadow projection extents to
+   * the GPU uniform buffer.
+   *
+   * @param ctx - Active render context providing the GPU queue.
+   * @param settings - Cloud layer description and animation state.
+   * @param worldOrigin - World-space XZ origin that the shadow map is centered on.
+   * @param worldExtent - Half-extent (in world units) covered by the shadow map.
+   */
   update(
     ctx: RenderContext,
     settings: CloudShadowSettings,
@@ -137,6 +179,13 @@ export class CloudShadowPass extends RenderPass {
     ctx.queue.writeBuffer(this._uniformBuffer, 0, data.buffer as ArrayBuffer);
   }
 
+  /**
+   * Encodes the cloud shadow render pass. Skips drawing on every other frame
+   * since clouds animate slowly enough to reuse the previous result.
+   *
+   * @param encoder - GPU command encoder to record into.
+   * @param _ctx - Active render context (unused).
+   */
   execute(encoder: GPUCommandEncoder, _ctx: RenderContext): void {
     // Update shadow map every other frame — clouds animate slowly so the
     // previous frame's map is visually indistinguishable on the skipped frame.
@@ -159,6 +208,7 @@ export class CloudShadowPass extends RenderPass {
     pass.end();
   }
 
+  /** Releases the shadow texture and uniform buffer owned by this pass. */
   destroy(): void {
     this.shadowTexture.destroy();
     this._uniformBuffer.destroy();

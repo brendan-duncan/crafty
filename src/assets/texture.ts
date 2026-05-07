@@ -1,10 +1,22 @@
+/** Texture view dimensionality supported by the engine. */
 export type TextureType = '2d' | '3d' | 'cube';
 
+/**
+ * Owns a `GPUTexture` and a default `GPUTextureView` of the matching dimension.
+ *
+ * Callers must invoke `destroy()` to release the underlying GPU memory.
+ */
 export class Texture {
   readonly gpuTexture: GPUTexture;
   readonly view: GPUTextureView;
   readonly type: TextureType;
 
+  /**
+   * Wraps an existing `GPUTexture` and creates a default view with the matching dimension.
+   *
+   * @param gpuTexture - The GPU texture to take ownership of.
+   * @param type - View dimensionality (2d, 3d, or cube).
+   */
   constructor(gpuTexture: GPUTexture, type: TextureType) {
     this.gpuTexture = gpuTexture;
     this.type = type;
@@ -13,8 +25,19 @@ export class Texture {
     });
   }
 
+  /** Destroys the underlying GPU texture. */
   destroy(): void { this.gpuTexture.destroy(); }
 
+  /**
+   * Creates a 1x1 `rgba8unorm` texture filled with the given color.
+   *
+   * @param device - The WebGPU device.
+   * @param r - Red component, 0-255.
+   * @param g - Green component, 0-255.
+   * @param b - Blue component, 0-255.
+   * @param a - Alpha component, 0-255 (defaults to 255).
+   * @returns A new `Texture` owning the 1x1 GPU texture.
+   */
   static createSolid(device: GPUDevice, r: number, g: number, b: number, a = 255): Texture {
     const tex = device.createTexture({
       size: { width: 1, height: 1 },
@@ -30,9 +53,14 @@ export class Texture {
     return new Texture(tex, '2d');
   }
 
-  // Create from an ImageBitmap (e.g. from createImageBitmap).
-  // srgb=true uses rgba8unorm-srgb so the GPU automatically linearises on sample.
-  // usage: custom usage flags (defaults to standard binding/copy/render)
+  /**
+   * Uploads an `ImageBitmap` as a 2D texture.
+   *
+   * @param device - The WebGPU device.
+   * @param bitmap - Source image (typically from `createImageBitmap`).
+   * @param options - `srgb=true` selects `rgba8unorm-srgb` so the GPU linearises on sample; `usage` adds extra usage flags on top of the standard binding/copy/render set.
+   * @returns A new `Texture` owning the uploaded 2D image.
+   */
   static fromBitmap(device: GPUDevice, bitmap: ImageBitmap, { srgb = false, usage }: { srgb?: boolean; usage?: GPUTextureUsageFlags } = {}): Texture {
     const format: GPUTextureFormat = srgb ? 'rgba8unorm-srgb' : 'rgba8unorm';
     usage = usage ? usage | (GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT) : (GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT);
@@ -49,10 +77,16 @@ export class Texture {
     return new Texture(tex, '2d');
   }
 
-  // Fetch an image URL and upload it as a GPU texture.
-  // Use srgb=true for albedo/colour maps; keep false for normal/ORM maps.
-  // resizeWidth/resizeHeight: optional dimensions to resize the image to
-  // usage: custom usage flags (e.g., add COPY_SRC for copyTextureToTexture)
+  /**
+   * Fetches an image URL and uploads it as a 2D GPU texture.
+   *
+   * Use `srgb=true` for albedo/colour maps; keep `false` for normal/ORM maps.
+   *
+   * @param device - The WebGPU device.
+   * @param url - URL to fetch the image from.
+   * @param options - `srgb` enables `rgba8unorm-srgb`; `resizeWidth`/`resizeHeight` resize the bitmap before upload; `usage` adds extra usage flags (e.g. `COPY_SRC`).
+   * @returns A `Texture` containing the uploaded image.
+   */
   static async fromUrl(device: GPUDevice, url: string, options: { srgb?: boolean; resizeWidth?: number; resizeHeight?: number; usage?: GPUTextureUsageFlags } = {}): Promise<Texture> {
     const blob = await (await fetch(url)).blob();
     const bitmapOptions: ImageBitmapOptions = { colorSpaceConversion: 'none' };

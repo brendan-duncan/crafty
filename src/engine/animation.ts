@@ -1,15 +1,32 @@
+/**
+ * Keyframe interpolation mode. Mirrors the GLTF animation sampler modes —
+ * LINEAR/SLERP between values, STEP holds previous keyframe, CUBICSPLINE
+ * uses Hermite tangents stored alongside each value.
+ */
 export type Interpolation = 'LINEAR' | 'STEP' | 'CUBICSPLINE';
 
+/**
+ * A single animation track: keyframes for one TRS property of one joint.
+ */
 export interface AnimationChannel {
+  /** Index into the skeleton's joint array. */
   jointIndex   : number;
+  /** Which transform component this channel animates. */
   property     : 'translation' | 'rotation' | 'scale';
+  /** Keyframe times in seconds, sorted ascending. */
   times        : Float32Array;
+  /** Packed keyframe values (3 per frame for translation/scale, 4 for rotation;
+   *  3× that count for CUBICSPLINE which stores in/value/out tangents). */
   values       : Float32Array;
   interpolation: Interpolation;
 }
 
+/**
+ * A named skeletal animation made up of per-joint TRS channels.
+ */
 export interface AnimationClip {
   name     : string;
+  /** Total clip length in seconds (max keyframe time across channels). */
   duration : number;
   channels : AnimationChannel[];
 }
@@ -68,10 +85,20 @@ function findKeyframe(times: Float32Array, t: number): number {
   return lo;
 }
 
-// Fills translations (jointCount×3), rotations (jointCount×4), scales (jointCount×3)
-// with sampled values from clip at the given time.
-// Joints with no channel for a given property are left unchanged — callers should
-// initialize the arrays with rest-pose values before calling this.
+/**
+ * Samples an animation clip at a given time and writes per-joint TRS into the supplied arrays.
+ *
+ * Fills translations (jointCount×3), rotations (jointCount×4), scales (jointCount×3)
+ * with sampled values from clip at the given time. Joints with no channel for a
+ * given property are left unchanged — callers should initialize the arrays with
+ * rest-pose values before calling this.
+ *
+ * @param clip - The animation clip to sample.
+ * @param time - Time in seconds; clamped to the [first, last] keyframe range.
+ * @param translations - Output buffer for joint translations (xyz per joint).
+ * @param rotations - Output buffer for joint rotations (xyzw quaternion per joint).
+ * @param scales - Output buffer for joint scales (xyz per joint).
+ */
 export function sampleClip(
   clip        : AnimationClip,
   time        : number,

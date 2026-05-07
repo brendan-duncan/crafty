@@ -8,12 +8,31 @@ import shadowWgsl from '../../shaders/shadow.wgsl?raw';
 const CAMERA_UNIFORM_SIZE = 64; // 1 mat4
 const MODEL_UNIFORM_SIZE = 64;  // 1 mat4
 
+/**
+ * One mesh instance scheduled for the directional shadow pass.
+ */
 export interface DirectionalShadowDrawItem {
+  /** Geometry to render into the shadow map. */
   mesh: Mesh;
+  /** World-space transform applied to {@link mesh}. */
   modelMatrix: Mat4;
 }
 
+/**
+ * Renders scene geometry from the sun's point of view into a depth-only
+ * shadow map for use by the lighting pass.
+ *
+ * Inputs: a list of {@link DirectionalShadowDrawItem}s (set via
+ * {@link setDrawItems}) and the light view-projection matrix supplied by
+ * {@link updateCamera}.
+ * Output: writes depth32float to the supplied shadow-map view; no colour
+ * targets are bound.
+ *
+ * Shader: `shadow.wgsl`. Uses depth-bias and back-face culling to mitigate
+ * shadow acne.
+ */
 export class DirectionalShadowPass extends RenderPass {
+  /** Identifier used in render-graph diagnostics. */
   readonly name = 'DirectionalShadowPass';
 
   private _pipeline: GPURenderPipeline;
@@ -46,6 +65,13 @@ export class DirectionalShadowPass extends RenderPass {
     this._shadowMapView = shadowMapView;
   }
 
+  /**
+   * Allocates the shadow pipeline, layouts and camera uniform buffer.
+   *
+   * @param ctx - Active render context providing the GPU device.
+   * @param shadowMapView - Depth32float texture view this pass writes into.
+   * @returns A configured directional shadow pass instance.
+   */
   static create(ctx: RenderContext, shadowMapView: GPUTextureView): DirectionalShadowPass {
     const { device } = ctx;
 
@@ -108,14 +134,28 @@ export class DirectionalShadowPass extends RenderPass {
     return new DirectionalShadowPass(pipeline, cameraBGL, modelBGL, cameraBuffer, shadowMapView);
   }
 
+  /** The depth32float texture view this pass writes shadow depth into. */
   get shadowMapView(): GPUTextureView {
     return this._shadowMapView;
   }
 
+  /**
+   * Replaces the list of draw items rendered into the shadow map.
+   *
+   * @param items - Mesh + transform pairs to draw next frame.
+   */
   setDrawItems(items: DirectionalShadowDrawItem[]): void {
     this._drawItems = items;
   }
 
+  /**
+   * Updates the light-space view-projection matrix used to transform geometry
+   * into shadow-map space and lazily creates the camera bind group on first
+   * call.
+   *
+   * @param ctx - Active render context providing the GPU device and queue.
+   * @param lightViewProj - Combined view-projection matrix from the sun's frustum.
+   */
   updateCamera(ctx: RenderContext, lightViewProj: Mat4): void {
     const data = new Float32Array(16);
     data.set(lightViewProj.data, 0);
@@ -130,6 +170,13 @@ export class DirectionalShadowPass extends RenderPass {
     }
   }
 
+  /**
+   * Encodes the depth-only shadow render pass for every queued draw item.
+   * No-op until {@link updateCamera} has been called at least once.
+   *
+   * @param encoder - GPU command encoder to record into.
+   * @param ctx - Active render context (used to allocate per-instance buffers).
+   */
   execute(encoder: GPUCommandEncoder, ctx: RenderContext): void {
     if (!this._cameraBindGroup) {
       return;
@@ -188,6 +235,7 @@ export class DirectionalShadowPass extends RenderPass {
     }
   }
 
+  /** Releases the camera and per-instance model uniform buffers. */
   destroy(): void {
     this._cameraBuffer.destroy();
     for (const buffer of this._modelBuffers) {

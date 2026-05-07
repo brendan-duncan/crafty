@@ -19,8 +19,18 @@ const MAX_POINT_LIGHTS = 8;
 const MAX_SPOT_LIGHTS = 4;
 const POINT_SHADOW_SIZE = 1024;
 
+/**
+ * Maximum point lights uploaded per frame; matches the storage buffer size and
+ * the cube-array shadow texture's reserved layer count.
+ */
 export { MAX_POINT_LIGHTS, MAX_SPOT_LIGHTS };
 
+/**
+ * One mesh instance to be drawn during a forward pass.
+ *
+ * Items with `transparent: true` are deferred to the alpha-blended sub-pass and
+ * drawn after all opaque items.
+ */
 export interface ForwardDrawItem {
   mesh: Mesh;
   modelMatrix: Mat4;
@@ -29,6 +39,12 @@ export interface ForwardDrawItem {
   transparent?: boolean;
 }
 
+/**
+ * The single directional ("sun") light evaluated in the forward shader.
+ *
+ * `lightViewProj` and a populated cascade-zero shadow-map slice are required
+ * when `castShadows` is true; otherwise shadow sampling is skipped.
+ */
 export interface DirectionalLightData {
   direction: Vec3;
   intensity: number;
@@ -38,6 +54,12 @@ export interface DirectionalLightData {
   shadowMap?: GPUTextureView;
 }
 
+/**
+ * Point light parameters uploaded as one element of the point-light storage buffer.
+ *
+ * `range` is the light's effective influence radius; `castShadows` enables a
+ * cube-shadow lookup for this light using its slot in the shared cube array.
+ */
 export interface PointLightData {
   position: Vec3;
   range: number;
@@ -46,6 +68,12 @@ export interface PointLightData {
   castShadows?: boolean;
 }
 
+/**
+ * Spot light parameters uploaded as one element of the spot-light storage buffer.
+ *
+ * `innerAngle`/`outerAngle` describe the cosine-falloff cone; `lightViewProj` and
+ * a slice of the shared 2D shadow array are consumed when `castShadows` is true.
+ */
 export interface SpotLightData {
   position: Vec3;
   range: number;
@@ -59,6 +87,17 @@ export interface SpotLightData {
   shadowMap?: GPUTextureView;
 }
 
+/**
+ * Forward+ PBR pass that shades meshes in a single render pass with one
+ * directional light, up to `MAX_POINT_LIGHTS` point lights and `MAX_SPOT_LIGHTS`
+ * spot lights, plus an IBL environment.
+ *
+ * Reads: per-frame camera uniforms, light buffers, IBL textures and the shared
+ * cascade / cube shadow arrays. Writes: an HDR `rgba16float` colour target
+ * (`outputView`, or the swapchain when its format matches) and an internal
+ * `depth32float` depth attachment. Opaque items are drawn first, then alpha-blended
+ * transparents with depth-write disabled.
+ */
 export class ForwardPass extends RenderPass {
   readonly name = 'ForwardPass';
 
@@ -154,6 +193,16 @@ export class ForwardPass extends RenderPass {
     this._outputView = outputView;
   }
 
+  /**
+   * Build the pass and all its GPU resources: opaque + transparent pipelines,
+   * camera / lighting / IBL bind groups, fallback material textures, and the
+   * shared shadow textures (cascade 2D-array and point cube-array).
+   *
+   * @param ctx Render context (provides device + framebuffer dimensions).
+   * @param iblTextures Image-based-lighting cubemaps and BRDF LUT bound to the
+   *   environment slots.
+   * @returns A configured `ForwardPass`.
+   */
   static create(ctx: RenderContext, iblTextures: IblTextures): ForwardPass {
     const { device, width, height } = ctx;
 
@@ -432,18 +481,37 @@ export class ForwardPass extends RenderPass {
     );
   }
 
+  /** Default view of the internal HDR colour target written by the pass. */
   get outputView(): GPUTextureView {
     return this._outputView;
   }
 
+  /**
+   * Shared 2D-array shadow texture (`depth32float`, 8 layers): layer 0 is the
+   * directional cascade-zero map; subsequent layers are spot-light shadows.
+   */
   get shadowMapArray(): GPUTexture {
     return this._shadowMapArray;
   }
 
+  /**
+   * Shared cube-array shadow texture (`depth32float`, 6 × `MAX_POINT_LIGHTS`
+   * layers) that backs point-light omnidirectional shadow maps.
+   */
   get pointShadowCubeArray(): GPUTexture {
     return this._pointShadowCubeArray;
   }
 
+  /**
+   * Recreate the colour and depth render targets for a new framebuffer size.
+   *
+   * Existing HDR / depth textures are destroyed and replaced; bind groups that
+   * reference them must be regenerated externally.
+   *
+   * @param device Active GPU device.
+   * @param width New width in pixels.
+   * @param height New height in pixels.
+   */
   resize(device: GPUDevice, width: number, height: number): void {
     // Destroy old textures
     this._depthTexture.destroy();
@@ -467,11 +535,30 @@ export class ForwardPass extends RenderPass {
     this._outputView = this._outputTexture.createView();
   }
 
+  /**
+   * Replace the draw list for the next `execute` call. Items are partitioned
+   * into opaque and transparent buckets up front; transparents are drawn after
+   * opaques with depth-write disabled.
+   *
+   * @param items All meshes to render this frame, in any order.
+   */
   setDrawItems(items: ForwardDrawItem[]): void {
     this._opaqueItems = items.filter((item) => !item.transparent);
     this._transparentItems = items.filter((item) => item.transparent);
   }
 
+  /**
+   * Upload per-frame camera uniforms (matrices, world-space position, clip planes).
+   *
+   * @param ctx Render context for queue access.
+   * @param view World-to-view matrix.
+   * @param proj View-to-clip matrix.
+   * @param viewProj Pre-multiplied `proj * view`.
+   * @param invViewProj Inverse of `viewProj`.
+   * @param camPos Camera world-space position.
+   * @param near Near clip-plane distance.
+   * @param far Far clip-plane distance.
+   */
   updateCamera(
     ctx: RenderContext,
     view: Mat4,
@@ -495,6 +582,19 @@ export class ForwardPass extends RenderPass {
     ctx.device.queue.writeBuffer(this._cameraBuffer, 0, data);
   }
 
+  /**
+   * Copy a single shadow map into one slice of the shared 2D-array shadow texture.
+   *
+   * Used by the renderer to stage external shadow maps (e.g. cascade-zero from
+   * the directional shadow pass, or per-spot maps) into the slot the forward
+   * shader expects.
+   *
+   * @param encoder Command encoder used to record the copy.
+   * @param sourceTexture Single-layer source texture (must be `depth32float`,
+   *   `size×size`).
+   * @param arrayLayer Destination layer index in the shadow array (0 = directional).
+   * @param size Side length of the square shadow map; defaults to 2048.
+   */
   copyShadowMapToArray(encoder: GPUCommandEncoder, sourceTexture: GPUTexture, arrayLayer: number, size: number = 2048): void {
     encoder.copyTextureToTexture(
       { texture: sourceTexture },
@@ -503,6 +603,19 @@ export class ForwardPass extends RenderPass {
     );
   }
 
+  /**
+   * Upload all light data for the next frame: counts uniform, the single
+   * directional light, then truncated point and spot light arrays.
+   *
+   * Light counts are clamped to `MAX_POINT_LIGHTS` / `MAX_SPOT_LIGHTS`. Spot
+   * shadow indices are assigned by array order (1..N), reserving layer 0 of
+   * the cascade shadow array for the directional light.
+   *
+   * @param ctx Render context for queue access.
+   * @param directionalLight Sun-style directional light state.
+   * @param pointLights Point lights in the scene; extras beyond the cap are ignored.
+   * @param spotLights Spot lights in the scene; extras beyond the cap are ignored.
+   */
   updateLights(
     ctx: RenderContext,
     directionalLight: DirectionalLightData,
@@ -598,6 +711,19 @@ export class ForwardPass extends RenderPass {
 
   }
 
+  /**
+   * Encode the forward render pass: clears the colour and depth attachments,
+   * draws all opaque items with the opaque pipeline, then all transparents with
+   * the alpha-blended pipeline.
+   *
+   * If `outputView` is omitted, the pass renders into the swapchain when its
+   * format is `rgba16float`, otherwise into the internal HDR target.
+   *
+   * @param encoder Command encoder to record into.
+   * @param ctx Render context (provides device + current swapchain texture).
+   * @param outputView Optional override colour attachment.
+   * @param depthView Optional override depth attachment.
+   */
   execute(encoder: GPUCommandEncoder, ctx: RenderContext, outputView?: GPUTextureView, depthView?: GPUTextureView): void {
     // If no output view provided and context is HDR-capable, render directly to canvas
     const colorView = outputView ?? (ctx.format === 'rgba16float' ? ctx.getCurrentTexture().createView() : this._outputView);
@@ -736,6 +862,11 @@ export class ForwardPass extends RenderPass {
     return bg;
   }
 
+  /**
+   * Release every GPU resource owned by the pass: render targets, shadow
+   * arrays, fallback material textures and all uniform / per-draw buffers.
+   * Pipelines and bind groups are GC'd with the pass instance.
+   */
   destroy(): void {
     this._depthTexture.destroy();
     this._outputTexture.destroy();

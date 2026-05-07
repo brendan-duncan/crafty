@@ -161,6 +161,17 @@ function _noise3Internal(
 // Public API
 // ---------------------------------------------------------------------------
 
+/**
+ * Samples 3D classic Perlin gradient noise (stb_perlin port).
+ *
+ * @param x - x coordinate in noise space
+ * @param y - y coordinate in noise space
+ * @param z - z coordinate in noise space
+ * @param xWrap - power-of-two tiling period along x (0 = no wrapping)
+ * @param yWrap - power-of-two tiling period along y (0 = no wrapping)
+ * @param zWrap - power-of-two tiling period along z (0 = no wrapping)
+ * @returns noise value, roughly in [-1, 1]
+ */
 export function perlinNoise3(
   x: number, y: number, z: number,
   xWrap = 0, yWrap = 0, zWrap = 0,
@@ -168,6 +179,10 @@ export function perlinNoise3(
   return _noise3Internal(x, y, z, xWrap, yWrap, zWrap, 0);
 }
 
+/**
+ * Same as {@link perlinNoise3} but with an explicit seed (low 8 bits used) to decorrelate octaves
+ * or produce independent noise fields.
+ */
 export function perlinNoise3Seed(
   x: number, y: number, z: number,
   xWrap: number, yWrap: number, zWrap: number,
@@ -176,6 +191,15 @@ export function perlinNoise3Seed(
   return _noise3Internal(x, y, z, xWrap, yWrap, zWrap, seed & 0xFF);
 }
 
+/**
+ * Ridged multifractal noise: `(offset - |perlin|)^2` summed over octaves with multiplicative
+ * carry-over from the previous octave. Useful for sharp mountain ridges.
+ *
+ * @param lacunarity - frequency multiplier between octaves (typically ~2)
+ * @param gain - amplitude multiplier between octaves (typically ~0.5)
+ * @param offset - ridge offset, controls the height of the ridges (typically ~1)
+ * @param octaves - number of octaves to sum
+ */
 export function perlinRidgeNoise3(
   x: number, y: number, z: number,
   lacunarity: number, gain: number, offset: number,
@@ -197,6 +221,13 @@ export function perlinRidgeNoise3(
   return sum;
 }
 
+/**
+ * Fractional Brownian motion: sums signed Perlin noise across multiple octaves.
+ *
+ * @param lacunarity - frequency multiplier between octaves (typically ~2)
+ * @param gain - amplitude multiplier between octaves (typically ~0.5)
+ * @param octaves - number of octaves to sum
+ */
 export function perlinFbmNoise3(
   x: number, y: number, z: number,
   lacunarity: number, gain: number,
@@ -213,6 +244,14 @@ export function perlinFbmNoise3(
   return sum;
 }
 
+/**
+ * Turbulence noise: like fBM but sums the absolute value of each octave, producing the
+ * classic billowy "clouds" look.
+ *
+ * @param lacunarity - frequency multiplier between octaves (typically ~2)
+ * @param gain - amplitude multiplier between octaves (typically ~0.5)
+ * @param octaves - number of octaves to sum
+ */
 export function perlinTurbulenceNoise3(
   x: number, y: number, z: number,
   lacunarity: number, gain: number,
@@ -229,7 +268,17 @@ export function perlinTurbulenceNoise3(
   return sum;
 }
 
-// Wrap variant that supports non-power-of-two wrap sizes (up to 256).
+/**
+ * Perlin noise variant that supports arbitrary (non-power-of-two) tiling periods up to 256.
+ *
+ * Slightly slower than {@link perlinNoise3Seed} because it uses true modulo instead of bit
+ * masking. Pass 0 for any axis to default that period to 256.
+ *
+ * @param xWrap - tiling period along x in [0, 256]
+ * @param yWrap - tiling period along y in [0, 256]
+ * @param zWrap - tiling period along z in [0, 256]
+ * @param seed - seed (low 8 bits used)
+ */
 export function perlinNoise3WrapNonpow2(
   x: number, y: number, z: number,
   xWrap: number, yWrap: number, zWrap: number,

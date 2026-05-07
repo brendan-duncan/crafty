@@ -1,5 +1,11 @@
-// Pseudo-random number generator using the Xorwow algorithm
-// (https://en.wikipedia.org/wiki/Xorshift#xorwow)
+/**
+ * Seeded pseudo-random number generator using the Xorwow variant of Marsaglia's xorshift family.
+ *
+ * Backed by a Uint32Array of 6 state words (4 xorshift lanes + a Weyl counter + last output),
+ * so the instance is itself the state buffer.
+ *
+ * @see https://en.wikipedia.org/wiki/Xorshift#xorwow
+ */
 export class Random extends Uint32Array {
   private _seed: number;
 
@@ -9,10 +15,13 @@ export class Random extends Uint32Array {
     this.seed = seed ?? Date.now();
   }
 
+  /** Process-wide shared instance, seeded from `Date.now()` at module load. */
   static global = new Random();
 
+  /** Returns the current head state word (does not return the originally-supplied seed). */
   get seed(): number { return this[0]; }
 
+  /** Re-seeds the generator and resets all internal state from `seed`. */
   set seed(seed: number) {
     this._seed = seed;
     this[0] = seed;
@@ -23,9 +32,10 @@ export class Random extends Uint32Array {
     this[5] = 0;
   }
 
+  /** Restores the generator to the state right after construction (replays the same sequence). */
   reset(): void { this.seed = this._seed; }
 
-  // Returns a random integer in [0, 0xFFFFFFFF].
+  /** Returns a uniform random integer in [0, 0xFFFFFFFF]. */
   randomUint32(): number {
     let t = this[3];
     const s = this[0];
@@ -41,7 +51,12 @@ export class Random extends Uint32Array {
     return this[5];
   }
 
-  // Returns a random float in [0, 1], or [min, max] if provided.
+  /**
+   * Returns a single-precision float in [0, 1], or in [min, max] when `min` is provided.
+   *
+   * @param min - lower bound (inclusive)
+   * @param max - upper bound (inclusive); defaults to 1 when `min` is provided
+   */
   randomFloat(min?: number, max?: number): number {
     const value = (this.randomUint32() & 0x007FFFFF) * (1.0 / 8388607.0);
     if (min === undefined) {
@@ -50,7 +65,13 @@ export class Random extends Uint32Array {
     return value * ((max ?? 1) - min) + min;
   }
 
-  // Returns a random double in [0, 1) with 53-bit resolution, or [min, max] if provided.
+  /**
+   * Returns a double in [0, 1) with full 53-bit mantissa resolution, or in [min, max] when
+   * `min` is provided.
+   *
+   * @param min - lower bound (inclusive)
+   * @param max - upper bound (inclusive); defaults to 1 when `min` is provided
+   */
   randomDouble(min?: number, max?: number): number {
     const a = this.randomUint32() >>> 5;
     const b = this.randomUint32() >>> 6;

@@ -1,3 +1,6 @@
+/**
+ * 3D vector with mutable x/y/z components and immutable arithmetic methods.
+ */
 export class Vec3 {
   x: number;
   y: number;
@@ -7,20 +10,29 @@ export class Vec3 {
     this.x = x; this.y = y; this.z = z;
   }
 
+  /** Sets x, y, z in place and returns this. */
   set(x: number, y: number, z: number): this {
     this.x = x; this.y = y; this.z = z; return this;
   }
 
+  /** Returns a copy of this vector. */
   clone(): Vec3 { return new Vec3(this.x, this.y, this.z); }
+  /** Returns the componentwise negation. */
   negate(): Vec3 { return new Vec3(-this.x, -this.y, -this.z); }
 
+  /** Returns this + v componentwise. */
   add(v: Vec3): Vec3 { return new Vec3(this.x + v.x, this.y + v.y, this.z + v.z); }
+  /** Returns this - v componentwise. */
   sub(v: Vec3): Vec3 { return new Vec3(this.x - v.x, this.y - v.y, this.z - v.z); }
+  /** Returns this scaled by s. */
   scale(s: number): Vec3 { return new Vec3(this.x * s, this.y * s, this.z * s); }
+  /** Returns the componentwise (Hadamard) product of this and v. */
   mul(v: Vec3): Vec3 { return new Vec3(this.x * v.x, this.y * v.y, this.z * v.z); }
 
+  /** Returns the dot product of this and v. */
   dot(v: Vec3): number { return this.x * v.x + this.y * v.y + this.z * v.z; }
 
+  /** Returns the right-handed cross product this x v. */
   cross(v: Vec3): Vec3 {
     return new Vec3(
       this.y * v.z - this.z * v.y,
@@ -29,14 +41,18 @@ export class Vec3 {
     );
   }
 
+  /** Returns the squared length. */
   lengthSq(): number { return this.x * this.x + this.y * this.y + this.z * this.z; }
+  /** Returns the Euclidean length. */
   length(): number { return Math.sqrt(this.lengthSq()); }
 
+  /** Returns a unit-length copy, or the zero vector if length is 0. */
   normalize(): Vec3 {
     const len = this.length();
     return len > 0 ? this.scale(1 / len) : new Vec3();
   }
 
+  /** Returns the linear interpolation from this to v at parameter t. */
   lerp(v: Vec3, t: number): Vec3 {
     return new Vec3(
       this.x + (v.x - this.x) * t,
@@ -45,14 +61,21 @@ export class Vec3 {
     );
   }
 
+  /** Returns [x, y, z]. */
   toArray(): [number, number, number] { return [this.x, this.y, this.z]; }
 
+  /** Returns (0, 0, 0). */
   static zero(): Vec3 { return new Vec3(0, 0, 0); }
+  /** Returns (1, 1, 1). */
   static one(): Vec3 { return new Vec3(1, 1, 1); }
+  /** Returns the world up direction (0, 1, 0). */
   static up(): Vec3 { return new Vec3(0, 1, 0); }
+  /** Returns the world forward direction (0, 0, -1) for a right-handed -Z-forward coordinate system. */
   static forward(): Vec3 { return new Vec3(0, 0, -1); }
+  /** Returns the world right direction (1, 0, 0). */
   static right(): Vec3 { return new Vec3(1, 0, 0); }
 
+  /** Reads three consecutive components from a numeric array starting at offset. */
   static fromArray(a: ArrayLike<number>, offset = 0): Vec3 {
     return new Vec3(a[offset], a[offset + 1], a[offset + 2]);
   }

@@ -8,8 +8,17 @@ type DuckState = 'idle' | 'wander' | 'flee';
 
 const _Y_AXIS = new Vec3(0, 1, 0);
 
+/**
+ * Simple wandering NPC behaviour for duck GameObjects.
+ *
+ * Implements a three-state machine (idle → wander → flee) plus gravity,
+ * water-surface flotation against the {@link World}, head-bob animation on a
+ * 'Duck.Head' child GameObject, and yaw rotation based on movement direction.
+ * The owning GameObject's mesh is drawn through a {@link MeshRenderer}; this
+ * component only drives the transform, not rendering.
+ */
 export class DuckAI extends Component {
-  // Set this each frame from main.ts so ducks can react to the player.
+  /** Player world position, written once per frame by the host so ducks can flee. */
   static playerPos: Vec3 = new Vec3(0, 0, 0);
 
   private _world: World;
@@ -26,6 +35,9 @@ export class DuckAI extends Component {
   private _headBaseY = 0;
   private _bobPhase: number;
 
+  /**
+   * @param world - World used for ground/water sampling.
+   */
   constructor(world: World) {
     super();
     this._world = world;
@@ -34,6 +46,9 @@ export class DuckAI extends Component {
     this._bobPhase = Math.random() * Math.PI * 2;
   }
 
+  /**
+   * Caches a reference to the 'Duck.Head' child GameObject for head-bob animation.
+   */
   onAttach(): void {
     for (const child of this.gameObject.children) {
       if (child.name === 'Duck.Head') {
@@ -44,6 +59,12 @@ export class DuckAI extends Component {
     }
   }
 
+  /**
+   * Steps the AI: applies gravity/water collision, advances the state machine,
+   * updates yaw to face movement, and animates the head bob.
+   *
+   * @param dt - Frame delta time in seconds.
+   */
   update(dt: number): void {
     const go = this.gameObject;
     const gx = go.position.x;

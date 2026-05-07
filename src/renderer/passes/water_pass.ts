@@ -26,6 +26,16 @@ interface ChunkWaterGpu {
   chunkBG: GPUBindGroup;
 }
 
+/**
+ * Forward-renders animated water chunk surfaces over the deferred-lit HDR buffer,
+ * blending refraction (a copy of the pre-water HDR scene), screen-space reflections,
+ * an equirectangular HDR sky fallback, depth-based tinting, and DUDV-driven ripples.
+ *
+ * Inputs sampled: HDR scene (copied into a refraction texture), GBuffer depth,
+ * DUDV ripple map, water-depth gradient map, sky panorama. Output written: the
+ * HDR texture view, blended with src-alpha. Per-chunk vertex data is supplied
+ * via addChunk/updateChunk/removeChunk and culled against the camera frustum.
+ */
 export class WaterPass extends RenderPass {
   readonly name = 'WaterPass';
 
@@ -82,12 +92,19 @@ export class WaterPass extends RenderPass {
     this._gradientTexture = gradientTexture;
   }
 
-  // hdrTexture  — lighting pass output; must have COPY_SRC usage (source for refraction copy)
-  // hdrView     — render target for water output
-  // depthView   — GBuffer depth (depth32float) for manual depth test in shader
-  // skyTexture  — equirectangular HDR sky for reflection
-  // dudvTexture — DUDV ripple/distortion map
-  // gradientTexture — 1D colour gradient for water depth tinting
+  /**
+   * Build the pass and all of its GPU resources (pipeline, refraction texture,
+   * camera and water uniform buffers, scene bind group).
+   *
+   * @param ctx Render context providing the GPU device and target dimensions.
+   * @param hdrTexture Lighting pass output; must have COPY_SRC usage so it can be copied into the refraction texture.
+   * @param hdrView Render target view that water is composited onto with src-alpha blending.
+   * @param depthView GBuffer depth (depth32float) used for the in-shader manual depth test.
+   * @param skyTexture Equirectangular HDR sky panorama used as SSR reflection fallback.
+   * @param dudvTexture DUDV ripple/distortion map driving wave normals and screen-space distortion.
+   * @param gradientTexture Colour gradient sampled by water depth to produce the murky tint.
+   * @returns A ready-to-use WaterPass instance.
+   */
   static create(
     ctx             : RenderContext,
     hdrTexture      : GPUTexture,
@@ -169,9 +186,15 @@ export class WaterPass extends RenderPass {
     );
   }
 
-  // Call on resize or sky change: recreates the refraction texture and scene bind group.
-  // Pass skyTexture when the sky has changed; omit to keep the existing sky.
-  // Per-chunk vertex/uniform data is always preserved.
+  /**
+   * Rebuild the refraction texture and scene bind group after a resize or sky change.
+   * Per-chunk vertex and uniform data is always preserved.
+   *
+   * @param hdrTexture New HDR scene texture (must have COPY_SRC).
+   * @param hdrView New HDR render target view.
+   * @param depthView New GBuffer depth view.
+   * @param skyTexture Optional replacement for the equirectangular sky; omit to keep the current one.
+   */
   updateRenderTargets(hdrTexture: GPUTexture, hdrView: GPUTextureView, depthView: GPUTextureView, skyTexture?: Texture): void {
     this._refractionTex.destroy();
     this._hdrTexture = hdrTexture;
@@ -186,6 +209,19 @@ export class WaterPass extends RenderPass {
     this._sceneBG = WaterPass._makeSceneBG(this._device, this._sceneBGL, refractionView, depthView, this._dudvTexture, this._gradientTexture, this._skyTexture, sampler);
   }
 
+  /**
+   * Upload per-frame camera uniforms (matrices, position, near/far) and refresh
+   * the cached frustum planes used for chunk culling.
+   *
+   * @param ctx Render context providing the GPU queue.
+   * @param view View matrix.
+   * @param proj Projection matrix.
+   * @param viewProj Combined view-projection matrix; also used to extract frustum planes.
+   * @param invViewProj Inverse of viewProj, used by the shader to reconstruct world positions.
+   * @param camPos World-space camera position.
+   * @param near Near plane distance.
+   * @param far Far plane distance.
+   */
   updateCamera(
     ctx: RenderContext,
     view: Mat4, proj: Mat4, viewProj: Mat4, invViewProj: Mat4,
@@ -226,10 +262,24 @@ export class WaterPass extends RenderPass {
     return true;
   }
 
+  /**
+   * Upload per-frame water uniforms driving wave animation and sky reflection brightness.
+   *
+   * @param ctx Render context providing the GPU queue.
+   * @param time Animation time in seconds, used to scroll DUDV samples and drive ripples.
+   * @param skyIntensity Multiplier for the HDR sky reflection (0 at night, 1 at noon). Defaults to 1.
+   */
   updateTime(ctx: RenderContext, time: number, skyIntensity: number = 1.0): void {
     ctx.queue.writeBuffer(this._waterBuffer, 0, new Float32Array([time, skyIntensity, 0, 0]).buffer as ArrayBuffer);
   }
 
+  /**
+   * Register a chunk's water mesh, allocating GPU buffers and uniforms for it.
+   * If the chunk is already registered the mesh data is replaced in place.
+   *
+   * @param chunk Chunk owning the water surface.
+   * @param mesh Mesh data containing the water vertex buffer.
+   */
   addChunk(chunk: Chunk, mesh: ChunkMesh): void {
     const existing = this._chunks.get(chunk);
     if (existing) {
@@ -239,6 +289,13 @@ export class WaterPass extends RenderPass {
     }
   }
 
+  /**
+   * Replace the GPU vertex buffer for an already-registered chunk, or register it
+   * if it has not been seen before.
+   *
+   * @param chunk Chunk whose water mesh has changed.
+   * @param mesh Updated mesh data.
+   */
   updateChunk(chunk: Chunk, mesh: ChunkMesh): void {
     const existing = this._chunks.get(chunk);
     if (existing) {
@@ -248,6 +305,12 @@ export class WaterPass extends RenderPass {
     }
   }
 
+  /**
+   * Drop a chunk and free its GPU vertex/uniform buffers. No-op if the chunk
+   * has not been registered.
+   *
+   * @param chunk Chunk to remove.
+   */
   removeChunk(chunk: Chunk): void {
     const gpu = this._chunks.get(chunk);
     if (!gpu) {
@@ -258,6 +321,13 @@ export class WaterPass extends RenderPass {
     this._chunks.delete(chunk);
   }
 
+  /**
+   * Copy the current HDR scene into the refraction texture and then render every
+   * frustum-visible water chunk on top of the HDR target with src-alpha blending.
+   *
+   * @param encoder Command encoder to record into.
+   * @param _ctx Render context (unused; resources are owned by the pass).
+   */
   execute(encoder: GPUCommandEncoder, _ctx: RenderContext): void {
     // Copy the lit scene into the refraction texture before water overwrites it.
     const { width, height } = this._refractionTex;
@@ -292,6 +362,10 @@ export class WaterPass extends RenderPass {
     pass.end();
   }
 
+  /**
+   * Release all GPU resources owned by the pass, including per-chunk vertex and
+   * uniform buffers, and clear the chunk registry.
+   */
   destroy(): void {
     this._cameraBuffer.destroy();
     this._waterBuffer.destroy();

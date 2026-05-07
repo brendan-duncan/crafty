@@ -7,6 +7,9 @@ const PARAMS_SIZE    = 32;   // AutoExposureParams: 8 × f32
 const EXPOSURE_SIZE  = 16;   // ExposureBuffer: 4 × f32
 const HISTOGRAM_SIZE = NUM_BINS * 4;   // 64 × u32
 
+/**
+ * Tunable parameters for the auto-exposure adaptation algorithm.
+ */
 export interface AutoExposureSettings {
   adaptSpeed  : number;   // EV/second rate constant (default 1.5)
   minExposure : number;   // minimum linear multiplier   (default 0.1)
@@ -15,6 +18,9 @@ export interface AutoExposureSettings {
   highPct     : number;   // brightest fraction to skip (default 0.02)
 }
 
+/**
+ * Sensible default auto-exposure settings (mid-speed adaptation, 0.1×–10× range).
+ */
 export const DEFAULT_AUTO_EXPOSURE: AutoExposureSettings = {
   adaptSpeed:  1.5,
   minExposure: 0.1,

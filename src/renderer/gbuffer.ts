@@ -1,5 +1,11 @@
 import type { RenderContext } from './render_context.js';
 
+/**
+ * Multi-target render attachments for the deferred geometry pass.
+ *
+ * Bundles albedo+roughness, world-space normal+metallic and depth textures
+ * sized to the current render context, along with their default views.
+ */
 export class GBuffer {
   // rgba8unorm: albedo (RGB) + roughness (A)
   readonly albedoRoughness: GPUTexture;
@@ -32,6 +38,12 @@ export class GBuffer {
     this.depthView = depth.createView();
   }
 
+  /**
+   * Allocates a new GBuffer sized to the render context's current canvas dimensions.
+   *
+   * @param ctx - render context whose device and dimensions are used
+   * @returns freshly allocated GBuffer
+   */
   static create(ctx: RenderContext): GBuffer {
     const { device, width, height } = ctx;
 
@@ -59,6 +71,9 @@ export class GBuffer {
     return new GBuffer(albedoRoughness, normalMetallic, depth, width, height);
   }
 
+  /**
+   * Destroys all underlying GPU textures.
+   */
   destroy(): void {
     this.albedoRoughness.destroy();
     this.normalMetallic.destroy();

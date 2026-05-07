@@ -1,12 +1,28 @@
 import rgbeDecodeWgsl from '../shaders/rgbe_decode.wgsl?raw';
 import { Texture } from './texture.js';
 
+/**
+ * Decoded Radiance HDR (.hdr) image in raw RGBE form.
+ *
+ * Pixels are stored as 4-byte RGBE quads (unconverted); use `createHdrTexture`
+ * to upload and decode to floating-point on the GPU.
+ */
 export interface HdrData {
   width: number;
   height: number;
   data: Uint8Array; // raw RGBE bytes, 4 bytes per pixel
 }
 
+/**
+ * Parses a Radiance HDR (.hdr) file into raw RGBE pixel data.
+ *
+ * Supports both the new RLE-compressed scanline format and the older
+ * uncompressed/run-encoded format.
+ *
+ * @param buffer - Raw bytes of the .hdr file.
+ * @returns Image dimensions and raw RGBE bytes (4 bytes per pixel).
+ * @throws If the file is not a Radiance HDR or the resolution header is unrecognized.
+ */
 export function parseHdr(buffer: ArrayBuffer): HdrData {
   const bytes = new Uint8Array(buffer);
   let pos = 0;
@@ -175,8 +191,17 @@ function getOrCreateDecodeResources(device: GPUDevice): DecodeResources {
   return res;
 }
 
-// Uploads raw RGBE bytes as rgba8uint and decodes to rgba16float on the GPU.
-// Returns only after the decode dispatch has completed.
+/**
+ * Uploads raw RGBE pixels and decodes them to an `rgba16float` 2D texture.
+ *
+ * The RGBE bytes are uploaded as `rgba8uint`, then a compute shader expands
+ * each RGBE quad to floating-point radiance — avoiding per-pixel `Math.pow`
+ * on the CPU. Awaits GPU completion before returning.
+ *
+ * @param device - WebGPU device used to create and dispatch resources.
+ * @param hdr - Parsed HDR image data from {@link parseHdr}.
+ * @returns A 2D `rgba16float` Texture wrapping the decoded radiance image.
+ */
 export async function createHdrTexture(device: GPUDevice, hdr: HdrData): Promise<Texture> {
   const { width, height, data } = hdr;
   const { pipeline, srcBGL, dstBGL } = getOrCreateDecodeResources(device);

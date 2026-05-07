@@ -9,11 +9,24 @@ import shadowWgsl from '../../shaders/shadow.wgsl?raw';
 const SHADOW_SIZE = 2048;
 const MAX_CASCADES = 4;
 
+/**
+ * Cascaded shadow map (CSM) pass for the scene's directional sun light.
+ *
+ * Renders the depth of all skinned/static mesh instances into a `depth32float`
+ * 2D array texture (one layer per cascade, up to 4). The light view-projection for
+ * each cascade is computed by {@link DirectionalLight.computeCascadeMatrices} based on
+ * the active camera. The resulting `shadowMapView` is sampled by the deferred
+ * lighting pass; per-cascade `shadowMapArrayViews` are reused as render targets here
+ * and by {@link WorldShadowPass} for voxel chunks.
+ */
 export class ShadowPass extends RenderPass {
   readonly name = 'ShadowPass';
 
+  /** The 2D-array `depth32float` shadow map texture (one layer per cascade). */
   readonly shadowMap: GPUTexture;
+  /** A `2d-array` view over the entire shadow map for sampling in the lighting pass. */
   readonly shadowMapView: GPUTextureView;
+  /** Per-cascade single-layer 2D views used as render targets. */
   readonly shadowMapArrayViews: GPUTextureView[];
 
   private _pipeline: GPURenderPipeline;
@@ -47,6 +60,12 @@ export class ShadowPass extends RenderPass {
     this._cascadeCount = cascadeCount;
   }
 
+  /**
+   * Allocates the cascade shadow map array, per-cascade and per-model uniform
+   * buffers/bind groups, and the depth-only render pipeline.
+   *
+   * @param cascadeCount - Number of active cascades (clamped internally to a max of 4).
+   */
   static create(ctx: RenderContext, cascadeCount = 3): ShadowPass {
     const { device } = ctx;
 
@@ -127,11 +146,20 @@ export class ShadowPass extends RenderPass {
     );
   }
 
+  /**
+   * Recomputes per-cascade light view-projection matrices for the next {@link execute}.
+   *
+   * @param shadowFar - Optional override for the maximum shadow distance.
+   */
   updateScene(_scene: Scene, camera: Camera, light: DirectionalLight, shadowFar?: number): void {
     this._cascades = light.computeCascadeMatrices(camera, shadowFar);
     this._cascadeCount = Math.min(this._cascades.length, MAX_CASCADES);
   }
 
+  /**
+   * For every active cascade, uploads the cascade's view-projection and renders all
+   * scene mesh renderers depth-only into the corresponding shadow map array layer.
+   */
   execute(encoder: GPUCommandEncoder, ctx: RenderContext): void {
     const { device } = ctx;
     const meshRenderers = this._getMeshRenderers(ctx);
@@ -181,6 +209,9 @@ export class ShadowPass extends RenderPass {
 
   private _sceneSnapshot: Array<{ mesh: import('../../assets/mesh.js').Mesh; modelMatrix: import('../../math/mat4.js').Mat4 }> = [];
 
+  /**
+   * Replaces the snapshot of meshes/world matrices to render in the next {@link execute}.
+   */
   setSceneSnapshot(snapshot: typeof this._sceneSnapshot): void {
     this._sceneSnapshot = snapshot;
   }
@@ -201,6 +232,9 @@ export class ShadowPass extends RenderPass {
     }
   }
 
+  /**
+   * Releases the shadow map texture and all per-cascade and per-model uniform buffers.
+   */
   destroy(): void {
     this.shadowMap.destroy();
     for (const buf of this._shadowUniformBuffers) {

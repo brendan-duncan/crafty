@@ -11,6 +11,12 @@ const CAMERA_UNIFORM_SIZE = 64 * 4 + 16 + 16; // 4 mat4 + vec3+f32 + vec3+f32
 const MODEL_UNIFORM_SIZE = 128;                 // 2 mat4
 const MATERIAL_UNIFORM_SIZE = 48;               // vec4 + 2 f32 + 2 vec2 + vec2 pad
 
+/**
+ * One mesh instance to be drawn into the G-buffer this frame.
+ *
+ * `normalMatrix` is the inverse-transpose of the upper 3×3 of the model matrix,
+ * stored as a `Mat4` for uniform alignment.
+ */
 export interface DrawItem {
   mesh: Mesh;
   modelMatrix: Mat4;
@@ -18,6 +24,13 @@ export interface DrawItem {
   material: Material;
 }
 
+/**
+ * Deferred geometry pass: rasterises opaque mesh draw items into the G-buffer.
+ *
+ * Writes albedo+roughness (rgba8unorm), normal+metallic (rgba16float) and depth
+ * (depth32float). Sources its uniforms from `setDrawItems` / `updateCamera` and
+ * binds 1×1 fallback textures when a `Material` lacks an albedo, normal, or MER map.
+ */
 export class GeometryPass extends RenderPass {
   readonly name = 'GeometryPass';
 
@@ -86,6 +99,13 @@ export class GeometryPass extends RenderPass {
     this._materialSampler = materialSampler;
   }
 
+  /**
+   * Build the pass, its bind group layouts, render pipeline and fallback resources.
+   *
+   * @param ctx Active render context (provides the GPU device).
+   * @param gbuffer Target G-buffer whose attachments will receive the rasterised output.
+   * @returns A fully initialised `GeometryPass`.
+   */
   static create(ctx: RenderContext, gbuffer: GBuffer): GeometryPass {
     const { device } = ctx;
 
@@ -168,10 +188,30 @@ export class GeometryPass extends RenderPass {
     );
   }
 
+  /**
+   * Replace the list of meshes drawn during the next `execute` call.
+   *
+   * @param items Draw items in submission order. Per-draw GPU buffers and bind
+   *   groups grow on demand to accommodate the largest list seen so far.
+   */
   setDrawItems(items: DrawItem[]): void {
     this._drawItems = items;
   }
 
+  /**
+   * Upload the per-frame camera uniforms (view, projection, derived matrices and
+   * camera position / clip-plane distances) consumed by both the vertex and
+   * fragment stages.
+   *
+   * @param ctx Render context used for queue access.
+   * @param view World-to-view matrix.
+   * @param proj View-to-clip projection matrix.
+   * @param viewProj Pre-multiplied `proj * view`.
+   * @param invViewProj Inverse of `viewProj`.
+   * @param camPos Camera world-space position.
+   * @param near Near clip-plane distance.
+   * @param far Far clip-plane distance.
+   */
   updateCamera(ctx: RenderContext, view: Mat4, proj: Mat4, viewProj: Mat4, invViewProj: Mat4, camPos: { x: number; y: number; z: number }, near: number, far: number): void {
     const data = new Float32Array(CAMERA_UNIFORM_SIZE / 4);
     data.set(view.data,         0);
@@ -184,6 +224,14 @@ export class GeometryPass extends RenderPass {
     ctx.queue.writeBuffer(this._cameraBuffer, 0, data.buffer as ArrayBuffer);
   }
 
+  /**
+   * Encode the geometry render pass: uploads per-draw uniforms, then issues an
+   * indexed draw for each item bound to the G-buffer attachments. Clears all
+   * targets at the start of the pass.
+   *
+   * @param encoder Command encoder to record into.
+   * @param ctx Render context (used for the device + queue).
+   */
   execute(encoder: GPUCommandEncoder, ctx: RenderContext): void {
     const { device } = ctx;
     this._ensurePerDrawBuffers(device, this._drawItems.length);
@@ -266,6 +314,11 @@ export class GeometryPass extends RenderPass {
     }
   }
 
+  /**
+   * Release all GPU resources owned by the pass: camera, model, and material
+   * uniform buffers, plus the 1×1 fallback textures. Bind groups and pipelines
+   * are GC'd with the pass.
+   */
   destroy(): void {
     this._cameraBuffer.destroy();
     for (const b of this._modelBuffers) {

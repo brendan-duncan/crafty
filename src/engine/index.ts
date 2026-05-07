@@ -1,3 +1,4 @@
+// Public re-exports for the GameObject/Component-based engine layer.
 export { Component } from './component.js';
 export { GameObject } from './game_object.js';
 export { Scene } from './scene.js';

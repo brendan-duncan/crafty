@@ -9,6 +9,14 @@ import tonemapWgsl from '../../shaders/tonemap.wgsl?raw';
 //  [3] _pad1     f32
 const PARAMS_SIZE = 16;
 
+/**
+ * Final HDR-to-SDR tone-mapping pass. Samples an HDR input, applies an
+ * exposure multiplier and an optional ACES filmic curve, then writes the
+ * result to the swapchain (or a caller-specified output format).
+ *
+ * Inputs sampled: HDR color view supplied at construction time.
+ * Output: the current swapchain texture acquired through `ctx.getCurrentTexture()`.
+ */
 export class TonemapPass extends RenderPass {
   readonly name = 'TonemapPass';
 
@@ -30,6 +38,14 @@ export class TonemapPass extends RenderPass {
     this._paramsBuf = paramsBuf;
   }
 
+  /**
+   * Constructs the pass with its sampler, params buffer, pipeline, and bind groups.
+   *
+   * @param ctx Render context providing the device and default swapchain format.
+   * @param hdrView HDR input texture view to tone map.
+   * @param outputFormat Optional output texture format; defaults to `ctx.format`.
+   * @returns Configured TonemapPass instance.
+   */
   // hdrView — input HDR texture to tone map
   // outputFormat — format of the output texture (typically ctx.format for canvas)
   static create(
@@ -108,6 +124,14 @@ export class TonemapPass extends RenderPass {
     return new TonemapPass(pipeline, bg0, bg1, paramsBuf);
   }
 
+  /**
+   * Uploads the tone-mapping parameters to the GPU uniform buffer.
+   *
+   * @param ctx Render context whose queue receives the buffer write.
+   * @param exposure Linear exposure multiplier applied before the curve.
+   * @param useAces When true, enable the ACES filmic tone curve.
+   * @param hdrCanvas When true, skip the final gamma encode (for HDR swapchains).
+   */
   // Update tonemap parameters
   // exposure  — exposure multiplier (typically from auto-exposure, or manual value)
   // useAces   — enable ACES filmic tone mapping
@@ -133,6 +157,12 @@ export class TonemapPass extends RenderPass {
     ctx.queue.writeBuffer(this._paramsBuf, 0, buf);
   }
 
+  /**
+   * Records the full-screen tone-mapping draw into the current swapchain texture.
+   *
+   * @param encoder Command encoder to record into.
+   * @param ctx Render context used to acquire the current swapchain texture.
+   */
   execute(encoder: GPUCommandEncoder, ctx: RenderContext): void {
     const pass = encoder.beginRenderPass({
       label: 'TonemapPass',
@@ -152,6 +182,7 @@ export class TonemapPass extends RenderPass {
     pass.end();
   }
 
+  /** Releases the params uniform buffer owned by this pass. */
   destroy(): void {
     this._paramsBuf.destroy();
   }

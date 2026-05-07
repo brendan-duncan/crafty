@@ -8,6 +8,13 @@ import skyWgsl from '../../shaders/sky.wgsl?raw';
 // invViewProj (mat4x4 = 64 bytes) + cameraPos (vec3 = 12 bytes) + pad (4 bytes) = 80 bytes
 const SKY_UNIFORM_SIZE = 80;
 
+/**
+ * Renders the sky as a fullscreen background by sampling an equirectangular HDR texture.
+ *
+ * Issued as the first colour writer of the frame: clears the HDR target and shades
+ * each pixel by reconstructing its world-space view direction from `invViewProj` and
+ * sampling the supplied sky texture. Output exposure is configurable per frame.
+ */
 export class SkyTexturePass extends RenderPass {
   readonly name = 'SkyPass';
 
@@ -32,6 +39,13 @@ export class SkyTexturePass extends RenderPass {
     this._hdrView = hdrView;
   }
 
+  /**
+   * Allocates the sky uniform buffer, sampler, bind groups, and the fragment pipeline
+   * that writes into the HDR colour target.
+   *
+   * @param hdrView - HDR colour render target (the pass clears it).
+   * @param skyTexture - Equirectangular HDR sky source.
+   */
   static create(ctx: RenderContext, hdrView: GPUTextureView, skyTexture: Texture): SkyTexturePass {
     const { device } = ctx;
 
@@ -87,6 +101,10 @@ export class SkyTexturePass extends RenderPass {
     return new SkyTexturePass(pipeline, uniformBuffer, uniformBG, textureBG, hdrView);
   }
 
+  /**
+   * Uploads the inverse view-projection (used to reconstruct view directions),
+   * camera position, and an exposure multiplier into the sky uniform buffer.
+   */
   updateCamera(ctx: RenderContext, invViewProj: Mat4, cameraPos: { x: number; y: number; z: number }, exposure = 0.2): void {
     const data = new Float32Array(SKY_UNIFORM_SIZE / 4);
     data.set(invViewProj.data, 0);
@@ -97,6 +115,10 @@ export class SkyTexturePass extends RenderPass {
     ctx.queue.writeBuffer(this._uniformBuffer, 0, data.buffer as ArrayBuffer);
   }
 
+  /**
+   * Clears the HDR target and draws a fullscreen triangle that shades each pixel
+   * with the sky colour for its view direction.
+   */
   execute(encoder: GPUCommandEncoder, _ctx: RenderContext): void {
     const pass = encoder.beginRenderPass({
       label: 'SkyPass',

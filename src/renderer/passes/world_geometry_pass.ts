@@ -30,6 +30,16 @@ interface ChunkGpu {
   propCount: number;
 }
 
+/**
+ * G-buffer fill pass for voxel world chunks. Rasterises opaque, transparent and
+ * "prop" (foliage / cross-quad) chunk geometry into the same albedo+roughness /
+ * normal+metallic / depth attachments used by `GeometryPass`.
+ *
+ * Owns per-chunk vertex buffers and a shared dynamic-offset uniform buffer that
+ * stores chunk world origins. Performs CPU-side frustum culling each frame using
+ * planes extracted from the view-projection matrix. Tracks `drawCalls` and
+ * `triangles` for HUD / debug overlays.
+ */
 export class WorldGeometryPass extends RenderPass {
   readonly name = 'WorldGeometryPass';
 
@@ -48,7 +58,9 @@ export class WorldGeometryPass extends RenderPass {
   private _chunks            = new Map<Chunk, ChunkGpu>();
   private _frustumPlanes     = new Float32Array(24); // 6 planes × (A,B,C,D)
 
+  /** Number of draw calls issued during the most recent `execute`. */
   drawCalls  = 0;
+  /** Triangle count submitted during the most recent `execute`. */
   triangles  = 0;
   private readonly _cameraData = new Float32Array(CAMERA_UNIFORM_SIZE / 4);
   private _debugChunks = false;
@@ -78,6 +90,16 @@ export class WorldGeometryPass extends RenderPass {
     this._chunkBindGroup      = chunkBindGroup;
   }
 
+  /**
+   * Build the pass: bind group layouts, the three render pipelines (opaque,
+   * transparent, prop), the shared atlas+block-data bind group and the dynamic
+   * chunk-uniform buffer.
+   *
+   * @param ctx Render context (provides the GPU device).
+   * @param gbuffer Target G-buffer whose attachments will be loaded and written.
+   * @param blockTexture Block atlas (colour, normal, MER) sampled by chunk pixels.
+   * @returns A configured `WorldGeometryPass`.
+   */
   static create(ctx: RenderContext, gbuffer: GBuffer, blockTexture: BlockTexture): WorldGeometryPass {
     const { device } = ctx;
 
@@ -209,10 +231,22 @@ export class WorldGeometryPass extends RenderPass {
     return new WorldGeometryPass(device, gbuffer, opaquePipeline, transparentPipeline, propPipeline, cameraBuffer, cameraBindGroup, sharedBindGroup, chunkUniformBuffer, chunkBindGroup);
   }
 
+  /**
+   * Replace the G-buffer the pass renders into (e.g. after a window resize).
+   *
+   * @param gbuffer New G-buffer to bind for subsequent `execute` calls.
+   */
   updateGBuffer(gbuffer: GBuffer): void {
     this._gbuffer = gbuffer;
   }
 
+  /**
+   * Register a chunk and upload its mesh data. If the chunk is already tracked,
+   * its existing GPU buffers are replaced.
+   *
+   * @param chunk Logical chunk used as the lookup key.
+   * @param mesh Generated geometry for the chunk's opaque, transparent and prop layers.
+   */
   addChunk(chunk: Chunk, mesh: ChunkMesh): void {
     const existing = this._chunks.get(chunk);
     if (existing) {
@@ -222,6 +256,12 @@ export class WorldGeometryPass extends RenderPass {
     }
   }
 
+  /**
+   * Replace the GPU mesh data for a tracked chunk, or register it if new.
+   *
+   * @param chunk Logical chunk used as the lookup key.
+   * @param mesh New geometry for the chunk.
+   */
   updateChunk(chunk: Chunk, mesh: ChunkMesh): void {
     const existing = this._chunks.get(chunk);
     if (existing) {
@@ -231,6 +271,12 @@ export class WorldGeometryPass extends RenderPass {
     }
   }
 
+  /**
+   * Drop a tracked chunk: destroys its vertex buffers and frees its slot in the
+   * shared chunk uniform buffer. No-op if the chunk is unknown.
+   *
+   * @param chunk Logical chunk to remove.
+   */
   removeChunk(chunk: Chunk): void {
     const gpuData = this._chunks.get(chunk);
     if (!gpuData) {
@@ -243,6 +289,19 @@ export class WorldGeometryPass extends RenderPass {
     this._chunks.delete(chunk);
   }
 
+  /**
+   * Upload per-frame camera state and recompute the cached frustum planes used
+   * for chunk culling.
+   *
+   * @param ctx Render context for queue access.
+   * @param view World-to-view matrix.
+   * @param proj View-to-clip matrix.
+   * @param viewProj Pre-multiplied `proj * view`; also used for plane extraction.
+   * @param invViewProj Inverse of `viewProj`.
+   * @param camPos Camera world-space position.
+   * @param near Near clip-plane distance.
+   * @param far Far clip-plane distance.
+   */
   updateCamera(
     ctx: RenderContext,
     view: Mat4, proj: Mat4, viewProj: Mat4, invViewProj: Mat4,
@@ -281,7 +340,13 @@ export class WorldGeometryPass extends RenderPass {
     p[20]=m[3]-m[2]; p[21]=m[7]-m[6]; p[22]=m[11]-m[10]; p[23]=m[15]-m[14];
   }
 
-  // AABB vs frustum test. Returns false if the chunk is fully outside any plane.
+  /**
+   * Toggle per-chunk debug colourisation. When enabled, each chunk is shaded
+   * with a deterministic colour derived from its world position to make chunk
+   * boundaries visible. Re-uploads every tracked chunk's uniforms.
+   *
+   * @param enabled Whether the debug colour overlay is on.
+   */
   setDebugChunks(enabled: boolean): void {
     if (this._debugChunks === enabled) {
       return;
@@ -306,6 +371,14 @@ export class WorldGeometryPass extends RenderPass {
     return true;
   }
 
+  /**
+   * Encode the world geometry pass: load existing G-buffer attachments, frustum-cull
+   * chunks, then run the opaque, transparent and prop pipelines in turn over the
+   * surviving set. Updates `drawCalls` and `triangles` for the frame.
+   *
+   * @param encoder Command encoder to record into.
+   * @param _ctx Render context (unused; kept for the `RenderPass` interface).
+   */
   execute(encoder: GPUCommandEncoder, _ctx: RenderContext): void {
     const pass = encoder.beginRenderPass({
       label: 'WorldGeometryPass',
@@ -368,6 +441,10 @@ export class WorldGeometryPass extends RenderPass {
     pass.end();
   }
 
+  /**
+   * Release every GPU resource owned by the pass: camera/chunk uniform buffers
+   * and every per-chunk vertex buffer. Clears the chunk registry.
+   */
   destroy(): void {
     this._cameraBuffer.destroy();
     this._chunkUniformBuffer.destroy();
