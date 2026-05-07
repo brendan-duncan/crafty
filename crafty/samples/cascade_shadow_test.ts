@@ -51,13 +51,9 @@ async function main() {
   const renderContext = await RenderContext.create(canvas, { enableErrorHandling: true });
   const device = renderContext.device;
 
-  console.log(`Canvas size: ${canvas.width}x${canvas.height}`);
-
   // Load HDR sky texture and compute IBL
-  console.log('Loading HDR sky...');
   const skyTexture = await createHdrTexture(device, parseHdr(await (await fetch(skyHdrUrl)).arrayBuffer()));
   const iblTextures = await computeIblGpu(device, skyTexture.gpuTexture);
-  console.log('HDR sky and IBL loaded');
 
   // Create scene
   const scene = new Scene();
@@ -78,7 +74,7 @@ async function main() {
   // Create directional light (sun)
   const sunGO = new GameObject('Sun');
   const sun = sunGO.addComponent(
-    new DirectionalLight(new Vec3(-0.3, -0.8, -0.5).normalize(), new Vec3(1.0, 0.95, 0.9), 1.5, 3)
+    new DirectionalLight(new Vec3(0.3, -0.8, -0.5).normalize(), new Vec3(1.0, 0.95, 0.9), 1.0, 4)
   );
   scene.add(sunGO);
 
@@ -102,7 +98,7 @@ async function main() {
   // Create ground plane
   const groundGO = new GameObject('Ground');
   const groundRenderer = groundGO.addComponent(new MeshRenderer(planeMesh, groundMaterial));
-  groundRenderer.castShadow = true;
+  groundRenderer.castShadow = false;
   scene.add(groundGO);
 
   // Create cubes at various distances to show cascade transitions
@@ -158,6 +154,7 @@ async function main() {
   let frameCount = 0;
   let fpsTime = 0;
   let debugCascades = false;
+  let sunAngle = Math.PI * 0.3; // Start at ~30 degrees above horizon
 
   // Hotkey: 'c' to toggle cascade debug visualization
   window.addEventListener('keydown', (e) => {
@@ -181,6 +178,23 @@ async function main() {
       frameCount = 0;
       fpsTime = 0;
     }
+
+    // Animate sun
+    sunAngle += dt * 0.05; // Faster than main demo for testing
+    const sinA = Math.sin(sunAngle);
+    const rawDirX = 0.3;
+    const rawDirY = -sinA;
+    const rawDirZ = Math.cos(sunAngle) * 0.5;
+    const dLen = Math.sqrt(rawDirX * rawDirX + rawDirY * rawDirY + rawDirZ * rawDirZ);
+    sun.direction.set(rawDirX / dLen, rawDirY / dLen, rawDirZ / dLen);
+
+    // Adjust intensity based on sun elevation
+    const elev = sinA;
+    sun.intensity = Math.max(0, elev) * 6.0;
+
+    // Adjust color from warm (sunrise/sunset) to white (noon)
+    const t = Math.max(0, elev);
+    sun.color.set(1.0, 0.8 + 0.2 * t, 0.6 + 0.4 * t);
 
     // Update camera controls
     cameraControls.update(cameraGO, dt);
