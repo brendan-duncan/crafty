@@ -4,13 +4,11 @@ import { VERTEX_ATTRIBUTES, VERTEX_STRIDE } from '../../assets/mesh.js';
 import type { Mesh } from '../../assets/mesh.js';
 import type { Mat4 } from '../../math/mat4.js';
 import type { Vec3 } from '../../math/vec3.js';
-import type { Material } from '../../engine/components/mesh_renderer.js';
+import { Material, MaterialPassType } from '../../engine/material.js';
 import type { IblTextures } from '../../assets/ibl.js';
-import forwardPbrWgsl from '../../shaders/forward_pbr.wgsl?raw';
 
 const CAMERA_UNIFORM_SIZE = 64 * 4 + 16 + 16;
 const MODEL_UNIFORM_SIZE = 128;
-const MATERIAL_UNIFORM_SIZE = 48;
 const LIGHTING_UNIFORM_SIZE = 16;
 const DIRECTIONAL_LIGHT_SIZE = 128; // vec3 direction (16) + f32 intensity (4) + vec3 color (16) + u32 castShadows (4) + u32 shadowMapIndex (4) + vec3 _pad (16 aligned) + mat4x4 lightViewProj (64) = 128
 const POINT_LIGHT_SIZE = 48;
@@ -26,17 +24,15 @@ const POINT_SHADOW_SIZE = 1024;
 export { MAX_POINT_LIGHTS, MAX_SPOT_LIGHTS };
 
 /**
- * One mesh instance to be drawn during a forward pass.
- *
- * Items with `transparent: true` are deferred to the alpha-blended sub-pass and
- * drawn after all opaque items.
+ * One mesh instance to be drawn during a forward pass. Set
+ * `material.transparent = true` to route the draw through the alpha-blended
+ * sub-pass (drawn after all opaque items, with depth-write disabled).
  */
 export interface ForwardDrawItem {
   mesh: Mesh;
   modelMatrix: Mat4;
   normalMatrix: Mat4;
   material: Material;
-  transparent?: boolean;
 }
 
 /**
@@ -88,24 +84,27 @@ export interface SpotLightData {
 }
 
 /**
- * Forward+ PBR pass that shades meshes in a single render pass with one
- * directional light, up to `MAX_POINT_LIGHTS` point lights and `MAX_SPOT_LIGHTS`
- * spot lights, plus an IBL environment.
+ * Forward+ pass that shades meshes in a single render pass with one directional
+ * light, up to `MAX_POINT_LIGHTS` point lights and `MAX_SPOT_LIGHTS` spot
+ * lights, plus an IBL environment.
  *
- * Reads: per-frame camera uniforms, light buffers, IBL textures and the shared
- * cascade / cube shadow arrays. Writes: an HDR `rgba16float` colour target
- * (`outputView`, or the swapchain when its format matches) and an internal
- * `depth32float` depth attachment. Opaque items are drawn first, then alpha-blended
- * transparents with depth-write disabled.
+ * Each draw item supplies its own {@link Material}; pipelines are cached per
+ * `material.shaderId` (separately for the opaque and transparent variants), so
+ * many materials sharing a shader share a single pipeline. Reads the camera,
+ * light, IBL and shadow bind groups owned by the pass; writes an HDR
+ * `rgba16float` colour target (`outputView`, or the swapchain when its format
+ * matches) and an internal `depth32float` depth attachment. Opaque items are
+ * drawn first, then alpha-blended transparents with depth-write disabled.
  */
 export class ForwardPass extends RenderPass {
   readonly name = 'ForwardPass';
 
-  private _opaquePipeline: GPURenderPipeline;
-  private _transparentPipeline: GPURenderPipeline;
+  private _cameraBGL: GPUBindGroupLayout;
+  private _modelBGL: GPUBindGroupLayout;
+  private _lightingIblBGL: GPUBindGroupLayout;
 
-  private _modelMaterialBGL: GPUBindGroupLayout;
-  private _textureBGL: GPUBindGroupLayout;
+  private _opaquePipelineCache = new Map<string, GPURenderPipeline>();
+  private _transparentPipelineCache = new Map<string, GPURenderPipeline>();
 
   private _cameraBuffer: GPUBuffer;
   private _cameraBindGroup: GPUBindGroup;
@@ -119,32 +118,24 @@ export class ForwardPass extends RenderPass {
   private _shadowMapArray: GPUTexture;
   private _pointShadowCubeArray: GPUTexture;
 
-  private _whiteTex: GPUTexture;
-  private _flatNormalTex: GPUTexture;
-  private _merDefaultTex: GPUTexture;
-  private _whiteView: GPUTextureView;
-  private _flatNormalView: GPUTextureView;
-  private _merDefaultView: GPUTextureView;
-  private _materialSampler: GPUSampler;
-
-  private _textureBGs = new WeakMap<object, GPUBindGroup>();
-
   private _opaqueItems: ForwardDrawItem[] = [];
   private _transparentItems: ForwardDrawItem[] = [];
 
   private readonly _modelData = new Float32Array(32);
-  private readonly _matData = new Float32Array(12);
 
   private _depthTexture: GPUTexture;
   private _depthView: GPUTextureView;
   private _outputTexture: GPUTexture;
   private _outputView: GPUTextureView;
 
+  private _modelBuffers: GPUBuffer[] = [];
+  private _modelBindGroups: GPUBindGroup[] = [];
+  private _bufferIndex = 0;
+
   private constructor(
-    opaquePipeline: GPURenderPipeline,
-    transparentPipeline: GPURenderPipeline,
-    modelMaterialBGL: GPUBindGroupLayout,
-    textureBGL: GPUBindGroupLayout,
+    cameraBGL: GPUBindGroupLayout,
+    modelBGL: GPUBindGroupLayout,
+    lightingIblBGL: GPUBindGroupLayout,
     cameraBuffer: GPUBuffer,
     cameraBindGroup: GPUBindGroup,
     lightingBuffer: GPUBuffer,
@@ -154,23 +145,15 @@ export class ForwardPass extends RenderPass {
     lightingIblBindGroup: GPUBindGroup,
     shadowMapArray: GPUTexture,
     pointShadowCubeArray: GPUTexture,
-    whiteTex: GPUTexture,
-    whiteView: GPUTextureView,
-    flatNormalTex: GPUTexture,
-    flatNormalView: GPUTextureView,
-    merDefaultTex: GPUTexture,
-    merDefaultView: GPUTextureView,
-    materialSampler: GPUSampler,
     depthTexture: GPUTexture,
     depthView: GPUTextureView,
     outputTexture: GPUTexture,
     outputView: GPUTextureView,
   ) {
     super();
-    this._opaquePipeline = opaquePipeline;
-    this._transparentPipeline = transparentPipeline;
-    this._modelMaterialBGL = modelMaterialBGL;
-    this._textureBGL = textureBGL;
+    this._cameraBGL = cameraBGL;
+    this._modelBGL = modelBGL;
+    this._lightingIblBGL = lightingIblBGL;
     this._cameraBuffer = cameraBuffer;
     this._cameraBindGroup = cameraBindGroup;
     this._lightingBuffer = lightingBuffer;
@@ -180,13 +163,6 @@ export class ForwardPass extends RenderPass {
     this._lightingIblBindGroup = lightingIblBindGroup;
     this._shadowMapArray = shadowMapArray;
     this._pointShadowCubeArray = pointShadowCubeArray;
-    this._whiteTex = whiteTex;
-    this._whiteView = whiteView;
-    this._flatNormalTex = flatNormalTex;
-    this._flatNormalView = flatNormalView;
-    this._merDefaultTex = merDefaultTex;
-    this._merDefaultView = merDefaultView;
-    this._materialSampler = materialSampler;
     this._depthTexture = depthTexture;
     this._depthView = depthView;
     this._outputTexture = outputTexture;
@@ -194,9 +170,9 @@ export class ForwardPass extends RenderPass {
   }
 
   /**
-   * Build the pass and all its GPU resources: opaque + transparent pipelines,
-   * camera / lighting / IBL bind groups, fallback material textures, and the
-   * shared shadow textures (cascade 2D-array and point cube-array).
+   * Build the pass's system bind groups and shadow textures. Pipelines are NOT
+   * created up front — they are compiled lazily on the first draw of each
+   * unique `material.shaderId`.
    *
    * @param ctx Render context (provides device + framebuffer dimensions).
    * @param iblTextures Image-based-lighting cubemaps and BRDF LUT bound to the
@@ -214,21 +190,10 @@ export class ForwardPass extends RenderPass {
       ],
     });
 
-    const modelMaterialBGL = device.createBindGroupLayout({
-      label: 'ForwardModelMaterialBGL',
+    const modelBGL = device.createBindGroupLayout({
+      label: 'ForwardModelBGL',
       entries: [
-        { binding: 0, visibility: GPUShaderStage.VERTEX, buffer: { type: 'uniform' } }, // model
-        { binding: 1, visibility: GPUShaderStage.FRAGMENT, buffer: { type: 'uniform' } }, // material
-      ],
-    });
-
-    const textureBGL = device.createBindGroupLayout({
-      label: 'ForwardTextureBGL',
-      entries: [
-        { binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } },
-        { binding: 1, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } },
-        { binding: 2, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } },
-        { binding: 3, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } },
+        { binding: 0, visibility: GPUShaderStage.VERTEX, buffer: { type: 'uniform' } },
       ],
     });
 
@@ -247,30 +212,6 @@ export class ForwardPass extends RenderPass {
         { binding: 9, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } }, // ibl sampler
         { binding: 10, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'depth', viewDimension: 'cube-array' } }, // point shadow cube array
       ],
-    });
-
-    // Create fallback textures
-    function makeTex(label: string, r: number, g: number, b: number, a: number): [GPUTexture, GPUTextureView] {
-      const t = device.createTexture({
-        label,
-        size: { width: 1, height: 1 },
-        format: 'rgba8unorm',
-        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
-      });
-      device.queue.writeTexture({ texture: t }, new Uint8Array([r, g, b, a]), { bytesPerRow: 4 }, { width: 1, height: 1 });
-      return [t, t.createView()];
-    }
-
-    const [whiteTex, whiteView] = makeTex('ForwardWhite', 255, 255, 255, 255);
-    const [flatNormalTex, flatNormalView] = makeTex('ForwardFlatNormal', 128, 128, 255, 255);
-    const [merDefaultTex, merDefaultView] = makeTex('ForwardMerDefault', 255, 0, 255, 255);
-
-    const materialSampler = device.createSampler({
-      label: 'ForwardMaterialSampler',
-      magFilter: 'linear',
-      minFilter: 'linear',
-      addressModeU: 'repeat',
-      addressModeV: 'repeat',
     });
 
     const shadowSampler = device.createSampler({
@@ -379,85 +320,10 @@ export class ForwardPass extends RenderPass {
     });
     const outputView = outputTexture.createView();
 
-    // Create pipelines
-    const shaderModule = device.createShaderModule({
-      label: 'ForwardPBRShader',
-      code: forwardPbrWgsl,
-    });
-
-    const pipelineLayout = device.createPipelineLayout({
-      bindGroupLayouts: [cameraBGL, modelMaterialBGL, textureBGL, lightingIblBGL],
-    });
-
-    const opaquePipeline = device.createRenderPipeline({
-      label: 'ForwardOpaquePipeline',
-      layout: pipelineLayout,
-      vertex: {
-        module: shaderModule,
-        entryPoint: 'vs_main',
-        buffers: [{ arrayStride: VERTEX_STRIDE, attributes: VERTEX_ATTRIBUTES }],
-      },
-      fragment: {
-        module: shaderModule,
-        entryPoint: 'fs_main',
-        targets: [{ format: 'rgba16float' }],
-      },
-      depthStencil: {
-        format: 'depth32float',
-        depthWriteEnabled: true,
-        depthCompare: 'less',
-      },
-      primitive: {
-        topology: 'triangle-list',
-        cullMode: 'back',
-      },
-    });
-
-    const transparentPipeline = device.createRenderPipeline({
-      label: 'ForwardTransparentPipeline',
-      layout: pipelineLayout,
-      vertex: {
-        module: shaderModule,
-        entryPoint: 'vs_main',
-        buffers: [{ arrayStride: VERTEX_STRIDE, attributes: VERTEX_ATTRIBUTES }],
-      },
-      fragment: {
-        module: shaderModule,
-        entryPoint: 'fs_main',
-        targets: [
-          {
-            format: 'rgba16float',
-            blend: {
-              color: {
-                srcFactor: 'src-alpha',
-                dstFactor: 'one-minus-src-alpha',
-                operation: 'add',
-              },
-              alpha: {
-                srcFactor: 'one',
-                dstFactor: 'one-minus-src-alpha',
-                operation: 'add',
-              },
-            },
-          },
-        ],
-      },
-      depthStencil: {
-        format: 'depth32float',
-        depthWriteEnabled: false,
-        depthCompare: 'less',
-      },
-      primitive: {
-        topology: 'triangle-list',
-        cullMode: 'back',
-      },
-    });
-
     return new ForwardPass(
-      opaquePipeline,
-      transparentPipeline,
-      modelMaterialBGL,
-      textureBGL,
+      cameraBGL,
+      modelBGL,
+      lightingIblBGL,
       cameraBuffer,
       cameraBindGroup,
       lightingBuffer,
@@ -467,13 +333,6 @@ export class ForwardPass extends RenderPass {
       lightingIblBindGroup,
       shadowMapArray,
       pointShadowCubeArray,
-      whiteTex,
-      whiteView,
-      flatNormalTex,
-      flatNormalView,
-      merDefaultTex,
-      merDefaultView,
-      materialSampler,
       depthTexture,
       depthView,
       outputTexture,
@@ -537,14 +396,15 @@ export class ForwardPass extends RenderPass {
 
   /**
    * Replace the draw list for the next `execute` call. Items are partitioned
-   * into opaque and transparent buckets up front; transparents are drawn after
-   * opaques with depth-write disabled.
+   * into opaque and transparent buckets up front based on
+   * `item.material.transparent`; transparents are drawn after opaques with
+   * depth-write disabled.
    *
    * @param items All meshes to render this frame, in any order.
    */
   setDrawItems(items: ForwardDrawItem[]): void {
-    this._opaqueItems = items.filter((item) => !item.transparent);
-    this._transparentItems = items.filter((item) => item.transparent);
+    this._opaqueItems = items.filter((item) => !item.material.transparent);
+    this._transparentItems = items.filter((item) => item.material.transparent);
   }
 
   /**
@@ -713,8 +573,8 @@ export class ForwardPass extends RenderPass {
 
   /**
    * Encode the forward render pass: clears the colour and depth attachments,
-   * draws all opaque items with the opaque pipeline, then all transparents with
-   * the alpha-blended pipeline.
+   * draws all opaque items with the opaque pipeline variant for each material's
+   * shader, then all transparents with the alpha-blended variant.
    *
    * If `outputView` is omitted, the pass renders into the swapchain when its
    * format is `rgba16float`, otherwise into the internal HDR target.
@@ -751,51 +611,100 @@ export class ForwardPass extends RenderPass {
     pass.setBindGroup(3, this._lightingIblBindGroup);
 
     // Draw opaque objects
-    pass.setPipeline(this._opaquePipeline);
     for (const item of this._opaqueItems) {
-      this._drawItem(pass, ctx, item);
+      this._drawItem(pass, ctx, item, false);
     }
 
     // Draw transparent objects
-    pass.setPipeline(this._transparentPipeline);
     for (const item of this._transparentItems) {
-      this._drawItem(pass, ctx, item);
+      this._drawItem(pass, ctx, item, true);
     }
 
     pass.end();
   }
 
-  private _drawItem(pass: GPURenderPassEncoder, ctx: RenderContext, item: ForwardDrawItem): void {
-    // Model uniform
+  private _drawItem(pass: GPURenderPassEncoder, ctx: RenderContext, item: ForwardDrawItem, transparent: boolean): void {
+    const device = ctx.device;
+    const material = item.material;
+
+    // Let the material flush dirty CPU-side parameters into its uniform buffers.
+    material.update?.(ctx.queue);
+
+    // Compile (or fetch cached) pipeline for this material's shader.
+    pass.setPipeline(this._getPipeline(device, material, transparent));
+
+    // Per-draw model uniform.
     this._modelData.set(item.modelMatrix.data, 0);
     this._modelData.set(item.normalMatrix.data, 16);
-    ctx.device.queue.writeBuffer(this._getOrCreateModelBuffer(ctx.device), 0, this._modelData);
+    const modelBuffer = this._getOrCreateModelBuffer(device);
+    ctx.queue.writeBuffer(modelBuffer, 0, this._modelData);
 
-    // Material uniform
-    const mat = item.material;
-    this._matData[0] = mat.albedo[0];
-    this._matData[1] = mat.albedo[1];
-    this._matData[2] = mat.albedo[2];
-    this._matData[3] = mat.albedo[3];
-    this._matData[4] = mat.roughness;
-    this._matData[5] = mat.metallic ?? 0.0;
-    this._matData[6] = mat.uvOffset?.[0] ?? 0.0;
-    this._matData[7] = mat.uvOffset?.[1] ?? 0.0;
-    this._matData[8] = mat.uvScale?.[0] ?? 1.0;
-    this._matData[9] = mat.uvScale?.[1] ?? 1.0;
-    this._matData[10] = mat.uvTile?.[0] ?? 1.0;
-    this._matData[11] = mat.uvTile?.[1] ?? 1.0;
-    ctx.device.queue.writeBuffer(this._getOrCreateMaterialBuffer(ctx.device), 0, this._matData);
-
-    pass.setBindGroup(1, this._getOrCreateModelMaterialBindGroup(ctx.device));
-    pass.setBindGroup(2, this._getOrCreateTextureBindGroup(ctx.device, mat));
+    pass.setBindGroup(1, this._getOrCreateModelBindGroup(device));
+    pass.setBindGroup(2, material.getBindGroup(device));
 
     pass.setVertexBuffer(0, item.mesh.vertexBuffer);
     pass.setIndexBuffer(item.mesh.indexBuffer, 'uint32');
     pass.drawIndexed(item.mesh.indexCount);
   }
 
-  private _bufferIndex = 0;
+  private _getPipeline(device: GPUDevice, material: Material, transparent: boolean): GPURenderPipeline {
+    const cache = transparent ? this._transparentPipelineCache : this._opaquePipelineCache;
+    let pipeline = cache.get(material.shaderId);
+    if (pipeline) {
+      return pipeline;
+    }
+
+    const shaderModule = device.createShaderModule({
+      label: `ForwardShader[${material.shaderId}]`,
+      code: material.getShaderCode(MaterialPassType.Forward),
+    });
+
+    const layout = device.createPipelineLayout({
+      label: `ForwardPipelineLayout[${material.shaderId}]`,
+      bindGroupLayouts: [
+        this._cameraBGL,
+        this._modelBGL,
+        material.getBindGroupLayout(device),
+        this._lightingIblBGL,
+      ],
+    });
+
+    const colorTarget: GPUColorTargetState = transparent
+      ? {
+          format: 'rgba16float',
+          blend: {
+            color: { srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha', operation: 'add' },
+            alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha', operation: 'add' },
+          },
+        }
+      : { format: 'rgba16float' };
+
+    pipeline = device.createRenderPipeline({
+      label: `ForwardPipeline[${material.shaderId}${transparent ? ':t' : ''}]`,
+      layout,
+      vertex: {
+        module: shaderModule,
+        entryPoint: 'vs_main',
+        buffers: [{ arrayStride: VERTEX_STRIDE, attributes: VERTEX_ATTRIBUTES }],
+      },
+      fragment: {
+        module: shaderModule,
+        entryPoint: 'fs_main',
+        targets: [colorTarget],
+      },
+      depthStencil: {
+        format: 'depth32float',
+        depthWriteEnabled: !transparent,
+        depthCompare: 'less',
+      },
+      primitive: {
+        topology: 'triangle-list',
+        cullMode: 'back',
+      },
+    });
+    cache.set(material.shaderId, pipeline);
+    return pipeline;
+  }
 
   private _getOrCreateModelBuffer(device: GPUDevice): GPUBuffer {
     const idx = this._bufferIndex % 32;
@@ -809,81 +718,36 @@ export class ForwardPass extends RenderPass {
     return this._modelBuffers[idx];
   }
 
-  private _getOrCreateMaterialBuffer(device: GPUDevice): GPUBuffer {
-    const idx = this._bufferIndex % 32;
-    if (!this._materialBuffers[idx]) {
-      this._materialBuffers[idx] = device.createBuffer({
-        label: `ForwardMaterialBuffer${idx}`,
-        size: MATERIAL_UNIFORM_SIZE,
-        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-      });
-    }
-    return this._materialBuffers[idx];
-  }
-
-  private _getOrCreateModelMaterialBindGroup(device: GPUDevice): GPUBindGroup {
+  private _getOrCreateModelBindGroup(device: GPUDevice): GPUBindGroup {
     const idx = this._bufferIndex++ % 32;
-    if (!this._modelMaterialBindGroups[idx]) {
-      this._modelMaterialBindGroups[idx] = device.createBindGroup({
-        label: `ForwardModelMaterialBG${idx}`,
-        layout: this._modelMaterialBGL,
+    if (!this._modelBindGroups[idx]) {
+      this._modelBindGroups[idx] = device.createBindGroup({
+        label: `ForwardModelBG${idx}`,
+        layout: this._modelBGL,
         entries: [
           { binding: 0, resource: { buffer: this._modelBuffers[idx] } },
-          { binding: 1, resource: { buffer: this._materialBuffers[idx] } },
         ],
       });
     }
-    return this._modelMaterialBindGroups[idx];
-  }
-
-  private _modelBuffers: GPUBuffer[] = [];
-  private _materialBuffers: GPUBuffer[] = [];
-  private _modelMaterialBindGroups: GPUBindGroup[] = [];
-
-  private _getOrCreateTextureBindGroup(device: GPUDevice, material: Material): GPUBindGroup {
-    let bg = this._textureBGs.get(material);
-    if (!bg) {
-      const albedoView = material.albedoMap?.view ?? this._whiteView;
-      const normalView = material.normalMap?.view ?? this._flatNormalView;
-      const merView = material.merMap?.view ?? this._merDefaultView;
-
-      bg = device.createBindGroup({
-        label: 'ForwardTextureBG',
-        layout: this._textureBGL,
-        entries: [
-          { binding: 0, resource: albedoView },
-          { binding: 1, resource: normalView },
-          { binding: 2, resource: merView },
-          { binding: 3, resource: this._materialSampler },
-        ],
-      });
-      this._textureBGs.set(material, bg);
-    }
-    return bg;
+    return this._modelBindGroups[idx];
   }
 
   /**
    * Release every GPU resource owned by the pass: render targets, shadow
-   * arrays, fallback material textures and all uniform / per-draw buffers.
-   * Pipelines and bind groups are GC'd with the pass instance.
+   * arrays, and uniform / per-draw buffers. Pipelines, bind groups, and
+   * material-owned resources are GC'd / destroyed by their owners.
    */
   destroy(): void {
     this._depthTexture.destroy();
     this._outputTexture.destroy();
     this._shadowMapArray.destroy();
     this._pointShadowCubeArray.destroy();
-    this._whiteTex.destroy();
-    this._flatNormalTex.destroy();
-    this._merDefaultTex.destroy();
     this._cameraBuffer.destroy();
     this._lightingBuffer.destroy();
     this._directionalLightBuffer.destroy();
     this._pointLightsBuffer.destroy();
     this._spotLightsBuffer.destroy();
     for (const buf of this._modelBuffers) {
-      buf.destroy();
-    }
-    for (const buf of this._materialBuffers) {
       buf.destroy();
     }
   }

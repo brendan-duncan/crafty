@@ -18,7 +18,7 @@ import { GBuffer } from '../../src/renderer/gbuffer.js';
 import { parseHdr, createHdrTexture } from '../../src/assets/hdr_loader.js';
 import { computeIblGpu } from '../../src/assets/ibl.js';
 import { Mesh } from '../../src/assets/mesh.js';
-import type { Material } from '../../src/engine/components/mesh_renderer.js';
+import { PbrMaterial } from '../../src/engine/materials/pbr_material.js';
 
 
 
@@ -83,17 +83,17 @@ async function main() {
   const planeMesh = Mesh.createPlane(device, 100, 100, 1, 1);
 
   // Materials
-  const groundMaterial: Material = {
+  const groundMaterial = new PbrMaterial({
     albedo: [0.5, 0.7, 0.5, 1.0],
     roughness: 0.9,
     metallic: 0.0,
-  };
+  });
 
-  const cubeMaterial: Material = {
+  const cubeMaterial = new PbrMaterial({
     albedo: [1.0, 0.2, 0.2, 1.0],
     roughness: 0.5,
     metallic: 0.0,
-  };
+  });
 
   // Create ground plane
   const groundGO = new GameObject('Ground');

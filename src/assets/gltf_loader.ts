@@ -2,7 +2,8 @@ import { Texture } from './texture.js';
 import { SkinnedMesh } from './skinned_mesh.js';
 import { Skeleton } from '../engine/skeleton.js';
 import type { AnimationClip, AnimationChannel, Interpolation } from '../engine/animation.js';
-import type { Material } from '../engine/components/mesh_renderer.js';
+import { Material } from '../engine/material.js';
+import { PbrMaterial } from '../engine/materials/pbr_material.js';
 
 // ---- GLTF JSON types --------------------------------------------------------
 
@@ -579,13 +580,13 @@ export class GltfLoader {
         const albedoMap = await loadTex(pbr?.baseColorTexture?.index, true);
         const normalMap = await loadTex(matJson?.normalTexture?.index, false);
 
-        const material: Material = {
-          albedo   : pbr?.baseColorFactor  ?? [1, 1, 1, 1],
+        const material: Material = new PbrMaterial({
+          albedo   : (pbr?.baseColorFactor as [number, number, number, number] | undefined) ?? [1, 1, 1, 1],
           roughness: pbr?.roughnessFactor  ?? 0.5,
           metallic : pbr?.metallicFactor   ?? 0,
           albedoMap: albedoMap ?? undefined,
           normalMap: normalMap ?? undefined,
-        };
+        });
 
         meshDatas.push({ skinnedMesh, material });
       }

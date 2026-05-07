@@ -10,17 +10,18 @@ import normalAtlasUrl from '../assets/cube_textures/simple_block_atlas_normal.pn
 import merAtlasUrl    from '../assets/cube_textures/simple_block_atlas_mer.png?url';
 import heightAtlasUrl from '../assets/cube_textures/simple_block_atlas_heightmap.png?url';
 import foxUrl         from '../assets/fox.glb?url';
-import { Mat4, Vec3, Quaternion } from '../src/math/index.js';
-import { GameObject, Scene, Camera, DirectionalLight, MeshRenderer, CameraControls, AnimatedModel, PointLight, SpotLight } from '../src/engine/index.js';
-import { RenderContext, RenderGraph, GBuffer, ShadowPass, SkyPass, GeometryPass, SkinnedGeometryPass, LightingPass, TAAPass, SSAOPass, SSGIPass, DofPass, BloomPass, CompositePass, DebugLightPass, ParticlePass, CloudPass, CloudShadowPass, AutoExposurePass, PointSpotShadowPass, PointSpotLightPass } from '../src/renderer/index.js';
-import type { CloudSettings } from '../src/renderer/index.js';
-import type { ParticleGraphConfig } from '../src/particles/index.js';
-import { Mesh, BlockTexture, GltfLoader, createCloudNoiseTextures } from '../src/assets/index.js';
-import type { GltfModel, CloudNoiseTextures } from '../src/assets/index.js';
-import { parseHdr, createHdrTexture } from '../src/assets/hdr_loader.js';
-import { computeIblGpu } from '../src/assets/ibl.js';
-import type { IblTextures } from '../src/assets/ibl.js';
-import type { DrawItem } from '../src/renderer/passes/geometry_pass.js';
+import { Mat4, Vec3, Quaternion } from '../../src/math/index.js';
+import { GameObject, Scene, Camera, DirectionalLight, MeshRenderer, CameraControls, AnimatedModel, PointLight, SpotLight } from '../../src/engine/index.js';
+import { PbrMaterial } from '../../src/engine/materials/pbr_material.js';
+import { RenderContext, RenderGraph, GBuffer, ShadowPass, SkyPass, GeometryPass, SkinnedGeometryPass, LightingPass, TAAPass, SSAOPass, SSGIPass, DofPass, BloomPass, CompositePass, DebugLightPass, ParticlePass, CloudPass, CloudShadowPass, AutoExposurePass, PointSpotShadowPass, PointSpotLightPass } from '../../src/renderer/index.js';
+import type { CloudSettings } from '../../src/renderer/index.js';
+import type { ParticleGraphConfig } from '../../src/particles/index.js';
+import { Mesh, BlockTexture, GltfLoader, createCloudNoiseTextures } from '../../src/assets/index.js';
+import type { GltfModel, CloudNoiseTextures } from '../../src/assets/index.js';
+import { parseHdr, createHdrTexture } from '../../src/assets/hdr_loader.js';
+import { computeIblGpu } from '../../src/assets/ibl.js';
+import type { IblTextures } from '../../src/assets/ibl.js';
+import type { DrawItem } from '../../src/renderer/passes/geometry_pass.js';
 
 function halton(index: number, base: number): number {
   let result = 0, f = 1;
@@ -131,7 +132,7 @@ async function main() {
   planeGO.position.set(0, 0, 0);
   const planeMesh = Mesh.createPlane(device, 100, 100, 4, 4);
   const [planeUvOx, planeUvOy, planeUvSx, planeUvSy] = blockTex.uvTransform(2);
-  planeGO.addComponent(new MeshRenderer(planeMesh, {
+  planeGO.addComponent(new MeshRenderer(planeMesh, new PbrMaterial({
     albedo: [1, 1, 1, 1],
     roughness: 1.0,
     metallic: 1.0,
@@ -141,7 +142,7 @@ async function main() {
     albedoMap: blockTex.colorAtlas,
     normalMap: blockTex.normalAtlas,
     merMap:    blockTex.merAtlas,
-  }));
+  })));
   scene.add(planeGO);
 
   const cubeMesh = Mesh.createCube(device, 1);
@@ -156,7 +157,7 @@ async function main() {
     const [uvOffsetX, uvOffsetY, uvScaleX, uvScaleY] = blockTex.uvTransform(blockId);
     const go = new GameObject(`Cube${i}`);
     go.position.set(pos[0], pos[1], pos[2]);
-    go.addComponent(new MeshRenderer(cubeMesh, {
+    go.addComponent(new MeshRenderer(cubeMesh, new PbrMaterial({
       albedo: [1, 1, 1, 1],
       roughness: 1.0,
       metallic: 1.0,
@@ -165,7 +166,7 @@ async function main() {
       albedoMap: blockTex.colorAtlas,
       normalMap: blockTex.normalAtlas,
       merMap:    blockTex.merAtlas,
-    }));
+    })));
     scene.add(go);
     return go;
   });
@@ -173,11 +174,11 @@ async function main() {
   const sphereGO = new GameObject('MirrorSphere');
   sphereGO.position.set(0, 1, 4);
   const sphereMesh = Mesh.createSphere(device, 1, 64, 64);
-  sphereGO.addComponent(new MeshRenderer(sphereMesh, {
+  sphereGO.addComponent(new MeshRenderer(sphereMesh, new PbrMaterial({
     albedo:   [1, 1, 1, 1],
     metallic: 1.0,
     roughness: 0.0,
-  }));
+  })));
   scene.add(sphereGO);
 
   // Load fox GLB asynchronously; added to scene once ready
@@ -214,9 +215,9 @@ async function main() {
   torchLight.intensity = 8.0;
   torchLight.radius = 6.0;
   torchLight.castShadow = true;
-  const torchDebugMR = torchGO.addComponent(new MeshRenderer(debugSphereMesh, {
+  const torchDebugMR = torchGO.addComponent(new MeshRenderer(debugSphereMesh, new PbrMaterial({
     albedo: [1.0, 0.55, 0.15, 1.0], roughness: 0.3, metallic: 0.0,
-  }));
+  })));
   torchDebugMR.castShadow = false;
   scene.add(torchGO);
 
@@ -245,9 +246,9 @@ async function main() {
   const spotBasePos    = spotGO.position.add(spotLightDir.scale(spotConeHeight));
   spotDebugGO.position.set(spotBasePos.x, spotBasePos.y, spotBasePos.z);
   spotDebugGO.rotation = spotGO.rotation.multiply(Quaternion.fromAxisAngle(new Vec3(1, 0, 0), Math.PI / 2));
-  const spotDebugMR = spotDebugGO.addComponent(new MeshRenderer(spotDebugMesh, {
+  const spotDebugMR = spotDebugGO.addComponent(new MeshRenderer(spotDebugMesh, new PbrMaterial({
     albedo: [0.9, 0.95, 1.0, 1.0], roughness: 0.3, metallic: 0.0,
-  }));
+  })));
   spotDebugMR.castShadow = false;
   scene.add(spotDebugGO);
 

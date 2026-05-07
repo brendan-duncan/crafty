@@ -74,15 +74,15 @@ struct LightingUniforms {
 // Group 0: Camera
 @group(0) @binding(0) var<uniform> camera : CameraUniforms;
 
-// Group 1: Model + Material
+// Group 1: Model
 @group(1) @binding(0) var<uniform> model    : ModelUniforms;
-@group(1) @binding(1) var<uniform> material : MaterialUniforms;
 
-// Group 2: Texture maps
-@group(2) @binding(0) var albedo_map  : texture_2d<f32>;
-@group(2) @binding(1) var normal_map  : texture_2d<f32>;
-@group(2) @binding(2) var mer_map     : texture_2d<f32>;
-@group(2) @binding(3) var mat_sampler : sampler;
+// Group 2: Material (uniforms + texture maps + sampler)
+@group(2) @binding(0) var<uniform> material : MaterialUniforms;
+@group(2) @binding(1) var albedo_map  : texture_2d<f32>;
+@group(2) @binding(2) var normal_map  : texture_2d<f32>;
+@group(2) @binding(3) var mer_map     : texture_2d<f32>;
+@group(2) @binding(4) var mat_sampler : sampler;
 
 // Group 3: Lighting + Shadow + IBL
 @group(3) @binding(0) var<uniform> lighting            : LightingUniforms;

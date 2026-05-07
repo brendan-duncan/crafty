@@ -1,5 +1,5 @@
 // GBuffer fill pass — writes albedo+roughness and normal+metallic.
-// Group 3 texture maps are optional; the geometry pass binds 1×1 fallbacks when unset.
+// Group 2 texture maps are optional; the material binds 1×1 fallbacks when unset.
 
 struct CameraUniforms {
   view      : mat4x4<f32>,
@@ -27,13 +27,13 @@ struct MaterialUniforms {
 
 @group(0) @binding(0) var<uniform> camera  : CameraUniforms;
 @group(1) @binding(0) var<uniform> model   : ModelUniforms;
+// Group 2: Material (uniforms + texture maps + sampler).
+// Texture maps: albedoMap (srgb), normalMap (tangent-space linear), merMap (R=metallic, G=emissive, B=roughness).
 @group(2) @binding(0) var<uniform> material: MaterialUniforms;
-
-// Texture maps: albedoMap (srgb), normalMap (tangent-space linear), merMap (R=metallic, G=emissive, B=roughness)
-@group(3) @binding(0) var albedo_map: texture_2d<f32>;
-@group(3) @binding(1) var normal_map: texture_2d<f32>;
-@group(3) @binding(2) var mer_map   : texture_2d<f32>;
-@group(3) @binding(3) var mat_samp  : sampler;
+@group(2) @binding(1) var albedo_map: texture_2d<f32>;
+@group(2) @binding(2) var normal_map: texture_2d<f32>;
+@group(2) @binding(3) var mer_map   : texture_2d<f32>;
+@group(2) @binding(4) var mat_samp  : sampler;
 
 struct VertexInput {
   @location(0) position: vec3<f32>,

@@ -4,12 +4,10 @@ import type { GBuffer } from '../gbuffer.js';
 import { SKINNED_VERTEX_ATTRIBUTES, SKINNED_VERTEX_STRIDE } from '../../assets/skinned_mesh.js';
 import type { SkinnedMesh } from '../../assets/skinned_mesh.js';
 import type { Mat4 } from '../../math/mat4.js';
-import type { Material } from '../../engine/components/mesh_renderer.js';
-import skinnedGeometryWgsl from '../../shaders/skinned_geometry.wgsl?raw';
+import { Material, MaterialPassType } from '../../engine/material.js';
 
-const CAMERA_UNIFORM_SIZE   = 64 * 4 + 16 + 16;
-const MODEL_UNIFORM_SIZE    = 128;
-const MATERIAL_UNIFORM_SIZE = 48;
+const CAMERA_UNIFORM_SIZE = 64 * 4 + 16 + 16;
+const MODEL_UNIFORM_SIZE  = 128;
 
 /**
  * One skinned mesh draw call for {@link SkinnedGeometryPass}.
@@ -29,20 +27,20 @@ export interface SkinnedDrawItem {
  *
  * Performs GPU skinning in the vertex shader using a per-mesh joint matrix storage
  * buffer, then writes albedo+roughness and normal+metallic into the GBuffer (loading
- * existing contents so it composites with prior geometry passes). Uses the same
- * material model (PBR with optional albedo/normal/MER textures) as the static
- * geometry pass.
+ * existing contents so it composites with prior geometry passes). Each draw supplies
+ * its own {@link Material}; pipelines are cached per `material.shaderId` so many
+ * materials sharing a shader share one pipeline.
  */
 export class SkinnedGeometryPass extends RenderPass {
   readonly name = 'SkinnedGeometryPass';
 
   private _gbuffer: GBuffer;
-  private _pipeline: GPURenderPipeline;
 
+  private _cameraBGL    : GPUBindGroupLayout;
   // Group 1 combines model uniforms (binding 0) + joint matrices (binding 1)
   private _modelJointBGL: GPUBindGroupLayout;
-  private _materialBGL  : GPUBindGroupLayout;
-  private _textureBGL   : GPUBindGroupLayout;
+
+  private _pipelineCache = new Map<string, GPURenderPipeline>();
 
   private _cameraBuffer   : GPUBuffer;
   private _cameraBindGroup: GPUBindGroup;
@@ -51,59 +49,31 @@ export class SkinnedGeometryPass extends RenderPass {
   private _jointBuffers         : GPUBuffer[] = [];
   private _jointBufferSizes     : number[] = [];
   private _modelJointBindGroups : GPUBindGroup[] = [];
-  private _materialBuffers      : GPUBuffer[] = [];
-  private _materialBindGroups   : GPUBindGroup[] = [];
 
-  private _whiteTex      : GPUTexture;
-  private _flatNormalTex : GPUTexture;
-  private _merDefaultTex : GPUTexture;
-  private _whiteView     : GPUTextureView;
-  private _flatNormalView: GPUTextureView;
-  private _merDefaultView: GPUTextureView;
-  private _materialSampler: GPUSampler;
-
-  private _textureBGs = new WeakMap<object, GPUBindGroup>();
   private _drawItems: SkinnedDrawItem[] = [];
 
-  // Pre-allocated staging buffers — reused per draw call to avoid per-frame GC.
+  // Pre-allocated staging buffer — reused per draw call to avoid per-frame GC.
   private readonly _modelData = new Float32Array(32);
-  private readonly _matData   = new Float32Array(12);
 
   private constructor(
     gbuffer: GBuffer,
-    pipeline: GPURenderPipeline,
-    _cameraBGL: GPUBindGroupLayout,
+    cameraBGL: GPUBindGroupLayout,
     modelJointBGL: GPUBindGroupLayout,
-    materialBGL: GPUBindGroupLayout,
-    textureBGL: GPUBindGroupLayout,
     cameraBuffer: GPUBuffer,
     cameraBindGroup: GPUBindGroup,
-    whiteTex: GPUTexture, whiteView: GPUTextureView,
-    flatNormalTex: GPUTexture, flatNormalView: GPUTextureView,
-    merDefaultTex: GPUTexture, merDefaultView: GPUTextureView,
-    materialSampler: GPUSampler,
   ) {
     super();
-    this._gbuffer          = gbuffer;
-    this._pipeline         = pipeline;
-    this._modelJointBGL    = modelJointBGL;
-    this._materialBGL      = materialBGL;
-    this._textureBGL       = textureBGL;
-    this._cameraBuffer     = cameraBuffer;
-    this._cameraBindGroup  = cameraBindGroup;
-    this._whiteTex         = whiteTex;
-    this._whiteView        = whiteView;
-    this._flatNormalTex    = flatNormalTex;
-    this._flatNormalView   = flatNormalView;
-    this._merDefaultTex    = merDefaultTex;
-    this._merDefaultView   = merDefaultView;
-    this._materialSampler  = materialSampler;
+    this._gbuffer         = gbuffer;
+    this._cameraBGL       = cameraBGL;
+    this._modelJointBGL   = modelJointBGL;
+    this._cameraBuffer    = cameraBuffer;
+    this._cameraBindGroup = cameraBindGroup;
   }
 
   /**
-   * Creates the GBuffer-writing render pipeline, the camera uniform, the bind group
-   * layouts for model+joints/material/textures, and the 1x1 fallback textures
-   * (white albedo, flat normal, default MER) used when a material omits a map.
+   * Creates the camera uniform, the bind group layouts for model+joints, and
+   * the camera bind group. Pipelines are NOT created up front — they are
+   * compiled lazily on the first draw of each unique `material.shaderId`.
    */
   static create(ctx: RenderContext, gbuffer: GBuffer): SkinnedGeometryPass {
     const { device } = ctx;
@@ -120,37 +90,6 @@ export class SkinnedGeometryPass extends RenderPass {
         { binding: 1, visibility: GPUShaderStage.VERTEX, buffer: { type: 'read-only-storage' } },
       ],
     });
-    const materialBGL = device.createBindGroupLayout({
-      label: 'SkinnedGeomMaterialBGL',
-      entries: [{ binding: 0, visibility: GPUShaderStage.FRAGMENT, buffer: { type: 'uniform' } }],
-    });
-    const textureBGL = device.createBindGroupLayout({
-      label: 'SkinnedGeomTextureBGL',
-      entries: [
-        { binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } },
-        { binding: 1, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } },
-        { binding: 2, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } },
-        { binding: 3, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } },
-      ],
-    });
-
-    function makeTex(label: string, r: number, g: number, b: number, a: number): [GPUTexture, GPUTextureView] {
-      const t = device.createTexture({
-        label, size: { width: 1, height: 1 }, format: 'rgba8unorm',
-        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
-      });
-      device.queue.writeTexture({ texture: t }, new Uint8Array([r, g, b, a]), { bytesPerRow: 4 }, { width: 1, height: 1 });
-      return [t, t.createView()];
-    }
-    const [whiteTex,      whiteView]      = makeTex('SkinnedGeomWhite',      255, 255, 255, 255);
-    const [flatNormalTex, flatNormalView] = makeTex('SkinnedGeomFlatNormal', 128, 128, 255, 255);
-    const [merDefaultTex, merDefaultView] = makeTex('SkinnedGeomMerDefault', 255, 255, 255, 255);
-
-    const materialSampler = device.createSampler({
-      label: 'SkinnedGeomMaterialSampler',
-      magFilter: 'linear', minFilter: 'linear', mipmapFilter: 'linear',
-      addressModeU: 'repeat', addressModeV: 'repeat',
-    });
 
     const cameraBuffer = device.createBuffer({
       label: 'SkinnedGeomCameraBuffer',
@@ -162,29 +101,7 @@ export class SkinnedGeometryPass extends RenderPass {
       entries: [{ binding: 0, resource: { buffer: cameraBuffer } }],
     });
 
-    const shaderModule = device.createShaderModule({ label: 'SkinnedGeometryShader', code: skinnedGeometryWgsl });
-
-    const pipeline = device.createRenderPipeline({
-      label: 'SkinnedGeometryPipeline',
-      layout: device.createPipelineLayout({ bindGroupLayouts: [cameraBGL, modelJointBGL, materialBGL, textureBGL] }),
-      vertex: {
-        module: shaderModule, entryPoint: 'vs_main',
-        buffers: [{ arrayStride: SKINNED_VERTEX_STRIDE, attributes: SKINNED_VERTEX_ATTRIBUTES }],
-      },
-      fragment: {
-        module: shaderModule, entryPoint: 'fs_main',
-        targets: [{ format: 'rgba8unorm' }, { format: 'rgba16float' }],
-      },
-      depthStencil: { format: 'depth32float', depthWriteEnabled: true, depthCompare: 'less' },
-      primitive: { topology: 'triangle-list', cullMode: 'none' },
-    });
-
-    return new SkinnedGeometryPass(
-      gbuffer, pipeline, cameraBGL, modelJointBGL, materialBGL, textureBGL,
-      cameraBuffer, cameraBindGroup,
-      whiteTex, whiteView, flatNormalTex, flatNormalView, merDefaultTex, merDefaultView,
-      materialSampler,
-    );
+    return new SkinnedGeometryPass(gbuffer, cameraBGL, modelJointBGL, cameraBuffer, cameraBindGroup);
   }
 
   /**
@@ -207,9 +124,10 @@ export class SkinnedGeometryPass extends RenderPass {
   }
 
   /**
-   * For every skinned draw item, uploads the model+normal matrices, material
-   * parameters, and joint matrix array (recreating the storage buffer if the joint
-   * count grew), then renders into the GBuffer (loading existing albedo/normal/depth).
+   * For every skinned draw item, uploads the model+normal matrices and the joint
+   * matrix array (recreating the storage buffer if the joint count grew), asks
+   * each material to refresh its uniforms, then renders into the GBuffer (loading
+   * existing albedo/normal/depth).
    */
   execute(encoder: GPUCommandEncoder, ctx: RenderContext): void {
     if (this._drawItems.length === 0) {
@@ -227,17 +145,7 @@ export class SkinnedGeometryPass extends RenderPass {
       modelData.set(item.normalMatrix.data, 16);
       ctx.queue.writeBuffer(this._modelBuffers[i], 0, modelData.buffer as ArrayBuffer);
 
-      const matData = this._matData;
-      matData.set(item.material.albedo, 0);
-      matData[4] = item.material.roughness;
-      matData[5] = item.material.metallic;
-      matData[6] = item.material.uvOffset?.[0] ?? 0;
-      matData[7] = item.material.uvOffset?.[1] ?? 0;
-      matData[8]  = item.material.uvScale?.[0]  ?? 1;
-      matData[9]  = item.material.uvScale?.[1]  ?? 1;
-      matData[10] = item.material.uvTile?.[0]   ?? 1;
-      matData[11] = item.material.uvTile?.[1]   ?? 1;
-      ctx.queue.writeBuffer(this._materialBuffers[i], 0, matData.buffer as ArrayBuffer);
+      item.material.update?.(ctx.queue);
 
       // Upload joint matrices, recreating storage buffer and bind group if size changed
       const jBytes = item.jointMatrices.byteLength;
@@ -274,14 +182,13 @@ export class SkinnedGeometryPass extends RenderPass {
       },
     });
 
-    pass.setPipeline(this._pipeline);
     pass.setBindGroup(0, this._cameraBindGroup);
 
     for (let i = 0; i < this._drawItems.length; i++) {
       const item = this._drawItems[i];
+      pass.setPipeline(this._getPipeline(device, item.material));
       pass.setBindGroup(1, this._modelJointBindGroups[i]);
-      pass.setBindGroup(2, this._materialBindGroups[i]);
-      pass.setBindGroup(3, this._getOrCreateTextureBG(device, item.material));
+      pass.setBindGroup(2, item.material.getBindGroup(device));
       pass.setVertexBuffer(0, item.mesh.vertexBuffer);
       pass.setIndexBuffer(item.mesh.indexBuffer, 'uint32');
       pass.drawIndexed(item.mesh.indexCount);
@@ -289,21 +196,33 @@ export class SkinnedGeometryPass extends RenderPass {
     pass.end();
   }
 
-  private _getOrCreateTextureBG(device: GPUDevice, material: Material): GPUBindGroup {
-    let bg = this._textureBGs.get(material);
-    if (!bg) {
-      bg = device.createBindGroup({
-        label: 'SkinnedGeomTextureBG', layout: this._textureBGL,
-        entries: [
-          { binding: 0, resource: material.albedoMap?.view ?? this._whiteView },
-          { binding: 1, resource: material.normalMap?.view ?? this._flatNormalView },
-          { binding: 2, resource: material.merMap?.view    ?? this._merDefaultView },
-          { binding: 3, resource: this._materialSampler },
-        ],
-      });
-      this._textureBGs.set(material, bg);
+  private _getPipeline(device: GPUDevice, material: Material): GPURenderPipeline {
+    let pipeline = this._pipelineCache.get(material.shaderId);
+    if (pipeline) {
+      return pipeline;
     }
-    return bg;
+    const shaderModule = device.createShaderModule({
+      label: `SkinnedGeometryShader[${material.shaderId}]`,
+      code: material.getShaderCode(MaterialPassType.SkinnedGeometry),
+    });
+    pipeline = device.createRenderPipeline({
+      label: `SkinnedGeometryPipeline[${material.shaderId}]`,
+      layout: device.createPipelineLayout({
+        bindGroupLayouts: [this._cameraBGL, this._modelJointBGL, material.getBindGroupLayout(device)],
+      }),
+      vertex: {
+        module: shaderModule, entryPoint: 'vs_main',
+        buffers: [{ arrayStride: SKINNED_VERTEX_STRIDE, attributes: SKINNED_VERTEX_ATTRIBUTES }],
+      },
+      fragment: {
+        module: shaderModule, entryPoint: 'fs_main',
+        targets: [{ format: 'rgba8unorm' }, { format: 'rgba16float' }],
+      },
+      depthStencil: { format: 'depth32float', depthWriteEnabled: true, depthCompare: 'less' },
+      primitive: { topology: 'triangle-list', cullMode: 'none' },
+    });
+    this._pipelineCache.set(material.shaderId, pipeline);
+    return pipeline;
   }
 
   private _ensurePerDrawBuffers(device: GPUDevice, count: number): void {
@@ -314,16 +233,12 @@ export class SkinnedGeometryPass extends RenderPass {
       this._jointBuffers.push(null as unknown as GPUBuffer);
       this._jointBufferSizes.push(0);
       this._modelJointBindGroups.push(null as unknown as GPUBindGroup);
-
-      const matb = device.createBuffer({ size: MATERIAL_UNIFORM_SIZE, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
-      this._materialBuffers.push(matb);
-      this._materialBindGroups.push(device.createBindGroup({ layout: this._materialBGL, entries: [{ binding: 0, resource: { buffer: matb } }] }));
     }
   }
 
   /**
-   * Releases the camera, model, joint, and material uniform/storage buffers and the
-   * 1x1 fallback textures.
+   * Releases the camera, model, and joint buffers. Material-owned resources,
+   * pipelines, and bind groups are GC'd / destroyed by their owners.
    */
   destroy(): void {
     this._cameraBuffer.destroy();
@@ -333,11 +248,5 @@ export class SkinnedGeometryPass extends RenderPass {
     for (const b of this._jointBuffers) {
       b?.destroy();
     }
-    for (const b of this._materialBuffers) {
-      b.destroy();
-    }
-    this._whiteTex.destroy();
-    this._flatNormalTex.destroy();
-    this._merDefaultTex.destroy();
   }
 }

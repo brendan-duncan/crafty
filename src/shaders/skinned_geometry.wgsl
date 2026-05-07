@@ -30,10 +30,10 @@ struct MaterialUniforms {
 @group(1) @binding(0) var<uniform>       model         : ModelUniforms;
 @group(1) @binding(1) var<storage, read> joint_matrices: array<mat4x4<f32>>;
 @group(2) @binding(0) var<uniform>       material      : MaterialUniforms;
-@group(3) @binding(0) var                albedo_map    : texture_2d<f32>;
-@group(3) @binding(1) var                normal_map    : texture_2d<f32>;
-@group(3) @binding(2) var                mer_map       : texture_2d<f32>;
-@group(3) @binding(3) var                mat_samp      : sampler;
+@group(2) @binding(1) var                albedo_map    : texture_2d<f32>;
+@group(2) @binding(2) var                normal_map    : texture_2d<f32>;
+@group(2) @binding(3) var                mer_map       : texture_2d<f32>;
+@group(2) @binding(4) var                mat_samp      : sampler;
 
 struct VertexInput {
   @location(0) position: vec3<f32>,

@@ -1,4 +1,5 @@
 import { GameObject, Scene, MeshRenderer } from '../../src/engine/index.js';
+import { PbrMaterial } from '../../src/engine/materials/pbr_material.js';
 import { World, BiomeType, BlockType } from '../../src/block/index.js';
 import type { Mesh } from '../../src/assets/mesh.js';
 import { DuckAI } from '../../src/engine/components/duck_ai.js';
@@ -30,17 +31,17 @@ export function spawnDuck(
 
   const bodyGO = new GameObject('Duck.Body');
   bodyGO.position.set(0, 0.15, 0);
-  bodyGO.addComponent(new MeshRenderer(duckBodyMesh, { albedo: [0.93, 0.93, 0.93, 1], roughness: 0.9 }));
+  bodyGO.addComponent(new MeshRenderer(duckBodyMesh, new PbrMaterial({ albedo: [0.93, 0.93, 0.93, 1], roughness: 0.9 })));
   duckRoot.addChild(bodyGO);
 
   const headGO = new GameObject('Duck.Head');
   headGO.position.set(0, 0.32, -0.12);
-  headGO.addComponent(new MeshRenderer(duckHeadMesh, { albedo: [0.08, 0.32, 0.10, 1], roughness: 0.9 }));
+  headGO.addComponent(new MeshRenderer(duckHeadMesh, new PbrMaterial({ albedo: [0.08, 0.32, 0.10, 1], roughness: 0.9 })));
   duckRoot.addChild(headGO);
 
   const billGO = new GameObject('Duck.Bill');
   billGO.position.set(0, 0.27, -0.205);
-  billGO.addComponent(new MeshRenderer(duckBillMesh, { albedo: [1.0, 0.55, 0.05, 1], roughness: 0.8 }));
+  billGO.addComponent(new MeshRenderer(duckBillMesh, new PbrMaterial({ albedo: [1.0, 0.55, 0.05, 1], roughness: 0.8 })));
   duckRoot.addChild(billGO);
 
   duckRoot.addComponent(new DuckAI(world));

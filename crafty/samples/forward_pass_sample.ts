@@ -7,7 +7,7 @@ import { PointShadowPass } from '../../src/renderer/passes/point_shadow_pass.js'
 import { RenderContext } from '../../src/renderer/render_context.js';
 import { RenderGraph } from '../../src/renderer/render_graph.js';
 import { CameraControls } from '../../src/engine/camera_controls.js';
-import type { Material } from '../../src/engine/components/mesh_renderer.js';
+import { PbrMaterial } from '../../src/engine/materials/pbr_material.js';
 import type { Mesh } from '../../src/assets/mesh.js';
 
 // Simple mesh builder
@@ -223,29 +223,30 @@ async function main() {
   );
 
   // Create materials
-  const opaqueMaterial: Material = {
+  const opaqueMaterial = new PbrMaterial({
     albedo: [1.0, 0.2, 0.2, 1.0],
     roughness: 0.5,
     metallic: 0.0,
-  };
+  });
 
-  const metallicMaterial: Material = {
+  const metallicMaterial = new PbrMaterial({
     albedo: [0.8, 0.8, 0.8, 1.0],
     roughness: 0.4,
     metallic: 0.5,
-  };
+  });
 
-  const transparentMaterial: Material = {
+  const transparentMaterial = new PbrMaterial({
     albedo: [0.2, 0.6, 1.0, 0.5],
     roughness: 0.1,
     metallic: 0.0,
-  };
+    transparent: true,
+  });
 
-  const planeMaterial: Material = {
+  const planeMaterial = new PbrMaterial({
     albedo: [0.5, 0.7, 0.5, 1.0],
     roughness: 0.9,
     metallic: 0.0,
-  };
+  });
 
   // Create forward pass first (it contains the shadow map array)
   const iblTextures = {
@@ -454,33 +455,29 @@ async function main() {
         modelMatrix: Mat4.identity(),
         normalMatrix: Mat4.identity(),
         material: planeMaterial,
-        transparent: false,
       },
       {
         mesh: cubeMesh,
         modelMatrix: Mat4.translation(-2, 1, 0).multiply(Mat4.rotationY(time * 50 * Math.PI / 180)),
         normalMatrix: Mat4.identity(),
         material: opaqueMaterial,
-        transparent: false,
       },
       {
         mesh: cubeMesh,
         modelMatrix: Mat4.translation(2, 1, 0).multiply(Mat4.rotationY(time * -50 * Math.PI / 180)),
         normalMatrix: Mat4.identity(),
         material: metallicMaterial,
-        transparent: false,
       },
       {
         mesh: cubeMesh,
         modelMatrix: Mat4.translation(0, 2, -2).multiply(Mat4.rotationY(time * 30 * Math.PI / 180)),
         normalMatrix: Mat4.identity(),
         material: transparentMaterial,
-        transparent: true,
       },
     ];
 
     // Update shadow passes
-    const shadowDrawItems = drawItems.filter(item => !item.transparent).map(item => ({
+    const shadowDrawItems = drawItems.filter(item => !item.material.transparent).map(item => ({
       mesh: item.mesh,
       modelMatrix: item.modelMatrix,
     }));
