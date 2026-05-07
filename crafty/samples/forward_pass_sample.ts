@@ -200,43 +200,6 @@ async function main() {
     usage: 0x10, // RENDER_ATTACHMENT
   });
 
-  // Create shadow maps
-  const shadowMapSize = 2048;
-  const shadowCubeSize = 1024;
-
-  // Directional light shadow map
-  const dirShadowMapTexture = device.createTexture({
-    label: 'DirectionalShadowMap',
-    size: { width: shadowMapSize, height: shadowMapSize },
-    format: 'depth32float',
-    usage: 0x10 | 0x04 | 0x01, // RENDER_ATTACHMENT | TEXTURE_BINDING | COPY_SRC
-  });
-  const dirShadowMapView = dirShadowMapTexture.createView();
-
-  // Point light shadow cube maps (2 point lights)
-  const pointShadowCubes: GPUTexture[] = [];
-  const pointShadowCubeViews: GPUTextureView[] = [];
-  for (let i = 0; i < 2; i++) {
-    const cube = device.createTexture({
-      label: `PointShadowCube${i}`,
-      size: { width: shadowCubeSize, height: shadowCubeSize, depthOrArrayLayers: 6 },
-      format: 'depth32float',
-      dimension: '2d',
-      usage: 0x10 | 0x04, // RENDER_ATTACHMENT | TEXTURE_BINDING
-    });
-    pointShadowCubes.push(cube);
-    pointShadowCubeViews.push(cube.createView({ dimension: 'cube' }));
-  }
-
-  // Spot light shadow maps (1 spot light)
-  const spotShadowMapTexture = device.createTexture({
-    label: 'SpotShadowMap',
-    size: { width: shadowMapSize, height: shadowMapSize },
-    format: 'depth32float',
-    usage: 0x10 | 0x04 | 0x01, // RENDER_ATTACHMENT | TEXTURE_BINDING | COPY_SRC
-  });
-  const spotShadowMapView = spotShadowMapTexture.createView();
-
   // Create meshes
   const cubeMesh = createCubeMesh(device);
   const planeMesh = createPlaneMesh(device);
@@ -252,15 +215,12 @@ async function main() {
     format: 'rgba16float',
     usage: 0x04 | 0x02, // TEXTURE_BINDING | COPY_DST
   });
-  // BRDF LUT: rg contains scale/bias for Fresnel, typically (1, 0) at 90 degrees
   device.queue.writeTexture(
     { texture: brdfTex },
-    new Uint16Array([0x3C00, 0x0000, 0, 0]), // r=1.0, g=0.0 (reasonable BRDF approximation)
+    new Uint16Array([0x3C00, 0x0000, 0, 0]), // r=1.0, g=0.0
     { bytesPerRow: 8 },
     { width: 1, height: 1 }
   );
-
-  // Shadow map is created internally by ForwardPass, so we don't need to create it here
 
   // Create materials
   const opaqueMaterial: Material = {
@@ -271,8 +231,8 @@ async function main() {
 
   const metallicMaterial: Material = {
     albedo: [0.8, 0.8, 0.8, 1.0],
-    roughness: 0.2,
-    metallic: 0.9,
+    roughness: 0.4,
+    metallic: 0.5,
   };
 
   const transparentMaterial: Material = {
@@ -282,12 +242,12 @@ async function main() {
   };
 
   const planeMaterial: Material = {
-    albedo: [0.5, 0.7, 0.5, 1.0], // Greenish to stand out
+    albedo: [0.5, 0.7, 0.5, 1.0],
     roughness: 0.9,
     metallic: 0.0,
   };
 
-  // Create forward pass
+  // Create forward pass first (it contains the shadow map array)
   const iblTextures = {
     irradiance: irradianceTex,
     prefiltered: prefilterTex,
@@ -302,10 +262,38 @@ async function main() {
       brdfTex.destroy();
     },
   };
-  // Create render passes
   const forwardPass = ForwardPass.create(renderContext, iblTextures);
+
+  // Get shadow map array from forward pass and create layer views for shadow passes
+  const shadowMapArray = forwardPass.shadowMapArray;
+  const dirShadowMapView = shadowMapArray.createView({
+    dimension: '2d',
+    baseArrayLayer: 0,
+    arrayLayerCount: 1,
+  });
+  const spotShadowMapView = shadowMapArray.createView({
+    dimension: '2d',
+    baseArrayLayer: 1,
+    arrayLayerCount: 1,
+  });
+
+  // Create shadow passes
   const dirShadowPass = DirectionalShadowPass.create(renderContext, dirShadowMapView);
   const spotShadowPass = SpotShadowPass.create(renderContext, spotShadowMapView);
+
+  // Point light shadow cube maps (2 point lights) - these still use separate textures
+  const shadowCubeSize = 1024;
+  const pointShadowCubes: GPUTexture[] = [];
+  for (let i = 0; i < 2; i++) {
+    const cube = device.createTexture({
+      label: `PointShadowCube${i}`,
+      size: { width: shadowCubeSize, height: shadowCubeSize, depthOrArrayLayers: 6 },
+      format: 'depth32float',
+      dimension: '2d',
+      usage: 0x10 | 0x04, // RENDER_ATTACHMENT | TEXTURE_BINDING
+    });
+    pointShadowCubes.push(cube);
+  }
 
   // Create point shadow passes for each point light
   const pointShadowPasses: PointShadowPass[] = [];
@@ -365,6 +353,9 @@ async function main() {
         format: 'depth32float',
         usage: 0x10, // RENDER_ATTACHMENT
       });
+
+      // Resize forward pass internal textures
+      forwardPass.resize(device, renderContext.width, renderContext.height);
     }
 
     // Update camera with CameraControls
@@ -405,7 +396,7 @@ async function main() {
       direction: lightDir,
       intensity: 1.5,
       color: new Vec3(1.0, 0.95, 0.9),
-      castShadows: false,
+      castShadows: true,
       lightViewProj: lightViewProj,
       shadowMap: dirShadowMapView,
     };
@@ -416,14 +407,14 @@ async function main() {
         range: 8,
         color: new Vec3(1.0, 0.3, 0.3),
         intensity: 10,
-        castShadows: false,
+        castShadows: true,
       },
       {
         position: new Vec3(Math.sin(time + Math.PI) * 3, 2, Math.cos(time + Math.PI) * 3),
         range: 8,
         color: new Vec3(0.3, 0.3, 1.0),
         intensity: 10,
-        castShadows: false,
+        castShadows: true,
       },
     ];
 
@@ -556,13 +547,12 @@ async function main() {
     forwardPass.updateLights(renderContext, directionalLight, pointLights, spotLights);
     forwardPass.setDrawItems(drawItems);
 
-    // Manual execution instead of render graph to insert shadow map copies
+    // Manual execution to control pass order
     const encoder = device.createCommandEncoder({ label: 'MainEncoder' });
 
-    // Execute shadow passes and copy to array
+    // Execute shadow passes (render directly to array layers)
     if (dirShadowPass.enabled) {
       dirShadowPass.execute(encoder, renderContext);
-      forwardPass.copyShadowMapToArray(encoder, dirShadowMapTexture, 0);
     }
 
     for (let i = 0; i < pointShadowPasses.length; i++) {
@@ -573,7 +563,6 @@ async function main() {
 
     if (spotShadowPass.enabled) {
       spotShadowPass.execute(encoder, renderContext);
-      forwardPass.copyShadowMapToArray(encoder, spotShadowMapTexture, 1);
     }
 
     // Execute forward pass

@@ -84,7 +84,7 @@ async function main(): Promise<void> {
 
   // Setup sun
   const sunGO = new GameObject('Sun');
-  const sun = sunGO.addComponent(new DirectionalLight(new Vec3(0.3, -1, 0.5), Vec3.one(), 3, 3));
+  const sun = sunGO.addComponent(new DirectionalLight(new Vec3(0.3, -1, 0.5), Vec3.one(), 6, 3));
   scene.add(sunGO);
 
   // Setup player and camera
@@ -254,7 +254,7 @@ async function main(): Promise<void> {
     sun.direction.set(rawDirX / dLen, rawDirY / dLen, rawDirZ / dLen);
 
     const elev = sinA;
-    sun.intensity = Math.max(0, elev) * 3.0;
+    sun.intensity = Math.max(0, elev) * 6.0;
     const t = Math.max(0, elev);
     sun.color.set(1.0, 0.8 + 0.2 * t, 0.6 + 0.4 * t);
 

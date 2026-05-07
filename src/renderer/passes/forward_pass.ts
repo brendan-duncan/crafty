@@ -417,6 +417,33 @@ export class ForwardPass extends RenderPass {
     return this._outputView;
   }
 
+  get shadowMapArray(): GPUTexture {
+    return this._shadowMapArray;
+  }
+
+  resize(device: GPUDevice, width: number, height: number): void {
+    // Destroy old textures
+    this._depthTexture.destroy();
+    this._outputTexture.destroy();
+
+    // Create new textures with updated size
+    this._depthTexture = device.createTexture({
+      label: 'ForwardDepth',
+      size: { width, height },
+      format: 'depth32float',
+      usage: GPUTextureUsage.RENDER_ATTACHMENT,
+    });
+    this._depthView = this._depthTexture.createView();
+
+    this._outputTexture = device.createTexture({
+      label: 'ForwardOutput',
+      size: { width, height },
+      format: 'rgba16float',
+      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+    });
+    this._outputView = this._outputTexture.createView();
+  }
+
   setDrawItems(items: ForwardDrawItem[]): void {
     this._opaqueItems = items.filter((item) => !item.transparent);
     this._transparentItems = items.filter((item) => item.transparent);
@@ -466,7 +493,9 @@ export class ForwardPass extends RenderPass {
     ctx.device.queue.writeBuffer(this._lightingBuffer, 0, lightingData);
 
     // Update directional light (128 bytes = 32 floats)
-    const dirData = new Float32Array(32);
+    const dirBuffer = new ArrayBuffer(128);
+    const dirData = new Float32Array(dirBuffer);
+    const dirDataU32 = new Uint32Array(dirBuffer);
     // offset 0: direction vec3<f32> (aligned to 16)
     dirData[0] = directionalLight.direction.x;
     dirData[1] = directionalLight.direction.y;
@@ -478,20 +507,22 @@ export class ForwardPass extends RenderPass {
     dirData[5] = directionalLight.color.y;
     dirData[6] = directionalLight.color.z;
     // offset 28: castShadows u32
-    dirData[7] = directionalLight.castShadows ? 1.0 : 0.0;
+    dirDataU32[7] = directionalLight.castShadows ? 1 : 0;
     // offset 32: shadowMapIndex u32
-    dirData[8] = 0; // shadowMapIndex (always 0 for directional light)
+    dirDataU32[8] = 0; // shadowMapIndex (always 0 for directional light)
     // offset 36: _pad vec3<u32> (aligned to 48)
     // dirData[9-11] are padding, skip to index 12 (offset 48)
     // offset 64: lightViewProj mat4x4<f32> (aligned to 16)
     if (directionalLight.lightViewProj) {
       dirData.set(directionalLight.lightViewProj.data, 16);
     }
-    ctx.device.queue.writeBuffer(this._directionalLightBuffer, 0, dirData);
+    ctx.device.queue.writeBuffer(this._directionalLightBuffer, 0, dirBuffer);
 
     // Update point lights
     if (pointLights.length > 0) {
-      const pointData = new Float32Array(MAX_POINT_LIGHTS * 12);
+      const buffer = new ArrayBuffer(POINT_LIGHT_SIZE * MAX_POINT_LIGHTS);
+      const pointData = new Float32Array(buffer);
+      const pointDataU32 = new Uint32Array(buffer);
       for (let i = 0; i < Math.min(pointLights.length, MAX_POINT_LIGHTS); i++) {
         const light = pointLights[i];
         const offset = i * 12;
@@ -503,15 +534,18 @@ export class ForwardPass extends RenderPass {
         pointData[offset + 5] = light.color.y;
         pointData[offset + 6] = light.color.z;
         pointData[offset + 7] = light.intensity;
-        pointData[offset + 8] = light.castShadows ? 1.0 : 0.0;
+        pointDataU32[offset + 8] = light.castShadows ? 1 : 0; // u32
         // offset + 9, 10, 11 are padding
       }
-      ctx.device.queue.writeBuffer(this._pointLightsBuffer, 0, pointData);
+      ctx.device.queue.writeBuffer(this._pointLightsBuffer, 0, buffer);
     }
 
     // Update spot lights
     if (spotLights.length > 0) {
-      const spotData = new Float32Array(MAX_SPOT_LIGHTS * 32); // 128 bytes / 4 = 32 floats
+      const buffer = new ArrayBuffer(MAX_SPOT_LIGHTS * 128);
+      const spotData = new Float32Array(buffer);
+      const spotDataU32 = new Uint32Array(buffer);
+
       for (let i = 0; i < Math.min(spotLights.length, MAX_SPOT_LIGHTS); i++) {
         const light = spotLights[i];
         const offset = i * 32;
@@ -528,15 +562,15 @@ export class ForwardPass extends RenderPass {
         spotData[offset + 10] = light.color.z;
         spotData[offset + 11] = light.outerAngle;
         spotData[offset + 12] = light.intensity;
-        spotData[offset + 13] = light.castShadows ? 1.0 : 0.0;
-        spotData[offset + 14] = (light.shadowMap && light.castShadows) ? (i + 1) : 0; // shadowMapIndex: 0 = none, 1+ = spot light index + 1
+        spotDataU32[offset + 13] = light.castShadows ? 1 : 0; // u32
+        spotDataU32[offset + 14] = light.castShadows ? (i + 1) : 0; // u32 shadowMapIndex: directional=0, spot lights start at 1
         // offset + 15 is padding
         // Write view-projection matrix starting at offset 16
         if (light.lightViewProj) {
           spotData.set(light.lightViewProj.data, offset + 16);
         }
       }
-      ctx.device.queue.writeBuffer(this._spotLightsBuffer, 0, spotData);
+      ctx.device.queue.writeBuffer(this._spotLightsBuffer, 0, buffer);
     }
 
   }
