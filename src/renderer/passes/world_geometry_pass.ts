@@ -353,7 +353,7 @@ export class WorldGeometryPass extends RenderPass {
     }
     this._debugChunks = enabled;
     // Update all existing chunk uniforms
-    for (const [chunk, gpu] of this._chunks) {
+    for (const [_chunk, gpu] of this._chunks) {
       this._writeChunkUniforms(gpu.slot, gpu.ox, gpu.oy, gpu.oz);
     }
   }
