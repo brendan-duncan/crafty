@@ -67,6 +67,16 @@ fn ci_to_pos(ci: u32) -> vec3<f32> {
 
 // ── Vertex shader for the face overlay ──────────────────────────────────────
 
+// Clip-space depth bias: subtract a fraction of clip.w from clip.z, which
+// pushes the rasterised NDC depth toward the camera by a fixed 0.001 (1‰).
+// Reliable across drivers/depth formats; the WebGPU `depthBias` pipeline
+// state is implementation-defined for `depth32float`.
+const Z_BIAS: f32 = 0.001;
+
+fn bias_clip(clip: vec4<f32>) -> vec4<f32> {
+  return vec4<f32>(clip.x, clip.y, clip.z - Z_BIAS * clip.w, clip.w);
+}
+
 @vertex
 fn vs_face(@builtin(vertex_index) vid: u32) -> @builtin(position) vec4<f32> {
   let ci  = FACE_CI[vid];
@@ -75,7 +85,7 @@ fn vs_face(@builtin(vertex_index) vid: u32) -> @builtin(position) vec4<f32> {
     mix(-0.001, 1.001, f32((ci >> 1u) & 1u)),
     mix(-0.001, 1.001, f32((ci >> 2u) & 1u)),
   );
-  return u.viewProj * vec4<f32>(pos, 1.0);
+  return bias_clip(u.viewProj * vec4<f32>(pos, 1.0));
 }
 
 @fragment
@@ -125,7 +135,7 @@ fn vs_edge(@builtin(vertex_index) vid: u32) -> @builtin(position) vec4<f32> {
     else { off.y = sgn; }                     // Z-edge: expand in Y
   }
 
-  return u.viewProj * vec4<f32>(base + off, 1.0);
+  return bias_clip(u.viewProj * vec4<f32>(base + off, 1.0));
 }
 
 @fragment

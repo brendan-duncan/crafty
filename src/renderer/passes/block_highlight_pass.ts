@@ -75,20 +75,13 @@ export class BlockHighlightPass extends RenderPass {
     const shader = device.createShaderModule({ label: 'BlockHighlightShader', code: blockHighlightWgsl });
     const pipelineLayout = device.createPipelineLayout({ bindGroupLayouts: [bgl] });
 
+    // The vertex shader applies a clip-space depth bias (clip.z -= 0.001 * clip.w)
+    // which is reliable across drivers; pipeline `depthBias` for depth32float is
+    // implementation-defined and was insufficient at certain camera angles.
     const depthStencil: GPUDepthStencilState = {
       format           : 'depth32float',
       depthWriteEnabled: false,
       depthCompare     : 'less-equal',
-    };
-
-    // Face overlay needs depth bias to avoid z-fighting with the block surface.
-    const faceDepthStencil: GPUDepthStencilState = {
-      format           : 'depth32float',
-      depthWriteEnabled: false,
-      depthCompare     : 'less-equal',
-      depthBias        : -2,
-      depthBiasSlopeScale: -1.0,
-      depthBiasClamp   : 0.0,
     };
 
     const blend: GPUBlendState = {
@@ -102,7 +95,7 @@ export class BlockHighlightPass extends RenderPass {
       vertex  : { module: shader, entryPoint: 'vs_face' },
       fragment: { module: shader, entryPoint: 'fs_face', targets: [{ format: HDR_FORMAT, blend }] },
       primitive   : { topology: 'triangle-list', cullMode: 'none' },
-      depthStencil: faceDepthStencil,
+      depthStencil,
     });
 
     const edgePipeline = device.createRenderPipeline({
