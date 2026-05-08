@@ -6,6 +6,8 @@ Crafty is a Minecraft-style voxel game engine written in TypeScript with a WebGP
 
 ### [Play Crafty](https://brendan-duncan.github.io/crafty/dist)
 
+![Crafty](assets/crafty.png)
+
 ---
 
 ## Table of Contents

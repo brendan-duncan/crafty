@@ -41,10 +41,13 @@ import { setupTouchControlsLazy, isTouchDevice } from './game/touch_controls.js'
 import { updateTorchFlicker, updateMagmaFlicker } from './game/lights.js';
 import { setupAnimalSpawning } from './game/animal_spawner.js';
 import { HeightmapManager } from './game/heightmap.js';
-import { NetworkClient } from './game/network_client.js';
+import { NetworkClient, type ConnectResult } from './game/network_client.js';
 import { RemotePlayer, createRemotePlayerMeshes } from './game/remote_player.js';
 import { NameLabelLayer } from './game/name_label.js';
 import type { BlockEdit } from '../shared/net_protocol.js';
+
+// UI imports (continued)
+import { showStartScreen } from './ui/start_screen.js';
 
 // Config imports
 import { DEFAULT_EFFECTS } from './config/effect_settings.js';
@@ -60,6 +63,17 @@ async function main(): Promise<void> {
   const canvas = document.getElementById('canvas') as HTMLCanvasElement;
   if (!canvas) {
     throw new Error('No canvas element');
+  }
+
+  // Launcher: pick a local seed or connect to a server before any GPU work.
+  const startChoice = await showStartScreen();
+  const playerName = startChoice.playerName;
+  const network: NetworkClient | null = startChoice.mode === 'network' ? startChoice.network : null;
+  const welcome: ConnectResult | null = startChoice.mode === 'network' ? startChoice.welcome : null;
+  if (welcome !== null) {
+    console.log(`[crafty] connected as player ${welcome.playerId} "${playerName}" (${welcome.players.length} other(s) online, ${welcome.edits.length} replay edits)`);
+  } else if (startChoice.mode === 'local') {
+    console.log(`[crafty] starting local world (seed=${startChoice.seed})`);
   }
 
   const ctx = await RenderContext.create(canvas, { enableErrorHandling: false });
@@ -83,30 +97,8 @@ async function main(): Promise<void> {
   const hud = createHud();
   const menu = createMenu(canvas, hud.reticle);
 
-  // Multiplayer connect (best-effort; falls back to single-player on failure).
-  const playerName = (() => {
-    let n = localStorage.getItem('crafty.playerName') ?? '';
-    if (n.trim().length === 0) {
-      n = (window.prompt('Player name?', 'Steve') ?? '').trim();
-      if (n.length === 0) {
-        n = `player${Math.floor(Math.random() * 1000)}`;
-      }
-      localStorage.setItem('crafty.playerName', n);
-    }
-    return n;
-  })();
-  const serverUrl: string = (import.meta as unknown as { env?: { VITE_SERVER_URL?: string } }).env?.VITE_SERVER_URL ?? 'ws://localhost:8787';
-  const network = new NetworkClient();
-  let welcome: { playerId: number; seed: number; edits: BlockEdit[]; players: { playerId: number; name: string; x: number; y: number; z: number; yaw: number; pitch: number }[] } | null = null;
-  try {
-    welcome = await network.connect(serverUrl, playerName);
-    console.log(`[crafty] connected as player ${welcome.playerId} "${playerName}" (${welcome.players.length} other(s) online, ${welcome.edits.length} replay edits)`);
-  } catch (err) {
-    console.warn(`[crafty] no server at ${serverUrl} — running single-player`, err);
-  }
-
   // Create world and scene
-  const worldSeed = welcome?.seed ?? 13;
+  const worldSeed = welcome?.seed ?? (startChoice.mode === 'local' ? startChoice.seed : 13);
   const world = new World(worldSeed);
   if (isTouchDevice()) {
     world.renderDistanceH = 4;
@@ -262,43 +254,45 @@ async function main(): Promise<void> {
     }
   }
 
-  network.setCallbacks({
-    onPlayerJoin: (playerId, name) => {
-      console.log(`[crafty] +${name} (#${playerId})`);
-      _spawnRemote(playerId, name);
-    },
-    onPlayerLeave: (playerId) => {
-      console.log(`[crafty] -#${playerId}`);
-      _despawnRemote(playerId);
-    },
-    onPlayerTransform: (playerId, x, y, z, yaw, pitch) => {
-      const rp = remotePlayers.get(playerId);
-      if (rp === undefined) {
-        return;
-      }
-      rp.setTargetTransform(x, y, z, yaw, pitch);
-    },
-    onBlockEdit: (edit) => {
-      _stashEdit(edit);
-      applyRemoteBlockEdit(
-        edit.kind === 'place'
-          ? { kind: 'place', x: edit.x, y: edit.y, z: edit.z, fx: edit.fx ?? 0, fy: edit.fy ?? 0, fz: edit.fz ?? 0, blockType: edit.blockType }
-          : { kind: 'break', x: edit.x, y: edit.y, z: edit.z },
-        world, scene,
-      );
-    },
-  });
+  if (network !== null) {
+    network.setCallbacks({
+      onPlayerJoin: (playerId, name) => {
+        console.log(`[crafty] +${name} (#${playerId})`);
+        _spawnRemote(playerId, name);
+      },
+      onPlayerLeave: (playerId) => {
+        console.log(`[crafty] -#${playerId}`);
+        _despawnRemote(playerId);
+      },
+      onPlayerTransform: (playerId, x, y, z, yaw, pitch) => {
+        const rp = remotePlayers.get(playerId);
+        if (rp === undefined) {
+          return;
+        }
+        rp.setTargetTransform(x, y, z, yaw, pitch);
+      },
+      onBlockEdit: (edit) => {
+        _stashEdit(edit);
+        applyRemoteBlockEdit(
+          edit.kind === 'place'
+            ? { kind: 'place', x: edit.x, y: edit.y, z: edit.z, fx: edit.fx ?? 0, fy: edit.fy ?? 0, fz: edit.fz ?? 0, blockType: edit.blockType }
+            : { kind: 'break', x: edit.x, y: edit.y, z: edit.z },
+          world, scene,
+        );
+      },
+    });
 
-  // Forward local block edits to the server.
-  blockInteraction.onLocalEdit = (edit) => {
-    if (edit.kind === 'place') {
-      _stashEdit({ kind: 'place', x: edit.x + edit.fx, y: edit.y + edit.fy, z: edit.z + edit.fz, blockType: edit.blockType, fx: edit.fx, fy: edit.fy, fz: edit.fz });
-      network.sendBlockPlace(edit.x, edit.y, edit.z, edit.fx, edit.fy, edit.fz, edit.blockType);
-    } else {
-      _stashEdit({ kind: 'break', x: edit.x, y: edit.y, z: edit.z, blockType: 0 });
-      network.sendBlockBreak(edit.x, edit.y, edit.z);
-    }
-  };
+    // Forward local block edits to the server.
+    blockInteraction.onLocalEdit = (edit) => {
+      if (edit.kind === 'place') {
+        _stashEdit({ kind: 'place', x: edit.x + edit.fx, y: edit.y + edit.fy, z: edit.z + edit.fz, blockType: edit.blockType, fx: edit.fx, fy: edit.fy, fz: edit.fz });
+        network.sendBlockPlace(edit.x, edit.y, edit.z, edit.fx, edit.fy, edit.fz, edit.blockType);
+      } else {
+        _stashEdit({ kind: 'break', x: edit.x, y: edit.y, z: edit.z, blockType: 0 });
+        network.sendBlockBreak(edit.x, edit.y, edit.z);
+      }
+    };
+  }
 
   // Spawn player at terrain surface
   const spawnX = cameraGO.position.x;
@@ -383,6 +377,29 @@ async function main(): Promise<void> {
   escHint.style.cssText = 'color:rgba(255,255,255,0.25);font-size:11px;letter-spacing:0.1em';
   menu.card.appendChild(escHint);
 
+  // Exit to launcher. Reload is the cleanest way to fully tear down WebGPU,
+  // the world, the WebSocket, etc. — main() re-runs and re-shows the launcher.
+  const exitBtn = document.createElement('button');
+  exitBtn.textContent = 'Exit to launcher';
+  exitBtn.style.cssText = [
+    'padding:8px 28px', 'font-size:13px', 'font-family:ui-monospace,monospace',
+    'background:#3a1a1a', 'color:#f88',
+    'border:1px solid #f88', 'border-radius:6px',
+    'cursor:pointer', 'letter-spacing:0.06em',
+    'transition:background 0.15s',
+  ].join(';');
+  exitBtn.addEventListener('mouseenter', () => { exitBtn.style.background = '#4a2424'; });
+  exitBtn.addEventListener('mouseleave', () => { exitBtn.style.background = '#3a1a1a'; });
+  const onExit = (): void => {
+    if (document.pointerLockElement === canvas) {
+      document.exitPointerLock();
+    }
+    location.reload();
+  };
+  exitBtn.addEventListener('click', onExit);
+  exitBtn.addEventListener('touchend', (e) => { e.preventDefault(); onExit(); }, { passive: false });
+  menu.card.appendChild(exitBtn);
+
   // Resize observer
   const resizeObserver = new ResizeObserver(async () => {
     const w = Math.max(1, Math.round(canvas.clientWidth  * devicePixelRatio));
@@ -456,7 +473,7 @@ async function main(): Promise<void> {
     DuckAI.playerPos.y = camPos.y;
     DuckAI.playerPos.z = camPos.z;
 
-    if (network.connected) {
+    if (network !== null && network.connected) {
       network.sendTransform(camPos.x, camPos.y, camPos.z, player.yaw, player.pitch);
     }
     for (const rp of remotePlayers.values()) {
