@@ -36,7 +36,7 @@ import { createHud } from './ui/hud.js';
 // Game logic imports
 import { setupPlayer } from './game/player_setup.js';
 import { createBlockInteractionState, setupBlockInteractionHandlers, updateBlockInteraction } from './game/block_interaction.js';
-import { TouchControls, isTouchDevice } from './game/touch_controls.js';
+import { setupTouchControlsLazy } from './game/touch_controls.js';
 import { updateTorchFlicker, updateMagmaFlicker } from './game/lights.js';
 import { spawnDucksAroundPoint } from './game/duck_spawning.js';
 import { HeightmapManager } from './game/heightmap.js';
@@ -96,22 +96,22 @@ async function main(): Promise<void> {
   const blockInteraction = createBlockInteractionState();
   setupBlockInteractionHandlers(canvas, blockInteraction, world, () => hotbar.getSelected(), scene);
 
-  // Mobile / touch controls — only activate when a touch device is detected.
-  if (isTouchDevice()) {
-    // Don't request pointer-lock from the click handler on touch devices.
+  // Mobile / touch controls — initialised on the first real `touchstart` event,
+  // which is more reliable than capability detection on some browsers / webviews.
+  setupTouchControlsLazy(canvas, {
+    player,
+    camera: freeCamera,
+    getActive: () => playerSetup.isPlayerMode() ? 'player' : 'camera',
+    world,
+    scene,
+    blockInteraction,
+    getSelectedBlock: () => hotbar.getSelected(),
+    onLookDoubleTap: () => playerSetup.toggleController(),
+  }, () => {
+    // Once we know it's a touch device, don't fight it with pointer-lock.
     player.usePointerLock = false;
     freeCamera.usePointerLock = false;
-    new TouchControls(canvas, {
-      player,
-      camera: freeCamera,
-      getActive: () => playerSetup.isPlayerMode() ? 'player' : 'camera',
-      world,
-      scene,
-      blockInteraction,
-      getSelectedBlock: () => hotbar.getSelected(),
-      onLookDoubleTap: () => playerSetup.toggleController(),
-    });
-  }
+  });
 
   // Effects
   const effects = { ...DEFAULT_EFFECTS };

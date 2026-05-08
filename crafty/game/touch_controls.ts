@@ -11,12 +11,58 @@ const BUTTON_SIZE   = 64;   // px — action-button diameter
 const LOOK_SENSITIVITY = 0.005; // radians per pixel for touch drag (~2.5× mouse)
 
 /**
+ * Constructs a {@link TouchControls} the FIRST time a real `touchstart` event
+ * fires anywhere on the page. This is the most robust detection: instead of
+ * guessing capabilities (which `navigator.maxTouchPoints` /
+ * `'ontouchstart' in window` get wrong in some browsers / webview / desktop
+ * mode situations), we let the device tell us it has touch by actually using
+ * touch.
+ *
+ * The first tap is "consumed" to bootstrap the overlay; subsequent touches go
+ * through the overlay's own handlers. On desktop, no `touchstart` ever fires,
+ * so the overlay never appears — zero overhead.
+ *
+ * @returns A `cancel` function that aborts the lazy init if called before any
+ *   touch happened. After init, the returned `controls` reference will be
+ *   set; you can also reach it via the resolved promise.
+ */
+export function setupTouchControlsLazy(
+  canvas: HTMLCanvasElement,
+  opts: TouchControlsOptions,
+  onInit?: (controls: TouchControls) => void,
+): { cancel(): void; controls: TouchControls | null } {
+  const handle: { cancel(): void; controls: TouchControls | null } = { controls: null, cancel() {} };
+
+  // Eager path: if detection succeeds, build immediately.
+  if (isTouchDevice()) {
+    handle.controls = new TouchControls(canvas, opts);
+    onInit?.(handle.controls);
+    return handle;
+  }
+
+  // Lazy path: build on first real touchstart, anywhere.
+  const listener = (): void => {
+    if (handle.controls) {
+      return;
+    }
+    handle.controls = new TouchControls(canvas, opts);
+    onInit?.(handle.controls);
+  };
+  window.addEventListener('touchstart', listener, { once: true, passive: true, capture: true });
+  handle.cancel = () => window.removeEventListener('touchstart', listener, true);
+  return handle;
+}
+
+/**
  * True if the current device exposes touch input.
  *
  * Tries every reasonable detection path: `navigator.maxTouchPoints` (modern,
  * reflects real hardware), `'ontouchstart' in window` (legacy), the
  * `(any-pointer: coarse)` media query (CSS-level touchscreen detection), and
  * an explicit `?touch=1` URL override for testing on desktop.
+ *
+ * NOTE: detection is unreliable in some browsers / webview wrappers — prefer
+ * {@link setupTouchControlsLazy} which falls back to a real `touchstart` event.
  */
 export function isTouchDevice(): boolean {
   // URL override — useful for testing the overlay on desktop or for users on
