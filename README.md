@@ -10,6 +10,58 @@ Crafty is a Minecraft-style voxel game engine written in TypeScript with a WebGP
 
 ---
 
+## Build & Run
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) 18 or later (ships with `npm`)
+- A WebGPU-capable browser (recent Chrome, Edge, or Firefox Nightly with the WebGPU flag)
+
+### Install
+
+```sh
+npm install
+```
+
+### Run the game (single-player)
+
+```sh
+npm run dev
+```
+
+Vite serves the game at `http://localhost:5173`. The launcher opens with a **Local** tab where you can pick a world seed and click *Start*.
+
+### Run multiplayer
+
+The repo includes an authoritative WebSocket server in `server/`. In two terminals:
+
+```sh
+# terminal 1 — install server deps once, then start it
+npm run server:install
+npm run server                # listens on ws://localhost:8787
+
+# terminal 2 — start the client
+npm run dev
+```
+
+Open the launcher's **Network** tab, leave the URL at `ws://localhost:8787` (or change it), and click *Connect*. Open additional browser tabs to join the same world. See [`server/README.md`](server/README.md) for environment variables (`PORT`, `SEED`).
+
+### Production build
+
+```sh
+npm run build      # type-checks then writes a static bundle to dist/
+npm run preview    # serves the built bundle locally
+```
+
+### Tests
+
+```sh
+npm test           # vitest in watch mode
+npm run test:run   # one-shot, suitable for CI
+```
+
+---
+
 ## Table of Contents
 
 1. [Project Structure](#1-project-structure)
