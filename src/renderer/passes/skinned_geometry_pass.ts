@@ -54,6 +54,7 @@ export class SkinnedGeometryPass extends RenderPass {
 
   // Pre-allocated staging buffer — reused per draw call to avoid per-frame GC.
   private readonly _modelData = new Float32Array(32);
+  private readonly _cameraScratch = new Float32Array(CAMERA_UNIFORM_SIZE / 4);
 
   private constructor(
     gbuffer: GBuffer,
@@ -116,7 +117,7 @@ export class SkinnedGeometryPass extends RenderPass {
    * planes into the camera uniform buffer.
    */
   updateCamera(ctx: RenderContext, view: Mat4, proj: Mat4, viewProj: Mat4, invViewProj: Mat4, camPos: { x: number; y: number; z: number }, near: number, far: number): void {
-    const data = new Float32Array(CAMERA_UNIFORM_SIZE / 4);
+    const data = this._cameraScratch;
     data.set(view.data, 0); data.set(proj.data, 16); data.set(viewProj.data, 32); data.set(invViewProj.data, 48);
     data[64] = camPos.x; data[65] = camPos.y; data[66] = camPos.z;
     data[67] = near; data[68] = far;

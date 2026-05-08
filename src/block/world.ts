@@ -42,13 +42,15 @@ export class World {
   waterSimulationRadius = 32; // blocks
   waterTickInterval = 0.25; // seconds between water updates (slower = more realistic)
   private _waterTickTimer = 0;
+  /** When set, `_updateChunk` defers the re-mesh by adding chunks here instead of re-generating immediately. */
+  private _dirtyChunks: Set<Chunk> | null = null;
 
   onChunkAdded?: (chunk: Chunk, mesh: ChunkMesh) => void;
   onChunkUpdated?: (chunk: Chunk, mesh: ChunkMesh) => void;
   onChunkRemoved?: (chunk: Chunk) => void;
 
-  private _chunks    = new Map<string, Chunk>();
-  private _generated = new Set<string>();
+  private _chunks    = new Map<number, Chunk>();
+  private _generated = new Set<number>();
   private _erosionCache = new Map<string, Float32Array>();
 
   /**
@@ -94,8 +96,18 @@ export class World {
     ];
   }
 
-  private static _key(cx: number, cy: number, cz: number): string {
-    return `${cx},${cy},${cz}`;
+  // Single-axis variants used by hot paths to avoid the per-call tuple
+  // allocation that `normalizeChunkPosition` would force.
+  private static _cx(wx: number): number { return Math.floor(wx / Chunk.CHUNK_WIDTH); }
+  private static _cy(wy: number): number { return Math.floor(wy / Chunk.CHUNK_HEIGHT); }
+  private static _cz(wz: number): number { return Math.floor(wz / Chunk.CHUNK_DEPTH); }
+
+  // Bit-packs three signed 16-bit chunk coords into a single number key for
+  // `_chunks` / `_generated`. Avoids the template-literal allocation that
+  // string keys would force on every Map.get / Map.has — a major GC source.
+  // Range: cx, cy, cz ∈ [-32768, 32767]; total fits in 48 bits.
+  private static _key(cx: number, cy: number, cz: number): number {
+    return ((cx + 32768) * 0x100000000) + ((cy + 32768) * 0x10000) + (cz + 32768);
   }
 
   /**
@@ -106,8 +118,7 @@ export class World {
    * @param wz - world Z
    */
   getChunk(wx: number, wy: number, wz: number): Chunk | undefined {
-    const [cx, cy, cz] = World.normalizeChunkPosition(wx, wy, wz);
-    return this._chunks.get(World._key(cx, cy, cz));
+    return this._chunks.get(World._key(World._cx(wx), World._cy(wy), World._cz(wz)));
   }
 
   /**
@@ -152,7 +163,7 @@ export class World {
     let chunk = this.getChunk(wx, wy, wz);
     if (!chunk) {
       // Create chunk if it doesn't exist
-      const [cx, cy, cz] = World.normalizeChunkPosition(wx, wy, wz);
+      const cx = World._cx(wx), cy = World._cy(wy), cz = World._cz(wz);
       chunk = new Chunk(cx * Chunk.CHUNK_WIDTH, cy * Chunk.CHUNK_HEIGHT, cz * Chunk.CHUNK_DEPTH);
       this._insertChunk(chunk);
     }
@@ -312,7 +323,7 @@ export class World {
 
     let targetChunk = this.getChunk(newX, newY, newZ);
     if (!targetChunk) {
-      const [cx, cy, cz] = World.normalizeChunkPosition(newX, newY, newZ);
+      const cx = World._cx(newX), cy = World._cy(newY), cz = World._cz(newZ);
       targetChunk = new Chunk(cx * Chunk.CHUNK_WIDTH, cy * Chunk.CHUNK_HEIGHT, cz * Chunk.CHUNK_DEPTH);
       this._insertChunk(targetChunk);
     }
@@ -386,9 +397,9 @@ export class World {
    * @param chunk - chunk to delete
    */
   deleteChunk(chunk: Chunk): void {
-    const [cx, cy, cz] = World.normalizeChunkPosition(
-      chunk.globalPosition.x, chunk.globalPosition.y, chunk.globalPosition.z,
-    );
+    const cx = World._cx(chunk.globalPosition.x);
+    const cy = World._cy(chunk.globalPosition.y);
+    const cz = World._cz(chunk.globalPosition.z);
     const key = World._key(cx, cy, cz);
     this._chunks.delete(key);
     this._generated.delete(key);
@@ -420,7 +431,7 @@ export class World {
       if (!above) {
         break;
       }
-      const [nx, , nz] = World.normalizeChunkPosition(wx, wy, wz);
+      const nx = World._cx(wx), nz = World._cz(wz);
       const rx = nx * Chunk.CHUNK_WIDTH - above.globalPosition.x;
       const rz = nz * Chunk.CHUNK_DEPTH - above.globalPosition.z;
       if (above.waterBlocks > 0 && isBlockWater(above.getBlock(rx, 0, rz))) {
@@ -480,24 +491,31 @@ export class World {
   }
 
   private _insertChunk(chunk: Chunk): void {
-    const [cx, cy, cz] = World.normalizeChunkPosition(
-      chunk.globalPosition.x, chunk.globalPosition.y, chunk.globalPosition.z,
-    );
+    const cx = World._cx(chunk.globalPosition.x);
+    const cy = World._cy(chunk.globalPosition.y);
+    const cz = World._cz(chunk.globalPosition.z);
     this._chunks.set(World._key(cx, cy, cz), chunk);
     chunk.isDeleted = false;
   }
 
+  // Reused across all _gatherNeighbors calls — `generateVertices` only reads
+  // these fields synchronously, so a single shared object is safe and avoids
+  // an object-literal + closure allocation on every chunk re-mesh.
+  private readonly _neighborScratch: ChunkNeighbors = {
+    negX: undefined, posX: undefined,
+    negY: undefined, posY: undefined,
+    negZ: undefined, posZ: undefined,
+  };
+
   private _gatherNeighbors(cx: number, cy: number, cz: number): ChunkNeighbors {
-    const get = (dx: number, dy: number, dz: number): Uint8Array | undefined =>
-      this._chunks.get(World._key(cx + dx, cy + dy, cz + dz))?.blocks;
-    return {
-      negX: get(-1,  0,  0),
-      posX: get( 1,  0,  0),
-      negY: get( 0, -1,  0),
-      posY: get( 0,  1,  0),
-      negZ: get( 0,  0, -1),
-      posZ: get( 0,  0,  1),
-    };
+    const n = this._neighborScratch;
+    n.negX = this._chunks.get(World._key(cx - 1, cy,     cz    ))?.blocks;
+    n.posX = this._chunks.get(World._key(cx + 1, cy,     cz    ))?.blocks;
+    n.negY = this._chunks.get(World._key(cx,     cy - 1, cz    ))?.blocks;
+    n.posY = this._chunks.get(World._key(cx,     cy + 1, cz    ))?.blocks;
+    n.negZ = this._chunks.get(World._key(cx,     cy,     cz - 1))?.blocks;
+    n.posZ = this._chunks.get(World._key(cx,     cy,     cz + 1))?.blocks;
+    return n;
   }
 
   private _remeshSingleNeighbor(cx: number, cy: number, cz: number): void {
@@ -508,9 +526,32 @@ export class World {
   }
 
   private _updateChunk(chunk: Chunk, rx?: number, ry?: number, rz?: number): void {
-    const [cx, cy, cz] = World.normalizeChunkPosition(
-      chunk.globalPosition.x, chunk.globalPosition.y, chunk.globalPosition.z,
-    );
+    const cx = World._cx(chunk.globalPosition.x);
+    const cy = World._cy(chunk.globalPosition.y);
+    const cz = World._cz(chunk.globalPosition.z);
+
+    // Batching mode: defer the (expensive) re-mesh; collect chunks instead.
+    if (this._dirtyChunks) {
+      this._dirtyChunks.add(chunk);
+      if (rx === undefined) {
+        return;
+      }
+      const W = Chunk.CHUNK_WIDTH, H = Chunk.CHUNK_HEIGHT, D = Chunk.CHUNK_DEPTH;
+      const addNeighbor = (ncx: number, ncy: number, ncz: number) => {
+        const n = this._chunks.get(World._key(ncx, ncy, ncz));
+        if (n) {
+          this._dirtyChunks!.add(n);
+        }
+      };
+      if (rx === 0)     { addNeighbor(cx - 1, cy, cz); }
+      if (rx === W - 1) { addNeighbor(cx + 1, cy, cz); }
+      if (ry === 0)     { addNeighbor(cx, cy - 1, cz); }
+      if (ry === H - 1) { addNeighbor(cx, cy + 1, cz); }
+      if (rz === 0)     { addNeighbor(cx, cy, cz - 1); }
+      if (rz === D - 1) { addNeighbor(cx, cy, cz + 1); }
+      return;
+    }
+
     this.onChunkUpdated?.(chunk, chunk.generateVertices(this._gatherNeighbors(cx, cy, cz)));
     if (rx === undefined) {
       return;
@@ -537,62 +578,111 @@ export class World {
   }
 
   private _createNearbyChunks(playerPos: Vec3): void {
-    const [cpx, cpy, cpz] = World.normalizeChunkPosition(playerPos.x, playerPos.y, playerPos.z);
+    const cpx = World._cx(playerPos.x), cpy = World._cy(playerPos.y), cpz = World._cz(playerPos.z);
     const rdH = this.renderDistanceH;
     const rdV = this.renderDistanceV;
+    const rdH2 = rdH * rdH;
 
-    // Collect all ungenerated positions within the cylinder, sorted by distance.
-    const candidates: [number, number, number, number][] = []; // [dist2, cx, cy, cz]
+    // Find the `chunksPerFrame` closest ungenerated positions via top-N
+    // selection, no full sort and no per-candidate allocations. The previous
+    // implementation built and sorted a list of ~2,600 entries on the first
+    // call (4-element arrays + string keys per entry), which dominated GC.
+    const N = Math.max(1, this.chunksPerFrame);
+    if (!this._scratchTopD2 || this._scratchTopD2.length !== N) {
+      this._scratchTopD2  = new Float64Array(N);
+      this._scratchTopXYZ = new Int32Array(N * 3);
+    }
+    for (let i = 0; i < N; i++) {
+      this._scratchTopD2[i] = Infinity;
+    }
+    let pending = 0;
+    let worstIdx = 0;
+    let worstD2  = Infinity;
+
     for (let dx = -rdH; dx <= rdH; dx++) {
+      const dx2 = dx * dx;
       for (let dz = -rdH; dz <= rdH; dz++) {
-        if (dx * dx + dz * dz > rdH * rdH) {
+        const dxz2 = dx2 + dz * dz;
+        if (dxz2 > rdH2) {
           continue;
         }
         for (let dy = -rdV; dy <= rdV; dy++) {
           const cx = cpx + dx, cy = cpy + dy, cz = cpz + dz;
-          const key = World._key(cx, cy, cz);
-          if (!this._generated.has(key)) {
-            candidates.push([dx * dx + dy * dy + dz * dz, cx, cy, cz]);
+          if (this._generated.has(World._key(cx, cy, cz))) {
+            continue;
+          }
+          pending++;
+          const d2 = dxz2 + dy * dy;
+          if (d2 >= worstD2) {
+            continue;
+          }
+          this._scratchTopD2![worstIdx] = d2;
+          this._scratchTopXYZ![worstIdx * 3]     = cx;
+          this._scratchTopXYZ![worstIdx * 3 + 1] = cy;
+          this._scratchTopXYZ![worstIdx * 3 + 2] = cz;
+          // Find new worst slot for next replacement.
+          worstD2 = -Infinity;
+          for (let i = 0; i < N; i++) {
+            const v = this._scratchTopD2![i];
+            if (v > worstD2) { worstD2 = v; worstIdx = i; }
           }
         }
       }
     }
-
-    candidates.sort((a, b) => a[0] - b[0]);
-    this.pendingChunks = candidates.length;
+    this.pendingChunks = pending;
     if (this._chunks.size >= World.MAX_CHUNKS) {
       return;
     }
-    let created = 0;
-    for (const [, cx, cy, cz] of candidates) {
-      if (created >= this.chunksPerFrame) {
+    // Create the selected chunks, nearest first. With small N (default 2)
+    // an insertion sort over the slots is trivially cheap.
+    for (let pass = 0; pass < N; pass++) {
+      let bestIdx = -1;
+      let bestD2  = Infinity;
+      for (let i = 0; i < N; i++) {
+        const v = this._scratchTopD2![i];
+        if (v < bestD2) { bestD2 = v; bestIdx = i; }
+      }
+      if (bestIdx < 0 || bestD2 === Infinity) {
         break;
       }
       if (this._chunks.size >= World.MAX_CHUNKS) {
         break;
       }
+      const cx = this._scratchTopXYZ![bestIdx * 3];
+      const cy = this._scratchTopXYZ![bestIdx * 3 + 1];
+      const cz = this._scratchTopXYZ![bestIdx * 3 + 2];
+      this._scratchTopD2![bestIdx] = Infinity;
       this._createChunkAt(cx, cy, cz);
-      created++;
     }
   }
 
+  private _scratchTopD2: Float64Array | null = null;
+  private _scratchTopXYZ: Int32Array | null = null;
+
+  // Reused per-tick scratch buffers — avoid re-allocating each frame/tick.
+  private readonly _scratchToDelete: Chunk[] = [];
+  private readonly _scratchWaterBlocks: number[] = [];
+  private readonly _scratchDirtyChunks = new Set<Chunk>();
+
   private _removeDistantChunks(playerPos: Vec3): void {
-    const [cpx, cpy, cpz] = World.normalizeChunkPosition(playerPos.x, playerPos.y, playerPos.z);
+    const cpx = World._cx(playerPos.x), cpy = World._cy(playerPos.y), cpz = World._cz(playerPos.z);
     const rdH = this.renderDistanceH + 1;
     const rdV = this.renderDistanceV + 1;
-    const toDelete: Chunk[] = [];
+    const toDelete = this._scratchToDelete;
+    toDelete.length = 0;
     for (const chunk of this._chunks.values()) {
-      const [cx, cy, cz] = World.normalizeChunkPosition(
-        chunk.globalPosition.x, chunk.globalPosition.y, chunk.globalPosition.z,
-      );
+      const cx = World._cx(chunk.globalPosition.x);
+      const cy = World._cy(chunk.globalPosition.y);
+      const cz = World._cz(chunk.globalPosition.z);
       const dx = cx - cpx, dy = cy - cpy, dz = cz - cpz;
       if (dx * dx + dz * dz > rdH * rdH || Math.abs(dy) > rdV) {
         toDelete.push(chunk);
       }
     }
-    for (const chunk of toDelete) {
-      this.deleteChunk(chunk);
+    for (let i = 0; i < toDelete.length; i++) {
+      this.deleteChunk(toDelete[i]);
     }
+    toDelete.length = 0;
   }
 
   private _createChunkAt(cx: number, cy: number, cz: number): void {
@@ -608,9 +698,13 @@ export class World {
       this._insertChunk(chunk);
       this.onChunkAdded?.(chunk, chunk.generateVertices(this._gatherNeighbors(cx, cy, cz)));
       // Re-mesh existing neighbors so their edge faces are correctly culled against this chunk.
-      for (const [dx, dy, dz] of [[-1,0,0],[1,0,0],[0,-1,0],[0,1,0],[0,0,-1],[0,0,1]] as const) {
-        this._remeshSingleNeighbor(cx + dx, cy + dy, cz + dz);
-      }
+      // (Inlined: a per-call array-of-tuples literal would allocate 7 arrays each time.)
+      this._remeshSingleNeighbor(cx - 1, cy,     cz    );
+      this._remeshSingleNeighbor(cx + 1, cy,     cz    );
+      this._remeshSingleNeighbor(cx,     cy - 1, cz    );
+      this._remeshSingleNeighbor(cx,     cy + 1, cz    );
+      this._remeshSingleNeighbor(cx,     cy,     cz - 1);
+      this._remeshSingleNeighbor(cx,     cy,     cz + 1);
     }
   }
 
@@ -623,24 +717,77 @@ export class World {
     const minZ = Math.floor(playerPos.z - radius);
     const maxZ = Math.floor(playerPos.z + radius);
 
-    // Collect water blocks that need to flow
-    const waterBlocks: Array<{ x: number; y: number; z: number }> = [];
+    const W = Chunk.CHUNK_WIDTH;
+    const H = Chunk.CHUNK_HEIGHT;
+    const D = Chunk.CHUNK_DEPTH;
+    const cMinX = Math.floor(minX / W);
+    const cMaxX = Math.floor(maxX / W);
+    const cMinY = Math.floor(minY / H);
+    const cMaxY = Math.floor(maxY / H);
+    const cMinZ = Math.floor(minZ / D);
+    const cMaxZ = Math.floor(maxZ / D);
 
-    for (let x = minX; x <= maxX; x++) {
-      for (let y = minY; y <= maxY; y++) {
-        for (let z = minZ; z <= maxZ; z++) {
-          const blockType = this.getBlockType(x, y, z);
-          if (isBlockWater(blockType)) {
-            waterBlocks.push({ x, y, z });
+    // Iterate by chunk, then scan only chunks that actually contain water.
+    // Avoids ~275k per-block Map lookups (with string-key allocations) per tick.
+    const waterBlocks = this._scratchWaterBlocks; // flat (x, y, z, x, y, z, …); reused across ticks
+    waterBlocks.length = 0;
+
+    for (let cx = cMinX; cx <= cMaxX; cx++) {
+      for (let cy = cMinY; cy <= cMaxY; cy++) {
+        for (let cz = cMinZ; cz <= cMaxZ; cz++) {
+          const chunk = this._chunks.get(World._key(cx, cy, cz));
+          if (!chunk || chunk.waterBlocks === 0) {
+            continue;
+          }
+
+          const baseX = chunk.globalPosition.x;
+          const baseY = chunk.globalPosition.y;
+          const baseZ = chunk.globalPosition.z;
+
+          // Clip the player's AABB to this chunk's local coordinates.
+          const lxMin = Math.max(0, minX - baseX);
+          const lxMax = Math.min(W - 1, maxX - baseX);
+          const lyMin = Math.max(0, minY - baseY);
+          const lyMax = Math.min(H - 1, maxY - baseY);
+          const lzMin = Math.max(0, minZ - baseZ);
+          const lzMax = Math.min(D - 1, maxZ - baseZ);
+
+          for (let lz = lzMin; lz <= lzMax; lz++) {
+            for (let ly = lyMin; ly <= lyMax; ly++) {
+              for (let lx = lxMin; lx <= lxMax; lx++) {
+                if (isBlockWater(chunk.getBlock(lx, ly, lz))) {
+                  waterBlocks.push(baseX + lx, baseY + ly, baseZ + lz);
+                }
+              }
+            }
           }
         }
       }
     }
 
-    // Process water flow for each water block
-    for (const { x, y, z } of waterBlocks) {
-      this._flowWater(x, y, z);
+    // Batch chunk re-meshes: each `_flowWater` call may invoke setBlockType up to
+    // twice; without batching every block change triggers a full chunk re-mesh,
+    // which dominates the tick when many blocks flow on the first frame.
+    const dirty = this._scratchDirtyChunks;
+    dirty.clear();
+    this._dirtyChunks = dirty;
+    try {
+      for (let i = 0; i < waterBlocks.length; i += 3) {
+        this._flowWater(waterBlocks[i], waterBlocks[i + 1], waterBlocks[i + 2]);
+      }
+    } finally {
+      this._dirtyChunks = null;
     }
+
+    // Re-mesh each touched chunk exactly once.
+    for (const chunk of dirty) {
+      const cx = World._cx(chunk.globalPosition.x);
+      const cy = World._cy(chunk.globalPosition.y);
+      const cz = World._cz(chunk.globalPosition.z);
+      this.onChunkUpdated?.(chunk, chunk.generateVertices(this._gatherNeighbors(cx, cy, cz)));
+    }
+    dirty.clear();
+    waterBlocks.length = 0;
   }
 
   private _flowWater(wx: number, wy: number, wz: number): void {

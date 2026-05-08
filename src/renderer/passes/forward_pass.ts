@@ -123,6 +123,20 @@ export class ForwardPass extends RenderPass {
 
   private readonly _modelData = new Float32Array(32);
 
+  // Reused per-frame staging buffers — avoid allocating typed arrays each
+  // updateCamera / updateLights call (a meaningful per-frame GC source).
+  private readonly _cameraScratch        = new Float32Array(CAMERA_UNIFORM_SIZE / 4);
+  private readonly _lightingScratch      = new Uint32Array(4);
+  private readonly _directionalScratch   = new ArrayBuffer(DIRECTIONAL_LIGHT_SIZE);
+  private readonly _directionalScratchF  = new Float32Array(this._directionalScratch);
+  private readonly _directionalScratchU  = new Uint32Array(this._directionalScratch);
+  private readonly _pointLightsScratch   = new ArrayBuffer(POINT_LIGHT_SIZE * MAX_POINT_LIGHTS);
+  private readonly _pointLightsScratchF  = new Float32Array(this._pointLightsScratch);
+  private readonly _pointLightsScratchU  = new Uint32Array(this._pointLightsScratch);
+  private readonly _spotLightsScratch    = new ArrayBuffer(SPOT_LIGHT_SIZE * MAX_SPOT_LIGHTS);
+  private readonly _spotLightsScratchF   = new Float32Array(this._spotLightsScratch);
+  private readonly _spotLightsScratchU   = new Uint32Array(this._spotLightsScratch);
+
   private _depthTexture: GPUTexture;
   private _depthView: GPUTextureView;
   private _outputTexture: GPUTexture;
@@ -429,7 +443,7 @@ export class ForwardPass extends RenderPass {
     near: number,
     far: number,
   ): void {
-    const data = new Float32Array(CAMERA_UNIFORM_SIZE / 4);
+    const data = this._cameraScratch;
     data.set(view.data, 0);
     data.set(proj.data, 16);
     data.set(viewProj.data, 32);
@@ -483,15 +497,18 @@ export class ForwardPass extends RenderPass {
     spotLights: SpotLightData[],
   ): void {
     // Update lighting counts
-    const lightingData = new Uint32Array(4);
+    const lightingData = this._lightingScratch;
     lightingData[0] = Math.min(pointLights.length, MAX_POINT_LIGHTS);
     lightingData[1] = Math.min(spotLights.length, MAX_SPOT_LIGHTS);
+    lightingData[2] = 0;
+    lightingData[3] = 0;
     ctx.device.queue.writeBuffer(this._lightingBuffer, 0, lightingData);
 
     // Update directional light (128 bytes = 32 floats)
-    const dirBuffer = new ArrayBuffer(128);
-    const dirData = new Float32Array(dirBuffer);
-    const dirDataU32 = new Uint32Array(dirBuffer);
+    const dirBuffer = this._directionalScratch;
+    const dirData = this._directionalScratchF;
+    const dirDataU32 = this._directionalScratchU;
+    dirData.fill(0);
     // offset 0: direction vec3<f32> (aligned to 16)
     dirData[0] = directionalLight.direction.x;
     dirData[1] = directionalLight.direction.y;
@@ -516,9 +533,10 @@ export class ForwardPass extends RenderPass {
 
     // Update point lights
     if (pointLights.length > 0) {
-      const buffer = new ArrayBuffer(POINT_LIGHT_SIZE * MAX_POINT_LIGHTS);
-      const pointData = new Float32Array(buffer);
-      const pointDataU32 = new Uint32Array(buffer);
+      const buffer = this._pointLightsScratch;
+      const pointData = this._pointLightsScratchF;
+      const pointDataU32 = this._pointLightsScratchU;
+      pointData.fill(0);
       for (let i = 0; i < Math.min(pointLights.length, MAX_POINT_LIGHTS); i++) {
         const light = pointLights[i];
         const offset = i * 12;
@@ -538,9 +556,10 @@ export class ForwardPass extends RenderPass {
 
     // Update spot lights
     if (spotLights.length > 0) {
-      const buffer = new ArrayBuffer(MAX_SPOT_LIGHTS * 128);
-      const spotData = new Float32Array(buffer);
-      const spotDataU32 = new Uint32Array(buffer);
+      const buffer = this._spotLightsScratch;
+      const spotData = this._spotLightsScratchF;
+      const spotDataU32 = this._spotLightsScratchU;
+      spotData.fill(0);
 
       for (let i = 0; i < Math.min(spotLights.length, MAX_SPOT_LIGHTS); i++) {
         const light = spotLights[i];

@@ -43,20 +43,22 @@ function trilerp(
 }
 
 // Classic Perlin 12 edge-midpoint gradient vectors — avoids axis alignment.
-const GRAD3: [number, number, number][] = [
-  [ 1, 1, 0], [-1, 1, 0], [ 1,-1, 0], [-1,-1, 0],
-  [ 1, 0, 1], [-1, 0, 1], [ 1, 0,-1], [-1, 0,-1],
-  [ 0, 1, 1], [ 0,-1, 1], [ 0, 1,-1], [ 0,-1,-1],
-];
+// Stored as parallel Int8Arrays so per-call lookup is a single typed-array
+// index (no array-of-arrays destructuring allocations on the hot path).
+const GRAD3_X = new Int8Array([ 1, -1,  1, -1,  1, -1,  1, -1,  0,  0,  0,  0]);
+const GRAD3_Y = new Int8Array([ 1,  1, -1, -1,  0,  0,  0,  0,  1, -1,  1, -1]);
+const GRAD3_Z = new Int8Array([ 0,  0,  0,  0,  1,  1, -1, -1,  1,  1, -1, -1]);
 
 // Dot product of a lattice-derived gradient with the offset vector.
-// Lattice coordinates are wrapped at `period` so the noise tiles.
+// Lattice coordinates are wrapped at `period` so the noise tiles. The modulo
+// is inlined (no closure per call — was a major GC source at 8 calls/voxel).
 function gradDot(lx: number, ly: number, lz: number, period: number, seed: number,
                  dx: number, dy: number, dz: number): number {
-  const p = (n: number) => ((n % period) + period) % period;
-  const gi = Math.floor(hashS(p(lx), p(ly), p(lz), seed) * 12) % 12;
-  const [gx, gy, gz] = GRAD3[gi];
-  return gx * dx + gy * dy + gz * dz;
+  const wx = ((lx % period) + period) % period;
+  const wy = ((ly % period) + period) % period;
+  const wz = ((lz % period) + period) % period;
+  const gi = Math.floor(hashS(wx, wy, wz, seed) * 12) % 12;
+  return GRAD3_X[gi] * dx + GRAD3_Y[gi] * dy + GRAD3_Z[gi] * dz;
 }
 
 // Tileable gradient Perlin noise. Output is in roughly [-0.7, 0.7].
@@ -90,20 +92,25 @@ function perlinGradFbmTile(px: number, py: number, pz: number, octaves: number, 
 }
 
 // Tileable Worley — cell grid wraps at `freq` cells on each axis.
+// The wrap and the per-cell hash are inlined and cached: the previous
+// implementation allocated a closure per call AND hashed the same wrapped
+// cell three times to fetch fpx/fpy/fpz, both major GC sources.
 function worleyTile(px: number, py: number, pz: number, freq: number, seed: number): number {
   const fx = px * freq, fy = py * freq, fz = pz * freq;
   const ix = Math.floor(fx), iy = Math.floor(fy), iz = Math.floor(fz);
-  const w = (n: number) => ((n % freq) + freq) % freq;
   let minD2 = Infinity;
   for (let dz = -1; dz <= 1; dz++) {
     for (let dy = -1; dy <= 1; dy++) {
       for (let dx = -1; dx <= 1; dx++) {
         const cx = ix + dx, cy = iy + dy, cz = iz + dz;
-        // Look up feature point from the wrapped canonical cell, but keep the
-        // unwrapped base so the distance is measured correctly across the seam.
-        const fpx = cx + hashS(w(cx), w(cy), w(cz), seed);
-        const fpy = cy + hashS(w(cx), w(cy), w(cz), seed + 1);
-        const fpz = cz + hashS(w(cx), w(cy), w(cz), seed + 2);
+        // Wrap the cell coords for the hash (so the noise tiles), but keep the
+        // unwrapped cell base for the distance so it's correct across the seam.
+        const wcx = ((cx % freq) + freq) % freq;
+        const wcy = ((cy % freq) + freq) % freq;
+        const wcz = ((cz % freq) + freq) % freq;
+        const fpx = cx + hashS(wcx, wcy, wcz, seed);
+        const fpy = cy + hashS(wcx, wcy, wcz, seed + 1);
+        const fpz = cz + hashS(wcx, wcy, wcz, seed + 2);
         const ddx = fx - fpx, ddy = fy - fpy, ddz = fz - fpz;
         const d2 = ddx * ddx + ddy * ddy + ddz * ddz;
         if (d2 < minD2) {

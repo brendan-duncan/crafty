@@ -56,6 +56,13 @@ export class LightingPass extends RenderPass {
   private _aoSampler: GPUSampler;
   private _ssgiSampler: GPUSampler;
 
+  // Reused per-frame staging buffers — avoid allocating typed arrays each
+  // updateCamera / updateLight / updateCloudShadow call.
+  private readonly _cameraScratch       = new Float32Array(CAMERA_SIZE / 4);
+  private readonly _lightScratch        = new Float32Array(LIGHT_SIZE / 4);
+  private readonly _lightScratchU       = new Uint32Array(this._lightScratch.buffer);
+  private readonly _cloudShadowScratch  = new Float32Array(3);
+
   private constructor(
     hdrTexture: GPUTexture,
     hdrView: GPUTextureView,
@@ -320,7 +327,7 @@ export class LightingPass extends RenderPass {
    * @param far Far clip-plane distance.
    */
   updateCamera(ctx: RenderContext, view: Mat4, proj: Mat4, viewProj: Mat4, invViewProj: Mat4, camPos: { x: number; y: number; z: number }, near: number, far: number): void {
-    const data = new Float32Array(CAMERA_SIZE / 4);
+    const data = this._cameraScratch;
     data.set(view.data,         0);
     data.set(proj.data,        16);
     data.set(viewProj.data,    32);
@@ -346,12 +353,13 @@ export class LightingPass extends RenderPass {
    * @param shadowSoftness PCSS light-size factor used for softening shadow edges.
    */
   updateLight(ctx: RenderContext, dir: { x: number; y: number; z: number }, color: { x: number; y: number; z: number }, intensity: number, cascades: CascadeData[], shadowsEnabled = true, debugCascades = false, shadowSoftness = 0.02): void {
-    const data = new Float32Array(LIGHT_SIZE / 4);
+    const data = this._lightScratch;
+    const dataU = this._lightScratchU;
     let o = 0;
     data[o++] = dir.x; data[o++] = dir.y; data[o++] = dir.z;
     data[o++] = intensity;
     data[o++] = color.x; data[o++] = color.y; data[o++] = color.z;
-    new Uint32Array(data.buffer)[o++] = cascades.length;
+    dataU[o++] = cascades.length;
     for (let i = 0; i < 4; i++) {
       if (i < cascades.length) {
         data.set(cascades[i].lightViewProj.data, o);
@@ -362,8 +370,8 @@ export class LightingPass extends RenderPass {
       data[o++] = i < cascades.length ? cascades[i].splitFar : 1e9;
     }
     // o=76, offset 304: shadowsEnabled | o=77, offset 308: debugCascades
-    new Uint32Array(data.buffer)[o]   = shadowsEnabled ? 1 : 0;
-    new Uint32Array(data.buffer)[o+1] = debugCascades  ? 1 : 0;
+    dataU[o]   = shadowsEnabled ? 1 : 0;
+    dataU[o+1] = debugCascades  ? 1 : 0;
     // o=78..80 (offsets 312..320): cloud shadow params — written by updateCloudShadow()
     // o=81 (offset 324): shadowSoftness — PCSS light-size factor
     data[81] = shadowSoftness;
@@ -391,7 +399,7 @@ export class LightingPass extends RenderPass {
    * @param extent World-space side length covered by the cloud shadow texture.
    */
   updateCloudShadow(ctx: RenderContext, originX: number, originZ: number, extent: number): void {
-    const data = new Float32Array(3);
+    const data = this._cloudShadowScratch;
     data[0] = originX;
     data[1] = originZ;
     data[2] = extent;
