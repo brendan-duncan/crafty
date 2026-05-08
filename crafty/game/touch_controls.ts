@@ -10,10 +10,45 @@ const STICK_RADIUS  = 28;   // px — inner draggable knob radius
 const BUTTON_SIZE   = 64;   // px — action-button diameter
 const LOOK_SENSITIVITY = 0.005; // radians per pixel for touch drag (~2.5× mouse)
 
-/** True if the current device exposes touch input. */
+/**
+ * True if the current device exposes touch input.
+ *
+ * Tries every reasonable detection path: `navigator.maxTouchPoints` (modern,
+ * reflects real hardware), `'ontouchstart' in window` (legacy), the
+ * `(any-pointer: coarse)` media query (CSS-level touchscreen detection), and
+ * an explicit `?touch=1` URL override for testing on desktop.
+ */
 export function isTouchDevice(): boolean {
-  return (typeof window !== 'undefined' && 'ontouchstart' in window) ||
-         (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0);
+  // URL override — useful for testing the overlay on desktop or for users on
+  // hybrid devices where auto-detection guesses wrong. e.g. `?touch=1`.
+  if (typeof location !== 'undefined' && /[?&]touch(=1|=true|=on|$|&)/.test(location.search)) {
+    return true;
+  }
+  if (typeof navigator !== 'undefined') {
+    const np = navigator as Navigator & { msMaxTouchPoints?: number };
+    if ((np.maxTouchPoints ?? 0) > 0) {
+      return true;
+    }
+    if ((np.msMaxTouchPoints ?? 0) > 0) {
+      return true;
+    }
+  }
+  if (typeof window !== 'undefined' && 'ontouchstart' in window) {
+    return true;
+  }
+  if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+    try {
+      if (window.matchMedia('(any-pointer: coarse)').matches) {
+        return true;
+      }
+      if (window.matchMedia('(pointer: coarse)').matches) {
+        return true;
+      }
+    } catch {
+      // matchMedia not supported — fall through.
+    }
+  }
+  return false;
 }
 
 /**
