@@ -34,14 +34,8 @@ export function setupTouchControlsLazy(
 ): { cancel(): void; controls: TouchControls | null } {
   const handle: { cancel(): void; controls: TouchControls | null } = { controls: null, cancel() {} };
 
-  // Eager path: if detection succeeds, build immediately.
-  if (isTouchDevice()) {
-    handle.controls = new TouchControls(canvas, opts);
-    onInit?.(handle.controls);
-    return handle;
-  }
-
-  // Lazy path: build on first real touchstart, anywhere.
+  // Always use the lazy path — wait for a real touchstart event rather than
+  // guessing from navigator.maxTouchPoints, which reports > 0 on desktop Chrome.
   const listener = (): void => {
     if (handle.controls) {
       return;
