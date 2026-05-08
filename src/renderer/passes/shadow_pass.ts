@@ -133,7 +133,7 @@ export class ShadowPass extends RenderPass {
         depthWriteEnabled: true,
         depthCompare: 'less',
         depthBias: 2,
-        depthBiasSlopeScale: 1.5,
+        depthBiasSlopeScale: 2.5,
         depthBiasClamp: 0.0,
       },
       primitive: { topology: 'triangle-list', cullMode: 'back' },

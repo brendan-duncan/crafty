@@ -95,21 +95,22 @@ export class DirectionalLight extends Component {
         const lc = lightView.transformPoint(c);
         minZ = Math.min(minZ, lc.z); maxZ = Math.max(maxZ, lc.z);
       }
-      // 2× covers off-frustum casters (mountains, overhangs).
-      // A horizontal sun can push the frustum corners far in light Z, so
-      // we also cap padding at 256 to avoid inflating the depth range for nothing.
-      const zPadding = Math.min((maxZ - minZ) * 2.0, 256);
+      // Cover off-frustum casters (mountains, overhangs) with a modest pad.
+      // 25% × range (capped at 64 units) keeps the depth range tight so the
+      // receiver bias in the shader doesn't get scaled away.
+      const zPadding = Math.min((maxZ - minZ) * 0.25, 64);
       minZ -= zPadding;
       maxZ += zPadding;
 
       let lightProj = Mat4.orthographic(-radius, radius, -radius, radius, -maxZ, -minZ);
 
-      // Texel snap: project a fixed world-space reference point (origin) through
-      // the cascade VP, round its shadow-map UV to the nearest texel, then apply
-      // the correction as a clip-space translation. This anchors the shadow map
-      // to the world grid so it doesn't crawl as the camera moves.
+      // Texel snap: project the cascade frustum center through the cascade VP,
+      // round its shadow-map UV to the nearest texel, then apply the correction
+      // as a clip-space translation. This anchors the shadow map to a stable
+      // grid near the cascade so it doesn't crawl as the camera moves, and
+      // keeps precision even when the scene is far from world origin.
       const tempVP = lightProj.multiply(lightView);
-      const p = tempVP.transformPoint(Vec3.zero()); // w=1 for ortho
+      const p = tempVP.transformPoint(center); // w=1 for ortho
       // Match cascade_coords WGSL: shadowUV.y = 0.5 - ndcY*0.5
       const su = p.x * 0.5 + 0.5;
       const sv = 0.5 - p.y * 0.5;

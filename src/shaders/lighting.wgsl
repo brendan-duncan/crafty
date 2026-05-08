@@ -260,51 +260,66 @@ fn select_cascade(view_depth: f32) -> u32 {
 
 fn shadow_factor(world_pos: vec3<f32>, N: vec3<f32>, NdotL: f32, view_depth: f32, screen_pos: vec2<f32>) -> f32 {
   if (light.shadowsEnabled == 0u) { return 1.0; }
-  let cascade     = select_cascade(view_depth);
-  let depth_range = light.cascadeDepthRanges[cascade];
-  let bias        = max(0.05 * (1.0 - NdotL), 0.01) / max(depth_range, 1.0);
+  let cascade = select_cascade(view_depth);
+  // Constant receiver bias scaled by surface slope. Independent of per-frame
+  // cascade depth range so the bias doesn't oscillate as the camera moves.
+  let bias    = max(0.002 * (1.0 - NdotL), 0.0005);
 
-  // Normal bias — scales with the cascade's world-space texel size so near
-  // cascades stay sharp and far cascades avoid acne on low-angle surfaces.
-  // Uses a flat (axis-snapped) normal for temporal stability, then removes the
-  // light-parallel component so the offset doesn't inflate shadow-map depth.
-  let L       = normalize(-light.direction);
-  let q       = round(N);
-  let flat_N  = select(N, normalize(q), dot(q, q) > 0.5);
-  let t_angle = 1.0 - max(0.0, dot(L, -flat_N));
-  var nb      = flat_N * (light.cascadeTexelSizes[cascade] * 1.5 * t_angle);
-  nb         -= L * dot(L, nb);
+  // Normal bias — offset receiver along its surface normal by a fraction of
+  // the cascade's world-space texel size, scaled by grazing angle so the
+  // offset is large where it's needed and zero on directly-lit surfaces.
+  // Removes the light-parallel component so the offset doesn't fake depth bias.
+  let L          = normalize(-light.direction);
+  let t_angle    = clamp(1.0 - max(0.0, NdotL), 0.0, 1.0);
+  var nb         = N * (light.cascadeTexelSizes[cascade] * 3.0 * t_angle);
+  nb            -= L * dot(L, nb);
   let biased_pos = world_pos + nb;
 
   let sc0 = cascade_coords(cascade, biased_pos);
   if (!in_cascade(sc0)) { return 1.0; }
 
-  // PCSS: blocker search → penumbra width → scaled PCF kernel.
-  // Screen-space position drives the Poisson rotation so the pattern is
-  // stable per-pixel rather than jumping with sub-texel shadow UV changes.
-  var kernel = 2.0;
-  let avg_blocker = pcss_blocker_search(cascade, sc0, 8.0, screen_pos);
-  if (avg_blocker >= 0.0) {
-    let penumbra = light.shadowSoftness * (sc0.z - avg_blocker) / max(avg_blocker, 0.001);
-    kernel = clamp(penumbra * SHADOW_MAP_SIZE, 1.0, 16.0);
+  // PCSS with the penumbra estimate computed in WORLD units, then converted
+  // to per-cascade texels for sampling. This keeps the visual softness
+  // consistent across cascades, so the blend at the cascade boundary doesn't
+  // reveal a sudden change in shadow appearance. Min kernel is 1 texel
+  // per-cascade (sharp default), not a fixed world distance — that would
+  // force a wide blur on near cascades where one texel is already small.
+  let SEARCH_WORLD     : f32 = 0.3;   // metres — blocker search radius
+  let KERNEL_MAX_WORLD : f32 = 1.0;   // metres — caps very soft shadows
+
+  let texel_world_0 = light.cascadeTexelSizes[cascade];
+  let depth_world_0 = light.cascadeDepthRanges[cascade];
+  let search_tex_0  = clamp(SEARCH_WORLD / texel_world_0, 2.0, 8.0);
+
+  var kernel0      = 1.0;
+  let avg_blocker0 = pcss_blocker_search(cascade, sc0, search_tex_0, screen_pos);
+  if (avg_blocker0 >= 0.0) {
+    let occluder_dist = max((sc0.z - avg_blocker0) * depth_world_0, 0.0);
+    let penumbra_world = min(light.shadowSoftness * occluder_dist, KERNEL_MAX_WORLD);
+    kernel0 = clamp(penumbra_world / texel_world_0, 1.0, 16.0);
   }
-  let s0 = pcf_shadow(cascade, sc0, bias, kernel, screen_pos);
+  let s0 = pcf_shadow(cascade, sc0, bias, kernel0, screen_pos);
 
   let next = cascade + 1u;
   if (next < light.cascadeCount) {
     let split      = light.cascadeSplits[cascade];
-    let blend_band = split * 0.1;
+    let blend_band = split * 0.2;
     let t = smoothstep(split - blend_band, split, view_depth);
     if (t > 0.0) {
       let sc1 = cascade_coords(next, biased_pos);
       // Only blend toward the next cascade if this position is actually inside it;
       // blending toward an OOB cascade would mix toward depth=1 (fully lit).
       if (in_cascade(sc1)) {
-        var kernel1 = 2.0;
-        let ab1 = pcss_blocker_search(next, sc1, 8.0, screen_pos);
-        if (ab1 >= 0.0) {
-          let pen1 = light.shadowSoftness * (sc1.z - ab1) / max(ab1, 0.001);
-          kernel1 = clamp(pen1 * SHADOW_MAP_SIZE, 1.0, 16.0);
+        let texel_world_1 = light.cascadeTexelSizes[next];
+        let depth_world_1 = light.cascadeDepthRanges[next];
+        let search_tex_1  = clamp(SEARCH_WORLD / texel_world_1, 2.0, 8.0);
+
+        var kernel1      = 1.0;
+        let avg_blocker1 = pcss_blocker_search(next, sc1, search_tex_1, screen_pos);
+        if (avg_blocker1 >= 0.0) {
+          let occluder_dist1  = max((sc1.z - avg_blocker1) * depth_world_1, 0.0);
+          let penumbra_world1 = min(light.shadowSoftness * occluder_dist1, KERNEL_MAX_WORLD);
+          kernel1 = clamp(penumbra_world1 / texel_world_1, 1.0, 16.0);
         }
         return mix(s0, pcf_shadow(next, sc1, bias, kernel1, screen_pos), t);
       }
