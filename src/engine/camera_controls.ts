@@ -25,6 +25,17 @@ export class CameraControls {
   /** Mouse sensitivity in radians per pixel of movement. */
   sensitivity: number;
 
+  /** Analog forward input in [-1, 1] (touch joystick / programmatic). */
+  inputForward = 0;
+  /** Analog strafe input in [-1, 1] (positive = right). */
+  inputStrafe  = 0;
+  /** Held-up flag (OR-ed with Space). */
+  inputUp      = false;
+  /** Held-down flag (OR-ed with ShiftLeft). */
+  inputDown    = false;
+  /** Held-fast flag (OR-ed with ControlLeft / AltLeft). */
+  inputFast    = false;
+
   private _keys  = new Set<string>();
   private _canvas: HTMLCanvasElement | null = null;
 
@@ -57,8 +68,15 @@ export class CameraControls {
     };
     this._onKeyDown = (e: KeyboardEvent) => this._keys.add(e.code);
     this._onKeyUp   = (e: KeyboardEvent) => this._keys.delete(e.code);
-    this._onClick   = () => this._canvas?.requestPointerLock();
+    this._onClick   = () => {
+      if (this.usePointerLock) {
+        this._canvas?.requestPointerLock();
+      }
+    };
   }
+
+  /** Set false to suppress pointer-lock acquisition on canvas click (touch devices). */
+  usePointerLock = true;
 
   /**
    * Registers DOM event listeners on the supplied canvas and document.
@@ -82,6 +100,21 @@ export class CameraControls {
    * @param code - KeyboardEvent.code value, e.g. 'KeyW'.
    */
   pressKey(code: string): void { this._keys.add(code); }
+
+  /**
+   * Adds the given delta to yaw and pitch (with the same sensitivity scaling
+   * as mouse movement). Used by touch-drag look handlers and similar
+   * programmatic camera input.
+   *
+   * @param dx - Horizontal movement in pixels (positive = right).
+   * @param dy - Vertical movement in pixels (positive = down).
+   */
+  applyLookDelta(dx: number, dy: number): void {
+    const HALF_PI = Math.PI / 2 - 0.001;
+    this.yaw   -= dx * this.sensitivity;
+    this.pitch  = Math.max(-HALF_PI, Math.min(HALF_PI,
+      this.pitch + dy * this.sensitivity));
+  }
 
   /**
    * Removes all DOM event listeners and clears the canvas reference.
@@ -129,16 +162,19 @@ export class CameraControls {
       dx += cosY;
       dz -= sinY;
     }
-    if (this._keys.has('Space')) {
+    // Analog input (touch joystick / programmatic).
+    if (this.inputForward !== 0) { dx -= sinY * this.inputForward; dz -= cosY * this.inputForward; }
+    if (this.inputStrafe  !== 0) { dx += cosY * this.inputStrafe;  dz -= sinY * this.inputStrafe;  }
+    if (this._keys.has('Space') || this.inputUp) {
       dy += 1;
     }
-    if (this._keys.has('ShiftLeft')) {
+    if (this._keys.has('ShiftLeft') || this.inputDown) {
       dy -= 1;
     }
 
     const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
     if (len > 0) {
-      const fast = this._keys.has('ControlLeft') || this._keys.has('AltLeft');
+      const fast = this._keys.has('ControlLeft') || this._keys.has('AltLeft') || this.inputFast;
       const s = this.speed * (fast ? FLY_FAST_MULT : 1.0) * dt / len;
       gameObject.position.x += dx * s;
       gameObject.position.y += dy * s;

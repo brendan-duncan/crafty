@@ -35,6 +35,17 @@ export class PlayerController {
   /** Mouse sensitivity in radians per pixel. */
   sensitivity: number = 0.002;
 
+  /** Analog forward input in [-1, 1] (touch joystick / programmatic). Added to keyboard input. */
+  inputForward = 0;
+  /** Analog strafe input in [-1, 1] (positive = right). Added to keyboard input. */
+  inputStrafe  = 0;
+  /** Held-jump flag from touch / programmatic input (OR-ed with Space). */
+  inputJump    = false;
+  /** Held-sneak flag (OR-ed with ShiftLeft). */
+  inputSneak   = false;
+  /** Held-sprint flag (OR-ed with ControlLeft / AltLeft). */
+  inputSprint  = false;
+
   private _velY         = 0;
   /** Sets vertical velocity (used to inject jumps/launches from external code). */
   set velY(v: number) { this._velY = v; }
@@ -71,8 +82,17 @@ export class PlayerController {
     };
     this._onKeyDown = (e: KeyboardEvent) => this._keys.add(e.code);
     this._onKeyUp   = (e: KeyboardEvent) => this._keys.delete(e.code);
-    this._onClick   = () => this._canvas?.requestPointerLock();
+    this._onClick   = () => {
+      // Pointer lock is meaningless on touch devices and conflicts with the
+      // touch event loop, so skip it there.
+      if (this.usePointerLock) {
+        this._canvas?.requestPointerLock();
+      }
+    };
   }
+
+  /** Set false to suppress pointer-lock acquisition on canvas click (touch devices). */
+  usePointerLock = true;
 
   /**
    * Registers DOM event listeners on the supplied canvas and document.
@@ -85,6 +105,21 @@ export class PlayerController {
     document.addEventListener('mousemove', this._onMouseMove);
     document.addEventListener('keydown',   this._onKeyDown);
     document.addEventListener('keyup',     this._onKeyUp);
+  }
+
+  /**
+   * Adds the given delta to yaw and pitch (with the same sensitivity scaling
+   * as mouse movement). Used by touch-drag look handlers and similar
+   * programmatic camera input.
+   *
+   * @param dx - Horizontal movement in pixels (positive = right).
+   * @param dy - Vertical movement in pixels (positive = down).
+   */
+  applyLookDelta(dx: number, dy: number): void {
+    const HALF_PI = Math.PI / 2 - 0.001;
+    this.yaw   -= dx * this.sensitivity;
+    this.pitch  = Math.max(-HALF_PI, Math.min(HALF_PI,
+      this.pitch + dy * this.sensitivity));
   }
 
   /**
@@ -117,11 +152,11 @@ export class PlayerController {
     eyeGO.rotation = Quaternion.fromAxisAngle(AXIS_Y, this.yaw)
       .multiply(Quaternion.fromAxisAngle(AXIS_X, -this.pitch));
 
-    // Horizontal movement direction from WASD.
+    // Horizontal movement direction from WASD + analog (touch joystick) input.
     const sinY = Math.sin(this.yaw);
     const cosY = Math.cos(this.yaw);
-    const sprinting = this._keys.has('ControlLeft') || this._keys.has('AltLeft');
-    const sneaking  = this._keys.has('ShiftLeft');
+    const sprinting = this._keys.has('ControlLeft') || this._keys.has('AltLeft') || this.inputSprint;
+    const sneaking  = this._keys.has('ShiftLeft') || this.inputSneak;
     const speed = sprinting ? SPRINT_SPEED : sneaking ? SNEAK_SPEED : WALK_SPEED;
 
     let mx = 0, mz = 0;
@@ -129,8 +164,17 @@ export class PlayerController {
     if (this._keys.has('KeyS') || this._keys.has('ArrowDown'))  { mx += sinY; mz += cosY; }
     if (this._keys.has('KeyA') || this._keys.has('ArrowLeft'))  { mx -= cosY; mz += sinY; }
     if (this._keys.has('KeyD') || this._keys.has('ArrowRight')) { mx += cosY; mz -= sinY; }
+    // Analog: forward (+inputForward = forward, -inputForward = back), strafe right (+inputStrafe).
+    if (this.inputForward !== 0) { mx -= sinY * this.inputForward; mz -= cosY * this.inputForward; }
+    if (this.inputStrafe  !== 0) { mx += cosY * this.inputStrafe;  mz -= sinY * this.inputStrafe;  }
     const hLen = Math.sqrt(mx * mx + mz * mz);
-    if (hLen > 0) { mx = mx / hLen * speed; mz = mz / hLen * speed; }
+    if (hLen > 0) {
+      // Cap analog magnitude to 1 (joystick should normalise) but allow keys to fall back to
+      // unit length naturally — use 1/max(hLen, 1) so unit-length keyboard input stays full speed.
+      const norm = 1 / Math.max(hLen, 1);
+      mx = mx * norm * speed;
+      mz = mz * norm * speed;
+    }
 
     // Feet position derived from eye (needed for water check before physics).
     let fx = eyeGO.position.x;
@@ -142,9 +186,10 @@ export class PlayerController {
       this._world.getBlockType(Math.floor(fx), Math.floor(fy + HEIGHT * 0.5), Math.floor(fz))
     );
 
+    const jumpHeld = this._keys.has('Space') || this.inputJump;
     if (inWater) {
       // Space swims upward; no jump off the ground required.
-      if (this._keys.has('Space')) {
+      if (jumpHeld) {
         this._velY = SWIM_VEL;
       }
       this._velY = Math.max(this._velY + WATER_GRAVITY * dt, -2);
@@ -156,7 +201,7 @@ export class PlayerController {
 
       // Jump: on ground OR within coyote window (preserves jump ability briefly
       // after leaving ground, including when swimming up off the pool floor).
-      if (this._keys.has('Space') && (this._onGround || this._coyoteFrames > 0)) {
+      if (jumpHeld && (this._onGround || this._coyoteFrames > 0)) {
         this._velY        = JUMP_VEL;
         this._coyoteFrames = 0;
       }
