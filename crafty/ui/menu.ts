@@ -50,9 +50,17 @@ export function createMenu(canvas: HTMLCanvasElement, reticle: HTMLDivElement): 
   ].join(';');
   resumeBtn.addEventListener('mouseenter', () => { resumeBtn.style.background = '#243e24'; });
   resumeBtn.addEventListener('mouseleave', () => { resumeBtn.style.background = '#1a3a1a'; });
-  resumeBtn.addEventListener('click', async () => {
-    canvas.requestPointerLock();
-  });
+  // Close the menu on activation. Pointer-lock acquisition is best-effort:
+  // on desktop it locks (and `pointerlockchange` would also have closed us),
+  // on touch it silently fails — but the menu still closes.
+  const onPlay = (): void => {
+    close();
+    try { void canvas.requestPointerLock(); } catch { /* unsupported / touch */ }
+  };
+  resumeBtn.addEventListener('click', onPlay);
+  // Some touch browsers can delay or skip the synthetic click on a button —
+  // also fire on touchend for reliability.
+  resumeBtn.addEventListener('touchend', (e) => { e.preventDefault(); onPlay(); }, { passive: false });
   menuCard.appendChild(resumeBtn);
 
   const sep = document.createElement('div');
