@@ -15,7 +15,7 @@ Crafty is a Minecraft-style voxel game engine written in TypeScript with a WebGP
 ### Prerequisites
 
 - [Node.js](https://nodejs.org/) 18 or later (ships with `npm`)
-- A WebGPU-capable browser (recent Chrome, Edge, or Firefox Nightly with the WebGPU flag)
+- A WebGPU-capable browser
 
 ### Install
 
