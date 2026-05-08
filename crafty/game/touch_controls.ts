@@ -7,7 +7,8 @@ import { doBlockAction } from './block_interaction.js';
 const JOY_RADIUS    = 60;   // px — virtual joystick outer radius
 const JOY_DEAD_ZONE = 0.10; // fraction of radius treated as zero
 const STICK_RADIUS  = 28;   // px — inner draggable knob radius
-const BUTTON_SIZE   = 64;   // px — action-button diameter
+const BUTTON_SIZE      = 64;   // px — action-button diameter
+const MENU_BUTTON_SIZE = 44;   // px — small menu button in the corner
 const LOOK_SENSITIVITY = 0.005; // radians per pixel for touch drag (~2.5× mouse)
 
 /**
@@ -116,6 +117,8 @@ export interface TouchControlsOptions {
   getSelectedBlock?: () => BlockType;
   /** Optional: callback when the player double-taps the camera-look area (toggle controller). */
   onLookDoubleTap?: () => void;
+  /** Optional: tapped when the player presses the on-screen menu button (top-right). */
+  onMenu?: () => void;
   /** Override the touch look sensitivity (radians per pixel). */
   lookSensitivity?: number;
 }
@@ -133,6 +136,7 @@ export class TouchControls {
   private _btnSneak  : HTMLDivElement;
   private _btnMine   : HTMLDivElement;
   private _btnPlace  : HTMLDivElement;
+  private _btnMenu   : HTMLDivElement;
 
   private _joyTouchId : number | null = null;
   private _joyOriginX = 0;
@@ -153,7 +157,9 @@ export class TouchControls {
       'position:fixed', 'inset:0',
       'pointer-events:none', // children opt back in
       'user-select:none', '-webkit-user-select:none',
-      'touch-action:none', 'z-index:9999',
+      'touch-action:none',
+      // Below the menu (z=100) so opening the menu cleanly hides these controls.
+      'z-index:50',
     ].join(';');
 
     // Virtual joystick (bottom-left)
@@ -186,6 +192,12 @@ export class TouchControls {
     this._btnPlace = this._makeButton('▣',  `right:${24}px`,                    `bottom:${24 + BUTTON_SIZE + 12}px`, 'rgba(80,180,90,0.45)');
     this._btnJump  = this._makeButton('⤒', `right:${24}px`,                    `bottom:${24}px`,                    'rgba(255,255,255,0.18)');
     this._btnSneak = this._makeButton('⤓', `right:${24 + BUTTON_SIZE + 12}px`, `bottom:${24}px`,                    'rgba(255,255,255,0.10)');
+
+    // Menu button (top-right corner) — smaller, less prominent than gameplay buttons.
+    this._btnMenu  = this._makeButton('☰', `right:${16}px`, `top:${16}px`, 'rgba(0,0,0,0.45)');
+    this._btnMenu.style.width  = `${MENU_BUTTON_SIZE}px`;
+    this._btnMenu.style.height = `${MENU_BUTTON_SIZE}px`;
+    this._btnMenu.style.fontSize = '24px';
 
     document.body.appendChild(this._root);
 
@@ -230,6 +242,16 @@ export class TouchControls {
     this._bindHoldButton(this._btnSneak, () => this._setSneak(true), () => this._setSneak(false));
     this._bindHoldButton(this._btnMine,  () => this._actionDown(0),  () => this._actionUp(0));
     this._bindHoldButton(this._btnPlace, () => this._actionDown(2),  () => this._actionUp(2));
+
+    // Menu button is a tap, not a hold — fire on touchend so a swipe-off cancels it.
+    const onMenuTap = (e: TouchEvent): void => {
+      e.preventDefault();
+      this._btnMenu.style.filter = '';
+      this._opts.onMenu?.();
+    };
+    this._btnMenu.addEventListener('touchstart', (e) => { e.preventDefault(); this._btnMenu.style.filter = 'brightness(1.5)'; }, { passive: false });
+    this._btnMenu.addEventListener('touchend',    onMenuTap, { passive: false });
+    this._btnMenu.addEventListener('touchcancel', () => { this._btnMenu.style.filter = ''; }, { passive: false });
   }
 
   private _detachEvents(): void {
