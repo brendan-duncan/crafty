@@ -36,7 +36,7 @@ import { createHud } from './ui/hud.js';
 // Game logic imports
 import { setupPlayer } from './game/player_setup.js';
 import { createBlockInteractionState, setupBlockInteractionHandlers, updateBlockInteraction } from './game/block_interaction.js';
-import { setupTouchControlsLazy } from './game/touch_controls.js';
+import { setupTouchControlsLazy, isTouchDevice } from './game/touch_controls.js';
 import { updateTorchFlicker, updateMagmaFlicker } from './game/lights.js';
 import { spawnDucksAroundPoint } from './game/duck_spawning.js';
 import { HeightmapManager } from './game/heightmap.js';
@@ -80,6 +80,10 @@ async function main(): Promise<void> {
 
   // Create world and scene
   const world = new World(13);
+  if (isTouchDevice()) {
+    world.renderDistanceH = 4;
+    world.renderDistanceV = 3;
+  }
   const chunkMeshCache = new Map<Chunk, ChunkMesh>();
   const scene = new Scene();
 
