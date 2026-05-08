@@ -11,7 +11,7 @@ function _addBox(
     t: [number, number, number, number];
     v: [number, number, number][];
   }> = [
-    // Front -Z (duck looks toward -Z when yaw=0)
+    // Front -Z (pig looks toward -Z when yaw=0)
     { n: [0, 0, -1], t: [-1, 0, 0, 1], v: [[-sx, -sy, -sz], [sx, -sy, -sz], [sx, sy, -sz], [-sx, sy, -sz]] },
     // Back +Z
     { n: [0, 0,  1], t: [ 1, 0, 0, 1], v: [[sx, -sy, sz], [-sx, -sy, sz], [-sx, sy, sz], [sx, sy, sz]] },
@@ -44,50 +44,66 @@ function _addBox(
 }
 
 /**
- * Builds the duck body mesh: a white box body with a small tail nub.
- *
- * Centered at local origin (feet at y = -0.15). The root duck GameObject is
- * placed so feet are at ground level.
+ * Builds the pig body mesh: a pink barrel body with four stubby legs and a
+ * small tail nub at the back. Centered at local origin (body center at y=0);
+ * the bodyGO is lifted 0.35 * scale from the root so feet reach ground.
  *
  * @param device - WebGPU device used to create the GPU buffers.
- * @param scale  - Uniform scale; 1.0 = adult, 0.5 = duckling.
- * @returns A Mesh with position, normal, uv, and tangent attributes.
+ * @param scale  - Uniform scale; 1.0 = adult, ~0.55 = baby.
  */
-export function createDuckBodyMesh(device: GPUDevice, scale = 1.0): Mesh {
+export function createPigBodyMesh(device: GPUDevice, scale = 1.0): Mesh {
   const verts: number[] = [];
   const indices: number[] = [];
   const s = scale;
-  _addBox(verts, indices, 0, 0, 0, 0.19 * s, 0.11 * s, 0.225 * s);
-  _addBox(verts, indices, 0, 0.07 * s, 0.225 * s, 0.075 * s, 0.06 * s, 0.06 * s);
+
+  // Main body: 0.44 wide × 0.30 tall × 0.64 deep
+  _addBox(verts, indices, 0, 0, 0, 0.22 * s, 0.15 * s, 0.32 * s);
+
+  // Tail nub: small curl at the back
+  _addBox(verts, indices, 0, 0.07 * s, 0.32 * s, 0.035 * s, 0.035 * s, 0.035 * s);
+
+  // Four legs; each 0.13 wide × 0.20 tall × 0.13 deep.
+  // Centers at y = -0.25*s (= body bottom -0.15 then down half-leg 0.10).
+  const lx  = 0.155 * s;
+  const ly  = -0.25 * s;
+  const lz  = 0.255 * s;
+  const lsx = 0.065 * s;
+  const lsy = 0.10  * s;
+  const lsz = 0.065 * s;
+  _addBox(verts, indices, -lx, ly, -lz, lsx, lsy, lsz); // front-left
+  _addBox(verts, indices,  lx, ly, -lz, lsx, lsy, lsz); // front-right
+  _addBox(verts, indices, -lx, ly,  lz, lsx, lsy, lsz); // back-left
+  _addBox(verts, indices,  lx, ly,  lz, lsx, lsy, lsz); // back-right
+
   return Mesh.fromData(device, new Float32Array(verts), new Uint32Array(indices));
 }
 
 /**
- * Builds the duck head mesh: a small box centered at local origin.
+ * Builds the pig head mesh: a square-ish box centered at local origin.
  *
  * @param device - WebGPU device used to create the GPU buffers.
- * @param scale  - Uniform scale; 1.0 = adult, 0.5 = duckling.
- * @returns A Mesh with position, normal, uv, and tangent attributes.
+ * @param scale  - Uniform scale; 1.0 = adult, ~0.55 = baby.
  */
-export function createDuckHeadMesh(device: GPUDevice, scale = 1.0): Mesh {
+export function createPigHeadMesh(device: GPUDevice, scale = 1.0): Mesh {
   const verts: number[] = [];
   const indices: number[] = [];
   const s = scale;
-  _addBox(verts, indices, 0, 0, 0, 0.085 * s, 0.085 * s, 0.075 * s);
+  // Head: 0.36 wide × 0.32 tall × 0.32 deep
+  _addBox(verts, indices, 0, 0, 0, 0.18 * s, 0.16 * s, 0.16 * s);
   return Mesh.fromData(device, new Float32Array(verts), new Uint32Array(indices));
 }
 
 /**
- * Builds the duck bill mesh: a flat, wide box centered at local origin.
+ * Builds the pig snout mesh: a flat wide disc that protrudes from the head.
  *
  * @param device - WebGPU device used to create the GPU buffers.
- * @param scale  - Uniform scale; 1.0 = adult, 0.5 = duckling.
- * @returns A Mesh with position, normal, uv, and tangent attributes.
+ * @param scale  - Uniform scale; 1.0 = adult, ~0.55 = baby.
  */
-export function createDuckBillMesh(device: GPUDevice, scale = 1.0): Mesh {
+export function createPigSnoutMesh(device: GPUDevice, scale = 1.0): Mesh {
   const verts: number[] = [];
   const indices: number[] = [];
   const s = scale;
-  _addBox(verts, indices, 0, 0, 0, 0.065 * s, 0.03 * s, 0.055 * s);
+  // Snout: 0.20 wide × 0.16 tall × 0.12 deep
+  _addBox(verts, indices, 0, 0, 0, 0.10 * s, 0.08 * s, 0.06 * s);
   return Mesh.fromData(device, new Float32Array(verts), new Uint32Array(indices));
 }
