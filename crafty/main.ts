@@ -39,8 +39,7 @@ import { setupPlayer } from './game/player_setup.js';
 import { createBlockInteractionState, setupBlockInteractionHandlers, updateBlockInteraction } from './game/block_interaction.js';
 import { setupTouchControlsLazy, isTouchDevice } from './game/touch_controls.js';
 import { updateTorchFlicker, updateMagmaFlicker } from './game/lights.js';
-import { spawnDucksAroundPoint } from './game/duck_spawning.js';
-import { spawnPigsAroundPoint } from './game/pig_spawning.js';
+import { setupAnimalSpawning } from './game/animal_spawner.js';
 import { HeightmapManager } from './game/heightmap.js';
 
 // Config imports
@@ -138,6 +137,23 @@ async function main(): Promise<void> {
 
   await rebuildRenderTargets();
 
+  // Register animal spawning on chunk load — must happen before world.update
+  // so the initial bulk-load also populates animals near the spawn point.
+  setupAnimalSpawning(world, scene, {
+    duckBody:    createDuckBodyMesh(device),
+    duckHead:    createDuckHeadMesh(device),
+    duckBill:    createDuckBillMesh(device),
+    ducklingBody: createDuckBodyMesh(device, 0.5),
+    ducklingHead: createDuckHeadMesh(device, 0.5),
+    ducklingBill: createDuckBillMesh(device, 0.5),
+    pigBody:     createPigBodyMesh(device, 1.0),
+    pigHead:     createPigHeadMesh(device, 1.0),
+    pigSnout:    createPigSnoutMesh(device, 1.0),
+    babyPigBody:  createPigBodyMesh(device, 0.55),
+    babyPigHead:  createPigHeadMesh(device, 0.55),
+    babyPigSnout: createPigSnoutMesh(device, 0.55),
+  });
+
   // Spawn player at terrain surface
   const spawnX = cameraGO.position.x;
   const spawnZ = cameraGO.position.z;
@@ -152,28 +168,6 @@ async function main(): Promise<void> {
       player.velY = 0;
     }
   }
-
-  // Spawn ducks
-  const duckBodyMesh     = createDuckBodyMesh(device);
-  const duckHeadMesh     = createDuckHeadMesh(device);
-  const duckBillMesh     = createDuckBillMesh(device);
-  const ducklingBodyMesh = createDuckBodyMesh(device, 0.5);
-  const ducklingHeadMesh = createDuckHeadMesh(device, 0.5);
-  const ducklingBillMesh = createDuckBillMesh(device, 0.5);
-  spawnDucksAroundPoint(spawnX, spawnZ, 30, world, scene,
-    duckBodyMesh, duckHeadMesh, duckBillMesh,
-    ducklingBodyMesh, ducklingHeadMesh, ducklingBillMesh);
-
-  // Spawn pigs (adults + babies)
-  const pigBodyMesh      = createPigBodyMesh(device, 1.0);
-  const pigHeadMesh      = createPigHeadMesh(device, 1.0);
-  const pigSnoutMesh     = createPigSnoutMesh(device, 1.0);
-  const babyPigBodyMesh  = createPigBodyMesh(device, 0.55);
-  const babyPigHeadMesh  = createPigHeadMesh(device, 0.55);
-  const babyPigSnoutMesh = createPigSnoutMesh(device, 0.55);
-  spawnPigsAroundPoint(spawnX, spawnZ, 20, world, scene,
-    pigBodyMesh, pigHeadMesh, pigSnoutMesh,
-    babyPigBodyMesh, babyPigHeadMesh, babyPigSnoutMesh);
 
   // Setup menu content
   const sep = document.createElement('div');
