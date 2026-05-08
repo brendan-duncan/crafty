@@ -36,11 +36,15 @@ import { createHud } from './ui/hud.js';
 
 // Game logic imports
 import { setupPlayer } from './game/player_setup.js';
-import { createBlockInteractionState, setupBlockInteractionHandlers, updateBlockInteraction } from './game/block_interaction.js';
+import { createBlockInteractionState, setupBlockInteractionHandlers, updateBlockInteraction, applyRemoteBlockEdit } from './game/block_interaction.js';
 import { setupTouchControlsLazy, isTouchDevice } from './game/touch_controls.js';
 import { updateTorchFlicker, updateMagmaFlicker } from './game/lights.js';
 import { setupAnimalSpawning } from './game/animal_spawner.js';
 import { HeightmapManager } from './game/heightmap.js';
+import { NetworkClient } from './game/network_client.js';
+import { RemotePlayer, createRemotePlayerMeshes } from './game/remote_player.js';
+import { NameLabelLayer } from './game/name_label.js';
+import type { BlockEdit } from '../shared/net_protocol.js';
 
 // Config imports
 import { DEFAULT_EFFECTS } from './config/effect_settings.js';
@@ -79,8 +83,31 @@ async function main(): Promise<void> {
   const hud = createHud();
   const menu = createMenu(canvas, hud.reticle);
 
+  // Multiplayer connect (best-effort; falls back to single-player on failure).
+  const playerName = (() => {
+    let n = localStorage.getItem('crafty.playerName') ?? '';
+    if (n.trim().length === 0) {
+      n = (window.prompt('Player name?', 'Steve') ?? '').trim();
+      if (n.length === 0) {
+        n = `player${Math.floor(Math.random() * 1000)}`;
+      }
+      localStorage.setItem('crafty.playerName', n);
+    }
+    return n;
+  })();
+  const serverUrl: string = (import.meta as unknown as { env?: { VITE_SERVER_URL?: string } }).env?.VITE_SERVER_URL ?? 'ws://localhost:8787';
+  const network = new NetworkClient();
+  let welcome: { playerId: number; seed: number; edits: BlockEdit[]; players: { playerId: number; name: string; x: number; y: number; z: number; yaw: number; pitch: number }[] } | null = null;
+  try {
+    welcome = await network.connect(serverUrl, playerName);
+    console.log(`[crafty] connected as player ${welcome.playerId} "${playerName}" (${welcome.players.length} other(s) online, ${welcome.edits.length} replay edits)`);
+  } catch (err) {
+    console.warn(`[crafty] no server at ${serverUrl} — running single-player`, err);
+  }
+
   // Create world and scene
-  const world = new World(13);
+  const worldSeed = welcome?.seed ?? 13;
+  const world = new World(worldSeed);
   if (isTouchDevice()) {
     world.renderDistanceH = 4;
     world.renderDistanceV = 3;
@@ -153,6 +180,125 @@ async function main(): Promise<void> {
     babyPigHead:  createPigHeadMesh(device, 0.55),
     babyPigSnout: createPigSnoutMesh(device, 0.55),
   });
+
+  // ── Multiplayer wiring ────────────────────────────────────────────────────
+  // Server-authoritative block edits arrive as a list at welcome time + a
+  // stream of `block_edit` events. They're applied via `applyRemoteBlockEdit`
+  // which skips the local-edit callback so we don't echo them back.
+  // Edits are also bucketed per chunk so they re-apply when a chunk is loaded
+  // (or reloaded after eviction); the seeded chunk generation otherwise wipes
+  // them out on chunk re-entry.
+  const CW = 16, CH = 16, CD = 16;
+  const _chunkKey = (x: number, y: number, z: number): string =>
+    `${Math.floor(x / CW)},${Math.floor(y / CH)},${Math.floor(z / CD)}`;
+  const pendingEditsByChunk = new Map<string, BlockEdit[]>();
+  function _stashEdit(edit: BlockEdit): void {
+    const key = _chunkKey(edit.x, edit.y, edit.z);
+    let bucket = pendingEditsByChunk.get(key);
+    if (bucket === undefined) {
+      bucket = [];
+      pendingEditsByChunk.set(key, bucket);
+    }
+    // Replace any prior edit at the same coord (latest wins).
+    for (let i = bucket.length - 1; i >= 0; i--) {
+      const e = bucket[i];
+      if (e.x === edit.x && e.y === edit.y && e.z === edit.z) {
+        bucket.splice(i, 1);
+        break;
+      }
+    }
+    bucket.push(edit);
+  }
+  if (welcome !== null) {
+    for (const e of welcome.edits) {
+      _stashEdit(e);
+    }
+  }
+  const prevOnChunkAdded = world.onChunkAdded;
+  world.onChunkAdded = (chunk, mesh) => {
+    prevOnChunkAdded?.(chunk, mesh);
+    const key = `${Math.floor(chunk.globalPosition.x / CW)},${Math.floor(chunk.globalPosition.y / CH)},${Math.floor(chunk.globalPosition.z / CD)}`;
+    const bucket = pendingEditsByChunk.get(key);
+    if (bucket !== undefined) {
+      for (const e of bucket) {
+        applyRemoteBlockEdit(
+          e.kind === 'place'
+            ? { kind: 'place', x: e.x, y: e.y, z: e.z, fx: e.fx ?? 0, fy: e.fy ?? 0, fz: e.fz ?? 0, blockType: e.blockType }
+            : { kind: 'break', x: e.x, y: e.y, z: e.z },
+          world, scene,
+        );
+      }
+    }
+  };
+
+  // Remote players + name labels.
+  const remotePlayers = new Map<number, RemotePlayer>();
+  const remoteMeshes = createRemotePlayerMeshes(device);
+  const labelLayer = new NameLabelLayer(canvas.parentElement ?? document.body);
+  const _labelAnchors = new Map<number, Vec3>();
+  function _spawnRemote(playerId: number, name: string): void {
+    if (remotePlayers.has(playerId)) {
+      return;
+    }
+    const rp = new RemotePlayer(playerId, name, scene, remoteMeshes);
+    remotePlayers.set(playerId, rp);
+    labelLayer.add(playerId, name);
+    _labelAnchors.set(playerId, new Vec3());
+  }
+  function _despawnRemote(playerId: number): void {
+    const rp = remotePlayers.get(playerId);
+    if (rp !== undefined) {
+      rp.dispose();
+      remotePlayers.delete(playerId);
+    }
+    labelLayer.remove(playerId);
+    _labelAnchors.delete(playerId);
+  }
+
+  if (welcome !== null) {
+    for (const p of welcome.players) {
+      _spawnRemote(p.playerId, p.name);
+      remotePlayers.get(p.playerId)!.setTargetTransform(p.x, p.y, p.z, p.yaw, p.pitch);
+    }
+  }
+
+  network.setCallbacks({
+    onPlayerJoin: (playerId, name) => {
+      console.log(`[crafty] +${name} (#${playerId})`);
+      _spawnRemote(playerId, name);
+    },
+    onPlayerLeave: (playerId) => {
+      console.log(`[crafty] -#${playerId}`);
+      _despawnRemote(playerId);
+    },
+    onPlayerTransform: (playerId, x, y, z, yaw, pitch) => {
+      const rp = remotePlayers.get(playerId);
+      if (rp === undefined) {
+        return;
+      }
+      rp.setTargetTransform(x, y, z, yaw, pitch);
+    },
+    onBlockEdit: (edit) => {
+      _stashEdit(edit);
+      applyRemoteBlockEdit(
+        edit.kind === 'place'
+          ? { kind: 'place', x: edit.x, y: edit.y, z: edit.z, fx: edit.fx ?? 0, fy: edit.fy ?? 0, fz: edit.fz ?? 0, blockType: edit.blockType }
+          : { kind: 'break', x: edit.x, y: edit.y, z: edit.z },
+        world, scene,
+      );
+    },
+  });
+
+  // Forward local block edits to the server.
+  blockInteraction.onLocalEdit = (edit) => {
+    if (edit.kind === 'place') {
+      _stashEdit({ kind: 'place', x: edit.x + edit.fx, y: edit.y + edit.fy, z: edit.z + edit.fz, blockType: edit.blockType, fx: edit.fx, fy: edit.fy, fz: edit.fz });
+      network.sendBlockPlace(edit.x, edit.y, edit.z, edit.fx, edit.fy, edit.fz, edit.blockType);
+    } else {
+      _stashEdit({ kind: 'break', x: edit.x, y: edit.y, z: edit.z, blockType: 0 });
+      network.sendBlockBreak(edit.x, edit.y, edit.z);
+    }
+  };
 
   // Spawn player at terrain surface
   const spawnX = cameraGO.position.x;
@@ -310,6 +456,13 @@ async function main(): Promise<void> {
     DuckAI.playerPos.y = camPos.y;
     DuckAI.playerPos.z = camPos.z;
 
+    if (network.connected) {
+      network.sendTransform(camPos.x, camPos.y, camPos.z, player.yaw, player.pitch);
+    }
+    for (const rp of remotePlayers.values()) {
+      rp.update(dt);
+    }
+
     scene.update(dt);
     world.update(camPos, dt);
 
@@ -429,6 +582,16 @@ async function main(): Promise<void> {
     passes.compositePass!.updateStars(ctx, invVP, camPos, sunDir);
     passes.autoExposurePass!.update(ctx, dt);
     passes.taaPass!.updateCamera(ctx, invVP, passes.prevViewProj ?? vp);
+
+    if (remotePlayers.size > 0) {
+      for (const [pid, rp] of remotePlayers) {
+        const anchor = _labelAnchors.get(pid);
+        if (anchor !== undefined) {
+          rp.headWorldPosition(anchor);
+        }
+      }
+      labelLayer.update(vp, camPos, canvas.clientWidth, canvas.clientHeight, _labelAnchors);
+    }
 
     passes.prevViewProj = vp;
     frameIndex++;

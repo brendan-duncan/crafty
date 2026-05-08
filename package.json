@@ -11,7 +11,9 @@
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "build-atlas": "node scripts/build_atlas.js",
-    "build-atlas:help": "echo Usage: npm run build-atlas <path-to-texture-pack>"
+    "build-atlas:help": "echo Usage: npm run build-atlas <path-to-texture-pack>",
+    "server": "npm --prefix server run dev",
+    "server:install": "npm --prefix server install"
   },
   "devDependencies": {
     "@vitest/ui": "^4.1.5",

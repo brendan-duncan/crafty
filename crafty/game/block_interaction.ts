@@ -3,12 +3,22 @@ import { BlockType, World } from '../../src/block/index.js';
 import { addTorchLight, removeTorchLight, addMagmaLight, removeMagmaLight } from './lights.js';
 import type { Scene } from '../../src/engine/index.js';
 
+export type LocalBlockEdit =
+  | { kind: 'place'; x: number; y: number; z: number; fx: number; fy: number; fz: number; blockType: BlockType }
+  | { kind: 'break'; x: number; y: number; z: number };
+
 export interface BlockInteractionState {
   targetBlock: Vec3 | null;
   targetHit: { position: Vec3; face: Vec3 } | null;
   mouseHeld: number;
   mouseHoldTime: number;
   lastBlockAction: number;
+  /**
+   * Optional sink notified after every successful local block edit. Set by the
+   * networking layer to forward edits to the server. Skipped for world changes
+   * applied from network messages (those use {@link applyRemoteBlockEdit}).
+   */
+  onLocalEdit?: (edit: LocalBlockEdit) => void;
 }
 
 const BLOCK_INITIAL_DELAY  = 700; // ms before repeat starts
@@ -33,14 +43,17 @@ export function doBlockAction(
   scene: Scene,
 ): void {
   if (button === 0 && state.targetBlock) {
-    const minedType = world.getBlockType(state.targetBlock.x, state.targetBlock.y, state.targetBlock.z);
+    const tx = state.targetBlock.x, ty = state.targetBlock.y, tz = state.targetBlock.z;
+    const minedType = world.getBlockType(tx, ty, tz);
     if (minedType === BlockType.TORCH) {
-      removeTorchLight(state.targetBlock.x, state.targetBlock.y, state.targetBlock.z, scene);
+      removeTorchLight(tx, ty, tz, scene);
     }
     if (minedType === BlockType.MAGMA) {
-      removeMagmaLight(state.targetBlock.x, state.targetBlock.y, state.targetBlock.z, scene);
+      removeMagmaLight(tx, ty, tz, scene);
     }
-    world.mineBlock(state.targetBlock.x, state.targetBlock.y, state.targetBlock.z);
+    if (world.mineBlock(tx, ty, tz)) {
+      state.onLocalEdit?.({ kind: 'break', x: tx, y: ty, z: tz });
+    }
     state.lastBlockAction = time;
   }
   else if (button === 2 && state.targetHit) {
@@ -56,8 +69,48 @@ export function doBlockAction(
       if (placed === BlockType.MAGMA) {
         addMagmaLight(newX, newY, newZ, scene);
       }
+      state.onLocalEdit?.({
+        kind: 'place',
+        x: hit.position.x, y: hit.position.y, z: hit.position.z,
+        fx: hit.face.x, fy: hit.face.y, fz: hit.face.z,
+        blockType: placed,
+      });
     }
     state.lastBlockAction = time;
+  }
+}
+
+/**
+ * Applies a block edit received from the network. Mirrors {@link doBlockAction}
+ * but does NOT fire the `onLocalEdit` sink, so received edits aren't echoed
+ * back to the server.
+ */
+export function applyRemoteBlockEdit(
+  edit: LocalBlockEdit,
+  world: World,
+  scene: Scene,
+): void {
+  if (edit.kind === 'break') {
+    const minedType = world.getBlockType(edit.x, edit.y, edit.z);
+    if (minedType === BlockType.TORCH) {
+      removeTorchLight(edit.x, edit.y, edit.z, scene);
+    }
+    if (minedType === BlockType.MAGMA) {
+      removeMagmaLight(edit.x, edit.y, edit.z, scene);
+    }
+    world.mineBlock(edit.x, edit.y, edit.z);
+    return;
+  }
+  const newX = edit.x + edit.fx;
+  const newY = edit.y + edit.fy;
+  const newZ = edit.z + edit.fz;
+  if (world.addBlock(edit.x, edit.y, edit.z, edit.fx, edit.fy, edit.fz, edit.blockType)) {
+    if (edit.blockType === BlockType.TORCH) {
+      addTorchLight(newX, newY, newZ, scene);
+    }
+    if (edit.blockType === BlockType.MAGMA) {
+      addMagmaLight(newX, newY, newZ, scene);
+    }
   }
 }
 
