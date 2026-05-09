@@ -1,14 +1,19 @@
 import { NetworkClient, type ConnectResult } from '../game/network_client.js';
+import { WorldStorage, createSavedWorld, type SavedWorld } from '../game/world_storage.js';
 import backgroundUrl from '../../assets/crafty.png?url';
 
 /**
  * The user's choice from the start screen, returned by {@link showStartScreen}.
  *
+ * For 'local', the chosen `world` already exists in storage — newly created
+ * worlds are written before resolving so they appear in the saved list even
+ * if the user immediately quits.
+ *
  * For 'network', the WebSocket connection is already open and the welcome
  * payload has been received — main bootstraps the world from these.
  */
 export type StartChoice =
-  | { mode: 'local'; seed: number; playerName: string }
+  | { mode: 'local'; world: SavedWorld; storage: WorldStorage | null; playerName: string }
   | {
       mode: 'network';
       playerName: string;
@@ -29,14 +34,26 @@ const DEFAULT_URL = 'ws://localhost:8787';
  *
  * Removes itself from the DOM as soon as the promise resolves.
  */
-export function showStartScreen(): Promise<StartChoice>
+export async function showStartScreen(): Promise<StartChoice>
 {
+  // Open IDB up front so the saved-world list can render immediately. If the
+  // storage layer fails (private mode, no IDB support) we still let the user
+  // create a one-shot world — it just won't persist.
+  let storage: WorldStorage | null = null;
+  let initialWorlds: SavedWorld[] = [];
+  try {
+    storage = await WorldStorage.open();
+    initialWorlds = await storage.list();
+  } catch (err) {
+    console.warn('[crafty] world storage unavailable — local worlds will not persist', err);
+  }
+
   return new Promise<StartChoice>((resolve) => {
     const overlay = document.createElement('div');
     overlay.style.cssText = [
       'position:fixed', 'inset:0', 'z-index:200',
       // Layer a dark scrim over the splash image so the card stays readable.
-      `background:linear-gradient(rgba(0,0,0,0.55),rgba(0,0,0,0.75)),url(${backgroundUrl}) center/cover no-repeat #000`,
+      `background:linear-gradient(rgba(128,128,128,0.35),rgba(128,128,128,0.75)),url(${backgroundUrl}) center/cover no-repeat #000`,
       'display:flex', 'align-items:center', 'justify-content:center',
       'font-family:ui-monospace,monospace',
     ].join(';');
@@ -46,10 +63,11 @@ export function showStartScreen(): Promise<StartChoice>
     card.style.cssText = [
       'display:flex', 'flex-direction:column', 'align-items:stretch', 'gap:18px',
       'padding:36px 44px',
-      'background:rgba(255,255,255,0.4)',
+      'background:rgba(82, 82, 82, 1.0)',
       'border:1px solid rgba(255,255,255,0.12)',
       'border-radius:12px',
       'min-width:480px', 'max-width:560px',
+      'box-shadow:0 0 55px rgba(255,255,255,0.8)',
     ].join(';');
     overlay.appendChild(card);
 
@@ -89,14 +107,61 @@ export function showStartScreen(): Promise<StartChoice>
     card.appendChild(networkPanel);
 
     // ── Local panel ──────────────────────────────────────────────────────
-    const savedHeader = _sectionLabel('Saved worlds');
-    localPanel.appendChild(savedHeader);
-    const savedHint = document.createElement('div');
-    savedHint.textContent = '(coming soon)';
-    savedHint.style.cssText = 'color:rgba(255,255,255,0.75);font-size:12px;padding:8px 0 12px';
-    localPanel.appendChild(savedHint);
+    localPanel.appendChild(_sectionLabel('Saved worlds'));
+
+    const savedListContainer = document.createElement('div');
+    savedListContainer.style.cssText = [
+      'display:flex', 'flex-direction:column', 'gap:6px',
+      'max-height:240px', 'overflow-y:auto',
+      'padding:8px 4px 12px',
+    ].join(';');
+    localPanel.appendChild(savedListContainer);
+
+    let savedWorlds: SavedWorld[] = initialWorlds;
+
+    function rebuildSavedList(): void
+    {
+      savedListContainer.replaceChildren();
+      if (savedWorlds.length === 0) {
+        const empty = document.createElement('div');
+        empty.textContent = storage === null ? 'Storage unavailable in this browser' : 'No saved worlds yet';
+        empty.style.cssText = 'color:rgba(255,255,255,0.85);font-size:12px;padding:8px 0';
+        savedListContainer.appendChild(empty);
+        return;
+      }
+      for (const w of savedWorlds) {
+        savedListContainer.appendChild(_savedWorldRow(w, () => loadSaved(w), () => deleteSaved(w)));
+      }
+    }
+    rebuildSavedList();
+
+    function loadSaved(world: SavedWorld): void
+    {
+      finish({ mode: 'local', world, storage, playerName: getName() });
+    }
+
+    async function deleteSaved(world: SavedWorld): Promise<void>
+    {
+      if (storage === null) {
+        return;
+      }
+      try {
+        await storage.delete(world.id);
+        savedWorlds = savedWorlds.filter((w) => w.id !== world.id);
+        rebuildSavedList();
+      } catch (err) {
+        console.error('[crafty] delete failed', err);
+      }
+    }
 
     localPanel.appendChild(_sectionLabel('New world'));
+
+    const worldNameField = _input({
+      value: '',
+      placeholder: `World ${initialWorlds.length + 1}`,
+      maxLength: 32,
+    });
+    localPanel.appendChild(_createField('Name', worldNameField).row);
 
     const seedField = _input({
       value: localStorage.getItem(LS_SEED) ?? '13',
@@ -104,8 +169,10 @@ export function showStartScreen(): Promise<StartChoice>
     });
     localPanel.appendChild(_createField('Seed', seedField).row);
 
-    const localStartBtn = _primaryButton('Start');
-    localPanel.appendChild(_buttonRow(localStartBtn));
+    const localStartBtn = _primaryButton('Create');
+    const localStatus = document.createElement('div');
+    localStatus.style.cssText = 'color:#f88;font-size:12px;min-height:16px;text-align:right';
+    localPanel.appendChild(_buttonRow(localStartBtn, localStatus));
 
     // ── Network panel ────────────────────────────────────────────────────
     networkPanel.appendChild(_sectionLabel('Server'));
@@ -117,7 +184,7 @@ export function showStartScreen(): Promise<StartChoice>
 
     const worldHint = document.createElement('div');
     worldHint.textContent = 'World selection (coming soon — server hosts a single world)';
-    worldHint.style.cssText = 'color:rgba(255,255,255,0.35);font-size:12px;padding:4px 0 8px';
+    worldHint.style.cssText = 'color:rgba(255,255,255,0.8);font-size:12px;padding:4px 0 8px';
     networkPanel.appendChild(worldHint);
 
     const netConnectBtn = _primaryButton('Connect');
@@ -170,12 +237,33 @@ export function showStartScreen(): Promise<StartChoice>
       resolve(choice);
     }
 
-    // ── Local start ──────────────────────────────────────────────────────
-    localStartBtn.addEventListener('click', () => {
+    // ── Local create ─────────────────────────────────────────────────────
+    localStartBtn.addEventListener('click', async () => {
       const seed = parseSeed(seedField.value);
       seedField.value = String(seed); // reflect resolved random/hash
       localStorage.setItem(LS_SEED, String(seed));
-      finish({ mode: 'local', seed, playerName: getName() });
+      const rawName = worldNameField.value.trim();
+      const name = rawName.length > 0 ? rawName : `World ${savedWorlds.length + 1}`;
+
+      if (storage === null) {
+        // No persistence available — synthesize an in-memory record so the
+        // game still plays this session.
+        finish({ mode: 'local', world: createSavedWorld(name, seed), storage: null, playerName: getName() });
+        return;
+      }
+
+      localStartBtn.disabled = true;
+      localStatus.style.color = 'rgba(255,255,255,0.92)';
+      localStatus.textContent = 'creating…';
+      try {
+        const world = createSavedWorld(name, seed);
+        await storage.save(world);
+        finish({ mode: 'local', world, storage, playerName: getName() });
+      } catch (err) {
+        localStatus.style.color = '#f88';
+        localStatus.textContent = `failed: ${(err as Error).message}`;
+        localStartBtn.disabled = false;
+      }
     });
 
     // ── Network connect ──────────────────────────────────────────────────
@@ -183,7 +271,7 @@ export function showStartScreen(): Promise<StartChoice>
       const url = urlField.value.trim() || DEFAULT_URL;
       const name = getName();
       netStatus.textContent = '';
-      netStatus.style.color = 'rgba(255,255,255,0.55)';
+      netStatus.style.color = 'rgba(255,255,255,0.92)';
       netStatus.textContent = 'connecting…';
       netConnectBtn.disabled = true;
       const network = new NetworkClient();
@@ -219,13 +307,13 @@ function _input(opts: { value?: string; placeholder?: string; maxLength?: number
   }
   i.style.cssText = [
     'flex:1', 'padding:8px 10px',
-    'background:rgba(0,0,0,0.4)', 'color:#fff',
-    'border:1px solid rgba(255,255,255,0.18)', 'border-radius:5px',
+    'background:rgba(0,0,0,0.55)', 'color:#fff',
+    'border:1px solid rgba(255,255,255,0.35)', 'border-radius:5px',
     'font:13px ui-monospace,monospace',
     'outline:none',
   ].join(';');
   i.addEventListener('focus', () => { i.style.borderColor = '#5f5'; });
-  i.addEventListener('blur',  () => { i.style.borderColor = 'rgba(255,255,255,0.18)'; });
+  i.addEventListener('blur',  () => { i.style.borderColor = 'rgba(255,255,255,0.35)'; });
   return i;
 }
 
@@ -235,7 +323,7 @@ function _createField(label: string, input: HTMLInputElement): { row: HTMLDivEle
   row.style.cssText = 'display:flex;align-items:center;gap:12px';
   const lbl = document.createElement('label');
   lbl.textContent = label;
-  lbl.style.cssText = 'min-width:96px;color:rgba(255,255,255,0.55);font-size:12px;letter-spacing:0.06em';
+  lbl.style.cssText = 'min-width:96px;color:rgba(255,255,255,0.92);font-size:12px;letter-spacing:0.06em';
   row.appendChild(lbl);
   row.appendChild(input);
   return { row, input };
@@ -246,7 +334,7 @@ function _tabButton(label: string): HTMLButtonElement
   const b = document.createElement('button');
   b.textContent = label;
   b.style.cssText = [
-    'padding:10px 20px', 'background:transparent', 'color:rgba(255,255,255,0.55)',
+    'padding:10px 20px', 'background:transparent', 'color:rgba(255,255,255,0.8)',
     'border:none', 'border-bottom:2px solid transparent',
     'font:13px ui-monospace,monospace', 'letter-spacing:0.08em',
     'cursor:pointer',
@@ -256,8 +344,8 @@ function _tabButton(label: string): HTMLButtonElement
 
 function _setTabActive(b: HTMLButtonElement, active: boolean): void
 {
-  b.style.color = active ? '#5f5' : 'rgba(255,255,255,0.55)';
-  b.style.borderBottomColor = active ? '#5f5' : 'transparent';
+  b.style.color = active ? '#9fff9f' : 'rgba(255,255,255,0.8)';
+  b.style.borderBottomColor = active ? '#9fff9f' : 'transparent';
 }
 
 function _panel(): HTMLDivElement
@@ -271,7 +359,7 @@ function _sectionLabel(text: string): HTMLDivElement
 {
   const d = document.createElement('div');
   d.textContent = text;
-  d.style.cssText = 'color:rgba(255,255,255,0.75);font-size:11px;letter-spacing:0.18em';
+  d.style.cssText = 'color:#fff;font-size:11px;letter-spacing:0.18em';
   return d;
 }
 
@@ -300,4 +388,120 @@ function _buttonRow(...children: HTMLElement[]): HTMLDivElement
     r.appendChild(c);
   }
   return r;
+}
+
+/**
+ * Renders one row in the saved-worlds list. The whole row is clickable to load,
+ * except for the trailing × button which deletes (with a one-click confirm
+ * step: × → "Delete?" → removed).
+ */
+function _savedWorldRow(world: SavedWorld, onLoad: () => void, onDelete: () => void): HTMLDivElement
+{
+  const row = document.createElement('div');
+  row.style.cssText = [
+    'display:flex', 'align-items:center', 'gap:10px',
+    'padding:6px 8px', 'border-radius:6px',
+    'background:rgba(0,0,0,0.35)', 'border:1px solid rgba(255,255,255,0.08)',
+    'cursor:pointer',
+    'transition:background 0.12s',
+  ].join(';');
+  row.addEventListener('mouseenter', () => { row.style.background = 'rgba(255,255,255,0.08)'; });
+  row.addEventListener('mouseleave', () => { row.style.background = 'rgba(0,0,0,0.35)'; });
+  row.addEventListener('click', (e) => {
+    if ((e.target as HTMLElement).dataset.role === 'delete') {
+      return;
+    }
+    onLoad();
+  });
+
+  // Thumbnail (or muted placeholder if no screenshot yet).
+  const thumb = document.createElement('div');
+  thumb.style.cssText = [
+    'width:64px', 'height:36px', 'flex-shrink:0',
+    'border-radius:4px', 'overflow:hidden',
+    'background:linear-gradient(135deg,#1f3a4a,#0a1622)',
+  ].join(';');
+  if (world.screenshot !== undefined) {
+    const img = document.createElement('img');
+    img.src = URL.createObjectURL(world.screenshot);
+    img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block';
+    img.addEventListener('load', () => URL.revokeObjectURL(img.src));
+    thumb.appendChild(img);
+  }
+  row.appendChild(thumb);
+
+  // Name + relative time stack.
+  const text = document.createElement('div');
+  text.style.cssText = 'flex:1;display:flex;flex-direction:column;gap:2px;min-width:0';
+  const name = document.createElement('div');
+  name.textContent = world.name;
+  name.style.cssText = 'color:#fff;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+  const meta = document.createElement('div');
+  meta.textContent = _relativeTime(Date.now() - world.lastPlayedAt);
+  meta.style.cssText = 'color:rgba(255,255,255,0.55);font-size:11px';
+  text.appendChild(name);
+  text.appendChild(meta);
+  row.appendChild(text);
+
+  // Delete: × → "Delete?" → confirmed.
+  const del = document.createElement('button');
+  del.dataset.role = 'delete';
+  del.textContent = '×';
+  del.title = 'Delete';
+  del.style.cssText = [
+    'background:transparent', 'color:rgba(255,255,255,0.45)',
+    'border:1px solid rgba(255,255,255,0.18)', 'border-radius:4px',
+    'padding:2px 8px', 'font:13px ui-monospace,monospace',
+    'cursor:pointer',
+  ].join(';');
+  let armed = false;
+  del.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!armed) {
+      armed = true;
+      del.textContent = 'Delete?';
+      del.style.color = '#f88';
+      del.style.borderColor = '#f88';
+      // Disarm on outside click.
+      const disarm = (): void => {
+        armed = false;
+        del.textContent = '×';
+        del.style.color = 'rgba(255,255,255,0.45)';
+        del.style.borderColor = 'rgba(255,255,255,0.18)';
+        document.removeEventListener('click', disarm, true);
+      };
+      // Defer registration so this same click doesn't disarm immediately.
+      setTimeout(() => document.addEventListener('click', disarm, true), 0);
+      return;
+    }
+    onDelete();
+  });
+  row.appendChild(del);
+
+  return row;
+}
+
+function _relativeTime(deltaMs: number): string
+{
+  if (deltaMs < 0) {
+    return 'just now';
+  }
+  const s = Math.floor(deltaMs / 1000);
+  if (s < 60) {
+    return 'just now';
+  }
+  const m = Math.floor(s / 60);
+  if (m < 60) {
+    return `${m} minute${m === 1 ? '' : 's'} ago`;
+  }
+  const h = Math.floor(m / 60);
+  if (h < 24) {
+    return `${h} hour${h === 1 ? '' : 's'} ago`;
+  }
+  const d = Math.floor(h / 24);
+  if (d < 30) {
+    return `${d} day${d === 1 ? '' : 's'} ago`;
+  }
+  const mo = Math.floor(d / 30);
+  return `${mo} month${mo === 1 ? '' : 's'} ago`;
 }

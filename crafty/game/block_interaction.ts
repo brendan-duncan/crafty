@@ -1,5 +1,6 @@
 import { Vec3 } from '../../src/math/index.js';
 import { BlockType, World } from '../../src/block/index.js';
+import { isBlockProp } from '../../src/block/block_type.js';
 import { addTorchLight, removeTorchLight, addMagmaLight, removeMagmaLight } from './lights.js';
 import type { Scene } from '../../src/engine/index.js';
 
@@ -53,6 +54,21 @@ export function doBlockAction(
     }
     if (world.mineBlock(tx, ty, tz)) {
       state.onLocalEdit?.({ kind: 'break', x: tx, y: ty, z: tz });
+      // Cascade: a prop sitting directly on top of the mined block has no
+      // support, so remove it too. Save it as its own break edit so the
+      // cascade persists across reload (the chunk regenerates the prop from
+      // seed otherwise).
+      if (!isBlockProp(minedType)) {
+        const aboveType = world.getBlockType(tx, ty + 1, tz);
+        if (isBlockProp(aboveType)) {
+          if (aboveType === BlockType.TORCH) {
+            removeTorchLight(tx, ty + 1, tz, scene);
+          }
+          if (world.mineBlock(tx, ty + 1, tz)) {
+            state.onLocalEdit?.({ kind: 'break', x: tx, y: ty + 1, z: tz });
+          }
+        }
+      }
     }
     state.lastBlockAction = time;
   }
@@ -104,13 +120,17 @@ export function applyRemoteBlockEdit(
   const newX = edit.x + edit.fx;
   const newY = edit.y + edit.fy;
   const newZ = edit.z + edit.fz;
-  if (world.addBlock(edit.x, edit.y, edit.z, edit.fx, edit.fy, edit.fz, edit.blockType)) {
-    if (edit.blockType === BlockType.TORCH) {
-      addTorchLight(newX, newY, newZ, scene);
-    }
-    if (edit.blockType === BlockType.MAGMA) {
-      addMagmaLight(newX, newY, newZ, scene);
-    }
+  // Use setBlockType, not addBlock: addBlock requires the *hit* chunk to be
+  // loaded so it can validate the click target, and during replay that chunk
+  // may not exist yet (cross-chunk-boundary placements lose blocks otherwise).
+  // The saved/wire edit log is already authoritative — just put the block
+  // there. Break edits earlier in the bucket have already cleared the cell.
+  world.setBlockType(newX, newY, newZ, edit.blockType);
+  if (edit.blockType === BlockType.TORCH) {
+    addTorchLight(newX, newY, newZ, scene);
+  }
+  if (edit.blockType === BlockType.MAGMA) {
+    addMagmaLight(newX, newY, newZ, scene);
   }
 }
 

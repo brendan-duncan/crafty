@@ -1,0 +1,4782 @@
+var fi=Object.defineProperty;var pi=(u,n,e)=>n in u?fi(u,n,{enumerable:!0,configurable:!0,writable:!0,value:e}):u[n]=e;var c=(u,n,e)=>pi(u,typeof n!="symbol"?n+"":n,e);(function(){const n=document.createElement("link").relList;if(n&&n.supports&&n.supports("modulepreload"))return;for(const r of document.querySelectorAll('link[rel="modulepreload"]'))t(r);new MutationObserver(r=>{for(const o of r)if(o.type==="childList")for(const i of o.addedNodes)i.tagName==="LINK"&&i.rel==="modulepreload"&&t(i)}).observe(document,{childList:!0,subtree:!0});function e(r){const o={};return r.integrity&&(o.integrity=r.integrity),r.referrerPolicy&&(o.referrerPolicy=r.referrerPolicy),r.crossOrigin==="use-credentials"?o.credentials="include":r.crossOrigin==="anonymous"?o.credentials="omit":o.credentials="same-origin",o}function t(r){if(r.ep)return;r.ep=!0;const o=e(r);fetch(r.href,o)}})();const hi=""+new URL("clear_sky-CyjsjiVR.hdr",import.meta.url).href,cr=""+new URL("simple_block_atlas-B-7juoTN.png",import.meta.url).href,mi=""+new URL("simple_block_atlas_normal-BdCvGD-K.png",import.meta.url).href,_i=""+new URL("simple_block_atlas_mer-C_Oa_Ink.png",import.meta.url).href,gi=""+new URL("simple_block_atlas_heightmap-BOV6qQJl.png",import.meta.url).href,vi=""+new URL("waterDUDV-CGfbcllR.png",import.meta.url).href,bi="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAAAgCAYAAADaInAlAAAA4klEQVR4Ae2UQQ4CIRAEGeAvnn2H/3+PDqBuXLnvoYqEAMvApptKx+3+eJYrW0QpNXvUNdYc57exrjkd+/u9o+58/r8+xj+yr/t+5/G+/7P3rc361lr2Onvva5zrzbyPun7Un+v259uUcdUTpFM2sgMCQH791C4AAgB3AC7fBBAAuANw+SaAAMAdgMs3AQQA7gBcvgkgAHAH4PJNAAGAOwCXbwIIANwBuHwTQADgDsDlmwACAHcALt8EEAC4A3D5JoAAwB2AyzcBBADuAFy+CSAAcAfg8k0AAYA7AJdvAsABeAEiUwM8dIJUQAAAAABJRU5ErkJggg==",yi=""+new URL("flashlight-C64SqrUS.jpg",import.meta.url).href;class R{constructor(n=0,e=0){c(this,"x");c(this,"y");this.x=n,this.y=e}set(n,e){return this.x=n,this.y=e,this}clone(){return new R(this.x,this.y)}add(n){return new R(this.x+n.x,this.y+n.y)}sub(n){return new R(this.x-n.x,this.y-n.y)}scale(n){return new R(this.x*n,this.y*n)}dot(n){return this.x*n.x+this.y*n.y}lengthSq(){return this.x*this.x+this.y*this.y}length(){return Math.sqrt(this.lengthSq())}normalize(){const n=this.length();return n>0?this.scale(1/n):new R}toArray(){return[this.x,this.y]}static zero(){return new R(0,0)}static one(){return new R(1,1)}}class V{constructor(n=0,e=0,t=0){c(this,"x");c(this,"y");c(this,"z");this.x=n,this.y=e,this.z=t}set(n,e,t){return this.x=n,this.y=e,this.z=t,this}clone(){return new V(this.x,this.y,this.z)}negate(){return new V(-this.x,-this.y,-this.z)}add(n){return new V(this.x+n.x,this.y+n.y,this.z+n.z)}sub(n){return new V(this.x-n.x,this.y-n.y,this.z-n.z)}scale(n){return new V(this.x*n,this.y*n,this.z*n)}mul(n){return new V(this.x*n.x,this.y*n.y,this.z*n.z)}dot(n){return this.x*n.x+this.y*n.y+this.z*n.z}cross(n){return new V(this.y*n.z-this.z*n.y,this.z*n.x-this.x*n.z,this.x*n.y-this.y*n.x)}lengthSq(){return this.x*this.x+this.y*this.y+this.z*this.z}length(){return Math.sqrt(this.lengthSq())}normalize(){const n=this.length();return n>0?this.scale(1/n):new V}lerp(n,e){return new V(this.x+(n.x-this.x)*e,this.y+(n.y-this.y)*e,this.z+(n.z-this.z)*e)}toArray(){return[this.x,this.y,this.z]}static zero(){return new V(0,0,0)}static one(){return new V(1,1,1)}static up(){return new V(0,1,0)}static forward(){return new V(0,0,-1)}static right(){return new V(1,0,0)}static fromArray(n,e=0){return new V(n[e],n[e+1],n[e+2])}}class Oe{constructor(n=0,e=0,t=0,r=0){c(this,"x");c(this,"y");c(this,"z");c(this,"w");this.x=n,this.y=e,this.z=t,this.w=r}set(n,e,t,r){return this.x=n,this.y=e,this.z=t,this.w=r,this}clone(){return new Oe(this.x,this.y,this.z,this.w)}add(n){return new Oe(this.x+n.x,this.y+n.y,this.z+n.z,this.w+n.w)}sub(n){return new Oe(this.x-n.x,this.y-n.y,this.z-n.z,this.w-n.w)}scale(n){return new Oe(this.x*n,this.y*n,this.z*n,this.w*n)}dot(n){return this.x*n.x+this.y*n.y+this.z*n.z+this.w*n.w}lengthSq(){return this.x*this.x+this.y*this.y+this.z*this.z+this.w*this.w}length(){return Math.sqrt(this.lengthSq())}toArray(){return[this.x,this.y,this.z,this.w]}static zero(){return new Oe(0,0,0,0)}static one(){return new Oe(1,1,1,1)}static fromArray(n,e=0){return new Oe(n[e],n[e+1],n[e+2],n[e+3])}}class J{constructor(n){c(this,"data");this.data=new Float32Array(16),n&&this.data.set(n)}clone(){return new J(this.data)}get(n,e){return this.data[n*4+e]}set(n,e,t){this.data[n*4+e]=t}multiply(n){const e=this.data,t=n.data,r=new Float32Array(16);for(let o=0;o<4;o++)for(let i=0;i<4;i++)r[o*4+i]=e[0*4+i]*t[o*4+0]+e[1*4+i]*t[o*4+1]+e[2*4+i]*t[o*4+2]+e[3*4+i]*t[o*4+3];return new J(r)}transformPoint(n){const e=this.data,t=e[0]*n.x+e[4]*n.y+e[8]*n.z+e[12],r=e[1]*n.x+e[5]*n.y+e[9]*n.z+e[13],o=e[2]*n.x+e[6]*n.y+e[10]*n.z+e[14],i=e[3]*n.x+e[7]*n.y+e[11]*n.z+e[15];return new V(t/i,r/i,o/i)}transformDirection(n){const e=this.data;return new V(e[0]*n.x+e[4]*n.y+e[8]*n.z,e[1]*n.x+e[5]*n.y+e[9]*n.z,e[2]*n.x+e[6]*n.y+e[10]*n.z)}transformVec4(n){const e=this.data;return new Oe(e[0]*n.x+e[4]*n.y+e[8]*n.z+e[12]*n.w,e[1]*n.x+e[5]*n.y+e[9]*n.z+e[13]*n.w,e[2]*n.x+e[6]*n.y+e[10]*n.z+e[14]*n.w,e[3]*n.x+e[7]*n.y+e[11]*n.z+e[15]*n.w)}transpose(){const n=this.data;return new J([n[0],n[4],n[8],n[12],n[1],n[5],n[9],n[13],n[2],n[6],n[10],n[14],n[3],n[7],n[11],n[15]])}invert(){const n=this.data,e=new Float32Array(16),t=n[0],r=n[1],o=n[2],i=n[3],a=n[4],s=n[5],l=n[6],d=n[7],p=n[8],f=n[9],h=n[10],_=n[11],g=n[12],y=n[13],w=n[14],x=n[15],B=t*s-r*a,G=t*l-o*a,S=t*d-i*a,E=r*l-o*s,L=r*d-i*s,M=o*d-i*l,I=p*y-f*g,A=p*w-h*g,b=p*x-_*g,k=f*w-h*y,m=f*x-_*y,P=h*x-_*w;let v=B*P-G*m+S*k+E*b-L*A+M*I;return v===0?J.identity():(v=1/v,e[0]=(s*P-l*m+d*k)*v,e[1]=(o*m-r*P-i*k)*v,e[2]=(y*M-w*L+x*E)*v,e[3]=(h*L-f*M-_*E)*v,e[4]=(l*b-a*P-d*A)*v,e[5]=(t*P-o*b+i*A)*v,e[6]=(w*S-g*M-x*G)*v,e[7]=(p*M-h*S+_*G)*v,e[8]=(a*m-s*b+d*I)*v,e[9]=(r*b-t*m-i*I)*v,e[10]=(g*L-y*S+x*B)*v,e[11]=(f*S-p*L-_*B)*v,e[12]=(s*A-a*k-l*I)*v,e[13]=(t*k-r*A+o*I)*v,e[14]=(y*G-g*E-w*B)*v,e[15]=(p*E-f*G+h*B)*v,new J(e))}normalMatrix(){const n=this.data,e=n[0],t=n[1],r=n[2],o=n[4],i=n[5],a=n[6],s=n[8],l=n[9],d=n[10],p=d*i-a*l,f=-d*o+a*s,h=l*o-i*s;let _=e*p+t*f+r*h;if(_===0)return J.identity();_=1/_;const g=new Float32Array(16);return g[0]=p*_,g[4]=(-d*t+r*l)*_,g[8]=(a*t-r*i)*_,g[1]=f*_,g[5]=(d*e-r*s)*_,g[9]=(-a*e+r*o)*_,g[2]=h*_,g[6]=(-l*e+t*s)*_,g[10]=(i*e-t*o)*_,g[15]=1,new J(g)}static identity(){return new J([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1])}static translation(n,e,t){return new J([1,0,0,0,0,1,0,0,0,0,1,0,n,e,t,1])}static scale(n,e,t){return new J([n,0,0,0,0,e,0,0,0,0,t,0,0,0,0,1])}static rotationX(n){const e=Math.cos(n),t=Math.sin(n);return new J([1,0,0,0,0,e,t,0,0,-t,e,0,0,0,0,1])}static rotationY(n){const e=Math.cos(n),t=Math.sin(n);return new J([e,0,-t,0,0,1,0,0,t,0,e,0,0,0,0,1])}static rotationZ(n){const e=Math.cos(n),t=Math.sin(n);return new J([e,t,0,0,-t,e,0,0,0,0,1,0,0,0,0,1])}static fromQuaternion(n,e,t,r){const o=n+n,i=e+e,a=t+t,s=n*o,l=e*o,d=e*i,p=t*o,f=t*i,h=t*a,_=r*o,g=r*i,y=r*a;return new J([1-d-h,l+y,p-g,0,l-y,1-s-h,f+_,0,p+g,f-_,1-s-d,0,0,0,0,1])}static perspective(n,e,t,r){const o=1/Math.tan(n/2),i=1/(t-r);return new J([o/e,0,0,0,0,o,0,0,0,0,r*i,-1,0,0,r*t*i,0])}static orthographic(n,e,t,r,o,i){const a=1/(n-e),s=1/(t-r),l=1/(o-i);return new J([-2*a,0,0,0,0,-2*s,0,0,0,0,l,0,(n+e)*a,(r+t)*s,o*l,1])}static lookAt(n,e,t){const r=e.sub(n).normalize(),o=r.cross(t).normalize(),i=o.cross(r);return new J([o.x,i.x,-r.x,0,o.y,i.y,-r.y,0,o.z,i.z,-r.z,0,-o.dot(n),-i.dot(n),r.dot(n),1])}static trs(n,e,t,r,o,i){const s=J.fromQuaternion(e,t,r,o).data;return new J([i.x*s[0],i.x*s[1],i.x*s[2],0,i.y*s[4],i.y*s[5],i.y*s[6],0,i.z*s[8],i.z*s[9],i.z*s[10],0,n.x,n.y,n.z,1])}}class ce{constructor(n=0,e=0,t=0,r=1){c(this,"x");c(this,"y");c(this,"z");c(this,"w");this.x=n,this.y=e,this.z=t,this.w=r}clone(){return new ce(this.x,this.y,this.z,this.w)}lengthSq(){return this.x*this.x+this.y*this.y+this.z*this.z+this.w*this.w}length(){return Math.sqrt(this.lengthSq())}normalize(){const n=this.length();return n>0?new ce(this.x/n,this.y/n,this.z/n,this.w/n):ce.identity()}conjugate(){return new ce(-this.x,-this.y,-this.z,this.w)}multiply(n){const e=this.x,t=this.y,r=this.z,o=this.w,i=n.x,a=n.y,s=n.z,l=n.w;return new ce(o*i+e*l+t*s-r*a,o*a-e*s+t*l+r*i,o*s+e*a-t*i+r*l,o*l-e*i-t*a-r*s)}rotateVec3(n){const e=this.x,t=this.y,r=this.z,o=this.w,i=o*n.x+t*n.z-r*n.y,a=o*n.y+r*n.x-e*n.z,s=o*n.z+e*n.y-t*n.x,l=-e*n.x-t*n.y-r*n.z;return new V(i*o+l*-e+a*-r-s*-t,a*o+l*-t+s*-e-i*-r,s*o+l*-r+i*-t-a*-e)}toMat4(){return J.fromQuaternion(this.x,this.y,this.z,this.w)}slerp(n,e){let t=this.x*n.x+this.y*n.y+this.z*n.z+this.w*n.w,r=n.x,o=n.y,i=n.z,a=n.w;if(t<0&&(t=-t,r=-r,o=-o,i=-i,a=-a),t>=1)return this.clone();const s=Math.acos(t),l=Math.sqrt(1-t*t);if(Math.abs(l)<.001)return new ce(this.x*.5+r*.5,this.y*.5+o*.5,this.z*.5+i*.5,this.w*.5+a*.5);const d=Math.sin((1-e)*s)/l,p=Math.sin(e*s)/l;return new ce(this.x*d+r*p,this.y*d+o*p,this.z*d+i*p,this.w*d+a*p)}static identity(){return new ce(0,0,0,1)}static fromAxisAngle(n,e){const t=Math.sin(e/2),r=n.normalize();return new ce(r.x*t,r.y*t,r.z*t,Math.cos(e/2))}static fromEuler(n,e,t){const r=Math.cos(n/2),o=Math.sin(n/2),i=Math.cos(e/2),a=Math.sin(e/2),s=Math.cos(t/2),l=Math.sin(t/2);return new ce(o*i*s+r*a*l,r*a*s-o*i*l,r*i*l+o*a*s,r*i*s-o*a*l)}}const ot=new Uint8Array([23,125,161,52,103,117,70,37,247,101,203,169,124,126,44,123,152,238,145,45,171,114,253,10,192,136,4,157,249,30,35,72,175,63,77,90,181,16,96,111,133,104,75,162,93,56,66,240,8,50,84,229,49,210,173,239,141,1,87,18,2,198,143,57,225,160,58,217,168,206,245,204,199,6,73,60,20,230,211,233,94,200,88,9,74,155,33,15,219,130,226,202,83,236,42,172,165,218,55,222,46,107,98,154,109,67,196,178,127,158,13,243,65,79,166,248,25,224,115,80,68,51,184,128,232,208,151,122,26,212,105,43,179,213,235,148,146,89,14,195,28,78,112,76,250,47,24,251,140,108,186,190,228,170,183,139,39,188,244,246,132,48,119,144,180,138,134,193,82,182,120,121,86,220,209,3,91,241,149,85,205,150,113,216,31,100,41,164,177,214,153,231,38,71,185,174,97,201,29,95,7,92,54,254,191,118,34,221,131,11,163,99,234,81,227,147,156,176,17,142,69,12,110,62,27,255,0,194,59,116,242,252,19,21,187,53,207,129,64,135,61,40,167,237,102,223,106,159,197,189,215,137,36,32,22,5,23,125,161,52,103,117,70,37,247,101,203,169,124,126,44,123,152,238,145,45,171,114,253,10,192,136,4,157,249,30,35,72,175,63,77,90,181,16,96,111,133,104,75,162,93,56,66,240,8,50,84,229,49,210,173,239,141,1,87,18,2,198,143,57,225,160,58,217,168,206,245,204,199,6,73,60,20,230,211,233,94,200,88,9,74,155,33,15,219,130,226,202,83,236,42,172,165,218,55,222,46,107,98,154,109,67,196,178,127,158,13,243,65,79,166,248,25,224,115,80,68,51,184,128,232,208,151,122,26,212,105,43,179,213,235,148,146,89,14,195,28,78,112,76,250,47,24,251,140,108,186,190,228,170,183,139,39,188,244,246,132,48,119,144,180,138,134,193,82,182,120,121,86,220,209,3,91,241,149,85,205,150,113,216,31,100,41,164,177,214,153,231,38,71,185,174,97,201,29,95,7,92,54,254,191,118,34,221,131,11,163,99,234,81,227,147,156,176,17,142,69,12,110,62,27,255,0,194,59,116,242,252,19,21,187,53,207,129,64,135,61,40,167,237,102,223,106,159,197,189,215,137,36,32,22,5]),He=new Uint8Array([7,9,5,0,11,1,6,9,3,9,11,1,8,10,4,7,8,6,1,5,3,10,9,10,0,8,4,1,5,2,7,8,7,11,9,10,1,0,4,7,5,0,11,6,1,4,2,8,8,10,4,9,9,2,5,7,9,1,7,2,2,6,11,5,5,4,6,9,0,1,1,0,7,6,9,8,4,10,3,1,2,8,8,9,10,11,5,11,11,2,6,10,3,4,2,4,9,10,3,2,6,3,6,10,5,3,4,10,11,2,9,11,1,11,10,4,9,4,11,0,4,11,4,0,0,0,7,6,10,4,1,3,11,5,3,4,2,9,1,3,0,1,8,0,6,7,8,7,0,4,6,10,8,2,3,11,11,8,0,2,4,8,3,0,0,10,6,1,2,2,4,5,6,0,1,3,11,9,5,5,9,6,9,8,3,8,1,8,9,6,9,11,10,7,5,6,5,9,1,3,7,0,2,10,11,2,6,1,3,11,7,7,2,1,7,3,0,8,1,1,5,0,6,10,11,11,0,2,7,0,10,8,3,5,7,1,11,1,0,7,9,0,11,5,10,3,2,3,5,9,7,9,8,4,6,5,7,9,5,0,11,1,6,9,3,9,11,1,8,10,4,7,8,6,1,5,3,10,9,10,0,8,4,1,5,2,7,8,7,11,9,10,1,0,4,7,5,0,11,6,1,4,2,8,8,10,4,9,9,2,5,7,9,1,7,2,2,6,11,5,5,4,6,9,0,1,1,0,7,6,9,8,4,10,3,1,2,8,8,9,10,11,5,11,11,2,6,10,3,4,2,4,9,10,3,2,6,3,6,10,5,3,4,10,11,2,9,11,1,11,10,4,9,4,11,0,4,11,4,0,0,0,7,6,10,4,1,3,11,5,3,4,2,9,1,3,0,1,8,0,6,7,8,7,0,4,6,10,8,2,3,11,11,8,0,2,4,8,3,0,0,10,6,1,2,2,4,5,6,0,1,3,11,9,5,5,9,6,9,8,3,8,1,8,9,6,9,11,10,7,5,6,5,9,1,3,7,0,2,10,11,2,6,1,3,11,7,7,2,1,7,3,0,8,1,1,5,0,6,10,11,11,0,2,7,0,10,8,3,5,7,1,11,1,0,7,9,0,11,5,10,3,2,3,5,9,7,9,8,4,6,5]),ur=new Float32Array([1,1,0,-1,1,0,1,-1,0,-1,-1,0,1,0,1,-1,0,1,1,0,-1,-1,0,-1,0,1,1,0,-1,1,0,1,-1,0,-1,-1]);function dr(u){const n=u|0;return u<n?n-1:n}function We(u,n,e,t){const r=u*3;return ur[r]*n+ur[r+1]*e+ur[r+2]*t}function fr(u){return((u*6-15)*u+10)*u*u*u}function Gr(u,n,e,t,r,o,i){const a=t-1&255,s=r-1&255,l=o-1&255,d=dr(u),p=dr(n),f=dr(e),h=d&a,_=d+1&a,g=p&s,y=p+1&s,w=f&l,x=f+1&l,B=u-d,G=fr(B),S=n-p,E=fr(S),L=e-f,M=fr(L),I=ot[h+i],A=ot[_+i],b=ot[I+g],k=ot[I+y],m=ot[A+g],P=ot[A+y],v=We(He[b+w],B,S,L),U=We(He[b+x],B,S,L-1),C=We(He[k+w],B,S-1,L),z=We(He[k+x],B,S-1,L-1),H=We(He[m+w],B-1,S,L),O=We(He[m+x],B-1,S,L-1),te=We(He[P+w],B-1,S-1,L),pe=We(He[P+x],B-1,S-1,L-1),he=v+(U-v)*M,re=C+(z-C)*M,ie=H+(O-H)*M,j=te+(pe-te)*M,K=he+(re-he)*E,q=ie+(j-ie)*E;return K+(q-K)*G}function Ce(u,n,e,t,r,o,i){return Gr(u,n,e,t,r,o,i&255)}function Do(u,n,e,t,r,o,i){let a=1,s=1,l=.5,d=0;for(let p=0;p<i;p++){let f=Gr(u*a,n*a,e*a,0,0,0,p&255);f=o-Math.abs(f),f=f*f,d+=f*l*s,s=f,a*=t,l*=r}return d}function Un(u,n,e,t,r,o){let i=1,a=1,s=0;for(let l=0;l<o;l++)s+=Math.abs(Gr(u*i,n*i,e*i,0,0,0,l&255)*a),i*=t,a*=r;return s}const Qt=class Qt extends Uint32Array{constructor(e){super(6);c(this,"_seed");this._seed=0,this.seed=e??Date.now()}get seed(){return this[0]}set seed(e){this._seed=e,this[0]=e,this[1]=this[0]*1812433253+1>>>0,this[2]=this[1]*1812433253+1>>>0,this[3]=this[2]*1812433253+1>>>0,this[4]=0,this[5]=0}reset(){this.seed=this._seed}randomUint32(){let e=this[3];const t=this[0];return this[3]=this[2],this[2]=this[1],this[1]=t,e^=e>>>2,e^=e<<1,e^=t^t<<4,this[0]=e,this[4]=this[4]+362437>>>0,this[5]=e+this[4]>>>0,this[5]}randomFloat(e,t){const r=(this.randomUint32()&8388607)*11920930376163766e-23;return e===void 0?r:r*((t??1)-e)+e}randomDouble(e,t){const r=this.randomUint32()>>>5,o=this.randomUint32()>>>6,i=(r*67108864+o)*(1/9007199254740992);return e===void 0?i:i*((t??1)-e)+e}};c(Qt,"global",new Qt);let Me=Qt;class Ze{constructor(){c(this,"gameObject")}onAttach(){}onDetach(){}update(n){}}class fe{constructor(n="GameObject"){c(this,"name");c(this,"position");c(this,"rotation");c(this,"scale");c(this,"children",[]);c(this,"parent",null);c(this,"_components",[]);this.name=n,this.position=V.zero(),this.rotation=ce.identity(),this.scale=V.one()}addComponent(n){return n.gameObject=this,this._components.push(n),n.onAttach(),n}getComponent(n){for(const e of this._components)if(e instanceof n)return e;return null}getComponents(n){return this._components.filter(e=>e instanceof n)}removeComponent(n){const e=this._components.indexOf(n);e!==-1&&(n.onDetach(),this._components.splice(e,1))}addChild(n){n.parent=this,this.children.push(n)}localToWorld(){const n=J.trs(this.position,this.rotation.x,this.rotation.y,this.rotation.z,this.rotation.w,this.scale);return this.parent?this.parent.localToWorld().multiply(n):n}update(n){for(const e of this._components)e.update(n);for(const e of this.children)e.update(n)}}class zo extends Ze{constructor(e=60,t=.1,r=1e3,o=16/9){super();c(this,"fov");c(this,"near");c(this,"far");c(this,"aspect");this.fov=e*(Math.PI/180),this.near=t,this.far=r,this.aspect=o}projectionMatrix(){return J.perspective(this.fov,this.aspect,this.near,this.far)}viewMatrix(){return this.gameObject.localToWorld().invert()}viewProjectionMatrix(){return this.projectionMatrix().multiply(this.viewMatrix())}position(){const e=this.gameObject.localToWorld();return new V(e.data[12],e.data[13],e.data[14])}frustumCornersWorld(){const e=this.viewProjectionMatrix().invert();return[[-1,-1,0],[1,-1,0],[-1,1,0],[1,1,0],[-1,-1,1],[1,-1,1],[-1,1,1],[1,1,1]].map(([r,o,i])=>e.transformPoint(new V(r,o,i)))}}class Fo extends Ze{constructor(e=new V(.3,-1,.5),t=V.one(),r=1,o=3){super();c(this,"direction");c(this,"color");c(this,"intensity");c(this,"numCascades");this.direction=e.normalize(),this.color=t,this.intensity=r,this.numCascades=o}computeCascadeMatrices(e,t){const r=t??e.far,o=this._computeSplitDepths(e.near,r,this.numCascades),i=[];for(let a=0;a<this.numCascades;a++){const s=a===0?e.near:o[a-1],l=o[a],d=this._frustumCornersForSplit(e,s,l),p=d.reduce((m,P)=>m.add(P),V.zero()).scale(1/8),f=this.direction.normalize(),h=J.lookAt(p.sub(f),p,new V(0,1,0)),_=2048;let g=0;for(const m of d)g=Math.max(g,m.sub(p).length());let y=2*g/_;g=Math.ceil(g/y)*y,g*=_/(_-2),y=2*g/_;let w=1/0,x=-1/0;for(const m of d){const P=h.transformPoint(m);w=Math.min(w,P.z),x=Math.max(x,P.z)}const B=Math.min((x-w)*.25,64);w-=B,x+=B;let G=J.orthographic(-g,g,-g,g,-x,-w);const E=G.multiply(h).transformPoint(p),L=E.x*.5+.5,M=.5-E.y*.5,I=Math.round(L*_)/_,A=Math.round(M*_)/_,b=(I-L)*2,k=-(A-M)*2;G.set(3,0,G.get(3,0)+b),G.set(3,1,G.get(3,1)+k),i.push({lightViewProj:G.multiply(h),splitFar:l,depthRange:x-w,texelWorldSize:y})}return i}_computeSplitDepths(e,t,r){const i=[];for(let a=1;a<=r;a++){const s=e+(t-e)*(a/r),l=e*Math.pow(t/e,a/r);i.push(.75*l+(1-.75)*s)}return i}_frustumCornersForSplit(e,t,r){const o=e.near,i=e.far;e.near=t,e.far=r;const a=e.frustumCornersWorld();return e.near=o,e.far=i,a}}var gt=(u=>(u.Forward="forward",u.Geometry="geometry",u.SkinnedGeometry="skinnedGeometry",u))(gt||{});class xi{constructor(){c(this,"transparent",!1)}}class Se extends Ze{constructor(e,t){super();c(this,"mesh");c(this,"material");c(this,"castShadow",!0);this.mesh=e,this.material=t}}class wi{constructor(){c(this,"gameObjects",[])}add(n){this.gameObjects.push(n)}remove(n){const e=this.gameObjects.indexOf(n);e!==-1&&this.gameObjects.splice(e,1)}update(n){for(const e of this.gameObjects)e.update(n)}findCamera(){for(const n of this.gameObjects){const e=n.getComponent(zo);if(e)return e}return null}findDirectionalLight(){for(const n of this.gameObjects){const e=n.getComponent(Fo);if(e)return e}return null}collectMeshRenderers(){const n=[];for(const e of this.gameObjects)this._collectMeshRenderersRecursive(e,n);return n}_collectMeshRenderersRecursive(n,e){const t=n.getComponent(Se);t&&e.push(t);for(const r of n.children)this._collectMeshRenderersRecursive(r,e)}getComponents(n){const e=[];for(const t of this.gameObjects){const r=t.getComponent(n);r&&e.push(r)}return e}}const Bi=[new V(1,0,0),new V(-1,0,0),new V(0,1,0),new V(0,-1,0),new V(0,0,1),new V(0,0,-1)],Si=[new V(0,-1,0),new V(0,-1,0),new V(0,0,1),new V(0,0,-1),new V(0,-1,0),new V(0,-1,0)];class Tr extends Ze{constructor(){super(...arguments);c(this,"color",V.one());c(this,"intensity",1);c(this,"radius",10);c(this,"castShadow",!1)}worldPosition(){return this.gameObject.localToWorld().transformPoint(V.zero())}cubeFaceViewProjs(e=.05){const t=this.worldPosition(),r=J.perspective(Math.PI/2,1,e,this.radius),o=new Array(6);for(let i=0;i<6;i++)o[i]=r.multiply(J.lookAt(t,t.add(Bi[i]),Si[i]));return o}}class Ho extends Ze{constructor(){super(...arguments);c(this,"color",V.one());c(this,"intensity",1);c(this,"range",20);c(this,"innerAngle",15);c(this,"outerAngle",30);c(this,"castShadow",!1);c(this,"projectionTexture",null)}worldPosition(){return this.gameObject.localToWorld().transformPoint(V.zero())}worldDirection(){return this.gameObject.localToWorld().transformDirection(new V(0,0,-1)).normalize()}lightViewProj(e=.1){const t=this.worldPosition(),r=this.worldDirection(),o=Math.abs(r.y)>.99?new V(1,0,0):new V(0,1,0),i=J.lookAt(t,t.add(r),o);return J.perspective(this.outerAngle*2*Math.PI/180,1,e,this.range).multiply(i)}}const Pi=new V(0,1,0);class Gi extends Ze{constructor(e){super();c(this,"_world");c(this,"_state","idle");c(this,"_timer",0);c(this,"_targetX",0);c(this,"_targetZ",0);c(this,"_hasTarget",!1);c(this,"_velY",0);c(this,"_yaw",0);c(this,"_headGO",null);c(this,"_headBaseY",0);c(this,"_bobPhase");this._world=e,this._timer=1+Math.random()*5,this._yaw=Math.random()*Math.PI*2,this._bobPhase=Math.random()*Math.PI*2}onAttach(){for(const e of this.gameObject.children)if(e.name==="Pig.Head"){this._headGO=e,this._headBaseY=e.position.y;break}}update(e){const t=this.gameObject,r=t.position.x,o=t.position.z;this._velY-=9.8*e,t.position.y+=this._velY*e;const i=this._world.getTopBlockY(Math.floor(r),Math.floor(o),Math.ceil(t.position.y)+4);switch(i>0&&t.position.y<=i+.1&&(t.position.y=i,this._velY=0),this._state){case"idle":{this._timer-=e,this._timer<=0&&this._pickWanderTarget();break}case"wander":{if(this._timer-=e,!this._hasTarget||this._timer<=0){this._enterIdle();break}const a=this._targetX-r,s=this._targetZ-o,l=a*a+s*s;if(l<.25){this._enterIdle();break}const d=Math.sqrt(l);t.position.x+=a/d*1.2*e,t.position.z+=s/d*1.2*e,this._yaw=Math.atan2(-(a/d),-(s/d));break}}if(t.rotation=ce.fromAxisAngle(Pi,this._yaw),this._headGO){this._bobPhase+=e*(this._state==="wander"?4:1.5);const a=this._state==="wander"?.014:.005;this._headGO.position.y=this._headBaseY+Math.sin(this._bobPhase)*a}}_enterIdle(){this._state="idle",this._hasTarget=!1,this._timer=3+Math.random()*5}_pickWanderTarget(){const e=this.gameObject,t=Math.random()*Math.PI*2,r=4+Math.random()*8;this._targetX=e.position.x+Math.cos(t)*r,this._targetZ=e.position.z+Math.sin(t)*r,this._hasTarget=!0,this._state="wander",this._timer=8+Math.random()*7}}const Ti=new V(0,1,0);class Mi extends Ze{constructor(e,t){super();c(this,"_parent");c(this,"_world");c(this,"_velY",0);c(this,"_yaw",0);c(this,"_headGO",null);c(this,"_headBaseY",0);c(this,"_bobPhase");c(this,"_offsetAngle");c(this,"_followDist");this._parent=e,this._world=t,this._offsetAngle=Math.random()*Math.PI*2,this._followDist=.55+Math.random()*.5,this._bobPhase=Math.random()*Math.PI*2}onAttach(){for(const e of this.gameObject.children)if(e.name==="Duckling.Head"){this._headGO=e,this._headBaseY=e.position.y;break}}update(e){const t=this.gameObject,r=t.position.x,o=t.position.z;this._velY-=9.8*e,t.position.y+=this._velY*e;const i=this._world.getTopBlockY(Math.floor(r),Math.floor(o),Math.ceil(t.position.y)+4);i>0&&t.position.y<=i+.1&&(t.position.y=i,this._velY=0),this._offsetAngle+=e*.25;const a=this._parent.position.x+Math.cos(this._offsetAngle)*this._followDist,s=this._parent.position.z+Math.sin(this._offsetAngle)*this._followDist,l=a-r,d=s-o,p=l*l+d*d;let f=!1;if(p>.04){const h=Math.sqrt(p),_=h>2.5?3.5:1.8,g=l/h,y=d/h;t.position.x+=g*_*e,t.position.z+=y*_*e,this._yaw=Math.atan2(-g,-y),f=!0}if(t.rotation=ce.fromAxisAngle(Ti,this._yaw),this._headGO){this._bobPhase+=e*(f?7:2);const h=f?.012:.004;this._headGO.position.y=this._headBaseY+Math.sin(this._bobPhase)*h}}}const Ai=new V(0,1,0),Ei=new V(1,0,0),Ui=3;class Ci{constructor(n=0,e=0,t=5,r=.002){c(this,"yaw");c(this,"pitch");c(this,"speed");c(this,"sensitivity");c(this,"inputForward",0);c(this,"inputStrafe",0);c(this,"inputUp",!1);c(this,"inputDown",!1);c(this,"inputFast",!1);c(this,"_keys",new Set);c(this,"_canvas",null);c(this,"_onMouseMove");c(this,"_onKeyDown");c(this,"_onKeyUp");c(this,"_onClick");c(this,"usePointerLock",!0);this.yaw=n,this.pitch=e,this.speed=t,this.sensitivity=r;const o=Math.PI/2-.001;this._onMouseMove=i=>{document.pointerLockElement===this._canvas&&(this.yaw-=i.movementX*this.sensitivity,this.pitch=Math.max(-o,Math.min(o,this.pitch+i.movementY*this.sensitivity)))},this._onKeyDown=i=>this._keys.add(i.code),this._onKeyUp=i=>this._keys.delete(i.code),this._onClick=()=>{var i;this.usePointerLock&&((i=this._canvas)==null||i.requestPointerLock())}}attach(n){this._canvas=n,n.addEventListener("click",this._onClick),document.addEventListener("mousemove",this._onMouseMove),document.addEventListener("keydown",this._onKeyDown),document.addEventListener("keyup",this._onKeyUp)}pressKey(n){this._keys.add(n)}applyLookDelta(n,e){const t=Math.PI/2-.001;this.yaw-=n*this.sensitivity,this.pitch=Math.max(-t,Math.min(t,this.pitch+e*this.sensitivity))}detach(){this._canvas&&(this._canvas.removeEventListener("click",this._onClick),document.removeEventListener("mousemove",this._onMouseMove),document.removeEventListener("keydown",this._onKeyDown),document.removeEventListener("keyup",this._onKeyUp),this._canvas=null)}update(n,e){const t=Math.sin(this.yaw),r=Math.cos(this.yaw);let o=0,i=0,a=0;(this._keys.has("KeyW")||this._keys.has("ArrowUp"))&&(o-=t,a-=r),(this._keys.has("KeyS")||this._keys.has("ArrowDown"))&&(o+=t,a+=r),(this._keys.has("KeyA")||this._keys.has("ArrowLeft"))&&(o-=r,a+=t),(this._keys.has("KeyD")||this._keys.has("ArrowRight"))&&(o+=r,a-=t),this.inputForward!==0&&(o-=t*this.inputForward,a-=r*this.inputForward),this.inputStrafe!==0&&(o+=r*this.inputStrafe,a-=t*this.inputStrafe),(this._keys.has("Space")||this.inputUp)&&(i+=1),(this._keys.has("ShiftLeft")||this.inputDown)&&(i-=1);const s=Math.sqrt(o*o+i*i+a*a);if(s>0){const l=this._keys.has("ControlLeft")||this._keys.has("AltLeft")||this.inputFast,d=this.speed*(l?Ui:1)*e/s;n.position.x+=o*d,n.position.y+=i*d,n.position.z+=a*d}n.rotation=ce.fromAxisAngle(Ai,this.yaw).multiply(ce.fromAxisAngle(Ei,-this.pitch))}}const ki=400,Li=16,Wo=ki/Li;var N=(u=>(u[u.NONE=0]="NONE",u[u.GRASS=1]="GRASS",u[u.SAND=2]="SAND",u[u.STONE=3]="STONE",u[u.DIRT=4]="DIRT",u[u.TRUNK=5]="TRUNK",u[u.TREELEAVES=6]="TREELEAVES",u[u.WATER=7]="WATER",u[u.GLASS=8]="GLASS",u[u.FLOWER=9]="FLOWER",u[u.GLOWSTONE=10]="GLOWSTONE",u[u.MAGMA=11]="MAGMA",u[u.OBSIDIAN=12]="OBSIDIAN",u[u.DIAMOND=13]="DIAMOND",u[u.IRON=14]="IRON",u[u.SPECULAR=15]="SPECULAR",u[u.CACTUS=16]="CACTUS",u[u.SNOW=17]="SNOW",u[u.GRASS_SNOW=18]="GRASS_SNOW",u[u.SPRUCE_PLANKS=19]="SPRUCE_PLANKS",u[u.GRASS_PROP=20]="GRASS_PROP",u[u.TORCH=21]="TORCH",u[u.DEAD_BUSH=22]="DEAD_BUSH",u[u.SNOWYLEAVES=23]="SNOWYLEAVES",u[u.AMETHYST=24]="AMETHYST",u[u.MAX=25]="MAX",u))(N||{});class ae{constructor(n,e,t,r){c(this,"blockType");c(this,"sideFace");c(this,"bottomFace");c(this,"topFace");this.blockType=n,this.sideFace=e,this.bottomFace=t,this.topFace=r}}const er=[new ae(0,new R(0,0),new R(0,0),new R(0,0)),new ae(1,new R(1,0),new R(3,0),new R(2,0)),new ae(2,new R(4,0),new R(4,0),new R(4,0)),new ae(3,new R(5,0),new R(5,0),new R(5,0)),new ae(4,new R(6,0),new R(6,0),new R(6,0)),new ae(5,new R(7,0),new R(8,0),new R(8,0)),new ae(6,new R(9,0),new R(9,0),new R(9,0)),new ae(7,new R(2,29),new R(2,29),new R(2,29)),new ae(8,new R(10,0),new R(10,0),new R(10,0)),new ae(9,new R(23,0),new R(23,0),new R(23,0)),new ae(10,new R(11,0),new R(11,0),new R(11,0)),new ae(11,new R(12,0),new R(12,0),new R(12,0)),new ae(12,new R(13,0),new R(13,0),new R(13,0)),new ae(13,new R(14,0),new R(14,0),new R(14,0)),new ae(14,new R(15,0),new R(15,0),new R(15,0)),new ae(15,new R(0,24),new R(0,24),new R(0,24)),new ae(16,new R(17,0),new R(18,0),new R(16,0)),new ae(17,new R(19,0),new R(19,0),new R(19,0)),new ae(18,new R(20,0),new R(3,0),new R(21,0)),new ae(19,new R(22,0),new R(22,0),new R(22,0)),new ae(20,new R(1,1),new R(1,1),new R(1,1)),new ae(21,new R(2,1),new R(2,1),new R(2,1)),new ae(22,new R(3,1),new R(3,1),new R(3,1)),new ae(23,new R(4,1),new R(9,0),new R(21,0)),new ae(24,new R(5,1),new R(5,1),new R(5,1)),new ae(25,new R(0,0),new R(0,0),new R(0,0))];class se{constructor(n,e,t,r){c(this,"blockType");c(this,"materialType");c(this,"emitsLight");c(this,"collidable");this.blockType=n,this.materialType=e,this.emitsLight=t,this.collidable=r}}const bt=[new se(0,1,0,0),new se(1,0,0,1),new se(2,0,0,1),new se(3,0,0,1),new se(4,0,0,1),new se(5,0,0,1),new se(6,1,0,1),new se(7,2,0,0),new se(8,1,0,1),new se(9,3,0,0),new se(10,0,1,1),new se(11,0,1,1),new se(12,0,0,1),new se(13,0,0,1),new se(14,0,0,1),new se(15,0,0,1),new se(16,0,0,1),new se(17,0,0,1),new se(18,0,0,1),new se(19,0,0,1),new se(20,3,0,0),new se(21,3,1,0),new se(22,3,0,0),new se(23,1,0,1),new se(24,0,0,1)],Ni=["None","Grass","Sand","Stone","Dirt","Trunk","Tree leaves","Water","Glass","Flower","Glowstone","Magma","Obsidian","Diamond","Iron","Specular","Cactus","Snow","Grass snow","Spruce planks","Grass prop","Torch","Dead bush","Snowy leaves","Amethyst","Max"];function le(u){return bt[u].materialType===2}function At(u){return bt[u].materialType===1||bt[u].materialType===3}function Cn(u){return bt[u].emitsLight===1}function Ee(u){return bt[u].materialType===3}const Ri=new V(0,1,0),Ii=new V(1,0,0),Oi=-28,Vi=-4,Di=1.3,zi=4.3,Fi=7,Hi=11.5,Wi=3.5,Be=.3,pt=1.8,kn=1.62;class qi{constructor(n,e=Math.PI,t=.1){c(this,"yaw");c(this,"pitch");c(this,"sensitivity",.002);c(this,"inputForward",0);c(this,"inputStrafe",0);c(this,"inputJump",!1);c(this,"inputSneak",!1);c(this,"inputSprint",!1);c(this,"_velY",0);c(this,"_onGround",!1);c(this,"_prevInWater",!1);c(this,"_coyoteFrames",0);c(this,"_keys",new Set);c(this,"_canvas",null);c(this,"_world");c(this,"_onMouseMove");c(this,"_onKeyDown");c(this,"_onKeyUp");c(this,"_onClick");c(this,"usePointerLock",!0);this._world=n,this.yaw=e,this.pitch=t;const r=Math.PI/2-.001;this._onMouseMove=o=>{document.pointerLockElement===this._canvas&&(this.yaw-=o.movementX*this.sensitivity,this.pitch=Math.max(-r,Math.min(r,this.pitch+o.movementY*this.sensitivity)))},this._onKeyDown=o=>this._keys.add(o.code),this._onKeyUp=o=>this._keys.delete(o.code),this._onClick=()=>{var o;this.usePointerLock&&((o=this._canvas)==null||o.requestPointerLock())}}set velY(n){this._velY=n}attach(n){this._canvas=n,n.addEventListener("click",this._onClick),document.addEventListener("mousemove",this._onMouseMove),document.addEventListener("keydown",this._onKeyDown),document.addEventListener("keyup",this._onKeyUp)}applyLookDelta(n,e){const t=Math.PI/2-.001;this.yaw-=n*this.sensitivity,this.pitch=Math.max(-t,Math.min(t,this.pitch+e*this.sensitivity))}detach(){this._canvas&&(this._canvas.removeEventListener("click",this._onClick),document.removeEventListener("mousemove",this._onMouseMove),document.removeEventListener("keydown",this._onKeyDown),document.removeEventListener("keyup",this._onKeyUp),this._canvas=null)}update(n,e){e=Math.min(e,.05),n.rotation=ce.fromAxisAngle(Ri,this.yaw).multiply(ce.fromAxisAngle(Ii,-this.pitch));const t=Math.sin(this.yaw),r=Math.cos(this.yaw),o=this._keys.has("ControlLeft")||this._keys.has("AltLeft")||this.inputSprint,i=this._keys.has("ShiftLeft")||this.inputSneak,a=o?Fi:i?Di:zi;let s=0,l=0;(this._keys.has("KeyW")||this._keys.has("ArrowUp"))&&(s-=t,l-=r),(this._keys.has("KeyS")||this._keys.has("ArrowDown"))&&(s+=t,l+=r),(this._keys.has("KeyA")||this._keys.has("ArrowLeft"))&&(s-=r,l+=t),(this._keys.has("KeyD")||this._keys.has("ArrowRight"))&&(s+=r,l-=t),this.inputForward!==0&&(s-=t*this.inputForward,l-=r*this.inputForward),this.inputStrafe!==0&&(s+=r*this.inputStrafe,l-=t*this.inputStrafe);const d=Math.sqrt(s*s+l*l);if(d>0){const B=1/Math.max(d,1);s=s*B*a,l=l*B*a}let p=n.position.x,f=n.position.y-kn,h=n.position.z;const _=le(this._world.getBlockType(Math.floor(p),Math.floor(f+pt*.5),Math.floor(h))),g=this._keys.has("Space")||this.inputJump;_?(g&&(this._velY=Wi),this._velY=Math.max(this._velY+Vi*e,-2)):(this._prevInWater&&this._velY>0&&(this._velY=0),g&&(this._onGround||this._coyoteFrames>0)&&(this._velY=Hi,this._coyoteFrames=0),this._velY=Math.max(this._velY+Oi*e,-50)),p=this._slideX(p+s*e,f,h,s),h=this._slideZ(p,f,h+l*e,l);const[y,w,x]=this._slideY(p,f+this._velY*e,h);(w||x)&&(this._velY=0),f=y,this._onGround=w,this._prevInWater=_,w?this._coyoteFrames=6:_||(this._coyoteFrames=Math.max(0,this._coyoteFrames-1)),n.position.x=p,n.position.y=f+kn,n.position.z=h}_isSolid(n,e,t){const r=this._world.getBlockType(n,e,t);return r!==N.NONE&&!le(r)&&!Ee(r)}_slideX(n,e,t,r){if(Math.abs(r)<1e-6)return n;const o=r>0?n+Be:n-Be,i=Math.floor(o),a=Math.floor(e+.01),s=Math.floor(e+pt-.01),l=Math.floor(t-Be+.01),d=Math.floor(t+Be-.01);for(let p=a;p<=s;p++)for(let f=l;f<=d;f++)if(this._isSolid(i,p,f))return r>0?i-Be-.001:i+1+Be+.001;return n}_slideZ(n,e,t,r){if(Math.abs(r)<1e-6)return t;const o=r>0?t+Be:t-Be,i=Math.floor(o),a=Math.floor(e+.01),s=Math.floor(e+pt-.01),l=Math.floor(n-Be+.01),d=Math.floor(n+Be-.01);for(let p=a;p<=s;p++)for(let f=l;f<=d;f++)if(this._isSolid(f,p,i))return r>0?i-Be-.001:i+1+Be+.001;return t}_slideY(n,e,t){const r=Math.floor(n-Be+.01),o=Math.floor(n+Be-.01),i=Math.floor(t-Be+.01),a=Math.floor(t+Be-.01);if(this._velY<=0){const s=Math.floor(e-.001);for(let l=r;l<=o;l++)for(let d=i;d<=a;d++)if(this._isSolid(l,s,d))return[s+1,!0,!1];return[e,!1,!1]}else{const s=Math.floor(e+pt);for(let l=r;l<=o;l++)for(let d=i;d<=a;d++)if(this._isSolid(l,s,d))return[s-pt-.001,!1,!0];return[e,!1,!1]}}}class Mr{constructor(n,e,t,r,o,i){c(this,"device");c(this,"queue");c(this,"context");c(this,"format");c(this,"canvas");c(this,"hdr");c(this,"enableErrorHandling");this.device=n,this.queue=n.queue,this.context=e,this.format=t,this.canvas=r,this.hdr=o,this.enableErrorHandling=i}get width(){return this.canvas.width}get height(){return this.canvas.height}static async create(n,e={}){if(!navigator.gpu)throw new Error("WebGPU not supported");const t=await navigator.gpu.requestAdapter({powerPreference:"high-performance"});if(!t)throw new Error("No WebGPU adapter found");const r=await t.requestDevice({requiredFeatures:[]});e.enableErrorHandling&&r.addEventListener("uncapturederror",s=>{const l=s.error;l instanceof GPUValidationError?console.error("[WebGPU Validation Error]",l.message):l instanceof GPUOutOfMemoryError?console.error("[WebGPU Out of Memory]"):console.error("[WebGPU Internal Error]",l)});const o=n.getContext("webgpu");let i,a=!1;try{o.configure({device:r,format:"rgba16float",alphaMode:"opaque",colorSpace:"display-p3",toneMapping:{mode:"extended"}}),i="rgba16float",a=!0}catch{i=navigator.gpu.getPreferredCanvasFormat(),o.configure({device:r,format:i,alphaMode:"opaque"})}return n.width=n.clientWidth*devicePixelRatio,n.height=n.clientHeight*devicePixelRatio,new Mr(r,o,i,n,a,e.enableErrorHandling??!1)}getCurrentTexture(){return this.context.getCurrentTexture()}createBuffer(n,e,t){return this.device.createBuffer({size:n,usage:e,label:t})}writeBuffer(n,e,t=0){e instanceof ArrayBuffer?this.queue.writeBuffer(n,t,e):this.queue.writeBuffer(n,t,e.buffer,e.byteOffset,e.byteLength)}pushInitErrorScope(){this.enableErrorHandling&&this.device.pushErrorScope("validation")}async popInitErrorScope(n){if(this.enableErrorHandling){const e=await this.device.popErrorScope();e&&(console.error(`[Init:${n}] Validation Error:`,e.message),console.trace())}}pushFrameErrorScope(){this.enableErrorHandling&&this.device.pushErrorScope("validation")}async popFrameErrorScope(){if(this.enableErrorHandling){const n=await this.device.popErrorScope();n&&(console.error("[Frame] Validation Error:",n.message),console.trace())}}pushPassErrorScope(n){this.enableErrorHandling&&(this.device.pushErrorScope("validation"),this.device.pushErrorScope("out-of-memory"),this.device.pushErrorScope("internal"))}async popPassErrorScope(n){if(this.enableErrorHandling){const e=await this.device.popErrorScope();e&&console.error(`[${n}] Internal Error:`,e),await this.device.popErrorScope()&&console.error(`[${n}] Out of Memory`);const r=await this.device.popErrorScope();r&&console.error(`[${n}] Validation Error:`,r.message)}}}class ge{constructor(){c(this,"enabled",!0)}destroy(){}}class Zt{constructor(n,e,t,r,o){c(this,"albedoRoughness");c(this,"normalMetallic");c(this,"depth");c(this,"albedoRoughnessView");c(this,"normalMetallicView");c(this,"depthView");c(this,"width");c(this,"height");this.albedoRoughness=n,this.normalMetallic=e,this.depth=t,this.width=r,this.height=o,this.albedoRoughnessView=n.createView(),this.normalMetallicView=e.createView(),this.depthView=t.createView()}static create(n){const{device:e,width:t,height:r}=n,o=e.createTexture({label:"GBuffer AlbedoRoughness",size:{width:t,height:r},format:"rgba8unorm",usage:GPUTextureUsage.RENDER_ATTACHMENT|GPUTextureUsage.TEXTURE_BINDING}),i=e.createTexture({label:"GBuffer NormalMetallic",size:{width:t,height:r},format:"rgba16float",usage:GPUTextureUsage.RENDER_ATTACHMENT|GPUTextureUsage.TEXTURE_BINDING}),a=e.createTexture({label:"GBuffer Depth",size:{width:t,height:r},format:"depth32float",usage:GPUTextureUsage.RENDER_ATTACHMENT|GPUTextureUsage.TEXTURE_BINDING});return new Zt(o,i,a,t,r)}destroy(){this.albedoRoughness.destroy(),this.normalMetallic.destroy(),this.depth.destroy()}}const Ar=48,Er=[{shaderLocation:0,offset:0,format:"float32x3"},{shaderLocation:1,offset:12,format:"float32x3"},{shaderLocation:2,offset:24,format:"float32x2"},{shaderLocation:3,offset:32,format:"float32x4"}];class ke{constructor(n,e,t){c(this,"vertexBuffer");c(this,"indexBuffer");c(this,"indexCount");this.vertexBuffer=n,this.indexBuffer=e,this.indexCount=t}destroy(){this.vertexBuffer.destroy(),this.indexBuffer.destroy()}static fromData(n,e,t){const r=n.createBuffer({label:"Mesh VertexBuffer",size:e.byteLength,usage:GPUBufferUsage.VERTEX|GPUBufferUsage.COPY_DST});n.queue.writeBuffer(r,0,e.buffer,e.byteOffset,e.byteLength);const o=n.createBuffer({label:"Mesh IndexBuffer",size:t.byteLength,usage:GPUBufferUsage.INDEX|GPUBufferUsage.COPY_DST});return n.queue.writeBuffer(o,0,t.buffer,t.byteOffset,t.byteLength),new ke(r,o,t.length)}static createCube(n,e=1){const t=e/2,r=[{normal:[0,0,1],tangent:[1,0,0,1],verts:[[-t,-t,t],[t,-t,t],[t,t,t],[-t,t,t]]},{normal:[0,0,-1],tangent:[-1,0,0,1],verts:[[t,-t,-t],[-t,-t,-t],[-t,t,-t],[t,t,-t]]},{normal:[1,0,0],tangent:[0,0,-1,1],verts:[[t,-t,t],[t,-t,-t],[t,t,-t],[t,t,t]]},{normal:[-1,0,0],tangent:[0,0,1,1],verts:[[-t,-t,-t],[-t,-t,t],[-t,t,t],[-t,t,-t]]},{normal:[0,1,0],tangent:[1,0,0,1],verts:[[-t,t,t],[t,t,t],[t,t,-t],[-t,t,-t]]},{normal:[0,-1,0],tangent:[1,0,0,1],verts:[[-t,-t,-t],[t,-t,-t],[t,-t,t],[-t,-t,t]]}],o=[[0,1],[1,1],[1,0],[0,0]],i=[],a=[];let s=0;for(const l of r){for(let d=0;d<4;d++)i.push(...l.verts[d],...l.normal,...o[d],...l.tangent);a.push(s,s+1,s+2,s,s+2,s+3),s+=4}return ke.fromData(n,new Float32Array(i),new Uint32Array(a))}static createSphere(n,e=.5,t=32,r=32){const o=[],i=[];for(let a=0;a<=t;a++){const s=a/t*Math.PI,l=Math.sin(s),d=Math.cos(s);for(let p=0;p<=r;p++){const f=p/r*Math.PI*2,h=Math.sin(f),_=Math.cos(f),g=l*_,y=d,w=l*h;o.push(g*e,y*e,w*e,g,y,w,p/r,a/t,-h,0,_,1)}}for(let a=0;a<t;a++)for(let s=0;s<r;s++){const l=a*(r+1)+s,d=l+r+1;i.push(l,l+1,d),i.push(l+1,d+1,d)}return ke.fromData(n,new Float32Array(o),new Uint32Array(i))}static createCone(n,e=.5,t=1,r=16){const o=[],i=[],a=Math.sqrt(t*t+e*e),s=t/a,l=e/a;o.push(0,t,0,0,1,0,.5,0,1,0,0,1);const d=1;for(let h=0;h<=r;h++){const _=h/r*Math.PI*2,g=Math.cos(_),y=Math.sin(_);o.push(g*e,0,y*e,g*s,l,y*s,h/r,1,g,0,y,1)}for(let h=0;h<r;h++)i.push(0,d+h+1,d+h);const p=d+r+1;o.push(0,0,0,0,-1,0,.5,.5,1,0,0,1);const f=p+1;for(let h=0;h<=r;h++){const _=h/r*Math.PI*2,g=Math.cos(_),y=Math.sin(_);o.push(g*e,0,y*e,0,-1,0,.5+g*.5,.5+y*.5,1,0,0,1)}for(let h=0;h<r;h++)i.push(p,f+h,f+h+1);return ke.fromData(n,new Float32Array(o),new Uint32Array(i))}static createPlane(n,e=10,t=10,r=1,o=1){const i=[],a=[];for(let s=0;s<=o;s++)for(let l=0;l<=r;l++){const d=(l/r-.5)*e,p=(s/o-.5)*t,f=l/r,h=s/o;i.push(d,0,p,0,1,0,f,h,1,0,0,1)}for(let s=0;s<o;s++)for(let l=0;l<r;l++){const d=s*(r+1)+l;a.push(d,d+r+1,d+1,d+1,d+r+1,d+r+2)}return ke.fromData(n,new Float32Array(i),new Uint32Array(a))}}const qo=`// Shadow map rendering shader - outputs depth only
+
+struct CameraUniforms {
+  viewProj: mat4x4<f32>,
+}
+
+struct ModelUniforms {
+  model: mat4x4<f32>,
+}
+
+@group(0) @binding(0) var<uniform> camera: CameraUniforms;
+@group(1) @binding(0) var<uniform> model: ModelUniforms;
+
+struct VertexInput {
+  @location(0) position: vec3<f32>,
+}
+
+struct VertexOutput {
+  @builtin(position) clip_pos: vec4<f32>,
+}
+
+@vertex
+fn vs_main(vin: VertexInput) -> VertexOutput {
+  let world_pos = model.model * vec4<f32>(vin.position, 1.0);
+  var out: VertexOutput;
+  out.clip_pos = camera.viewProj * world_pos;
+  return out;
+}
+
+@fragment
+fn fs_main(in: VertexOutput) {
+  // Depth is written automatically - no fragment output needed
+}
+`,Ln=2048,Et=4;class Ur extends ge{constructor(e,t,r,o,i,a,s,l){super();c(this,"name","ShadowPass");c(this,"shadowMap");c(this,"shadowMapView");c(this,"shadowMapArrayViews");c(this,"_pipeline");c(this,"_shadowBindGroups");c(this,"_shadowUniformBuffers");c(this,"_modelUniformBuffers",[]);c(this,"_modelBindGroups",[]);c(this,"_cascadeCount");c(this,"_cascades",[]);c(this,"_modelBGL");c(this,"_sceneSnapshot",[]);this.shadowMap=e,this.shadowMapView=t,this.shadowMapArrayViews=r,this._pipeline=o,this._shadowBindGroups=i,this._shadowUniformBuffers=a,this._modelBGL=s,this._cascadeCount=l}static create(e,t=3){const{device:r}=e,o=r.createTexture({label:"ShadowMap",size:{width:Ln,height:Ln,depthOrArrayLayers:Et},format:"depth32float",usage:GPUTextureUsage.RENDER_ATTACHMENT|GPUTextureUsage.TEXTURE_BINDING}),i=o.createView({dimension:"2d-array"}),a=Array.from({length:Et},(_,g)=>o.createView({dimension:"2d",baseArrayLayer:g,arrayLayerCount:1})),s=r.createBindGroupLayout({label:"ShadowBGL",entries:[{binding:0,visibility:GPUShaderStage.VERTEX,buffer:{type:"uniform"}}]}),l=r.createBindGroupLayout({label:"ModelBGL",entries:[{binding:0,visibility:GPUShaderStage.VERTEX,buffer:{type:"uniform"}}]}),d=[],p=[];for(let _=0;_<Et;_++){const g=r.createBuffer({label:`ShadowUniformBuffer ${_}`,size:64,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST});d.push(g),p.push(r.createBindGroup({label:`ShadowBindGroup ${_}`,layout:s,entries:[{binding:0,resource:{buffer:g}}]}))}const f=r.createShaderModule({label:"ShadowShader",code:qo}),h=r.createRenderPipeline({label:"ShadowPipeline",layout:r.createPipelineLayout({bindGroupLayouts:[s,l]}),vertex:{module:f,entryPoint:"vs_main",buffers:[{arrayStride:Ar,attributes:[Er[0]]}]},depthStencil:{format:"depth32float",depthWriteEnabled:!0,depthCompare:"less",depthBias:2,depthBiasSlopeScale:2.5,depthBiasClamp:0},primitive:{topology:"triangle-list",cullMode:"back"}});return new Ur(o,i,a,h,p,d,l,t)}updateScene(e,t,r,o){this._cascades=r.computeCascadeMatrices(t,o),this._cascadeCount=Math.min(this._cascades.length,Et)}execute(e,t){const{device:r}=t,o=this._getMeshRenderers(t);this._ensureModelBuffers(r,o.length);for(let i=0;i<this._cascadeCount&&!(i>=this._cascades.length);i++){const a=this._cascades[i];t.queue.writeBuffer(this._shadowUniformBuffers[i],0,a.lightViewProj.data.buffer);const s=e.beginRenderPass({label:`ShadowPass cascade ${i}`,colorAttachments:[],depthStencilAttachment:{view:this.shadowMapArrayViews[i],depthClearValue:1,depthLoadOp:"clear",depthStoreOp:"store"}});s.setPipeline(this._pipeline),s.setBindGroup(0,this._shadowBindGroups[i]);for(let l=0;l<o.length;l++){const{mesh:d,modelMatrix:p}=o[l],f=this._modelUniformBuffers[l];t.queue.writeBuffer(f,0,p.data.buffer),s.setBindGroup(1,this._modelBindGroups[l]),s.setVertexBuffer(0,d.vertexBuffer),s.setIndexBuffer(d.indexBuffer,"uint32"),s.drawIndexed(d.indexCount)}s.end()}}_getMeshRenderers(e){return this._sceneSnapshot??[]}setSceneSnapshot(e){this._sceneSnapshot=e}_ensureModelBuffers(e,t){for(;this._modelUniformBuffers.length<t;){const r=e.createBuffer({label:`ModelUniform ${this._modelUniformBuffers.length}`,size:64,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST}),o=e.createBindGroup({layout:this._modelBGL,entries:[{binding:0,resource:{buffer:r}}]});this._modelUniformBuffers.push(r),this._modelBindGroups.push(o)}}destroy(){this.shadowMap.destroy();for(const e of this._shadowUniformBuffers)e.destroy();for(const e of this._modelUniformBuffers)e.destroy()}}const ji=`// Deferred PBR lighting pass — fullscreen triangle, reads GBuffer + shadow maps + IBL.\r
+\r
+const PI: f32 = 3.14159265358979323846;\r
+\r
+// ---- Aerial perspective (Rayleigh + Mie, same model as atmosphere.wgsl) --------\r
+// Density scale factor: real atmosphere only hazes over km; game view is ~200 m,\r
+// so multiply density by 200 to get visible haze at typical render distances.\r
+const ATM_FOG_SCALE : f32       = 80.0;\r
+const ATM_R_E       : f32       = 6360000.0;\r
+const ATM_R_A       : f32       = 6420000.0;\r
+const ATM_H_R       : f32       = 8500.0;\r
+const ATM_H_M       : f32       = 1200.0;\r
+const ATM_G         : f32       = 0.758;\r
+const ATM_BETA_R    : vec3<f32> = vec3<f32>(5.5e-6, 13.0e-6, 22.4e-6);\r
+const ATM_BETA_M    : f32       = 21.0e-6;\r
+const ATM_SUN_I     : f32       = 20.0;\r
+\r
+fn atm_ray_sphere(ro: vec3<f32>, rd: vec3<f32>, r: f32) -> vec2<f32> {\r
+  let b = dot(ro, rd); let c = dot(ro, ro) - r * r; let d = b*b - c;\r
+  if (d < 0.0) { return vec2<f32>(-1.0, -1.0); }\r
+  let sq = sqrt(d);\r
+  return vec2<f32>(-b - sq, -b + sq);\r
+}\r
+\r
+fn atm_optical_depth(pos: vec3<f32>, dir: vec3<f32>) -> vec2<f32> {\r
+  let t = atm_ray_sphere(pos, dir, ATM_R_A); let ds = t.y / 4.0;\r
+  var od = vec2<f32>(0.0);\r
+  for (var i = 0; i < 4; i++) {\r
+    let h = length(pos + dir * ((f32(i) + 0.5) * ds)) - ATM_R_E;\r
+    if (h < 0.0) { break; }\r
+    od += vec2<f32>(exp(-h / ATM_H_R), exp(-h / ATM_H_M)) * ds;\r
+  }\r
+  return od;\r
+}\r
+\r
+// Simplified scatter for fog colour (6 main steps).\r
+fn atm_scatter(ro: vec3<f32>, rd: vec3<f32>, sun_dir: vec3<f32>) -> vec3<f32> {\r
+  let ta = atm_ray_sphere(ro, rd, ATM_R_A); let tMin = max(ta.x, 0.0);\r
+  if (ta.y < 0.0) { return vec3<f32>(0.0); }\r
+  let tg   = atm_ray_sphere(ro, rd, ATM_R_E);\r
+  let tMax = select(ta.y, min(ta.y, tg.x), tg.x > 0.0);\r
+  if (tMax <= tMin) { return vec3<f32>(0.0); }\r
+  let mu = dot(rd, sun_dir);\r
+  let pR = (3.0 / (16.0 * PI)) * (1.0 + mu * mu);\r
+  let g2 = ATM_G * ATM_G;\r
+  let pM = (3.0 / (8.0 * PI)) * ((1.0 - g2) * (1.0 + mu * mu)) /\r
+            ((2.0 + g2) * pow(max(1.0 + g2 - 2.0 * ATM_G * mu, 1e-4), 1.5));\r
+  let ds = (tMax - tMin) / 6.0;\r
+  var sumR = vec3<f32>(0.0); var sumM = vec3<f32>(0.0);\r
+  var odR = 0.0; var odM = 0.0;\r
+  for (var i = 0; i < 6; i++) {\r
+    let pos = ro + rd * (tMin + (f32(i) + 0.5) * ds);\r
+    let h   = length(pos) - ATM_R_E;\r
+    if (h < 0.0) { break; }\r
+    let hrh = exp(-h / ATM_H_R) * ds; let hmh = exp(-h / ATM_H_M) * ds;\r
+    odR += hrh; odM += hmh;\r
+    let tg2 = atm_ray_sphere(pos, sun_dir, ATM_R_E);\r
+    if (tg2.x > 0.0) { continue; }\r
+    let odL = atm_optical_depth(pos, sun_dir);\r
+    let tau = ATM_BETA_R * (odR + odL.x) + ATM_BETA_M * 1.1 * (odM + odL.y);\r
+    sumR += exp(-tau) * hrh; sumM += exp(-tau) * hmh;\r
+  }\r
+  return ATM_SUN_I * (ATM_BETA_R * pR * sumR + vec3<f32>(ATM_BETA_M) * pM * sumM);\r
+}\r
+\r
+fn apply_aerial_perspective(geo_color: vec3<f32>, world_pos: vec3<f32>,\r
+                             sun_dir: vec3<f32>, cam_h: f32) -> vec3<f32> {\r
+  let ray_vec  = world_pos - camera.position;\r
+  let dist     = length(ray_vec);\r
+  let ray_dir  = ray_vec / max(dist, 0.001);\r
+  let atm_ro   = vec3<f32>(0.0, ATM_R_E + cam_h, 0.0);\r
+\r
+  // Altitude at camera and at the geometry surface.\r
+  let h0 = max(camera.position.y, 0.0);\r
+  let h1 = max(world_pos.y, 0.0);\r
+  let dh = h1 - h0;\r
+\r
+  // Analytic integral of exp(-h(t)/H) dt along the ray from t=0 to t=dist:\r
+  //   h(t) = h0 + (dh/dist)*t\r
+  //   integral = (exp(-h0/H) - exp(-h1/H)) * H * dist / dh\r
+  // Horizontal-ray limit (|dh| → 0): exp(-h0/H) * dist\r
+  // This makes fog thicker for low geometry and thinner for high geometry at the same distance.\r
+  var od_R: f32;\r
+  var od_M: f32;\r
+  if (abs(dh) < 0.1) {\r
+    od_R = exp(-h0 / ATM_H_R) * dist;\r
+    od_M = exp(-h0 / ATM_H_M) * dist;\r
+  } else {\r
+    od_R = max((exp(-h0 / ATM_H_R) - exp(-h1 / ATM_H_R)) * ATM_H_R * dist / dh, 0.0);\r
+    od_M = max((exp(-h0 / ATM_H_M) - exp(-h1 / ATM_H_M)) * ATM_H_M * dist / dh, 0.0);\r
+  }\r
+\r
+  let tau   = (ATM_BETA_R * od_R + vec3<f32>(ATM_BETA_M * od_M)) * ATM_FOG_SCALE;\r
+  let geo_T = exp(-tau);\r
+\r
+  // Sample fog colour using only the horizontal component of the ray direction.\r
+  // Using the true ray direction creates a visible line at camera height where\r
+  // the sky-scatter colour changes as the downward angle exceeds any clamp value.\r
+  // Projecting to horizontal makes fog colour a function of azimuth only (sun angle),\r
+  // matching the sky at the true horizon with no altitude-dependent discontinuity.\r
+  let h2   = vec3<f32>(ray_dir.x, 0.0, ray_dir.z);\r
+  let len2 = dot(h2, h2);\r
+  let fog_dir   = select(normalize(h2), vec3<f32>(1.0, 0.0, 0.0), len2 < 1e-6);\r
+  let fog_color = atm_scatter(atm_ro, fog_dir, sun_dir);\r
+\r
+  return geo_color * geo_T + fog_color * (1.0 - geo_T);\r
+}\r
+const SHADOW_MAP_SIZE: f32 = 2048.0;\r
+\r
+const POISSON16 = array<vec2<f32>, 16>(\r
+  vec2<f32>(-0.94201624, -0.39906216), vec2<f32>( 0.94558609, -0.76890725),\r
+  vec2<f32>(-0.09418410, -0.92938870), vec2<f32>( 0.34495938,  0.29387760),\r
+  vec2<f32>(-0.91588581,  0.45771432), vec2<f32>(-0.81544232, -0.87912464),\r
+  vec2<f32>(-0.38277543,  0.27676845), vec2<f32>( 0.97484398,  0.75648379),\r
+  vec2<f32>( 0.44323325, -0.97511554), vec2<f32>( 0.53742981, -0.47373420),\r
+  vec2<f32>(-0.26496911, -0.41893023), vec2<f32>( 0.79197514,  0.19090188),\r
+  vec2<f32>(-0.24188840,  0.99706507), vec2<f32>(-0.81409955,  0.91437590),\r
+  vec2<f32>( 0.19984126,  0.78641367), vec2<f32>( 0.14383161, -0.14100790),\r
+);\r
+\r
+fn ign(pixel: vec2<f32>) -> f32 {\r
+  return fract(52.9829189 * fract(0.06711056 * pixel.x + 0.00583715 * pixel.y));\r
+}\r
+\r
+fn rotate2d(v: vec2<f32>, a: f32) -> vec2<f32> {\r
+  let s = sin(a); let c = cos(a);\r
+  return vec2<f32>(c*v.x - s*v.y, s*v.x + c*v.y);\r
+}\r
+\r
+struct CameraUniforms {\r
+  view       : mat4x4<f32>,\r
+  proj       : mat4x4<f32>,\r
+  viewProj   : mat4x4<f32>,\r
+  invViewProj: mat4x4<f32>,\r
+  position   : vec3<f32>,\r
+  near       : f32,\r
+  far        : f32,\r
+}\r
+\r
+struct LightUniforms {\r
+  direction         : vec3<f32>,\r
+  intensity         : f32,\r
+  color             : vec3<f32>,\r
+  cascadeCount      : u32,\r
+  cascadeMatrices   : array<mat4x4<f32>, 4>,\r
+  cascadeSplits     : vec4<f32>,\r
+  shadowsEnabled    : u32,\r
+  debugCascades     : u32,\r
+  cloudShadowOrigin : vec2<f32>,  // world-space XZ centre of cloud shadow map\r
+  cloudShadowExtent  : f32,        // half-size in world units (covers ±extent)\r
+  shadowSoftness     : f32,        // PCSS light-size factor (~0.02)\r
+  _pad_light         : vec2<f32>,  // padding to align cascadeDepthRanges to 16 bytes (offset 336)\r
+  cascadeDepthRanges : vec4<f32>,  // light-space Z depth per cascade (for adaptive depth bias)\r
+  cascadeTexelSizes  : vec4<f32>,  // world-space size of one shadow texel per cascade\r
+}\r
+\r
+@group(0) @binding(0) var<uniform> camera: CameraUniforms;\r
+@group(0) @binding(1) var<uniform> light : LightUniforms;\r
+\r
+@group(1) @binding(0) var albedoRoughnessTex: texture_2d<f32>;\r
+@group(1) @binding(1) var normalMetallicTex : texture_2d<f32>;\r
+@group(1) @binding(2) var depthTex          : texture_depth_2d;\r
+@group(1) @binding(3) var shadowMap         : texture_depth_2d_array;\r
+@group(1) @binding(4) var shadowSampler     : sampler_comparison;\r
+@group(1) @binding(5) var gbufferSampler    : sampler;\r
+@group(1) @binding(6) var cloudShadowTex    : texture_2d<f32>;\r
+\r
+// SSAO + SSGI (group 2)\r
+@group(2) @binding(0) var ao_tex   : texture_2d<f32>;\r
+@group(2) @binding(1) var ao_samp  : sampler;\r
+@group(2) @binding(2) var ssgi_tex : texture_2d<f32>;\r
+@group(2) @binding(3) var ssgi_samp: sampler;\r
+\r
+// IBL (group 3): pre-baked from the physical sky HDR.\r
+// irradiance_cube: diffuse integral (cosine-weighted hemisphere), 32×32 per face.\r
+// prefilter_cube:  GGX specular pre-filtered, 128×128 base with IBL_MIP_LEVELS mip levels.\r
+// brdf_lut:        split-sum A/B (NdotV × roughness → rg), 64×64.\r
+const IBL_MIP_LEVELS: f32 = 5.0;   // must match IBL_LEVELS in ibl.ts\r
+@group(3) @binding(0) var irradiance_cube: texture_cube<f32>;\r
+@group(3) @binding(1) var prefilter_cube : texture_cube<f32>;\r
+@group(3) @binding(2) var brdf_lut       : texture_2d<f32>;\r
+@group(3) @binding(3) var ibl_samp       : sampler;\r
+\r
+struct VertexOutput {\r
+  @builtin(position) clip_pos: vec4<f32>,\r
+  @location(0)       uv      : vec2<f32>,\r
+}\r
+\r
+@vertex\r
+fn vs_main(@builtin(vertex_index) vid: u32) -> VertexOutput {\r
+  let x = f32((vid & 1u) << 2u) - 1.0;\r
+  let y = f32((vid & 2u) << 1u) - 1.0;\r
+  var out: VertexOutput;\r
+  out.clip_pos = vec4<f32>(x, y, 0.0, 1.0);\r
+  out.uv       = vec2<f32>(x * 0.5 + 0.5, -y * 0.5 + 0.5);\r
+  return out;\r
+}\r
+\r
+fn reconstruct_world_pos(uv: vec2<f32>, depth: f32) -> vec3<f32> {\r
+  let ndc    = vec4<f32>(uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0, depth, 1.0);\r
+  let world_h = camera.invViewProj * ndc;\r
+  return world_h.xyz / world_h.w;\r
+}\r
+\r
+// === Shadow ===========================================================\r
+\r
+fn pcf_shadow(cascade: u32, sc: vec3<f32>, bias: f32, kernel_radius: f32, screen_pos: vec2<f32>) -> f32 {\r
+  let texel = vec2<f32>(kernel_radius / SHADOW_MAP_SIZE);\r
+  let angle = ign(screen_pos) * 6.28318530;\r
+  var s = 0.0;\r
+  for (var i = 0; i < 16; i++) {\r
+    let offset = rotate2d(POISSON16[i], angle) * texel;\r
+    let uv = clamp(sc.xy + offset, vec2<f32>(0.0), vec2<f32>(1.0));\r
+    s += textureSampleCompareLevel(shadowMap, shadowSampler, uv, i32(cascade), sc.z - bias);\r
+  }\r
+  return s / 16.0;\r
+}\r
+\r
+// Returns average blocker depth, or -1.0 if receiver is fully lit.\r
+fn pcss_blocker_search(cascade: u32, sc: vec3<f32>, search_radius: f32, screen_pos: vec2<f32>) -> f32 {\r
+  let texel = vec2<f32>(search_radius / SHADOW_MAP_SIZE);\r
+  let angle = ign(screen_pos) * 6.28318530;\r
+  var total = 0.0;\r
+  var count = 0.0;\r
+  for (var i = 0; i < 8; i++) {\r
+    let offset = rotate2d(POISSON16[i], angle) * texel;\r
+    let uv = clamp(sc.xy + offset, vec2<f32>(0.0), vec2<f32>(1.0));\r
+    let tc = clamp(vec2<i32>(uv * SHADOW_MAP_SIZE),\r
+                   vec2<i32>(0), vec2<i32>(i32(SHADOW_MAP_SIZE) - 1));\r
+    let d = textureLoad(shadowMap, tc, i32(cascade), 0);\r
+    if (d < sc.z) {\r
+      total += d;\r
+      count += 1.0;\r
+    }\r
+  }\r
+  if (count == 0.0) { return -1.0; }\r
+  return total / count;\r
+}\r
+\r
+// Returns shadow-space coords for cascade c.  xy in [0,1], z in [0,1] when in-frustum.\r
+fn cascade_coords(c: u32, world_pos: vec3<f32>) -> vec3<f32> {\r
+  let ls = light.cascadeMatrices[c] * vec4<f32>(world_pos, 1.0);\r
+  var sc = ls.xyz / ls.w;\r
+  sc = vec3<f32>(sc.xy * 0.5 + 0.5, sc.z);\r
+  sc.y = 1.0 - sc.y;\r
+  return sc;\r
+}\r
+\r
+fn in_cascade(sc: vec3<f32>) -> bool {\r
+  return all(sc.xy >= vec2<f32>(0.0)) && all(sc.xy <= vec2<f32>(1.0))\r
+      && sc.z >= 0.0 && sc.z <= 1.0;\r
+}\r
+\r
+fn select_cascade(view_depth: f32) -> u32 {\r
+  for (var i = 0u; i < light.cascadeCount; i++) {\r
+    if (view_depth < light.cascadeSplits[i]) { return i; }\r
+  }\r
+  return light.cascadeCount - 1u;\r
+}\r
+\r
+fn shadow_factor(world_pos: vec3<f32>, N: vec3<f32>, NdotL: f32, view_depth: f32, screen_pos: vec2<f32>) -> f32 {\r
+  if (light.shadowsEnabled == 0u) { return 1.0; }\r
+  let cascade = select_cascade(view_depth);\r
+  // Constant receiver bias scaled by surface slope. Independent of per-frame\r
+  // cascade depth range so the bias doesn't oscillate as the camera moves.\r
+  let bias    = max(0.002 * (1.0 - NdotL), 0.0005);\r
+\r
+  // Normal bias — offset receiver along its surface normal by a fraction of\r
+  // the cascade's world-space texel size, scaled by grazing angle so the\r
+  // offset is large where it's needed and zero on directly-lit surfaces.\r
+  // Removes the light-parallel component so the offset doesn't fake depth bias.\r
+  let L          = normalize(-light.direction);\r
+  let t_angle    = clamp(1.0 - max(0.0, NdotL), 0.0, 1.0);\r
+  var nb         = N * (light.cascadeTexelSizes[cascade] * 3.0 * t_angle);\r
+  nb            -= L * dot(L, nb);\r
+  let biased_pos = world_pos + nb;\r
+\r
+  let sc0 = cascade_coords(cascade, biased_pos);\r
+  if (!in_cascade(sc0)) { return 1.0; }\r
+\r
+  // PCSS with the penumbra estimate computed in WORLD units, then converted\r
+  // to per-cascade texels for sampling. This keeps the visual softness\r
+  // consistent across cascades, so the blend at the cascade boundary doesn't\r
+  // reveal a sudden change in shadow appearance. Min kernel is 1 texel\r
+  // per-cascade (sharp default), not a fixed world distance — that would\r
+  // force a wide blur on near cascades where one texel is already small.\r
+  let SEARCH_WORLD     : f32 = 0.3;   // metres — blocker search radius\r
+  let KERNEL_MAX_WORLD : f32 = 1.0;   // metres — caps very soft shadows\r
+\r
+  let texel_world_0 = light.cascadeTexelSizes[cascade];\r
+  let depth_world_0 = light.cascadeDepthRanges[cascade];\r
+  let search_tex_0  = clamp(SEARCH_WORLD / texel_world_0, 2.0, 8.0);\r
+\r
+  var kernel0      = 1.0;\r
+  let avg_blocker0 = pcss_blocker_search(cascade, sc0, search_tex_0, screen_pos);\r
+  if (avg_blocker0 >= 0.0) {\r
+    let occluder_dist = max((sc0.z - avg_blocker0) * depth_world_0, 0.0);\r
+    let penumbra_world = min(light.shadowSoftness * occluder_dist, KERNEL_MAX_WORLD);\r
+    kernel0 = clamp(penumbra_world / texel_world_0, 1.0, 16.0);\r
+  }\r
+  let s0 = pcf_shadow(cascade, sc0, bias, kernel0, screen_pos);\r
+\r
+  let next = cascade + 1u;\r
+  if (next < light.cascadeCount) {\r
+    let split      = light.cascadeSplits[cascade];\r
+    let blend_band = split * 0.2;\r
+    let t = smoothstep(split - blend_band, split, view_depth);\r
+    if (t > 0.0) {\r
+      let sc1 = cascade_coords(next, biased_pos);\r
+      // Only blend toward the next cascade if this position is actually inside it;\r
+      // blending toward an OOB cascade would mix toward depth=1 (fully lit).\r
+      if (in_cascade(sc1)) {\r
+        let texel_world_1 = light.cascadeTexelSizes[next];\r
+        let depth_world_1 = light.cascadeDepthRanges[next];\r
+        let search_tex_1  = clamp(SEARCH_WORLD / texel_world_1, 2.0, 8.0);\r
+\r
+        var kernel1      = 1.0;\r
+        let avg_blocker1 = pcss_blocker_search(next, sc1, search_tex_1, screen_pos);\r
+        if (avg_blocker1 >= 0.0) {\r
+          let occluder_dist1  = max((sc1.z - avg_blocker1) * depth_world_1, 0.0);\r
+          let penumbra_world1 = min(light.shadowSoftness * occluder_dist1, KERNEL_MAX_WORLD);\r
+          kernel1 = clamp(penumbra_world1 / texel_world_1, 1.0, 16.0);\r
+        }\r
+        return mix(s0, pcf_shadow(next, sc1, bias, kernel1, screen_pos), t);\r
+      }\r
+    }\r
+  }\r
+  return s0;\r
+}\r
+\r
+// === PBR BRDFs ========================================================\r
+\r
+fn distribution_ggx(NdotH: f32, roughness: f32) -> f32 {\r
+  let a  = roughness * roughness;\r
+  let a2 = a * a;\r
+  let d  = NdotH * NdotH * (a2 - 1.0) + 1.0;\r
+  return a2 / (PI * d * d);\r
+}\r
+\r
+// k for direct lighting: (roughness+1)²/8\r
+fn geometry_direct(NdotX: f32, roughness: f32) -> f32 {\r
+  let r = roughness + 1.0;\r
+  let k = r * r / 8.0;\r
+  return NdotX / (NdotX * (1.0 - k) + k);\r
+}\r
+\r
+fn smith_direct(NdotV: f32, NdotL: f32, roughness: f32) -> f32 {\r
+  return geometry_direct(NdotV, roughness) * geometry_direct(NdotL, roughness);\r
+}\r
+\r
+fn fresnel_schlick(cosTheta: f32, F0: vec3<f32>) -> vec3<f32> {\r
+  return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);\r
+}\r
+\r
+// Roughness-clamped Fresnel for IBL — prevents energy gain at grazing angles on rough metals.\r
+fn fresnel_schlick_roughness(cosTheta: f32, F0: vec3<f32>, roughness: f32) -> vec3<f32> {\r
+  return F0 + (max(vec3<f32>(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);\r
+}\r
+\r
+\r
+// === Fragment =========================================================\r
+\r
+@fragment\r
+fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {\r
+  let coord = vec2<i32>(in.clip_pos.xy);\r
+  let depth = textureLoad(depthTex, coord, 0);\r
+\r
+  // === Debug: shadow-map depth thumbnails ===================================\r
+  // Rendered before the sky discard so they overlay the full screen.\r
+  if (light.debugCascades != 0u) {\r
+    let screen  = vec2<f32>(textureDimensions(depthTex));\r
+    let thumb   = floor(screen.y / 4.0); // square side — 3 thumbnails fit vertically\r
+    let sm_size = vec2<f32>(textureDimensions(shadowMap));\r
+    let px      = in.clip_pos.xy;\r
+\r
+    for (var ci = 0u; ci < light.cascadeCount; ci++) {\r
+      let x0 = screen.x - thumb;\r
+      let y0 = f32(ci) * thumb;\r
+      if (px.x >= x0 && px.y >= y0 && px.y < y0 + thumb) {\r
+        let uv = (px - vec2<f32>(x0, y0)) / thumb;\r
+        // textureLoad avoids the sampler-type conflict (depth textures can't use\r
+        // a non-comparison sampler through textureSampleLevel).\r
+        let tc = clamp(vec2<i32>(uv * sm_size),\r
+                       vec2<i32>(0), vec2<i32>(sm_size) - vec2<i32>(1));\r
+        let d = textureLoad(shadowMap, tc, i32(ci), 0);\r
+        // 2-pixel border in the cascade's debug colour\r
+        let border = 2.0;\r
+        if (px.x < x0 + border || px.y < y0 + border || px.y > y0 + thumb - border) {\r
+          switch ci {\r
+            case 0u: { return vec4<f32>(1.0, 0.25, 0.25, 1.0); }\r
+            case 1u: { return vec4<f32>(0.25, 1.0, 0.25, 1.0); }\r
+            case 2u: { return vec4<f32>(0.25, 0.25, 1.0, 1.0); }\r
+            default: { return vec4<f32>(1.0,  1.0,  0.25, 1.0); }\r
+          }\r
+        }\r
+        return vec4<f32>(d, d, d, 1.0);\r
+      }\r
+    }\r
+  }\r
+  // ==========================================================================\r
+\r
+  if (depth >= 1.0) { discard; } // sky pixels handled by SkyPass\r
+\r
+  let albedo_rough = textureLoad(albedoRoughnessTex, coord, 0);\r
+  let normal_emiss = textureLoad(normalMetallicTex,  coord, 0);\r
+\r
+  let albedo    = albedo_rough.rgb;\r
+  let roughness = max(albedo_rough.a, 0.04); // clamp to avoid division issues\r
+  let N         = normalize(normal_emiss.rgb * 2.0 - 1.0);\r
+  let emission  = normal_emiss.a;\r
+  let metallic  = 0.0; // Replaced with emission channel\r
+\r
+  let world_pos = reconstruct_world_pos(in.uv, depth);\r
+  let V         = normalize(camera.position - world_pos);\r
+  let NdotV     = max(dot(N, V), 0.001);\r
+\r
+  // View-space depth for cascade selection\r
+  let view_pos   = camera.view * vec4<f32>(world_pos, 1.0);\r
+  let view_depth = -view_pos.z;\r
+\r
+  // Base reflectance: 0.04 for dielectrics, albedo for metals\r
+  let F0 = mix(vec3<f32>(0.04), albedo, metallic);\r
+\r
+  // === Direct lighting (sun) =========================================\r
+  let L     = normalize(-light.direction);\r
+  let H     = normalize(L + V);\r
+  let NdotL = max(dot(N, L), 0.0);\r
+  let NdotH = max(dot(N, H), 0.0);\r
+  let VdotH = max(dot(V, H), 0.0);\r
+\r
+  // Smoothly kill sun contribution as it dips below the horizon (L.y = 0).\r
+  let horizon_fade = smoothstep(-0.05, 0.05, L.y);\r
+\r
+  let D  = distribution_ggx(NdotH, roughness);\r
+  let G  = smith_direct(NdotV, NdotL, roughness);\r
+  let Fd = fresnel_schlick(VdotH, F0);\r
+\r
+  let kS_direct = Fd;\r
+  let kD_direct = (vec3<f32>(1.0) - kS_direct) * (1.0 - metallic);\r
+\r
+  let specular_brdf = D * G * Fd / max(4.0 * NdotV * NdotL, 0.001);\r
+  let diffuse_brdf  = kD_direct * albedo / PI;\r
+\r
+  let shad = shadow_factor(world_pos, N, NdotL, view_depth, in.clip_pos.xy);\r
+\r
+  // Cloud shadow — sample top-down transmittance map; default 1.0 when extent is zero\r
+  let cloud_ext = max(light.cloudShadowExtent, 0.001);\r
+  let cloud_uv  = clamp(\r
+    (world_pos.xz - light.cloudShadowOrigin) / (cloud_ext * 2.0) + 0.5,\r
+    vec2<f32>(0.0), vec2<f32>(1.0),\r
+  );\r
+  let cloud_shadow = select(\r
+    textureSampleLevel(cloudShadowTex, gbufferSampler, cloud_uv, 0.0).r,\r
+    1.0,\r
+    light.cloudShadowExtent <= 0.0,\r
+  );\r
+\r
+  let direct = (diffuse_brdf + specular_brdf) * light.color * light.intensity * NdotL * shad * cloud_shadow * horizon_fade;\r
+\r
+  // === IBL Ambient ====================================================\r
+  let ao = textureSampleLevel(ao_tex, ao_samp, in.uv, 0.0).r;\r
+\r
+  // Roughness-corrected Fresnel — avoids energy gain on rough metals at grazing angles.\r
+  let kS_ibl = fresnel_schlick_roughness(NdotV, F0, roughness);\r
+  let kD_ibl = (vec3<f32>(1.0) - kS_ibl) * (1.0 - metallic);\r
+\r
+  // Diffuse IBL: cosine-weighted hemisphere integral baked into irradiance cube.\r
+  let irradiance  = textureSampleLevel(irradiance_cube, ibl_samp, N, 0.0).rgb;\r
+  let diffuse_ibl = irradiance * albedo * kD_ibl;\r
+\r
+  // Specular IBL: GGX pre-filtered env + split-sum BRDF LUT.\r
+  let R           = reflect(-V, N);\r
+  let prefiltered = textureSampleLevel(prefilter_cube, ibl_samp, R, roughness * (IBL_MIP_LEVELS - 1.0)).rgb;\r
+  let brdf        = textureSampleLevel(brdf_lut, ibl_samp, vec2<f32>(NdotV, roughness), 0.0).rg;\r
+  let specular_ibl = 0.0;//prefiltered * (kS_ibl * brdf.x + brdf.y);\r
+\r
+  // Shadow-darken ambient during the day; at night remove shadow influence.\r
+  let shadow_scale = mix(1.0, max(shad, 0.05), horizon_fade);\r
+  // Scale by AO and shadow; fade IBL with sun so it doesn't blast at night.\r
+  // Add a tiny constant for moonlight/starlight so the world isn't pitch black.\r
+  let ambient = (diffuse_ibl + specular_ibl) * ao * shadow_scale * horizon_fade\r
+              + albedo * (1.0 - metallic) * 0.01;\r
+\r
+  // SSGI: one-bounce diffuse indirect from screen-space ray march\r
+  let ssgi_irr     = textureSampleLevel(ssgi_tex, ssgi_samp, in.uv, 0.0).rgb;\r
+  let ssgi_contrib = ssgi_irr * albedo * (1.0 - metallic);\r
+\r
+  // Add emission (scaled by albedo for colored glow)\r
+  let emissive = albedo * emission * 2.0;\r
+\r
+  let color = direct + ambient + ssgi_contrib + emissive;\r
+\r
+  if (light.debugCascades != 0u) {\r
+    let cascade = select_cascade(view_depth);\r
+    var tint: vec3<f32>;\r
+    switch cascade {\r
+      case 0u:    { tint = vec3<f32>(1.0, 0.25, 0.25); } // red   = near\r
+      case 1u:    { tint = vec3<f32>(0.25, 1.0, 0.25); } // green = mid\r
+      case 2u:    { tint = vec3<f32>(0.25, 0.25, 1.0); } // blue  = far\r
+      default:    { tint = vec3<f32>(1.0,  1.0,  0.25); } // yellow = beyond\r
+    }\r
+    let shad = shadow_factor(world_pos, N, NdotL, view_depth, in.clip_pos.xy);\r
+    return vec4<f32>(tint * mix(0.15, 1.0, shad), 1.0);\r
+  }\r
+\r
+  let sun_dir_fog = normalize(-light.direction);\r
+  let cam_h_fog   = max(camera.position.y, 1.0);\r
+  let haze = apply_aerial_perspective(color, world_pos, sun_dir_fog, cam_h_fog);\r
+  return vec4<f32>(haze, 1.0);\r
+}\r
+`,ee="rgba16float",Nn=64*4+16+16,Rn=368;class Cr extends ge{constructor(e,t,r,o,i,a,s,l,d,p,f,h,_,g,y,w){super();c(this,"name","LightingPass");c(this,"hdrTexture");c(this,"hdrView");c(this,"cameraBuffer");c(this,"lightBuffer");c(this,"_pipeline");c(this,"_sceneBindGroup");c(this,"_gbufferBindGroup");c(this,"_aoBindGroup");c(this,"_iblBindGroup");c(this,"_defaultCloudShadow");c(this,"_defaultSsgi");c(this,"_device");c(this,"_aoBGL");c(this,"_aoView");c(this,"_aoSampler");c(this,"_ssgiSampler");c(this,"_cameraScratch",new Float32Array(Nn/4));c(this,"_lightScratch",new Float32Array(Rn/4));c(this,"_lightScratchU",new Uint32Array(this._lightScratch.buffer));c(this,"_cloudShadowScratch",new Float32Array(3));this.hdrTexture=e,this.hdrView=t,this._pipeline=r,this._sceneBindGroup=o,this._gbufferBindGroup=i,this._aoBindGroup=a,this._iblBindGroup=s,this.cameraBuffer=l,this.lightBuffer=d,this._defaultCloudShadow=p,this._defaultSsgi=f,this._device=h,this._aoBGL=_,this._aoView=g,this._aoSampler=y,this._ssgiSampler=w}static create(e,t,r,o,i,a){const{device:s,width:l,height:d}=e,p=s.createTexture({label:"HDR Texture",size:{width:l,height:d},format:ee,usage:GPUTextureUsage.RENDER_ATTACHMENT|GPUTextureUsage.TEXTURE_BINDING|GPUTextureUsage.COPY_SRC}),f=p.createView(),h=s.createBuffer({label:"LightCameraBuffer",size:Nn,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST}),_=s.createBuffer({label:"LightBuffer",size:Rn,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST}),g=s.createSampler({label:"ShadowSampler",compare:"less-equal",magFilter:"linear",minFilter:"linear"}),y=s.createSampler({label:"GBufferLinearSampler",magFilter:"linear",minFilter:"linear"}),w=s.createSampler({label:"AoSampler",magFilter:"linear",minFilter:"linear",addressModeU:"clamp-to-edge",addressModeV:"clamp-to-edge"}),x=s.createSampler({label:"SsgiSampler",magFilter:"linear",minFilter:"linear",addressModeU:"clamp-to-edge",addressModeV:"clamp-to-edge"}),B=s.createBindGroupLayout({label:"LightSceneBGL",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT|GPUShaderStage.VERTEX,buffer:{type:"uniform"}},{binding:1,visibility:GPUShaderStage.FRAGMENT,buffer:{type:"uniform"}}]}),G=s.createBindGroupLayout({label:"LightGBufferBGL",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:1,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:2,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"depth"}},{binding:3,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"depth",viewDimension:"2d-array"}},{binding:4,visibility:GPUShaderStage.FRAGMENT,sampler:{type:"comparison"}},{binding:5,visibility:GPUShaderStage.FRAGMENT,sampler:{type:"filtering"}},{binding:6,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}}]}),S=s.createTexture({label:"DefaultCloudShadow",size:{width:1,height:1},format:"r8unorm",usage:GPUTextureUsage.TEXTURE_BINDING|GPUTextureUsage.COPY_DST});s.queue.writeTexture({texture:S},new Uint8Array([255]),{bytesPerRow:1},{width:1,height:1});const E=i??S.createView(),L=s.createBindGroupLayout({label:"LightAoBGL",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:1,visibility:GPUShaderStage.FRAGMENT,sampler:{type:"filtering"}},{binding:2,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:3,visibility:GPUShaderStage.FRAGMENT,sampler:{type:"filtering"}}]}),M=s.createTexture({label:"DefaultSsgi",size:{width:1,height:1},format:ee,usage:GPUTextureUsage.TEXTURE_BINDING|GPUTextureUsage.COPY_DST}),I=s.createBindGroupLayout({label:"LightIblBGL",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float",viewDimension:"cube"}},{binding:1,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float",viewDimension:"cube"}},{binding:2,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:3,visibility:GPUShaderStage.FRAGMENT,sampler:{type:"filtering"}}]}),A=s.createSampler({label:"IblSampler",magFilter:"linear",minFilter:"linear",mipmapFilter:"linear",addressModeU:"clamp-to-edge",addressModeV:"clamp-to-edge",addressModeW:"clamp-to-edge"}),b=s.createTexture({label:"DefaultIblCube",size:{width:1,height:1,depthOrArrayLayers:6},format:"rgba16float",usage:GPUTextureUsage.TEXTURE_BINDING|GPUTextureUsage.COPY_DST}),k=b.createView({dimension:"cube"}),m=s.createTexture({label:"DefaultBrdfLut",size:{width:1,height:1},format:"rgba16float",usage:GPUTextureUsage.TEXTURE_BINDING|GPUTextureUsage.COPY_DST}),P=s.createBindGroup({label:"LightIblBG",layout:I,entries:[{binding:0,resource:(a==null?void 0:a.irradianceView)??k},{binding:1,resource:(a==null?void 0:a.prefilteredView)??k},{binding:2,resource:(a==null?void 0:a.brdfLutView)??m.createView()},{binding:3,resource:A}]});b.destroy(),m.destroy();const v=s.createBindGroup({layout:B,entries:[{binding:0,resource:{buffer:h}},{binding:1,resource:{buffer:_}}]}),U=s.createBindGroup({layout:G,entries:[{binding:0,resource:t.albedoRoughnessView},{binding:1,resource:t.normalMetallicView},{binding:2,resource:t.depthView},{binding:3,resource:r.shadowMapView},{binding:4,resource:g},{binding:5,resource:y},{binding:6,resource:E}]}),C=s.createBindGroup({label:"LightAoBG",layout:L,entries:[{binding:0,resource:o},{binding:1,resource:w},{binding:2,resource:M.createView()},{binding:3,resource:x}]}),z=s.createShaderModule({label:"LightingShader",code:ji}),H=s.createRenderPipeline({label:"LightingPipeline",layout:s.createPipelineLayout({bindGroupLayouts:[B,G,L,I]}),vertex:{module:z,entryPoint:"vs_main"},fragment:{module:z,entryPoint:"fs_main",targets:[{format:ee}]},primitive:{topology:"triangle-list"}});return new Cr(p,f,H,v,U,C,P,h,_,i?null:S,M,s,L,o,w,x)}updateSSGI(e){this._aoBindGroup=this._device.createBindGroup({label:"LightAoBG",layout:this._aoBGL,entries:[{binding:0,resource:this._aoView},{binding:1,resource:this._aoSampler},{binding:2,resource:e},{binding:3,resource:this._ssgiSampler}]})}updateCamera(e,t,r,o,i,a,s,l){const d=this._cameraScratch;d.set(t.data,0),d.set(r.data,16),d.set(o.data,32),d.set(i.data,48),d[64]=a.x,d[65]=a.y,d[66]=a.z,d[67]=s,d[68]=l,e.queue.writeBuffer(this.cameraBuffer,0,d.buffer)}updateLight(e,t,r,o,i,a=!0,s=!1,l=.02){const d=this._lightScratch,p=this._lightScratchU;let f=0;d[f++]=t.x,d[f++]=t.y,d[f++]=t.z,d[f++]=o,d[f++]=r.x,d[f++]=r.y,d[f++]=r.z,p[f++]=i.length;for(let h=0;h<4;h++)h<i.length&&d.set(i[h].lightViewProj.data,f),f+=16;for(let h=0;h<4;h++)d[f++]=h<i.length?i[h].splitFar:1e9;p[f]=a?1:0,p[f+1]=s?1:0,d[81]=l;for(let h=0;h<4;h++)d[84+h]=h<i.length?i[h].depthRange:1;for(let h=0;h<4;h++)d[88+h]=h<i.length?i[h].texelWorldSize:1;e.queue.writeBuffer(this.lightBuffer,0,d.buffer)}updateCloudShadow(e,t,r,o){const i=this._cloudShadowScratch;i[0]=t,i[1]=r,i[2]=o,e.queue.writeBuffer(this.lightBuffer,312,i.buffer)}execute(e,t){const r=e.beginRenderPass({label:"LightingPass",colorAttachments:[{view:this.hdrView,loadOp:"load",storeOp:"store"}]});r.setPipeline(this._pipeline),r.setBindGroup(0,this._sceneBindGroup),r.setBindGroup(1,this._gbufferBindGroup),r.setBindGroup(2,this._aoBindGroup),r.setBindGroup(3,this._iblBindGroup),r.draw(3),r.end()}destroy(){var e,t;this.hdrTexture.destroy(),this.cameraBuffer.destroy(),this.lightBuffer.destroy(),(e=this._defaultCloudShadow)==null||e.destroy(),(t=this._defaultSsgi)==null||t.destroy()}}const Yi=`// Physically based single-scattering atmosphere (Rayleigh + Mie).\r
+// Reference: Nishita 1993, Preetham 1999, Hillaire 2020 (simplified).\r
+//\r
+// World units are metres.  The ground sits at y ≈ 0 so the camera is placed at\r
+// (0, R_E + cameraPos.y, 0) in atmosphere space.\r
+\r
+const PI    : f32 = 3.14159265358979;\r
+const R_E   : f32 = 6360000.0;   // Earth radius (m)\r
+const R_A   : f32 = 6420000.0;   // Atmosphere top radius (m)\r
+const H_R   : f32 = 8500.0;      // Rayleigh scale height (m)\r
+const H_M   : f32 = 1200.0;      // Mie scale height (m)\r
+const G     : f32 = 0.758;       // Mie anisotropy (forward-scattering haze)\r
+// Rayleigh coefficients (per metre) tuned to 680 / 550 / 440 nm wavelengths.\r
+const BETA_R : vec3<f32> = vec3<f32>(5.5e-6, 13.0e-6, 22.4e-6);\r
+// Mie coefficient (per metre, wavelength-independent for haze).\r
+const BETA_M : f32 = 21.0e-6;\r
+// Solar irradiance at top of atmosphere (in renderer HDR units).\r
+const SUN_INTENSITY : f32 = 20.0;\r
+// Angular cosine thresholds for sun and moon disks.\r
+const SUN_COS_THRESH  : f32 = 0.9996;   // ~1.6° angular radius (~3× real sun)\r
+const MOON_COS_THRESH : f32 = 0.9997;   // slightly smaller than sun\r
+\r
+struct Uniforms {\r
+  invViewProj : mat4x4<f32>,\r
+  cameraPos   : vec3<f32>,\r
+  _pad0       : f32,\r
+  sunDir      : vec3<f32>,  // unit vector pointing TOWARD the sun\r
+  _pad1       : f32,\r
+}\r
+\r
+@group(0) @binding(0) var<uniform> u: Uniforms;\r
+\r
+// Ray–sphere intersection.  Returns (tNear, tFar); both negative means no hit.\r
+fn raySphere(ro: vec3<f32>, rd: vec3<f32>, r: f32) -> vec2<f32> {\r
+  let b  = dot(ro, rd);\r
+  let c  = dot(ro, ro) - r * r;\r
+  let d  = b * b - c;\r
+  if (d < 0.0) { return vec2<f32>(-1.0, -1.0); }\r
+  let sq = sqrt(d);\r
+  return vec2<f32>(-b - sq, -b + sq);\r
+}\r
+\r
+fn phaseR(mu: f32) -> f32 {\r
+  return (3.0 / (16.0 * PI)) * (1.0 + mu * mu);\r
+}\r
+\r
+fn phaseM(mu: f32) -> f32 {\r
+  let g2 = G * G;\r
+  return (3.0 / (8.0 * PI)) *\r
+         ((1.0 - g2) * (1.0 + mu * mu)) /\r
+         ((2.0 + g2) * pow(max(1.0 + g2 - 2.0 * G * mu, 1e-4), 1.5));\r
+}\r
+\r
+// Optical depth from \`pos\` toward \`dir\` through the atmosphere.\r
+fn opticalDepthToSky(pos: vec3<f32>, dir: vec3<f32>) -> vec2<f32> {\r
+  let t  = raySphere(pos, dir, R_A);\r
+  let ds = t.y / 8.0;\r
+  var od = vec2<f32>(0.0);\r
+  for (var i = 0; i < 8; i++) {\r
+    let h = length(pos + dir * ((f32(i) + 0.5) * ds)) - R_E;\r
+    if (h < 0.0) { break; }\r
+    od += vec2<f32>(exp(-h / H_R), exp(-h / H_M)) * ds;\r
+  }\r
+  return od;\r
+}\r
+\r
+// Transmittance of the atmosphere from \`ro\` in direction \`rd\` (used for the sun disk).\r
+fn transmittance(ro: vec3<f32>, rd: vec3<f32>) -> vec3<f32> {\r
+  let od = opticalDepthToSky(ro, rd);\r
+  return exp(-(BETA_R * od.x + BETA_M * 1.1 * od.y));\r
+}\r
+\r
+// Single-scattering integral along the view ray.\r
+fn scatter(ro: vec3<f32>, rd: vec3<f32>) -> vec3<f32> {\r
+  let ta   = raySphere(ro, rd, R_A);\r
+  let tMin = max(ta.x, 0.0);\r
+  if (ta.y < 0.0) { return vec3<f32>(0.0); }\r
+\r
+  // Clip view ray at the ground surface.\r
+  let tg   = raySphere(ro, rd, R_E);\r
+  let tMax = select(ta.y, min(ta.y, tg.x), tg.x > 0.0);\r
+  if (tMax <= tMin) { return vec3<f32>(0.0); }\r
+\r
+  let mu = dot(rd, u.sunDir);\r
+  let pR = phaseR(mu);\r
+  let pM = phaseM(mu);\r
+\r
+  let ds = (tMax - tMin) / 16.0;\r
+  var sumR = vec3<f32>(0.0);\r
+  var sumM = vec3<f32>(0.0);\r
+  var odR  = 0.0;\r
+  var odM  = 0.0;\r
+\r
+  for (var i = 0; i < 16; i++) {\r
+    let pos = ro + rd * (tMin + (f32(i) + 0.5) * ds);\r
+    let h   = length(pos) - R_E;\r
+    if (h < 0.0) { break; }\r
+\r
+    let hrh = exp(-h / H_R) * ds;\r
+    let hmh = exp(-h / H_M) * ds;\r
+    odR += hrh;\r
+    odM += hmh;\r
+\r
+    // Light ray toward the sun — skip if blocked by Earth.\r
+    let tg2 = raySphere(pos, u.sunDir, R_E);\r
+    if (tg2.x > 0.0) { continue; }\r
+\r
+    let odL = opticalDepthToSky(pos, u.sunDir);\r
+\r
+    let tau = BETA_R * (odR + odL.x) + BETA_M * 1.1 * (odM + odL.y);\r
+    let T   = exp(-tau);\r
+    sumR += T * hrh;\r
+    sumM += T * hmh;\r
+  }\r
+\r
+  return SUN_INTENSITY * (BETA_R * pR * sumR + vec3<f32>(BETA_M) * pM * sumM);\r
+}\r
+\r
+// --- Vertex shader (fullscreen triangle) ---\r
+\r
+struct VertOut {\r
+  @builtin(position) clip_pos : vec4<f32>,\r
+  @location(0)       uv       : vec2<f32>,\r
+}\r
+\r
+@vertex\r
+fn vs_main(@builtin(vertex_index) vid: u32) -> VertOut {\r
+  let x = f32((vid & 1u) << 2u) - 1.0;\r
+  let y = f32((vid & 2u) << 1u) - 1.0;\r
+  var out: VertOut;\r
+  out.clip_pos = vec4<f32>(x, y, 0.0, 1.0);\r
+  out.uv       = vec2<f32>(x * 0.5 + 0.5, y * -0.5 + 0.5);\r
+  return out;\r
+}\r
+\r
+@fragment\r
+fn fs_main(in: VertOut) -> @location(0) vec4<f32> {\r
+  // Reconstruct world-space view direction.\r
+  let ndc = vec4<f32>(in.uv.x * 2.0 - 1.0, 1.0 - in.uv.y * 2.0, 1.0, 1.0);\r
+  let wh  = u.invViewProj * ndc;\r
+  let rd  = normalize(wh.xyz / wh.w - u.cameraPos);\r
+\r
+  // Place camera on Earth's surface (world y ≈ metres above sea level).\r
+  let camH = max(u.cameraPos.y, 1.0);\r
+  let ro   = vec3<f32>(0.0, R_E + camH, 0.0);\r
+\r
+  var color = scatter(ro, rd);\r
+\r
+  // Sun disk: bright limb attenuated by atmosphere transmittance.\r
+  if (dot(rd, u.sunDir) > SUN_COS_THRESH) {\r
+    color += transmittance(ro, u.sunDir) * 1000.0;\r
+  }\r
+\r
+  // Moon disk: antipodal to the sun, fades in after sunset.\r
+  // SUN_COS_THRESH gives the same ~0.36° angular radius as the sun.\r
+  let moonDir = -u.sunDir;\r
+  if (dot(rd, moonDir) > MOON_COS_THRESH) {\r
+    let night_t = saturate((-u.sunDir.y - 0.05) * 10.0);\r
+    color += transmittance(ro, moonDir) * vec3<f32>(0.85, 0.90, 1.0) * 15.0 * night_t;\r
+  }\r
+\r
+  return vec4<f32>(color, 1.0);\r
+}\r
+`,In=96;class kr extends ge{constructor(e,t,r,o){super();c(this,"name","AtmospherePass");c(this,"_pipeline");c(this,"_uniformBuf");c(this,"_bg");c(this,"_hdrView");this._pipeline=e,this._uniformBuf=t,this._bg=r,this._hdrView=o}static create(e,t){const{device:r}=e,o=r.createBuffer({label:"AtmosphereUniform",size:In,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST}),i=r.createBindGroupLayout({label:"AtmosphereBGL",entries:[{binding:0,visibility:GPUShaderStage.VERTEX|GPUShaderStage.FRAGMENT,buffer:{type:"uniform"}}]}),a=r.createBindGroup({label:"AtmosphereBG",layout:i,entries:[{binding:0,resource:{buffer:o}}]}),s=r.createShaderModule({label:"AtmosphereShader",code:Yi}),l=r.createRenderPipeline({label:"AtmospherePipeline",layout:r.createPipelineLayout({bindGroupLayouts:[i]}),vertex:{module:s,entryPoint:"vs_main"},fragment:{module:s,entryPoint:"fs_main",targets:[{format:ee}]},primitive:{topology:"triangle-list"}});return new kr(l,o,a,t)}update(e,t,r,o){const i=new Float32Array(In/4);i.set(t.data,0),i[16]=r.x,i[17]=r.y,i[18]=r.z;const a=Math.sqrt(o.x*o.x+o.y*o.y+o.z*o.z),s=a>0?1/a:0;i[20]=-o.x*s,i[21]=-o.y*s,i[22]=-o.z*s,e.queue.writeBuffer(this._uniformBuf,0,i.buffer)}execute(e,t){const r=e.beginRenderPass({label:"AtmospherePass",colorAttachments:[{view:this._hdrView,clearValue:[0,0,0,1],loadOp:"clear",storeOp:"store"}]});r.setPipeline(this._pipeline),r.setBindGroup(0,this._bg),r.draw(3),r.end()}destroy(){this._uniformBuf.destroy()}}const Xi=`// Block selection highlight — two draw calls sharing this shader:\r
+//   draw(36): semi-transparent dark face overlay (6 faces × 2 triangles × 3 verts)\r
+//   draw(36, 36): thick edge outlines (12 edges × 2 quads × 3 verts, offset into same array)\r
+//\r
+// Corner index encoding: bit 0 = x, bit 1 = y, bit 2 = z (0=min, 1=max side).\r
+\r
+struct Uniforms {\r
+  viewProj : mat4x4<f32>,\r
+  blockPos : vec3<f32>,\r
+  _pad     : f32,\r
+}\r
+\r
+@group(0) @binding(0) var<uniform> u: Uniforms;\r
+\r
+// ── 36 vertices for 6 faces (triangle-list, cullMode=none) ──────────────────\r
+// Each row: two triangles covering one face of the unit cube.\r
+const FACE_CI: array<u32, 36> = array<u32, 36>(\r
+  0u,3u,2u, 0u,1u,3u,   // -Z  (ci 0,1,2,3 → z=0 face)\r
+  4u,6u,7u, 4u,7u,5u,   // +Z  (ci 4,5,6,7 → z=1 face)\r
+  0u,6u,4u, 0u,2u,6u,   // -X  (ci 0,2,4,6 → x=0 face)\r
+  1u,5u,7u, 1u,7u,3u,   // +X  (ci 1,3,5,7 → x=1 face)\r
+  0u,5u,1u, 0u,4u,5u,   // -Y  (ci 0,1,4,5 → y=0 face)\r
+  2u,3u,7u, 2u,7u,6u,   // +Y  (ci 2,3,6,7 → y=1 face)\r
+);\r
+\r
+// ── 72 vertices for 12 edges rendered as quads (triangle-list) ───────────────\r
+// Each edge is two thin quads (one in each perpendicular plane), so 4 triangles.\r
+// W = half-width of each quad in world units.\r
+const W: f32 = 0.04;\r
+const E: f32 = 0.002;   // small inset so edges sit on the block surface\r
+\r
+// For each of the 12 cube edges, 6 vertices (2 triangles = 1 quad in the primary plane).\r
+// We render each edge as two perpendicular quads by using a second index buffer offset.\r
+// Layout: for edge i, primary-plane quad at [i*6 .. i*6+5].\r
+\r
+// 12 edge corner-index pairs (each edge = two corners)\r
+const EDGE_A: array<u32, 12> = array<u32, 12>(\r
+  0u, 2u, 4u, 6u,   // X-axis edges (vary x, fix y,z)\r
+  0u, 1u, 4u, 5u,   // Y-axis edges (vary y, fix x,z)\r
+  0u, 1u, 2u, 3u,   // Z-axis edges (vary z, fix x,y)\r
+);\r
+const EDGE_B: array<u32, 12> = array<u32, 12>(\r
+  1u, 3u, 5u, 7u,\r
+  2u, 3u, 6u, 7u,\r
+  4u, 5u, 6u, 7u,\r
+);\r
+\r
+// Per-edge offset axis for the primary quad: 0=X,1=Y,2=Z axis edges get perpendicular in Y or Z.\r
+// We expand the primary quad by ±W in the "secondary" axis.\r
+// Edge type 0 (X-axis): primary quad expands in Y → secondary in Z handled separately.\r
+// Edge type 1 (Y-axis): primary quad expands in X → secondary in Z.\r
+// Edge type 2 (Z-axis): primary quad expands in X → secondary in Y.\r
+// We encode the expand axis for the primary quad as u32.\r
+const EDGE_TYPE: array<u32, 12> = array<u32, 12>(\r
+  0u,0u,0u,0u,   // X edges\r
+  1u,1u,1u,1u,   // Y edges\r
+  2u,2u,2u,2u,   // Z edges\r
+);\r
+\r
+fn ci_to_pos(ci: u32) -> vec3<f32> {\r
+  return u.blockPos + vec3<f32>(\r
+    mix(E, 1.0 - E, f32((ci >> 0u) & 1u)),\r
+    mix(E, 1.0 - E, f32((ci >> 1u) & 1u)),\r
+    mix(E, 1.0 - E, f32((ci >> 2u) & 1u)),\r
+  );\r
+}\r
+\r
+// ── Vertex shader for the face overlay ──────────────────────────────────────\r
+\r
+// Clip-space depth bias: subtract a fraction of clip.w from clip.z, which\r
+// pushes the rasterised NDC depth toward the camera by a fixed 0.001 (1‰).\r
+// Reliable across drivers/depth formats; the WebGPU \`depthBias\` pipeline\r
+// state is implementation-defined for \`depth32float\`.\r
+const Z_BIAS: f32 = 0.001;\r
+\r
+fn bias_clip(clip: vec4<f32>) -> vec4<f32> {\r
+  return vec4<f32>(clip.x, clip.y, clip.z - Z_BIAS * clip.w, clip.w);\r
+}\r
+\r
+@vertex\r
+fn vs_face(@builtin(vertex_index) vid: u32) -> @builtin(position) vec4<f32> {\r
+  let ci  = FACE_CI[vid];\r
+  let pos = u.blockPos + vec3<f32>(\r
+    mix(-0.001, 1.001, f32((ci >> 0u) & 1u)),\r
+    mix(-0.001, 1.001, f32((ci >> 1u) & 1u)),\r
+    mix(-0.001, 1.001, f32((ci >> 2u) & 1u)),\r
+  );\r
+  return bias_clip(u.viewProj * vec4<f32>(pos, 1.0));\r
+}\r
+\r
+@fragment\r
+fn fs_face() -> @location(0) vec4<f32> {\r
+  return vec4<f32>(0.0, 0.0, 0.0, 0.35);\r
+}\r
+\r
+// ── Vertex shader for edge quads ─────────────────────────────────────────────\r
+// Each edge renders as two quads (primary + secondary perpendicular planes).\r
+// First 72 vertices = primary plane quads, next 72 = secondary plane quads.\r
+\r
+@vertex\r
+fn vs_edge(@builtin(vertex_index) vid: u32) -> @builtin(position) vec4<f32> {\r
+  let secondary = vid >= 72u;\r
+  let local_vid = vid % 72u;\r
+  let edge_idx  = local_vid / 6u;          // 0..11\r
+  let vert_idx  = local_vid % 6u;          // 0..5 (two triangles: 012, 034... wait, 0-1-2, 0-2-3)\r
+\r
+  let A = ci_to_pos(EDGE_A[edge_idx]);\r
+  let B = ci_to_pos(EDGE_B[edge_idx]);\r
+\r
+  // Quad vertex offsets along the perpendicular axis.\r
+  // Quad pattern for 6 verts: 0=A-perp, 1=B-perp, 2=B+perp, 3=A+perp (→ tris 0,1,2 and 0,2,3)\r
+  let quad_v = array<u32, 6>(0u, 1u, 2u, 0u, 2u, 3u);\r
+  let qv     = quad_v[vert_idx];\r
+\r
+  // Side flag: -1 for perp0, +1 for perp1\r
+  let side = select(-W, W, qv == 1u || qv == 2u);\r
+  // Endpoint flag: A or B\r
+  let at_b = (qv == 1u || qv == 2u || (qv == 3u));  // B endpoints\r
+  // Actually remap: 0→A-, 1→B-, 2→B+, 3→A+\r
+  let use_b = (qv == 1u || qv == 2u);\r
+  let base  = select(A, B, use_b);\r
+  let sgn   = select(-W, W, qv == 2u || qv == 3u);\r
+\r
+  let etype = EDGE_TYPE[edge_idx];\r
+  var off = vec3<f32>(0.0);\r
+  if (!secondary) {\r
+    // Primary perpendicular axis\r
+    if (etype == 0u) { off.y = sgn; }        // X-edge: expand in Y\r
+    else if (etype == 1u) { off.x = sgn; }   // Y-edge: expand in X\r
+    else { off.x = sgn; }                     // Z-edge: expand in X\r
+  } else {\r
+    // Secondary perpendicular axis\r
+    if (etype == 0u) { off.z = sgn; }        // X-edge: expand in Z\r
+    else if (etype == 1u) { off.z = sgn; }   // Y-edge: expand in Z\r
+    else { off.y = sgn; }                     // Z-edge: expand in Y\r
+  }\r
+\r
+  return bias_clip(u.viewProj * vec4<f32>(base + off, 1.0));\r
+}\r
+\r
+@fragment\r
+fn fs_edge() -> @location(0) vec4<f32> {\r
+  return vec4<f32>(0.0, 0.0, 0.0, 0.8);\r
+}\r
+`,On=80;class Lr extends ge{constructor(e,t,r,o,i,a){super();c(this,"name","BlockHighlightPass");c(this,"_facePipeline");c(this,"_edgePipeline");c(this,"_uniformBuf");c(this,"_bg");c(this,"_hdrView");c(this,"_depthView");c(this,"_active",!1);this._facePipeline=e,this._edgePipeline=t,this._uniformBuf=r,this._bg=o,this._hdrView=i,this._depthView=a}static create(e,t,r){const{device:o}=e,i=o.createBuffer({label:"BlockHighlightUniform",size:On,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST}),a=o.createBindGroupLayout({label:"BlockHighlightBGL",entries:[{binding:0,visibility:GPUShaderStage.VERTEX,buffer:{type:"uniform"}}]}),s=o.createBindGroup({label:"BlockHighlightBG",layout:a,entries:[{binding:0,resource:{buffer:i}}]}),l=o.createShaderModule({label:"BlockHighlightShader",code:Xi}),d=o.createPipelineLayout({bindGroupLayouts:[a]}),p={format:"depth32float",depthWriteEnabled:!1,depthCompare:"less-equal"},f={color:{srcFactor:"src-alpha",dstFactor:"one-minus-src-alpha",operation:"add"},alpha:{srcFactor:"one",dstFactor:"one-minus-src-alpha",operation:"add"}},h=o.createRenderPipeline({label:"BlockHighlightFacePipeline",layout:d,vertex:{module:l,entryPoint:"vs_face"},fragment:{module:l,entryPoint:"fs_face",targets:[{format:ee,blend:f}]},primitive:{topology:"triangle-list",cullMode:"none"},depthStencil:p}),_=o.createRenderPipeline({label:"BlockHighlightEdgePipeline",layout:d,vertex:{module:l,entryPoint:"vs_edge"},fragment:{module:l,entryPoint:"fs_edge",targets:[{format:ee,blend:f}]},primitive:{topology:"triangle-list",cullMode:"none"},depthStencil:p});return new Lr(h,_,i,s,t,r)}update(e,t,r){if(!r){this._active=!1;return}this._active=!0;const o=new Float32Array(On/4);o.set(t.data,0),o[16]=r.x,o[17]=r.y,o[18]=r.z,e.queue.writeBuffer(this._uniformBuf,0,o.buffer)}execute(e,t){if(!this._active)return;const r=e.beginRenderPass({label:"BlockHighlightPass",colorAttachments:[{view:this._hdrView,loadOp:"load",storeOp:"store"}],depthStencilAttachment:{view:this._depthView,depthLoadOp:"load",depthStoreOp:"store"}});r.setBindGroup(0,this._bg),r.setPipeline(this._facePipeline),r.draw(36),r.setPipeline(this._edgePipeline),r.draw(144),r.end()}destroy(){this._uniformBuf.destroy()}}const $i=`// Cloud + sky pass — fullscreen triangle.\r
+// Raymarches through a cloud slab with Beer's law transmittance and self-shadow\r
+// light marching.  Sky colour is computed with the same Rayleigh+Mie model as\r
+// atmosphere.wgsl so no sky texture is needed.\r
+\r
+const PI: f32 = 3.14159265358979323846;\r
+\r
+// ---- Uniforms ----------------------------------------------------------------\r
+\r
+struct CameraUniforms {\r
+  invViewProj: mat4x4<f32>,\r
+  position: vec3<f32>,\r
+  near: f32,\r
+  far: f32,\r
+}\r
+\r
+struct CloudUniforms {\r
+  cloudBase: f32,\r
+  cloudTop: f32,\r
+  coverage: f32,\r
+  density: f32,\r
+  windOffset: vec2<f32>,\r
+  anisotropy: f32,\r
+  extinction: f32,\r
+  ambientColor: vec3<f32>,\r
+  exposure: f32,\r
+}\r
+\r
+struct LightUniforms {\r
+  direction: vec3<f32>,\r
+  intensity: f32,\r
+  color: vec3<f32>,\r
+  _pad: f32,\r
+}\r
+\r
+@group(0) @binding(0) var<uniform> camera: CameraUniforms;\r
+@group(0) @binding(1) var<uniform> cloud : CloudUniforms;\r
+@group(1) @binding(0) var<uniform> light : LightUniforms;\r
+@group(2) @binding(0) var          depth_tex  : texture_depth_2d;\r
+@group(2) @binding(1) var          depth_samp : sampler;\r
+@group(3) @binding(0) var          base_noise  : texture_3d<f32>;\r
+@group(3) @binding(1) var          detail_noise: texture_3d<f32>;\r
+@group(3) @binding(2) var          noise_samp  : sampler;\r
+\r
+// ---- Atmosphere (Rayleigh + Mie) for sky colour ------------------------------\r
+\r
+const R_E            : f32       = 6360000.0;\r
+const R_A            : f32       = 6420000.0;\r
+const H_R            : f32       = 8500.0;\r
+const H_M            : f32       = 1200.0;\r
+const G_ATM          : f32       = 0.758;\r
+const BETA_R         : vec3<f32> = vec3<f32>(5.5e-6, 13.0e-6, 22.4e-6);\r
+const BETA_M_ATM     : f32       = 21.0e-6;\r
+const SUN_INTENSITY  : f32       = 20.0;\r
+const SUN_COS_THRESH  : f32 = 0.999976;  // 10% larger angular radius than default\r
+const MOON_COS_THRESH : f32 = 0.999978;  //  5% larger angular radius than default\r
+\r
+fn ray_sphere(ro: vec3<f32>, rd: vec3<f32>, r: f32) -> vec2<f32> {\r
+  let b = dot(ro, rd);\r
+  let c = dot(ro, ro) - r * r;\r
+  let d = b * b - c;\r
+  if (d < 0.0) { return vec2<f32>(-1.0, -1.0); }\r
+  let sq = sqrt(d);\r
+  return vec2<f32>(-b - sq, -b + sq);\r
+}\r
+\r
+fn phase_r(mu: f32) -> f32 {\r
+  return (3.0 / (16.0 * PI)) * (1.0 + mu * mu);\r
+}\r
+\r
+fn phase_m_atm(mu: f32) -> f32 {\r
+  let g2 = G_ATM * G_ATM;\r
+  return (3.0 / (8.0 * PI)) *\r
+         ((1.0 - g2) * (1.0 + mu * mu)) /\r
+         ((2.0 + g2) * pow(max(1.0 + g2 - 2.0 * G_ATM * mu, 1e-4), 1.5));\r
+}\r
+\r
+fn optical_depth_to_sky(pos: vec3<f32>, dir: vec3<f32>) -> vec2<f32> {\r
+  let t  = ray_sphere(pos, dir, R_A);\r
+  let ds = t.y / 4.0;\r
+  var od = vec2<f32>(0.0);\r
+  for (var i = 0; i < 4; i++) {\r
+    let h = length(pos + dir * ((f32(i) + 0.5) * ds)) - R_E;\r
+    if (h < 0.0) { break; }\r
+    od += vec2<f32>(exp(-h / H_R), exp(-h / H_M)) * ds;\r
+  }\r
+  return od;\r
+}\r
+\r
+fn sky_transmittance(ro: vec3<f32>, rd: vec3<f32>) -> vec3<f32> {\r
+  let od = optical_depth_to_sky(ro, rd);\r
+  return exp(-(BETA_R * od.x + BETA_M_ATM * 1.1 * od.y));\r
+}\r
+\r
+fn scatter_sky(ro: vec3<f32>, rd: vec3<f32>, sun_dir: vec3<f32>) -> vec3<f32> {\r
+  let ta   = ray_sphere(ro, rd, R_A);\r
+  let tMin = max(ta.x, 0.0);\r
+  if (ta.y < 0.0) { return vec3<f32>(0.0); }\r
+  let tg   = ray_sphere(ro, rd, R_E);\r
+  let tMax = select(ta.y, min(ta.y, tg.x), tg.x > 0.0);\r
+  if (tMax <= tMin) { return vec3<f32>(0.0); }\r
+\r
+  let mu = dot(rd, sun_dir);\r
+  let pR = phase_r(mu);\r
+  let pM = phase_m_atm(mu);\r
+  let ds = (tMax - tMin) / 8.0;\r
+\r
+  var sumR = vec3<f32>(0.0);\r
+  var sumM = vec3<f32>(0.0);\r
+  var odR  = 0.0;\r
+  var odM  = 0.0;\r
+\r
+  for (var i = 0; i < 8; i++) {\r
+    let pos = ro + rd * (tMin + (f32(i) + 0.5) * ds);\r
+    let h   = length(pos) - R_E;\r
+    if (h < 0.0) { break; }\r
+    let hrh = exp(-h / H_R) * ds;\r
+    let hmh = exp(-h / H_M) * ds;\r
+    odR += hrh;\r
+    odM += hmh;\r
+    let tg2 = ray_sphere(pos, sun_dir, R_E);\r
+    if (tg2.x > 0.0) { continue; }\r
+    let odL = optical_depth_to_sky(pos, sun_dir);\r
+    let tau = BETA_R * (odR + odL.x) + BETA_M_ATM * 1.1 * (odM + odL.y);\r
+    let T   = exp(-tau);\r
+    sumR += T * hrh;\r
+    sumM += T * hmh;\r
+  }\r
+\r
+  return SUN_INTENSITY * (BETA_R * pR * sumR + vec3<f32>(BETA_M_ATM) * pM * sumM);\r
+}\r
+\r
+// ---- Vertex shader -----------------------------------------------------------\r
+\r
+struct VertexOutput {\r
+  @builtin(position) clip_pos: vec4<f32>,\r
+  @location(0)       uv      : vec2<f32>,\r
+}\r
+\r
+@vertex\r
+fn vs_main(@builtin(vertex_index) vid: u32) -> VertexOutput {\r
+  let x = f32((vid & 1u) << 2u) - 1.0;\r
+  let y = f32((vid & 2u) << 1u) - 1.0;\r
+  var out: VertexOutput;\r
+  out.clip_pos = vec4<f32>(x, y, 0.0, 1.0);\r
+  out.uv       = vec2<f32>(x * 0.5 + 0.5, -y * 0.5 + 0.5);\r
+  return out;\r
+}\r
+\r
+// ---- Cloud helpers -----------------------------------------------------------\r
+\r
+fn remap(v: f32, lo: f32, hi: f32, a: f32, b: f32) -> f32 {\r
+  return a + saturate((v - lo) / max(hi - lo, 0.0001)) * (b - a);\r
+}\r
+\r
+fn height_gradient(y: f32) -> f32 {\r
+  let t    = clamp((y - cloud.cloudBase) / max(cloud.cloudTop - cloud.cloudBase, 0.001), 0.0, 1.0);\r
+  let base = remap(t, 0.0, 0.07, 0.0, 1.0);\r
+  let top  = remap(t, 0.2, 1.0,  1.0, 0.0);\r
+  return saturate(base * top);\r
+}\r
+\r
+fn hg_phase(cos_theta: f32, g: f32) -> f32 {\r
+  let g2 = g * g;\r
+  return (1.0 - g2) / (4.0 * PI * pow(1.0 + g2 - 2.0 * g * cos_theta, 1.5));\r
+}\r
+\r
+fn dual_phase(cos_theta: f32, g: f32) -> f32 {\r
+  return 0.7 * hg_phase(cos_theta, g) + 0.3 * hg_phase(cos_theta, -0.25);\r
+}\r
+\r
+fn sample_pw(samp_uv: vec3<f32>) -> f32 {\r
+  let s = textureSampleLevel(base_noise, noise_samp, samp_uv, 0.0);\r
+  let w = s.g * 0.5 + s.b * 0.35 + s.a * 0.15;\r
+  return remap(s.r, 1.0 - w, 1.0, 0.0, 1.0);\r
+}\r
+\r
+fn sample_density(p: vec3<f32>) -> f32 {\r
+  let wind = vec3<f32>(cloud.windOffset.x, 0.0, cloud.windOffset.y);\r
+  // Large-scale pass (3× coarser) — creates some very big cloud masses.\r
+  // Drifts at half wind speed for natural differential parallax with smaller clouds.\r
+  let pw_large = sample_pw((p + wind * 0.5) * 0.012);\r
+  // Medium-scale pass — smaller individual clouds.\r
+  let pw_med = sample_pw((p + wind) * 0.04);\r
+  // Blend: large scale dominates shape; medium adds smaller clouds in sparser areas.\r
+  let pw = pw_large * 0.6 + pw_med * 0.4;\r
+  let hg = height_gradient(p.y);\r
+  let cov = saturate(remap(pw, 1.0 - cloud.coverage, 1.0, 0.0, 1.0)) * hg;\r
+  if (cov < 0.001) { return 0.0; }\r
+  let detail_uv = p * 0.12 + wind * 0.1;\r
+  let det = textureSampleLevel(detail_noise, noise_samp, detail_uv, 0.0);\r
+  let detail = det.r * 0.5 + det.g * 0.25 + det.b * 0.125;\r
+  return max(0.0, cov - (1.0 - cov) * detail * 0.3) * cloud.density;\r
+}\r
+\r
+fn sample_density_coarse(p: vec3<f32>) -> f32 {\r
+  let wind     = vec3<f32>(cloud.windOffset.x, 0.0, cloud.windOffset.y);\r
+  let pw_large = sample_pw((p + wind * 0.5) * 0.012);\r
+  let pw_med   = sample_pw((p + wind) * 0.04);\r
+  let pw       = pw_large * 0.6 + pw_med * 0.4;\r
+  let hg       = height_gradient(p.y);\r
+  return saturate(remap(pw, 1.0 - cloud.coverage, 1.0, 0.0, 1.0)) * hg * cloud.density;\r
+}\r
+\r
+fn light_march(p: vec3<f32>, sun_dir: vec3<f32>) -> f32 {\r
+  let step_size = (cloud.cloudTop - cloud.cloudBase) / 2.0;\r
+  var opt_depth = 0.0;\r
+  for (var i = 0; i < 2; i++) {\r
+    let sp = p + sun_dir * (f32(i) + 0.5) * step_size;\r
+    if (sp.y < cloud.cloudBase || sp.y > cloud.cloudTop) { continue; }\r
+    opt_depth += sample_density_coarse(sp) * step_size;\r
+  }\r
+  return exp(-opt_depth * cloud.extinction);\r
+}\r
+\r
+fn ray_slab(ro: vec3<f32>, rd: vec3<f32>, y_min: f32, y_max: f32) -> vec2<f32> {\r
+  if (abs(rd.y) < 1e-6) {\r
+    if (ro.y < y_min || ro.y > y_max) {\r
+      return vec2<f32>(-1.0, -1.0);\r
+    }\r
+    return vec2<f32>(0.0, 1e9);\r
+  }\r
+  let t0 = (y_min - ro.y) / rd.y;\r
+  let t1 = (y_max - ro.y) / rd.y;\r
+  let t_near = min(t0, t1);\r
+  let t_far  = max(t0, t1);\r
+  if (t_far < 0.0) {\r
+    return vec2<f32>(-1.0, -1.0);\r
+  }\r
+  return vec2<f32>(max(t_near, 0.0), t_far);\r
+}\r
+\r
+// ---- Fragment shader ---------------------------------------------------------\r
+\r
+@fragment\r
+fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {\r
+  let ndc     = vec4<f32>(in.uv.x * 2.0 - 1.0, 1.0 - in.uv.y * 2.0, 1.0, 1.0);\r
+  let world_h = camera.invViewProj * ndc;\r
+  let ray_dir = normalize(world_h.xyz / world_h.w - camera.position);\r
+\r
+  let sun_dir = normalize(-light.direction);\r
+  let camH    = max(camera.position.y, 1.0);\r
+  let atm_ro  = vec3<f32>(0.0, R_E + camH, 0.0);\r
+  let sky_color = scatter_sky(atm_ro, ray_dir, sun_dir);\r
+\r
+  // Clip ray at scene geometry\r
+  let geo_depth = textureLoad(depth_tex, vec2<i32>(in.clip_pos.xy), 0);\r
+  var geo_dist  = 1e9;\r
+  if (geo_depth < 1.0) {\r
+    let ndc_geo = vec4<f32>(in.uv.x * 2.0 - 1.0, 1.0 - in.uv.y * 2.0, geo_depth, 1.0);\r
+    let geo_h   = camera.invViewProj * ndc_geo;\r
+    let geo_pos = geo_h.xyz / geo_h.w;\r
+    geo_dist    = distance(geo_pos, camera.position);\r
+  }\r
+\r
+  let moon_dir  = -sun_dir;\r
+  let night_t   = saturate((-sun_dir.y - 0.05) * 10.0);\r
+\r
+  // Intersect ray with cloud slab\r
+  let slab = ray_slab(camera.position, ray_dir, cloud.cloudBase, cloud.cloudTop);\r
+  if (slab.x < 0.0 || slab.x > geo_dist) {\r
+    var color = sky_color;\r
+    if (dot(ray_dir, sun_dir) > SUN_COS_THRESH && geo_depth >= 1.0) {\r
+      color += sky_transmittance(atm_ro, sun_dir) * 1000.0;\r
+    }\r
+    if (dot(ray_dir, moon_dir) > MOON_COS_THRESH && geo_depth >= 1.0) {\r
+      color += sky_transmittance(atm_ro, moon_dir) * vec3<f32>(0.85, 0.90, 1.0) * 15.0 * night_t;\r
+    }\r
+    return vec4<f32>(color, 1.0);\r
+  }\r
+\r
+  let t_end  = min(min(slab.y, geo_dist), 200.0);\r
+  if (t_end <= slab.x) {\r
+    return vec4<f32>(sky_color, 1.0);\r
+  }\r
+\r
+  // Primary ray march (24 steps, IGN jitter for TAA)\r
+  let step_size = (t_end - slab.x) / 24.0;\r
+  let coord     = vec2<i32>(in.clip_pos.xy);\r
+  let jitter    = fract(52.9829189 * fract(0.06711056 * f32(coord.x) + 0.00583715 * f32(coord.y)));\r
+  let t_start   = slab.x + jitter * step_size;\r
+  let cos_theta = dot(ray_dir, sun_dir);\r
+  let phase     = dual_phase(cos_theta, cloud.anisotropy);\r
+\r
+  var cloud_color = vec3<f32>(0.0);\r
+  var total_trans = 1.0;\r
+\r
+  for (var i = 0; i < 24; i++) {\r
+    let t = t_start + f32(i) * step_size;\r
+    if (t >= t_end) { break; }\r
+    let p = camera.position + ray_dir * t;\r
+\r
+    let dens = sample_density(p);\r
+    if (dens < 0.001) { continue; }\r
+\r
+    let shadow_t    = light_march(p, sun_dir);\r
+    let height_frac = clamp((p.y - cloud.cloudBase) / max(cloud.cloudTop - cloud.cloudBase, 0.001), 0.0, 1.0);\r
+\r
+    let sun_energy = light.color * light.intensity * shadow_t * phase;\r
+    let amb_energy = cloud.ambientColor * mix(0.5, 1.0, height_frac);\r
+\r
+    let opt    = dens * cloud.extinction * step_size;\r
+    let t_step = exp(-opt);\r
+\r
+    cloud_color += (sun_energy + amb_energy) * (1.0 - t_step) * total_trans;\r
+    total_trans *= t_step;\r
+\r
+    if (total_trans < 0.01) { break; }\r
+  }\r
+\r
+  var final_color = cloud_color + sky_color * total_trans;\r
+  if (dot(ray_dir, sun_dir) > SUN_COS_THRESH && geo_depth >= 1.0) {\r
+    final_color += sky_transmittance(atm_ro, sun_dir) * total_trans * 1000.0;\r
+  }\r
+  if (dot(ray_dir, moon_dir) > MOON_COS_THRESH && geo_depth >= 1.0) {\r
+    final_color += sky_transmittance(atm_ro, moon_dir) * total_trans * vec3<f32>(0.85, 0.90, 1.0) * 15.0 * night_t;\r
+  }\r
+  return vec4<f32>(final_color, 1.0);\r
+}\r
+`,Vn=96,Dn=48,zn=32;class Nr extends ge{constructor(e,t,r,o,i,a,s,l,d){super();c(this,"name","CloudPass");c(this,"_pipeline");c(this,"_hdrView");c(this,"_cameraBuffer");c(this,"_cloudBuffer");c(this,"_lightBuffer");c(this,"_sceneBG");c(this,"_lightBG");c(this,"_depthBG");c(this,"_noiseSkyBG");this._pipeline=e,this._hdrView=t,this._cameraBuffer=r,this._cloudBuffer=o,this._lightBuffer=i,this._sceneBG=a,this._lightBG=s,this._depthBG=l,this._noiseSkyBG=d}static create(e,t,r,o){const{device:i}=e,a=i.createBuffer({label:"CloudCameraBuffer",size:Vn,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST}),s=i.createBuffer({label:"CloudUniformBuffer",size:Dn,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST}),l=i.createBuffer({label:"CloudLightBuffer",size:zn,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST}),d=i.createBindGroupLayout({label:"CloudSceneBGL",entries:[{binding:0,visibility:GPUShaderStage.VERTEX|GPUShaderStage.FRAGMENT,buffer:{type:"uniform"}},{binding:1,visibility:GPUShaderStage.FRAGMENT,buffer:{type:"uniform"}}]}),p=i.createBindGroupLayout({label:"CloudLightBGL",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,buffer:{type:"uniform"}}]}),f=i.createBindGroupLayout({label:"CloudDepthBGL",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"depth"}},{binding:1,visibility:GPUShaderStage.FRAGMENT,sampler:{type:"filtering"}}]}),h=i.createBindGroupLayout({label:"CloudNoiseSkyBGL",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float",viewDimension:"3d"}},{binding:1,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float",viewDimension:"3d"}},{binding:2,visibility:GPUShaderStage.FRAGMENT,sampler:{type:"filtering"}}]}),_=i.createSampler({label:"CloudNoiseSampler",magFilter:"linear",minFilter:"linear",mipmapFilter:"linear",addressModeU:"repeat",addressModeV:"repeat",addressModeW:"repeat"}),g=i.createSampler({label:"CloudDepthSampler"}),y=i.createBindGroup({label:"CloudSceneBG",layout:d,entries:[{binding:0,resource:{buffer:a}},{binding:1,resource:{buffer:s}}]}),w=i.createBindGroup({label:"CloudLightBG",layout:p,entries:[{binding:0,resource:{buffer:l}}]}),x=i.createBindGroup({label:"CloudDepthBG",layout:f,entries:[{binding:0,resource:r},{binding:1,resource:g}]}),B=i.createBindGroup({label:"CloudNoiseSkyBG",layout:h,entries:[{binding:0,resource:o.baseView},{binding:1,resource:o.detailView},{binding:2,resource:_}]}),G=i.createShaderModule({label:"CloudShader",code:$i}),S=i.createRenderPipeline({label:"CloudPipeline",layout:i.createPipelineLayout({bindGroupLayouts:[d,p,f,h]}),vertex:{module:G,entryPoint:"vs_main"},fragment:{module:G,entryPoint:"fs_main",targets:[{format:ee}]},primitive:{topology:"triangle-list"}});return new Nr(S,t,a,s,l,y,w,x,B)}updateCamera(e,t,r,o,i){const a=new Float32Array(Vn/4);a.set(t.data,0),a[16]=r.x,a[17]=r.y,a[18]=r.z,a[19]=o,a[20]=i,e.queue.writeBuffer(this._cameraBuffer,0,a.buffer)}updateLight(e,t,r,o){const i=new Float32Array(zn/4);i[0]=t.x,i[1]=t.y,i[2]=t.z,i[3]=o,i[4]=r.x,i[5]=r.y,i[6]=r.z,e.queue.writeBuffer(this._lightBuffer,0,i.buffer)}updateSettings(e,t){const r=new Float32Array(Dn/4);r[0]=t.cloudBase,r[1]=t.cloudTop,r[2]=t.coverage,r[3]=t.density,r[4]=t.windOffset[0],r[5]=t.windOffset[1],r[6]=t.anisotropy,r[7]=t.extinction,r[8]=t.ambientColor[0],r[9]=t.ambientColor[1],r[10]=t.ambientColor[2],r[11]=t.exposure,e.queue.writeBuffer(this._cloudBuffer,0,r.buffer)}execute(e,t){const r=e.beginRenderPass({label:"CloudPass",colorAttachments:[{view:this._hdrView,clearValue:[0,0,0,1],loadOp:"clear",storeOp:"store"}]});r.setPipeline(this._pipeline),r.setBindGroup(0,this._sceneBG),r.setBindGroup(1,this._lightBG),r.setBindGroup(2,this._depthBG),r.setBindGroup(3,this._noiseSkyBG),r.draw(3),r.end()}destroy(){this._cameraBuffer.destroy(),this._cloudBuffer.destroy(),this._lightBuffer.destroy()}}const Zi=`// Cloud shadow pass — renders a top-down cloud transmittance map (1024×1024 r8unorm).\r
+// For each texel, marches 32 steps vertically through the cloud slab and accumulates\r
+// optical depth, then outputs Beer's-law transmittance.\r
+\r
+const PI: f32 = 3.14159265358979323846;\r
+\r
+struct CloudShadowUniforms {\r
+  cloudBase    : f32,\r
+  cloudTop     : f32,\r
+  coverage     : f32,\r
+  density      : f32,\r
+  windOffset   : vec2<f32>,   // XZ animated offset\r
+  worldOriginX : f32,         // world-space XZ centre of the shadow map\r
+  worldOriginZ : f32,\r
+  worldExtent  : f32,         // half-size in world units (map covers ±worldExtent)\r
+  extinction   : f32,\r
+  _pad0        : f32,\r
+  _pad1        : f32,\r
+}\r
+\r
+@group(0) @binding(0) var<uniform> params     : CloudShadowUniforms;\r
+@group(1) @binding(0) var          base_noise  : texture_3d<f32>;\r
+@group(1) @binding(1) var          detail_noise: texture_3d<f32>;\r
+@group(1) @binding(2) var          noise_samp  : sampler;\r
+\r
+struct VertexOutput {\r
+  @builtin(position) clip_pos: vec4<f32>,\r
+  @location(0)       uv      : vec2<f32>,\r
+}\r
+\r
+@vertex\r
+fn vs_main(@builtin(vertex_index) vid: u32) -> VertexOutput {\r
+  let x = f32((vid & 1u) << 2u) - 1.0;\r
+  let y = f32((vid & 2u) << 1u) - 1.0;\r
+  var out: VertexOutput;\r
+  out.clip_pos = vec4<f32>(x, y, 0.0, 1.0);\r
+  out.uv       = vec2<f32>(x * 0.5 + 0.5, -y * 0.5 + 0.5);\r
+  return out;\r
+}\r
+\r
+fn remap(v: f32, lo: f32, hi: f32, a: f32, b: f32) -> f32 {\r
+  return clamp(a + (v - lo) / max(hi - lo, 0.0001) * (b - a), a, b);\r
+}\r
+\r
+fn height_gradient(y: f32) -> f32 {\r
+  let t = clamp((y - params.cloudBase) / max(params.cloudTop - params.cloudBase, 0.001), 0.0, 1.0);\r
+  let base = remap(t, 0.0, 0.07, 0.0, 1.0);\r
+  let top  = remap(t, 0.2, 1.0,  1.0, 0.0);\r
+  return saturate(base * top);\r
+}\r
+\r
+fn sample_density(world_pos: vec3<f32>) -> f32 {\r
+  let scale = 0.04;\r
+  let base_uv = (world_pos + vec3<f32>(params.windOffset.x, 0.0, params.windOffset.y)) * scale;\r
+  let base = textureSampleLevel(base_noise, noise_samp, base_uv, 0.0);\r
+\r
+  // Perlin-Worley blend\r
+  let pw = base.r * 0.625 + (1.0 - base.g) * 0.25 + (1.0 - base.b) * 0.125;\r
+  let hg = height_gradient(world_pos.y);\r
+  let cov = saturate(remap(pw, 1.0 - params.coverage, 1.0, 0.0, 1.0)) * hg;\r
+  if (cov < 0.001) { return 0.0; }\r
+\r
+  let detail_scale = 0.12;\r
+  let detail_uv = world_pos * detail_scale + vec3<f32>(params.windOffset.x, 0.0, params.windOffset.y) * 0.1;\r
+  let det = textureSampleLevel(detail_noise, noise_samp, detail_uv, 0.0);\r
+  let detail = det.r * 0.5 + det.g * 0.25 + det.b * 0.125;\r
+\r
+  return max(0.0, cov - (1.0 - cov) * detail * 0.3) * params.density;\r
+}\r
+\r
+@fragment\r
+fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {\r
+  // Map UV to world XZ position\r
+  let world_x = params.worldOriginX + (in.uv.x - 0.5) * params.worldExtent * 2.0;\r
+  let world_z = params.worldOriginZ + (in.uv.y - 0.5) * params.worldExtent * 2.0;\r
+\r
+  let slab_h = params.cloudTop - params.cloudBase;\r
+  let step_h = slab_h / 16.0;\r
+\r
+  var opt_depth = 0.0;\r
+  for (var i = 0; i < 16; i++) {\r
+    let y = params.cloudBase + (f32(i) + 0.5) * step_h;\r
+    opt_depth += sample_density(vec3<f32>(world_x, y, world_z)) * step_h;\r
+  }\r
+\r
+  let transmittance = exp(-opt_depth * params.extinction);\r
+  return vec4<f32>(transmittance, 0.0, 0.0, 1.0);\r
+}\r
+`,Fn=1024,Hn="r8unorm",Wn=48;class Rr extends ge{constructor(e,t,r,o,i,a){super();c(this,"name","CloudShadowPass");c(this,"shadowTexture");c(this,"shadowView");c(this,"_pipeline");c(this,"_uniformBuffer");c(this,"_uniformBG");c(this,"_noiseBG");c(this,"_frameCount",0);this.shadowTexture=e,this.shadowView=t,this._pipeline=r,this._uniformBuffer=o,this._uniformBG=i,this._noiseBG=a}static create(e,t){const{device:r}=e,o=r.createTexture({label:"CloudShadowTexture",size:{width:Fn,height:Fn},format:Hn,usage:GPUTextureUsage.RENDER_ATTACHMENT|GPUTextureUsage.TEXTURE_BINDING}),i=o.createView(),a=r.createBuffer({label:"CloudShadowUniform",size:Wn,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST}),s=r.createBindGroupLayout({label:"CloudShadowUniformBGL",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,buffer:{type:"uniform"}}]}),l=r.createSampler({label:"CloudNoiseSampler",magFilter:"linear",minFilter:"linear",mipmapFilter:"linear",addressModeU:"repeat",addressModeV:"repeat",addressModeW:"repeat"}),d=r.createBindGroupLayout({label:"CloudShadowNoiseBGL",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float",viewDimension:"3d"}},{binding:1,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float",viewDimension:"3d"}},{binding:2,visibility:GPUShaderStage.FRAGMENT,sampler:{type:"filtering"}}]}),p=r.createBindGroup({label:"CloudShadowUniformBG",layout:s,entries:[{binding:0,resource:{buffer:a}}]}),f=r.createBindGroup({label:"CloudShadowNoiseBG",layout:d,entries:[{binding:0,resource:t.baseView},{binding:1,resource:t.detailView},{binding:2,resource:l}]}),h=r.createShaderModule({label:"CloudShadowShader",code:Zi}),_=r.createRenderPipeline({label:"CloudShadowPipeline",layout:r.createPipelineLayout({bindGroupLayouts:[s,d]}),vertex:{module:h,entryPoint:"vs_main"},fragment:{module:h,entryPoint:"fs_main",targets:[{format:Hn}]},primitive:{topology:"triangle-list"}});return new Rr(o,i,_,a,p,f)}update(e,t,r,o){const i=new Float32Array(Wn/4);i[0]=t.cloudBase,i[1]=t.cloudTop,i[2]=t.coverage,i[3]=t.density,i[4]=t.windOffset[0],i[5]=t.windOffset[1],i[6]=r[0],i[7]=r[1],i[8]=o,i[9]=t.extinction,e.queue.writeBuffer(this._uniformBuffer,0,i.buffer)}execute(e,t){if(this._frameCount++%2!==0)return;const r=e.beginRenderPass({label:"CloudShadowPass",colorAttachments:[{view:this.shadowView,clearValue:[1,0,0,1],loadOp:"clear",storeOp:"store"}]});r.setPipeline(this._pipeline),r.setBindGroup(0,this._uniformBG),r.setBindGroup(1,this._noiseBG),r.draw(3),r.end()}destroy(){this.shadowTexture.destroy(),this._uniformBuffer.destroy()}}const Ki=`// TAA resolve pass — fullscreen triangle, blends current HDR with reprojected history.\r
+\r
+struct TAAUniforms {\r
+  invViewProj : mat4x4<f32>, // current frame, un-jittered\r
+  prevViewProj: mat4x4<f32>, // previous frame, un-jittered\r
+}\r
+\r
+@group(0) @binding(0) var<uniform> taa : TAAUniforms;\r
+\r
+@group(1) @binding(0) var current_hdr   : texture_2d<f32>;\r
+@group(1) @binding(1) var history_tex   : texture_2d<f32>;\r
+@group(1) @binding(2) var depth_tex     : texture_depth_2d;\r
+@group(1) @binding(3) var linear_sampler: sampler;\r
+\r
+struct VertexOutput {\r
+  @builtin(position) clip_pos: vec4<f32>,\r
+  @location(0)       uv     : vec2<f32>,\r
+}\r
+\r
+@vertex\r
+fn vs_main(@builtin(vertex_index) vid: u32) -> VertexOutput {\r
+  let x = f32((vid & 1u) << 2u) - 1.0;\r
+  let y = f32((vid & 2u) << 1u) - 1.0;\r
+  var out: VertexOutput;\r
+  out.clip_pos = vec4<f32>(x, y, 0.0, 1.0);\r
+  out.uv       = vec2<f32>(x * 0.5 + 0.5, -y * 0.5 + 0.5);\r
+  return out;\r
+}\r
+\r
+fn reconstruct_world_pos(uv: vec2<f32>, depth: f32) -> vec4<f32> {\r
+  let ndc = vec4<f32>(uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0, depth, 1.0);\r
+  return taa.invViewProj * ndc;\r
+}\r
+\r
+@fragment\r
+fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {\r
+  let coord = vec2<i32>(in.clip_pos.xy);\r
+\r
+  let current = textureLoad(current_hdr, coord, 0).rgb;\r
+\r
+  // Background: no history to blend\r
+  let depth = textureLoad(depth_tex, coord, 0);\r
+  if (depth >= 1.0) {\r
+    return vec4<f32>(current, 1.0);\r
+  }\r
+\r
+  // 3x3 neighborhood AABB for history clamping\r
+  var c_min = current;\r
+  var c_max = current;\r
+  for (var dy = -1; dy <= 1; dy++) {\r
+    for (var dx = -1; dx <= 1; dx++) {\r
+      if (dx == 0 && dy == 0) { continue; }\r
+      let s = textureLoad(current_hdr, coord + vec2<i32>(dx, dy), 0).rgb;\r
+      c_min = min(c_min, s);\r
+      c_max = max(c_max, s);\r
+    }\r
+  }\r
+\r
+  // Reconstruct world position and reproject into previous frame\r
+  let world_h   = reconstruct_world_pos(in.uv, depth);\r
+  let world_pos = world_h.xyz / world_h.w;\r
+\r
+  let prev_clip = taa.prevViewProj * vec4<f32>(world_pos, 1.0);\r
+  let prev_ndc  = prev_clip.xyz / prev_clip.w;\r
+  let prev_uv   = vec2<f32>(prev_ndc.x * 0.5 + 0.5, -prev_ndc.y * 0.5 + 0.5);\r
+\r
+  // Outside previous frustum → accept current frame fully\r
+  let in_bounds = prev_uv.x >= 0.0 && prev_uv.x <= 1.0\r
+               && prev_uv.y >= 0.0 && prev_uv.y <= 1.0;\r
+  if (!in_bounds) {\r
+    return vec4<f32>(current, 1.0);\r
+  }\r
+\r
+  var history = textureSampleLevel(history_tex, linear_sampler, prev_uv, 0.0).rgb;\r
+  // Clamp history to current neighborhood to suppress ghosting\r
+  history = clamp(history, c_min, c_max);\r
+\r
+  // 10% current frame, 90% history\r
+  return vec4<f32>(mix(history, current, 0.1), 1.0);\r
+}\r
+`,qn=128;class Ir extends ge{constructor(e,t,r,o,i,a,s,l,d,p){super();c(this,"name","TAAPass");c(this,"_resolved");c(this,"resolvedView");c(this,"_history");c(this,"_historyView");c(this,"_pipeline");c(this,"_uniformBuffer");c(this,"_uniformBG");c(this,"_textureBG");c(this,"_width");c(this,"_height");this._resolved=e,this.resolvedView=t,this._history=r,this._historyView=o,this._pipeline=i,this._uniformBuffer=a,this._uniformBG=s,this._textureBG=l,this._width=d,this._height=p}get historyView(){return this._historyView}static create(e,t,r){const{device:o,width:i,height:a}=e,s=o.createTexture({label:"TAA Resolved",size:{width:i,height:a},format:ee,usage:GPUTextureUsage.RENDER_ATTACHMENT|GPUTextureUsage.TEXTURE_BINDING|GPUTextureUsage.COPY_SRC}),l=o.createTexture({label:"TAA History",size:{width:i,height:a},format:ee,usage:GPUTextureUsage.TEXTURE_BINDING|GPUTextureUsage.COPY_DST|GPUTextureUsage.RENDER_ATTACHMENT}),d=s.createView(),p=l.createView(),f=o.createBuffer({label:"TAAUniformBuffer",size:qn,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST}),h=o.createBindGroupLayout({label:"TAAUniformBGL",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,buffer:{type:"uniform"}}]}),_=o.createBindGroupLayout({label:"TAATextureBGL",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:1,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:2,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"depth"}},{binding:3,visibility:GPUShaderStage.FRAGMENT,sampler:{type:"filtering"}}]}),g=o.createSampler({label:"TAALinearSampler",magFilter:"linear",minFilter:"linear",addressModeU:"clamp-to-edge",addressModeV:"clamp-to-edge"}),y=o.createBindGroup({layout:h,entries:[{binding:0,resource:{buffer:f}}]}),w=o.createBindGroup({layout:_,entries:[{binding:0,resource:t.hdrView},{binding:1,resource:p},{binding:2,resource:r.depthView},{binding:3,resource:g}]}),x=o.createShaderModule({label:"TAAShader",code:Ki}),B=o.createRenderPipeline({label:"TAAPipeline",layout:o.createPipelineLayout({bindGroupLayouts:[h,_]}),vertex:{module:x,entryPoint:"vs_main"},fragment:{module:x,entryPoint:"fs_main",targets:[{format:ee}]},primitive:{topology:"triangle-list"}});return new Ir(s,d,l,p,B,f,y,w,i,a)}updateCamera(e,t,r){const o=new Float32Array(qn/4);o.set(t.data,0),o.set(r.data,16),e.queue.writeBuffer(this._uniformBuffer,0,o.buffer)}execute(e,t){const r=e.beginRenderPass({label:"TAAPass",colorAttachments:[{view:this.resolvedView,clearValue:[0,0,0,1],loadOp:"clear",storeOp:"store"}]});r.setPipeline(this._pipeline),r.setBindGroup(0,this._uniformBG),r.setBindGroup(1,this._textureBG),r.draw(3),r.end(),e.copyTextureToTexture({texture:this._resolved},{texture:this._history},{width:this._width,height:this._height})}destroy(){this._resolved.destroy(),this._history.destroy(),this._uniformBuffer.destroy()}}const Qi=`// Bloom: prefilter (downsample + threshold) and separable Gaussian blur.\r
+// The composite step is in bloom_composite.wgsl.\r
+\r
+struct BloomUniforms {\r
+  threshold: f32,\r
+  knee     : f32,\r
+  strength : f32,\r
+  _pad     : f32,\r
+}\r
+\r
+@group(0) @binding(0) var<uniform> bloom   : BloomUniforms;\r
+@group(0) @binding(1) var          src_tex : texture_2d<f32>;\r
+@group(0) @binding(2) var          src_samp: sampler;\r
+\r
+struct VertexOutput {\r
+  @builtin(position) clip_pos: vec4<f32>,\r
+  @location(0)       uv     : vec2<f32>,\r
+}\r
+\r
+@vertex\r
+fn vs_main(@builtin(vertex_index) vid: u32) -> VertexOutput {\r
+  let x = f32((vid & 1u) << 2u) - 1.0;\r
+  let y = f32((vid & 2u) << 1u) - 1.0;\r
+  var out: VertexOutput;\r
+  out.clip_pos = vec4<f32>(x, y, 0.0, 1.0);\r
+  out.uv       = vec2<f32>(x * 0.5 + 0.5, -y * 0.5 + 0.5);\r
+  return out;\r
+}\r
+\r
+// Prefilter: 2× downsample + soft-knee threshold.\r
+// UV is mapped to the half-res output; src_tex is the full-res HDR.\r
+@fragment\r
+fn fs_prefilter(in: VertexOutput) -> @location(0) vec4<f32> {\r
+  let texel = 1.0 / vec2<f32>(textureDimensions(src_tex));\r
+  let c = (\r
+    textureSample(src_tex, src_samp, in.uv + vec2(-0.5, -0.5) * texel) +\r
+    textureSample(src_tex, src_samp, in.uv + vec2( 0.5, -0.5) * texel) +\r
+    textureSample(src_tex, src_samp, in.uv + vec2(-0.5,  0.5) * texel) +\r
+    textureSample(src_tex, src_samp, in.uv + vec2( 0.5,  0.5) * texel)\r
+  ).rgb * 0.25;\r
+\r
+  // Soft knee: smooth ramp from (threshold - knee) to (threshold + knee)\r
+  let brightness = max(c.r, max(c.g, c.b));\r
+  let rq         = clamp(brightness - bloom.threshold + bloom.knee, 0.0, 2.0 * bloom.knee);\r
+  let weight     = max(bloom.knee * rq * rq, brightness - bloom.threshold)\r
+                 / max(brightness, 0.0001);\r
+  return vec4<f32>(c * weight, 1.0);\r
+}\r
+\r
+// 9-tap separable Gaussian, sigma ≈ 2.  Weights are normalised to sum 1.\r
+const W0: f32 = 0.20416;\r
+const W1: f32 = 0.18009;\r
+const W2: f32 = 0.12388;\r
+const W3: f32 = 0.06626;\r
+const W4: f32 = 0.02763;\r
+\r
+@fragment\r
+fn fs_blur_h(in: VertexOutput) -> @location(0) vec4<f32> {\r
+  let tx = 1.0 / f32(textureDimensions(src_tex).x);\r
+  var c  = textureSample(src_tex, src_samp, in.uv).rgb * W0;\r
+  c += textureSample(src_tex, src_samp, in.uv + vec2( tx, 0.0)).rgb * W1;\r
+  c += textureSample(src_tex, src_samp, in.uv + vec2(-tx, 0.0)).rgb * W1;\r
+  c += textureSample(src_tex, src_samp, in.uv + vec2( 2.0*tx, 0.0)).rgb * W2;\r
+  c += textureSample(src_tex, src_samp, in.uv + vec2(-2.0*tx, 0.0)).rgb * W2;\r
+  c += textureSample(src_tex, src_samp, in.uv + vec2( 3.0*tx, 0.0)).rgb * W3;\r
+  c += textureSample(src_tex, src_samp, in.uv + vec2(-3.0*tx, 0.0)).rgb * W3;\r
+  c += textureSample(src_tex, src_samp, in.uv + vec2( 4.0*tx, 0.0)).rgb * W4;\r
+  c += textureSample(src_tex, src_samp, in.uv + vec2(-4.0*tx, 0.0)).rgb * W4;\r
+  return vec4<f32>(c, 1.0);\r
+}\r
+\r
+@fragment\r
+fn fs_blur_v(in: VertexOutput) -> @location(0) vec4<f32> {\r
+  let ty = 1.0 / f32(textureDimensions(src_tex).y);\r
+  var c  = textureSample(src_tex, src_samp, in.uv).rgb * W0;\r
+  c += textureSample(src_tex, src_samp, in.uv + vec2(0.0,  ty)).rgb * W1;\r
+  c += textureSample(src_tex, src_samp, in.uv + vec2(0.0, -ty)).rgb * W1;\r
+  c += textureSample(src_tex, src_samp, in.uv + vec2(0.0,  2.0*ty)).rgb * W2;\r
+  c += textureSample(src_tex, src_samp, in.uv + vec2(0.0, -2.0*ty)).rgb * W2;\r
+  c += textureSample(src_tex, src_samp, in.uv + vec2(0.0,  3.0*ty)).rgb * W3;\r
+  c += textureSample(src_tex, src_samp, in.uv + vec2(0.0, -3.0*ty)).rgb * W3;\r
+  c += textureSample(src_tex, src_samp, in.uv + vec2(0.0,  4.0*ty)).rgb * W4;\r
+  c += textureSample(src_tex, src_samp, in.uv + vec2(0.0, -4.0*ty)).rgb * W4;\r
+  return vec4<f32>(c, 1.0);\r
+}\r
+`,Ji=`// Bloom composite: adds the blurred bright regions back to the source HDR.\r
+\r
+struct BloomUniforms {\r
+  threshold: f32,\r
+  knee     : f32,\r
+  strength : f32,\r
+  _pad     : f32,\r
+}\r
+\r
+@group(0) @binding(0) var<uniform> params   : BloomUniforms;\r
+@group(0) @binding(1) var          hdr_tex  : texture_2d<f32>;\r
+@group(0) @binding(2) var          bloom_tex: texture_2d<f32>;\r
+@group(0) @binding(3) var          samp     : sampler;\r
+\r
+struct VertexOutput {\r
+  @builtin(position) clip_pos: vec4<f32>,\r
+  @location(0)       uv     : vec2<f32>,\r
+}\r
+\r
+@vertex\r
+fn vs_main(@builtin(vertex_index) vid: u32) -> VertexOutput {\r
+  let x = f32((vid & 1u) << 2u) - 1.0;\r
+  let y = f32((vid & 2u) << 1u) - 1.0;\r
+  var out: VertexOutput;\r
+  out.clip_pos = vec4<f32>(x, y, 0.0, 1.0);\r
+  out.uv       = vec2<f32>(x * 0.5 + 0.5, -y * 0.5 + 0.5);\r
+  return out;\r
+}\r
+\r
+@fragment\r
+fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {\r
+  let hdr   = textureSample(hdr_tex,   samp, in.uv).rgb;\r
+  // bloom_tex is half-res; bilinear upsample happens automatically\r
+  let glow  = textureSample(bloom_tex, samp, in.uv).rgb;\r
+  return vec4<f32>(hdr + glow * params.strength, 1.0);\r
+}\r
+`,ea=16;class Or extends ge{constructor(e,t,r,o,i,a,s,l,d,p,f,h,_,g,y){super();c(this,"name","BloomPass");c(this,"resultView");c(this,"_result");c(this,"_half1");c(this,"_half2");c(this,"_half1View");c(this,"_half2View");c(this,"_prefilterPipeline");c(this,"_blurHPipeline");c(this,"_blurVPipeline");c(this,"_compositePipeline");c(this,"_uniformBuffer");c(this,"_prefilterBG");c(this,"_blurHBG");c(this,"_blurVBG");c(this,"_compositeBG");this._result=e,this.resultView=t,this._half1=r,this._half1View=o,this._half2=i,this._half2View=a,this._prefilterPipeline=s,this._blurHPipeline=l,this._blurVPipeline=d,this._compositePipeline=p,this._uniformBuffer=f,this._prefilterBG=h,this._blurHBG=_,this._blurVBG=g,this._compositeBG=y}static create(e,t){const{device:r,width:o,height:i}=e,a=Math.max(1,o>>1),s=Math.max(1,i>>1),l=r.createTexture({label:"BloomHalf1",size:{width:a,height:s},format:ee,usage:GPUTextureUsage.RENDER_ATTACHMENT|GPUTextureUsage.TEXTURE_BINDING}),d=r.createTexture({label:"BloomHalf2",size:{width:a,height:s},format:ee,usage:GPUTextureUsage.RENDER_ATTACHMENT|GPUTextureUsage.TEXTURE_BINDING}),p=r.createTexture({label:"BloomResult",size:{width:o,height:i},format:ee,usage:GPUTextureUsage.RENDER_ATTACHMENT|GPUTextureUsage.TEXTURE_BINDING}),f=l.createView(),h=d.createView(),_=p.createView(),g=r.createBuffer({label:"BloomUniforms",size:ea,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST});r.queue.writeBuffer(g,0,new Float32Array([1,.5,.3,0]).buffer);const y=r.createSampler({label:"BloomSampler",magFilter:"linear",minFilter:"linear",addressModeU:"clamp-to-edge",addressModeV:"clamp-to-edge"}),w=r.createBindGroupLayout({label:"BloomSingleBGL",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,buffer:{type:"uniform"}},{binding:1,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:2,visibility:GPUShaderStage.FRAGMENT,sampler:{type:"filtering"}}]}),x=r.createBindGroupLayout({label:"BloomCompositeBGL",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,buffer:{type:"uniform"}},{binding:1,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:2,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:3,visibility:GPUShaderStage.FRAGMENT,sampler:{type:"filtering"}}]}),B=r.createShaderModule({label:"BloomShader",code:Qi}),G=r.createShaderModule({label:"BloomComposite",code:Ji}),S=r.createPipelineLayout({bindGroupLayouts:[w]}),E=r.createPipelineLayout({bindGroupLayouts:[x]});function L(C,z){return r.createRenderPipeline({label:z,layout:S,vertex:{module:B,entryPoint:"vs_main"},fragment:{module:B,entryPoint:C,targets:[{format:ee}]},primitive:{topology:"triangle-list"}})}const M=L("fs_prefilter","BloomPrefilterPipeline"),I=L("fs_blur_h","BloomBlurHPipeline"),A=L("fs_blur_v","BloomBlurVPipeline"),b=r.createRenderPipeline({label:"BloomCompositePipeline",layout:E,vertex:{module:G,entryPoint:"vs_main"},fragment:{module:G,entryPoint:"fs_main",targets:[{format:ee}]},primitive:{topology:"triangle-list"}});function k(C){return r.createBindGroup({layout:w,entries:[{binding:0,resource:{buffer:g}},{binding:1,resource:C},{binding:2,resource:y}]})}const m=k(t),P=k(f),v=k(h),U=r.createBindGroup({layout:x,entries:[{binding:0,resource:{buffer:g}},{binding:1,resource:t},{binding:2,resource:f},{binding:3,resource:y}]});return new Or(p,_,l,f,d,h,M,I,A,b,g,m,P,v,U)}updateParams(e,t=1,r=.5,o=.3){e.queue.writeBuffer(this._uniformBuffer,0,new Float32Array([t,r,o,0]).buffer)}execute(e,t){const r=(o,i,a,s)=>{const l=e.beginRenderPass({label:o,colorAttachments:[{view:i,clearValue:[0,0,0,1],loadOp:"clear",storeOp:"store"}]});l.setPipeline(a),l.setBindGroup(0,s),l.draw(3),l.end()};r("BloomPrefilter",this._half1View,this._prefilterPipeline,this._prefilterBG);for(let o=0;o<2;o++)r("BloomBlurH",this._half2View,this._blurHPipeline,this._blurHBG),r("BloomBlurV",this._half1View,this._blurVPipeline,this._blurVBG);r("BloomComposite",this.resultView,this._compositePipeline,this._compositeBG)}destroy(){this._result.destroy(),this._half1.destroy(),this._half2.destroy(),this._uniformBuffer.destroy()}}const ta=`// godray_march.wgsl — Half-resolution ray-march pass for volumetric godrays.\r
+//\r
+// Fires rays from the camera toward each pixel's world position, sampling the\r
+// directional-light shadow map at each step to accumulate in-scattered light.\r
+// Outputs a single fog value [0,1] in the R channel of a half-res rgba16float\r
+// texture, dithered to hide banding at low step counts.\r
+\r
+const PI: f32 = 3.14159265358979;\r
+\r
+struct VertexOutput {\r
+  @builtin(position) clip_pos: vec4<f32>,\r
+  @location(0)       uv      : vec2<f32>,\r
+}\r
+\r
+struct CameraUniforms {\r
+  view       : mat4x4<f32>,\r
+  proj       : mat4x4<f32>,\r
+  viewProj   : mat4x4<f32>,\r
+  invViewProj: mat4x4<f32>,\r
+  position   : vec3<f32>,\r
+  near       : f32,\r
+  far        : f32,\r
+}\r
+\r
+struct LightUniforms {\r
+  direction         : vec3<f32>,\r
+  intensity         : f32,\r
+  color             : vec3<f32>,\r
+  cascadeCount      : u32,\r
+  cascadeMatrices   : array<mat4x4<f32>, 4>,\r
+  cascadeSplits     : vec4<f32>,\r
+  shadowsEnabled    : u32,\r
+  debugCascades     : u32,\r
+  cloudShadowOrigin : vec2<f32>,\r
+  cloudShadowExtent : f32,\r
+  shadowSoftness    : f32,\r
+  _pad_light        : vec2<f32>,\r
+  cascadeDepthRanges: vec4<f32>,\r
+}\r
+\r
+struct MarchParams {\r
+  scattering: f32,  // Henyey-Greenstein g parameter\r
+  max_steps : f32,  // stored as float, cast to u32 in the loop\r
+  _pad0     : f32,\r
+  _pad1     : f32,\r
+}\r
+\r
+@group(0) @binding(0) var<uniform> camera      : CameraUniforms;\r
+@group(0) @binding(1) var<uniform> light        : LightUniforms;\r
+@group(0) @binding(2) var          depth_tex    : texture_depth_2d;\r
+@group(0) @binding(3) var          shadow_map   : texture_depth_2d_array;\r
+@group(0) @binding(4) var          shadow_samp  : sampler_comparison;\r
+@group(0) @binding(5) var<uniform> march_params : MarchParams;\r
+\r
+@vertex\r
+fn vs_main(@builtin(vertex_index) vid: u32) -> VertexOutput {\r
+  let x = f32((vid & 1u) << 2u) - 1.0;\r
+  let y = f32((vid & 2u) << 1u) - 1.0;\r
+  var out: VertexOutput;\r
+  out.clip_pos = vec4<f32>(x, y, 0.0, 1.0);\r
+  out.uv       = vec2<f32>(x * 0.5 + 0.5, -y * 0.5 + 0.5);\r
+  return out;\r
+}\r
+\r
+// Henyey-Greenstein phase function — directional forward/back scattering.\r
+fn henyey_greenstein(cos_theta: f32, g: f32) -> f32 {\r
+  let k = 0.0795774715459; // 1 / (4π)\r
+  return k * (1.0 - g * g) / pow(max(1.0 + g * g - 2.0 * g * cos_theta, 1e-4), 1.5);\r
+}\r
+\r
+fn reconstruct_world_pos(uv: vec2<f32>, depth: f32) -> vec3<f32> {\r
+  let ndc     = vec4<f32>(uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0, depth, 1.0);\r
+  let world_h = camera.invViewProj * ndc;\r
+  return world_h.xyz / world_h.w;\r
+}\r
+\r
+fn select_cascade(view_depth: f32) -> u32 {\r
+  for (var i = 0u; i < light.cascadeCount; i++) {\r
+    if (view_depth < light.cascadeSplits[i]) { return i; }\r
+  }\r
+  return light.cascadeCount - 1u;\r
+}\r
+\r
+fn shadow_at(world_pos: vec3<f32>) -> f32 {\r
+  if (light.shadowsEnabled == 0u) { return 1.0; }\r
+  let view_pos   = camera.view * vec4<f32>(world_pos, 1.0);\r
+  let view_depth = -view_pos.z;\r
+  let cascade    = select_cascade(view_depth);\r
+\r
+  let ls  = light.cascadeMatrices[cascade] * vec4<f32>(world_pos, 1.0);\r
+  var sc  = ls.xyz / ls.w;\r
+  sc      = vec3<f32>(sc.xy * 0.5 + 0.5, sc.z);\r
+  sc.y    = 1.0 - sc.y;\r
+  if (any(sc.xy < vec2<f32>(0.0)) || any(sc.xy > vec2<f32>(1.0)) || sc.z > 1.0) {\r
+    return 1.0;\r
+  }\r
+  return textureSampleCompareLevel(shadow_map, shadow_samp, sc.xy, i32(cascade), sc.z - 0.005);\r
+}\r
+\r
+// Interleaved gradient noise for dithering the ray start offset.\r
+fn dither(uv: vec2<f32>) -> f32 {\r
+  return fract(sin(dot(uv, vec2<f32>(41.0, 289.0))) * 45758.5453);\r
+}\r
+\r
+@fragment\r
+fn fs_march(in: VertexOutput) -> @location(0) vec4<f32> {\r
+  // textureLoad avoids the depth+filtering-sampler restriction; depth textures\r
+  // may only be sampled via comparison or textureLoad, not a regular sampler.\r
+  let depth_size = vec2<i32>(textureDimensions(depth_tex));\r
+  let coord      = clamp(vec2<i32>(in.uv * vec2<f32>(depth_size)),\r
+                         vec2<i32>(0), depth_size - vec2<i32>(1));\r
+  let depth = textureLoad(depth_tex, coord, 0u);\r
+  if (depth >= 1.0) { return vec4<f32>(0.0); } // sky pixel — skip\r
+\r
+  let world_pos = reconstruct_world_pos(in.uv, depth);\r
+  let ray_vec   = world_pos - camera.position;\r
+  let ray_len   = length(ray_vec);\r
+  let ray_dir   = ray_vec / max(ray_len, 0.001);\r
+\r
+  let steps     = u32(march_params.max_steps);\r
+  let step_len  = ray_len / f32(steps);\r
+  let dith      = dither(in.uv) * step_len; // jitter to avoid banding\r
+  var pos       = camera.position + ray_dir * dith;\r
+\r
+  let sun_dir   = normalize(-light.direction);\r
+  let cos_theta = dot(ray_dir, sun_dir);\r
+  let phase     = henyey_greenstein(cos_theta, march_params.scattering);\r
+\r
+  var accum = 0.0;\r
+  for (var i = 0u; i < steps; i++) {\r
+    accum += phase * shadow_at(pos);\r
+    pos   += ray_dir * step_len;\r
+  }\r
+\r
+  let fog = clamp(accum / f32(steps), 0.0, 1.0);\r
+  return vec4<f32>(fog, 0.0, 0.0, 1.0);\r
+}\r
+`,ra=`// godray_composite.wgsl — Blur and composite passes for volumetric godrays.\r
+//\r
+// fs_blur: bilateral depth-aware Gaussian blur of the half-res fog texture\r
+//          (run twice — horizontal then vertical — using the blur_dir uniform).\r
+//\r
+// fs_composite: depth-aware upsampling from half-res fog to full-res, followed\r
+//               by an additive blend of (fog × sun color × sun intensity) onto\r
+//               the HDR render target.  Uses pipeline blend state (one+one) so\r
+//               the fragment only needs to output the additive contribution.\r
+//\r
+// Bindings 0-3 are used by both entry points; binding 4 (light) is composite-only.\r
+// With layout:'auto' each pipeline derives its own BGL from the entry point's\r
+// static usage, so blur and composite bind groups can be created independently.\r
+\r
+struct VertexOutput {\r
+  @builtin(position) clip_pos: vec4<f32>,\r
+  @location(0)       uv      : vec2<f32>,\r
+}\r
+\r
+struct LightUniforms {\r
+  direction         : vec3<f32>,\r
+  intensity         : f32,\r
+  color             : vec3<f32>,\r
+  cascadeCount      : u32,\r
+  cascadeMatrices   : array<mat4x4<f32>, 4>,\r
+  cascadeSplits     : vec4<f32>,\r
+  shadowsEnabled    : u32,\r
+  debugCascades     : u32,\r
+  cloudShadowOrigin : vec2<f32>,\r
+  cloudShadowExtent : f32,\r
+  shadowSoftness    : f32,\r
+  _pad_light        : vec2<f32>,\r
+  cascadeDepthRanges: vec4<f32>,\r
+}\r
+\r
+// Shared by blur and composite — blur uses blur_dir, composite uses fog_curve.\r
+struct Params {\r
+  blur_dir  : vec2<f32>,  // (1,0) for horizontal, (0,1) for vertical; ignored by composite\r
+  fog_curve : f32,        // power applied to fog before compositing; ignored by blur\r
+  _pad      : f32,\r
+}\r
+\r
+@group(0) @binding(0) var          fog_tex  : texture_2d<f32>;\r
+@group(0) @binding(1) var          depth_tex: texture_depth_2d;\r
+@group(0) @binding(2) var          samp     : sampler;\r
+@group(0) @binding(3) var<uniform> params   : Params;\r
+@group(0) @binding(4) var<uniform> light    : LightUniforms; // composite only\r
+\r
+fn depth_load(uv: vec2<f32>) -> f32 {\r
+  let size  = vec2<i32>(textureDimensions(depth_tex));\r
+  let coord = clamp(vec2<i32>(uv * vec2<f32>(size)), vec2<i32>(0), size - vec2<i32>(1));\r
+  return textureLoad(depth_tex, coord, 0u);\r
+}\r
+\r
+// Gaussian half-kernel (centre..edge, index = abs(tap offset)).\r
+// Sum of symmetric 7-tap (±3) with these weights ≈ 1.\r
+const GAUSS: array<f32, 4> = array<f32, 4>(\r
+  0.19638062, 0.17469900, 0.12161760, 0.06706740,\r
+);\r
+\r
+@vertex\r
+fn vs_main(@builtin(vertex_index) vid: u32) -> VertexOutput {\r
+  let x = f32((vid & 1u) << 2u) - 1.0;\r
+  let y = f32((vid & 2u) << 1u) - 1.0;\r
+  var out: VertexOutput;\r
+  out.clip_pos = vec4<f32>(x, y, 0.0, 1.0);\r
+  out.uv       = vec2<f32>(x * 0.5 + 0.5, -y * 0.5 + 0.5);\r
+  return out;\r
+}\r
+\r
+// ---- Blur pass ---------------------------------------------------------------\r
+\r
+@fragment\r
+fn fs_blur(in: VertexOutput) -> @location(0) vec4<f32> {\r
+  // Step size in UV space: one fog texel in the blur direction.\r
+  let texel  = 1.0 / vec2<f32>(textureDimensions(fog_tex));\r
+  let step   = params.blur_dir * texel;\r
+  let depth0 = depth_load(in.uv);\r
+\r
+  var accum  = 0.0;\r
+  var weight = 0.0;\r
+  for (var i: i32 = -3; i <= 3; i++) {\r
+    let uv_off  = in.uv + step * f32(i);\r
+    let depth_s = depth_load(uv_off);\r
+    let fog_s   = textureSampleLevel(fog_tex,   samp, uv_off, 0.0).r;\r
+    // Depth-aware bilateral weight: suppress blur across depth discontinuities.\r
+    let d_wt  = exp(-abs(depth_s - depth0) * 1000.0);\r
+    let w     = GAUSS[abs(i)] * d_wt;\r
+    accum  += w * fog_s;\r
+    weight += w;\r
+  }\r
+  return vec4<f32>(accum / max(weight, 1e-5), 0.0, 0.0, 1.0);\r
+}\r
+\r
+// ---- Composite pass ----------------------------------------------------------\r
+\r
+@fragment\r
+fn fs_composite(in: VertexOutput) -> @location(0) vec4<f32> {\r
+  let depth0 = depth_load(in.uv);\r
+  if (depth0 >= 1.0) { return vec4<f32>(0.0); } // sky — no godray contribution\r
+\r
+  // Depth-aware upsampling: among the four half-res neighbours, pick the one\r
+  // whose depth is closest to this full-res pixel to avoid bleeding across edges.\r
+  let fog_texel = 1.0 / vec2<f32>(textureDimensions(fog_tex));\r
+\r
+  let d1 = depth_load(in.uv + vec2<f32>( fog_texel.x, 0.0));\r
+  let d2 = depth_load(in.uv + vec2<f32>(-fog_texel.x, 0.0));\r
+  let d3 = depth_load(in.uv + vec2<f32>(0.0,  fog_texel.y));\r
+  let d4 = depth_load(in.uv + vec2<f32>(0.0, -fog_texel.y));\r
+\r
+  let e1 = abs(depth0 - d1); let e2 = abs(depth0 - d2);\r
+  let e3 = abs(depth0 - d3); let e4 = abs(depth0 - d4);\r
+  let dmin = min(min(e1, e2), min(e3, e4));\r
+\r
+  var offset = vec2<f32>(0.0);\r
+  if      (dmin == e1) { offset = vec2<f32>( fog_texel.x, 0.0); }\r
+  else if (dmin == e2) { offset = vec2<f32>(-fog_texel.x, 0.0); }\r
+  else if (dmin == e3) { offset = vec2<f32>(0.0,  fog_texel.y); }\r
+  else if (dmin == e4) { offset = vec2<f32>(0.0, -fog_texel.y); }\r
+\r
+  var fog = textureSampleLevel(fog_tex, samp, in.uv + offset, 0.0).r;\r
+  fog = pow(max(fog, 0.0), params.fog_curve);\r
+\r
+  // Fade godrays at night by scaling with the sun's above-horizon factor.\r
+  let horizon_fade = smoothstep(-0.05, 0.05, -light.direction.y);\r
+  let fog_color    = light.color * light.intensity * fog * horizon_fade;\r
+\r
+  // Written additively onto the HDR buffer via one+one blend state.\r
+  return vec4<f32>(fog_color, 0.0);\r
+}\r
+`,ht=ee,Ut=16;class Vr extends ge{constructor(e,t,r,o,i,a,s,l,d,p,f,h,_,g,y,w,x){super();c(this,"name","GodrayPass");c(this,"scattering",.3);c(this,"fogCurve",2);c(this,"maxSteps",16);c(this,"_fogA");c(this,"_fogB");c(this,"_fogAView");c(this,"_fogBView");c(this,"_hdrView");c(this,"_marchPipeline");c(this,"_blurHPipeline");c(this,"_blurVPipeline");c(this,"_compositePipeline");c(this,"_marchBG");c(this,"_blurHBG");c(this,"_blurVBG");c(this,"_compositeBG");c(this,"_marchParamsBuf");c(this,"_blurHParamsBuf");c(this,"_blurVParamsBuf");c(this,"_compParamsBuf");this._fogA=e,this._fogAView=t,this._fogB=r,this._fogBView=o,this._hdrView=i,this._marchPipeline=a,this._blurHPipeline=s,this._blurVPipeline=l,this._compositePipeline=d,this._marchBG=p,this._blurHBG=f,this._blurVBG=h,this._compositeBG=_,this._marchParamsBuf=g,this._blurHParamsBuf=y,this._blurVParamsBuf=w,this._compParamsBuf=x}static create(e,t,r,o,i,a){const{device:s,width:l,height:d}=e,p=Math.max(1,l>>1),f=Math.max(1,d>>1),h=s.createTexture({label:"GodrayFogA",size:{width:p,height:f},format:ht,usage:GPUTextureUsage.RENDER_ATTACHMENT|GPUTextureUsage.TEXTURE_BINDING}),_=s.createTexture({label:"GodrayFogB",size:{width:p,height:f},format:ht,usage:GPUTextureUsage.RENDER_ATTACHMENT|GPUTextureUsage.TEXTURE_BINDING}),g=h.createView(),y=_.createView(),w=s.createSampler({label:"GodraySampler",magFilter:"linear",minFilter:"linear",addressModeU:"clamp-to-edge",addressModeV:"clamp-to-edge"}),x=s.createSampler({label:"GodrayCmpSampler",compare:"less-equal",magFilter:"linear",minFilter:"linear"}),B=s.createBuffer({label:"GodrayMarchParams",size:Ut,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST});s.queue.writeBuffer(B,0,new Float32Array([.3,16,0,0]).buffer);const G=s.createBuffer({label:"GodrayBlurHParams",size:Ut,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST});s.queue.writeBuffer(G,0,new Float32Array([1,0,0,0]).buffer);const S=s.createBuffer({label:"GodrayBlurVParams",size:Ut,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST});s.queue.writeBuffer(S,0,new Float32Array([0,1,0,0]).buffer);const E=s.createBuffer({label:"GodrayCompositeParams",size:Ut,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST});s.queue.writeBuffer(E,0,new Float32Array([0,0,2,0]).buffer);const L=s.createShaderModule({label:"GodrayMarchShader",code:ta}),M=s.createRenderPipeline({label:"GodrayMarchPipeline",layout:"auto",vertex:{module:L,entryPoint:"vs_main"},fragment:{module:L,entryPoint:"fs_march",targets:[{format:ht}]},primitive:{topology:"triangle-list"}}),I=s.createBindGroup({label:"GodrayMarchBG",layout:M.getBindGroupLayout(0),entries:[{binding:0,resource:{buffer:i}},{binding:1,resource:{buffer:a}},{binding:2,resource:t.depthView},{binding:3,resource:r.shadowMapView},{binding:4,resource:x},{binding:5,resource:{buffer:B}}]}),A=s.createShaderModule({label:"GodrayCompositeShader",code:ra}),b=s.createRenderPipeline({label:"GodrayBlurHPipeline",layout:"auto",vertex:{module:A,entryPoint:"vs_main"},fragment:{module:A,entryPoint:"fs_blur",targets:[{format:ht}]},primitive:{topology:"triangle-list"}}),k=s.createRenderPipeline({label:"GodrayBlurVPipeline",layout:"auto",vertex:{module:A,entryPoint:"vs_main"},fragment:{module:A,entryPoint:"fs_blur",targets:[{format:ht}]},primitive:{topology:"triangle-list"}}),m=s.createRenderPipeline({label:"GodrayCompositePipeline",layout:"auto",vertex:{module:A,entryPoint:"vs_main"},fragment:{module:A,entryPoint:"fs_composite",targets:[{format:ee,blend:{color:{operation:"add",srcFactor:"one",dstFactor:"one"},alpha:{operation:"add",srcFactor:"one",dstFactor:"one"}}}]},primitive:{topology:"triangle-list"}}),P=s.createBindGroup({label:"GodrayBlurHBG",layout:b.getBindGroupLayout(0),entries:[{binding:0,resource:g},{binding:1,resource:t.depthView},{binding:2,resource:w},{binding:3,resource:{buffer:G}}]}),v=s.createBindGroup({label:"GodrayBlurVBG",layout:k.getBindGroupLayout(0),entries:[{binding:0,resource:y},{binding:1,resource:t.depthView},{binding:2,resource:w},{binding:3,resource:{buffer:S}}]}),U=s.createBindGroup({label:"GodrayCompositeBG",layout:m.getBindGroupLayout(0),entries:[{binding:0,resource:g},{binding:1,resource:t.depthView},{binding:2,resource:w},{binding:3,resource:{buffer:E}},{binding:4,resource:{buffer:a}}]});return new Vr(h,g,_,y,o,M,b,k,m,I,P,v,U,B,G,S,E)}updateParams(e){e.queue.writeBuffer(this._marchParamsBuf,0,new Float32Array([this.scattering,this.maxSteps,0,0]).buffer),e.queue.writeBuffer(this._compParamsBuf,0,new Float32Array([0,0,this.fogCurve,0]).buffer)}execute(e,t){const r=(o,i,a,s,l=!0)=>{const d=e.beginRenderPass({label:o,colorAttachments:[{view:i,clearValue:[0,0,0,0],loadOp:l?"clear":"load",storeOp:"store"}]});d.setPipeline(a),d.setBindGroup(0,s),d.draw(3),d.end()};r("GodrayMarch",this._fogAView,this._marchPipeline,this._marchBG),r("GodrayBlurH",this._fogBView,this._blurHPipeline,this._blurHBG),r("GodrayBlurV",this._fogAView,this._blurVPipeline,this._blurVBG),r("GodrayComposite",this._hdrView,this._compositePipeline,this._compositeBG,!1)}destroy(){this._fogA.destroy(),this._fogB.destroy(),this._marchParamsBuf.destroy(),this._blurHParamsBuf.destroy(),this._blurVParamsBuf.destroy(),this._compParamsBuf.destroy()}}const na=`// composite.wgsl — Fog + Underwater + Tonemap merged into a single full-screen draw.\r
+// Replaces FogPass → UnderwaterPass → TonemapPass, saving 2 intermediate HDR\r
+// textures and 2 render-pass boundaries.\r
+//\r
+// Effect enable flags live in params.fog_flags and params.tonemap_flags so the GPU\r
+// can branch them out without pipeline recompilation.\r
+\r
+const PI: f32 = 3.14159265358979;\r
+\r
+// ── Atmospheric scatter ────────────────────────────────────────────────────────\r
+// Constants must match lighting.wgsl / fog.wgsl exactly.\r
+\r
+const ATM_R_E   : f32       = 6360000.0;\r
+const ATM_R_A   : f32       = 6420000.0;\r
+const ATM_H_R   : f32       = 8500.0;\r
+const ATM_H_M   : f32       = 1200.0;\r
+const ATM_G     : f32       = 0.758;\r
+const ATM_BETA_R: vec3<f32> = vec3<f32>(5.5e-6, 13.0e-6, 22.4e-6);\r
+const ATM_BETA_M: f32       = 21.0e-6;\r
+const ATM_SUN_I : f32       = 20.0;\r
+\r
+fn atm_ray_sphere(ro: vec3<f32>, rd: vec3<f32>, r: f32) -> vec2<f32> {\r
+  let b = dot(ro, rd); let c = dot(ro, ro) - r * r; let d = b * b - c;\r
+  if (d < 0.0) { return vec2<f32>(-1.0, -1.0); }\r
+  let sq = sqrt(d);\r
+  return vec2<f32>(-b - sq, -b + sq);\r
+}\r
+\r
+fn atm_optical_depth(pos: vec3<f32>, dir: vec3<f32>) -> vec2<f32> {\r
+  let t = atm_ray_sphere(pos, dir, ATM_R_A); let ds = t.y / 4.0;\r
+  var od = vec2<f32>(0.0);\r
+  for (var i = 0; i < 4; i++) {\r
+    let h = length(pos + dir * ((f32(i) + 0.5) * ds)) - ATM_R_E;\r
+    if (h < 0.0) { break; }\r
+    od += vec2<f32>(exp(-h / ATM_H_R), exp(-h / ATM_H_M)) * ds;\r
+  }\r
+  return od;\r
+}\r
+\r
+fn atm_scatter(ro: vec3<f32>, rd: vec3<f32>, sun_dir: vec3<f32>) -> vec3<f32> {\r
+  let ta = atm_ray_sphere(ro, rd, ATM_R_A); let tMin = max(ta.x, 0.0);\r
+  if (ta.y < 0.0) { return vec3<f32>(0.0); }\r
+  let tg   = atm_ray_sphere(ro, rd, ATM_R_E);\r
+  let tMax = select(ta.y, min(ta.y, tg.x), tg.x > 0.0);\r
+  if (tMax <= tMin) { return vec3<f32>(0.0); }\r
+  let mu = dot(rd, sun_dir);\r
+  let pR = (3.0 / (16.0 * PI)) * (1.0 + mu * mu);\r
+  let g2 = ATM_G * ATM_G;\r
+  let pM = (3.0 / (8.0 * PI)) * ((1.0 - g2) * (1.0 + mu * mu)) /\r
+            ((2.0 + g2) * pow(max(1.0 + g2 - 2.0 * ATM_G * mu, 1e-4), 1.5));\r
+  let ds = (tMax - tMin) / 6.0;\r
+  var sumR = vec3<f32>(0.0); var sumM = vec3<f32>(0.0);\r
+  var odR = 0.0; var odM = 0.0;\r
+  for (var i = 0; i < 6; i++) {\r
+    let pos = ro + rd * (tMin + (f32(i) + 0.5) * ds);\r
+    let h   = length(pos) - ATM_R_E;\r
+    if (h < 0.0) { break; }\r
+    let hrh = exp(-h / ATM_H_R) * ds; let hmh = exp(-h / ATM_H_M) * ds;\r
+    odR += hrh; odM += hmh;\r
+    let tg2 = atm_ray_sphere(pos, sun_dir, ATM_R_E);\r
+    if (tg2.x > 0.0) { continue; }\r
+    let odL = atm_optical_depth(pos, sun_dir);\r
+    let tau = ATM_BETA_R * (odR + odL.x) + ATM_BETA_M * 1.1 * (odM + odL.y);\r
+    sumR += exp(-tau) * hrh; sumM += exp(-tau) * hmh;\r
+  }\r
+  return ATM_SUN_I * (ATM_BETA_R * pR * sumR + vec3<f32>(ATM_BETA_M) * pM * sumM);\r
+}\r
+\r
+// ── Structs ───────────────────────────────────────────────────────────────────\r
+\r
+struct CameraUniforms {\r
+  view       : mat4x4<f32>,\r
+  proj       : mat4x4<f32>,\r
+  viewProj   : mat4x4<f32>,\r
+  invViewProj: mat4x4<f32>,\r
+  position   : vec3<f32>,\r
+  near       : f32,\r
+  far        : f32,\r
+}\r
+\r
+// Only the first field of the full LightUniforms buffer is needed here.\r
+struct LightDir { direction: vec3<f32>, }\r
+\r
+// Combined params buffer — 64 bytes.\r
+// Layout (byte offsets):\r
+//  0  fog_color      vec3<f32>\r
+// 12  depth_density  f32\r
+// 16  depth_begin    f32\r
+// 20  depth_end      f32\r
+// 24  depth_curve    f32\r
+// 28  height_density f32\r
+// 32  height_min     f32\r
+// 36  height_max     f32\r
+// 40  height_curve   f32\r
+// 44  fog_flags      u32  bit 0 = depth fog, bit 1 = height fog\r
+// 48  uw_time        f32\r
+// 52  is_underwater  f32\r
+// 56  tonemap_flags  u32  bit 0 = aces, bit 1 = debug_ao, bit 2 = hdr_canvas\r
+// 60  _pad           f32\r
+struct CompositeParams {\r
+  fog_color      : vec3<f32>,\r
+  depth_density  : f32,\r
+  depth_begin    : f32,\r
+  depth_end      : f32,\r
+  depth_curve    : f32,\r
+  height_density : f32,\r
+  height_min     : f32,\r
+  height_max     : f32,\r
+  height_curve   : f32,\r
+  fog_flags      : u32,\r
+  uw_time        : f32,\r
+  is_underwater  : f32,\r
+  tonemap_flags  : u32,\r
+  _pad           : f32,\r
+}\r
+\r
+// invViewProj(64) + cam_pos(12) + pad(4) + sun_dir(12) + pad(4) = 96 bytes\r
+struct StarUniforms {\r
+  invViewProj: mat4x4<f32>,\r
+  cam_pos    : vec3<f32>,\r
+  _pad0      : f32,\r
+  sun_dir    : vec3<f32>,\r
+  _pad1      : f32,\r
+}\r
+\r
+struct ExposureBuffer {\r
+  value: f32,\r
+  _p0  : f32, _p1: f32, _p2: f32,\r
+}\r
+\r
+// ── Bindings ──────────────────────────────────────────────────────────────────\r
+\r
+@group(0) @binding(0) var hdr_tex : texture_2d<f32>;\r
+@group(0) @binding(1) var ao_tex  : texture_2d<f32>;\r
+@group(0) @binding(2) var dep_tex : texture_depth_2d;\r
+@group(0) @binding(3) var samp    : sampler;\r
+\r
+@group(1) @binding(0) var<uniform> camera  : CameraUniforms;\r
+@group(1) @binding(1) var<uniform> light   : LightDir;\r
+\r
+@group(2) @binding(0) var<uniform>        params   : CompositeParams;\r
+@group(2) @binding(1) var<uniform>        star_uni : StarUniforms;\r
+@group(2) @binding(2) var<storage, read>  exposure : ExposureBuffer;\r
+\r
+// ── Vertex shader ─────────────────────────────────────────────────────────────\r
+\r
+struct VertOut {\r
+  @builtin(position) pos: vec4<f32>,\r
+  @location(0)       uv : vec2<f32>,\r
+}\r
+\r
+@vertex\r
+fn vs_main(@builtin(vertex_index) vid: u32) -> VertOut {\r
+  let x = f32((vid & 1u) << 2u) - 1.0;\r
+  let y = f32((vid & 2u) << 1u) - 1.0;\r
+  var out: VertOut;\r
+  out.pos = vec4<f32>(x, y, 0.0, 1.0);\r
+  out.uv  = vec2<f32>(x * 0.5 + 0.5, -y * 0.5 + 0.5);\r
+  return out;\r
+}\r
+\r
+// ── Star field ────────────────────────────────────────────────────────────────\r
+\r
+fn star_hash(p: vec2<f32>) -> f32 {\r
+  return fract(sin(dot(p, vec2<f32>(127.1, 311.7))) * 43758.5453);\r
+}\r
+\r
+fn star_hash2(p: vec2<f32>) -> vec2<f32> {\r
+  return fract(sin(vec2<f32>(\r
+    dot(p, vec2<f32>(127.1, 311.7)),\r
+    dot(p, vec2<f32>(269.5, 183.3)),\r
+  )) * 43758.5453);\r
+}\r
+\r
+fn dir_to_equirect(d: vec3<f32>) -> vec2<f32> {\r
+  let u = atan2(d.x, -d.z) / (2.0 * PI) + 0.5;\r
+  let v = 0.5 - asin(clamp(d.y, -1.0, 1.0)) / PI;\r
+  return vec2<f32>(u, v);\r
+}\r
+\r
+fn sample_stars(ray_dir: vec3<f32>) -> vec3<f32> {\r
+  let GRID    = vec2<f32>(300.0, 150.0);\r
+  let uv      = dir_to_equirect(ray_dir);\r
+  let gcoord  = uv * GRID;\r
+  let cell    = floor(gcoord);\r
+  let frac_uv = fract(gcoord);\r
+  let lat     = (0.5 - uv.y) * PI;\r
+  let cos_lat = max(cos(lat), 0.15);\r
+  var color   = vec3<f32>(0.0);\r
+\r
+  for (var dy: i32 = -1; dy <= 1; dy++) {\r
+    for (var dx: i32 = -1; dx <= 1; dx++) {\r
+      var nc = cell + vec2<f32>(f32(dx), f32(dy));\r
+      if (nc.y < 0.0 || nc.y >= GRID.y) { continue; }\r
+      nc.x = nc.x - floor(nc.x / GRID.x) * GRID.x;\r
+      let h           = star_hash2(nc);\r
+      let cell_lat    = (0.5 - (nc.y + 0.5) / GRID.y) * PI;\r
+      let star_thresh = 1.0 - 0.18 * max(cos(cell_lat), 0.0);\r
+      if (h.x > star_thresh) {\r
+        let off     = star_hash2(nc + vec2<f32>(7.3, 3.7)) * 0.8 + 0.1;\r
+        let to_star = frac_uv - vec2<f32>(f32(dx), f32(dy)) - off;\r
+        let ts_s    = vec2<f32>(to_star.x * cos_lat, to_star.y);\r
+        let dist2   = dot(ts_s, ts_s);\r
+        let glow    = exp(-dist2 * 500.0);\r
+        if (glow < 0.002) { continue; }\r
+        let mag  = pow(star_hash(nc + vec2<f32>(1.5, 0.0)), 1.8);\r
+        let br   = glow * (0.15 + mag * 0.85);\r
+        let roll = star_hash(nc + vec2<f32>(2.5, 0.0));\r
+        var sc   = vec3<f32>(1.0);\r
+        if      (roll < 0.06) { sc = vec3<f32>(0.65, 0.76, 1.0);  }\r
+        else if (roll < 0.20) { sc = vec3<f32>(0.82, 0.89, 1.0);  }\r
+        else if (roll < 0.44) { sc = vec3<f32>(1.0,  1.0,  0.82); }\r
+        else if (roll < 0.57) { sc = vec3<f32>(1.0,  0.78, 0.51); }\r
+        else if (roll < 0.64) { sc = vec3<f32>(1.0,  0.51, 0.25); }\r
+        color += sc * br;\r
+      }\r
+    }\r
+  }\r
+  return color;\r
+}\r
+\r
+// ── ACES filmic ───────────────────────────────────────────────────────────────\r
+\r
+fn aces_filmic(x: vec3<f32>) -> vec3<f32> {\r
+  let a = 2.51; let b = 0.03; let c = 2.43; let d = 0.59; let e = 0.14;\r
+  return clamp((x * (a * x + b)) / (x * (c * x + d) + e), vec3<f32>(0.0), vec3<f32>(1.0));\r
+}\r
+\r
+// ── Fragment shader ───────────────────────────────────────────────────────────\r
+\r
+@fragment\r
+fn fs_main(in: VertOut) -> @location(0) vec4<f32> {\r
+  let coord = vec2<i32>(in.pos.xy);\r
+\r
+  // Debug AO mode — short-circuit everything else.\r
+  if ((params.tonemap_flags & 2u) != 0u) {\r
+    let ao = textureLoad(ao_tex, coord / 2, 0).r;\r
+    return vec4<f32>(ao, ao, ao, 1.0);\r
+  }\r
+\r
+  // --- Underwater UV distortion ---\r
+  var sample_uv = in.uv;\r
+  if (params.is_underwater > 0.5) {\r
+    let t = params.uw_time;\r
+    let distort = vec2<f32>(\r
+      sin(in.uv.y * 18.0 + t * 1.4) * 0.006,\r
+      cos(in.uv.x * 14.0 + t * 1.1) * 0.004,\r
+    );\r
+    sample_uv = clamp(in.uv + distort, vec2<f32>(0.001), vec2<f32>(0.999));\r
+  }\r
+\r
+  // --- Sample HDR scene ---\r
+  var scene = textureSample(hdr_tex, samp, sample_uv).rgb;\r
+\r
+  let depth = textureLoad(dep_tex, coord, 0u);\r
+\r
+  // --- Fog (skipped for sky pixels and when no fog mode is active) ---\r
+  if (depth < 1.0 && (params.fog_flags & 3u) != 0u) {\r
+    let ndc       = vec4<f32>(in.uv.x * 2.0 - 1.0, 1.0 - in.uv.y * 2.0, depth, 1.0);\r
+    let world_h   = camera.invViewProj * ndc;\r
+    let world_pos = world_h.xyz / world_h.w;\r
+    let view_pos  = camera.view * vec4<f32>(world_pos, 1.0);\r
+    let view_dist = length(view_pos.xyz);\r
+\r
+    let sun_dir = normalize(-light.direction);\r
+    let cam_h   = max(camera.position.y, 0.0);\r
+    let atm_ro  = vec3<f32>(0.0, ATM_R_E + cam_h, 0.0);\r
+    let ray_vec = world_pos - camera.position;\r
+    let ray_dir = normalize(ray_vec);\r
+    let h2      = vec3<f32>(ray_dir.x, 0.0, ray_dir.z);\r
+    let len2    = dot(h2, h2);\r
+    let fog_dir = select(normalize(h2), vec3<f32>(1.0, 0.0, 0.0), len2 < 1e-6);\r
+    let fog_col = atm_scatter(atm_ro, fog_dir, sun_dir) * params.fog_color;\r
+\r
+    var fog_amount = 0.0;\r
+    if ((params.fog_flags & 1u) != 0u && params.depth_density > 0.0) {\r
+      let far = select(params.depth_end, camera.far, params.depth_end <= 0.0);\r
+      let t   = smoothstep(params.depth_begin, far, view_dist);\r
+      fog_amount = max(fog_amount, pow(t, params.depth_curve) * params.depth_density);\r
+    }\r
+    if ((params.fog_flags & 2u) != 0u && params.height_density > 0.0) {\r
+      let t = smoothstep(params.height_min, params.height_max, world_pos.y);\r
+      fog_amount = max(fog_amount, pow(t, params.height_curve) * params.height_density);\r
+    }\r
+    scene = mix(scene, fog_col, clamp(fog_amount, 0.0, 1.0));\r
+  }\r
+\r
+  // --- Underwater tint + vignette ---\r
+  if (params.is_underwater > 0.5) {\r
+    scene = scene * vec3<f32>(0.20, 0.55, 0.90);\r
+    let d = length(in.uv * 2.0 - 1.0);\r
+    scene *= clamp(1.0 - d * d * 0.55, 0.0, 1.0);\r
+  }\r
+\r
+  // --- Exposure ---\r
+  scene *= exposure.value;\r
+\r
+  // --- Stars (sky pixels only, rendered after DoF/Bloom for crisp point sources) ---\r
+  if (depth >= 1.0) {\r
+    let ndc     = vec4<f32>(in.uv.x * 2.0 - 1.0, 1.0 - in.uv.y * 2.0, 1.0, 1.0);\r
+    let world_h = star_uni.invViewProj * ndc;\r
+    let ray_dir = normalize(world_h.xyz / world_h.w - star_uni.cam_pos);\r
+    if (ray_dir.y > -0.05) {\r
+      let night_t     = saturate((-star_uni.sun_dir.y - 0.05) * 10.0);\r
+      let above_horiz = saturate(ray_dir.y * 20.0);\r
+      let star_fade   = night_t * above_horiz;\r
+      if (star_fade > 0.001) {\r
+        scene += sample_stars(ray_dir) * (star_fade * 2.0);\r
+      }\r
+    }\r
+  }\r
+\r
+  // --- Tonemap + gamma ---\r
+  if ((params.tonemap_flags & 4u) != 0u) {\r
+    // HDR canvas mode: skip ACES, just gamma-encode.\r
+    return vec4<f32>(pow(max(scene, vec3<f32>(0.0)), vec3<f32>(1.0 / 2.2)), 1.0);\r
+  }\r
+  let ldr = select(scene, aces_filmic(scene), (params.tonemap_flags & 1u) != 0u);\r
+  return vec4<f32>(pow(ldr, vec3<f32>(1.0 / 2.2)), 1.0);\r
+}\r
+`,jn=64,Yn=96;class Dr extends ge{constructor(e,t,r,o,i,a){super();c(this,"name","CompositePass");c(this,"depthFogEnabled",!0);c(this,"depthDensity",1);c(this,"depthBegin",32);c(this,"depthEnd",128);c(this,"depthCurve",1.5);c(this,"heightFogEnabled",!1);c(this,"heightDensity",.7);c(this,"heightMin",48);c(this,"heightMax",80);c(this,"heightCurve",1);c(this,"fogColor",[1,1,1]);c(this,"_pipeline");c(this,"_bg0");c(this,"_bg1");c(this,"_bg2");c(this,"_paramsBuf");c(this,"_starBuf");this._pipeline=e,this._bg0=t,this._bg1=r,this._bg2=o,this._paramsBuf=i,this._starBuf=a}static create(e,t,r,o,i,a,s){const{device:l,format:d}=e,p=l.createBindGroupLayout({label:"CompositeBGL0",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:1,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:2,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"depth"}},{binding:3,visibility:GPUShaderStage.FRAGMENT,sampler:{type:"filtering"}}]}),f=l.createBindGroupLayout({label:"CompositeBGL1",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,buffer:{type:"uniform"}},{binding:1,visibility:GPUShaderStage.FRAGMENT,buffer:{type:"uniform"}}]}),h=l.createBindGroupLayout({label:"CompositeBGL2",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,buffer:{type:"uniform"}},{binding:1,visibility:GPUShaderStage.FRAGMENT,buffer:{type:"uniform"}},{binding:2,visibility:GPUShaderStage.FRAGMENT,buffer:{type:"read-only-storage"}}]}),_=l.createSampler({label:"CompositeSampler",magFilter:"linear",minFilter:"linear"}),g=l.createBuffer({label:"CompositeParams",size:jn,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST}),y=l.createBuffer({label:"CompositeStars",size:Yn,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST}),w=l.createBindGroup({label:"CompositeBG0",layout:p,entries:[{binding:0,resource:t},{binding:1,resource:r},{binding:2,resource:o},{binding:3,resource:_}]}),x=l.createBindGroup({label:"CompositeBG1",layout:f,entries:[{binding:0,resource:{buffer:i}},{binding:1,resource:{buffer:a}}]}),B=l.createBindGroup({label:"CompositeBG2",layout:h,entries:[{binding:0,resource:{buffer:g}},{binding:1,resource:{buffer:y}},{binding:2,resource:{buffer:s}}]}),G=l.createShaderModule({label:"CompositeShader",code:na}),S=l.createPipelineLayout({bindGroupLayouts:[p,f,h]}),E=l.createRenderPipeline({label:"CompositePipeline",layout:S,vertex:{module:G,entryPoint:"vs_main"},fragment:{module:G,entryPoint:"fs_main",targets:[{format:d}]},primitive:{topology:"triangle-list"}});return new Dr(E,w,x,B,g,y)}updateParams(e,t,r,o,i,a){const s=new ArrayBuffer(jn),l=new Float32Array(s),d=new Uint32Array(s);let p=0;this.depthFogEnabled&&(p|=1),this.heightFogEnabled&&(p|=2);let f=0;o&&(f|=1),i&&(f|=2),a&&(f|=4),l[0]=this.fogColor[0],l[1]=this.fogColor[1],l[2]=this.fogColor[2],l[3]=this.depthDensity,l[4]=this.depthBegin,l[5]=this.depthEnd,l[6]=this.depthCurve,l[7]=this.heightDensity,l[8]=this.heightMin,l[9]=this.heightMax,l[10]=this.heightCurve,d[11]=p,l[12]=r,l[13]=t?1:0,d[14]=f,l[15]=0,e.queue.writeBuffer(this._paramsBuf,0,s)}updateStars(e,t,r,o){const i=new Float32Array(Yn/4);i.set(t.data,0),i[16]=r.x,i[17]=r.y,i[18]=r.z,i[19]=0,i[20]=o.x,i[21]=o.y,i[22]=o.z,i[23]=0,e.queue.writeBuffer(this._starBuf,0,i.buffer)}execute(e,t){const r=e.beginRenderPass({label:"CompositePass",colorAttachments:[{view:t.getCurrentTexture().createView(),clearValue:[0,0,0,1],loadOp:"clear",storeOp:"store"}]});r.setPipeline(this._pipeline),r.setBindGroup(0,this._bg0),r.setBindGroup(1,this._bg1),r.setBindGroup(2,this._bg2),r.draw(3),r.end()}destroy(){this._paramsBuf.destroy(),this._starBuf.destroy()}}const Xn=64*4+16+16,oa=128;class zr extends ge{constructor(e,t,r,o,i){super();c(this,"name","GeometryPass");c(this,"_gbuffer");c(this,"_cameraBGL");c(this,"_modelBGL");c(this,"_pipelineCache",new Map);c(this,"_cameraBuffer");c(this,"_cameraBindGroup");c(this,"_modelBuffers",[]);c(this,"_modelBindGroups",[]);c(this,"_drawItems",[]);c(this,"_modelData",new Float32Array(32));c(this,"_cameraScratch",new Float32Array(Xn/4));this._gbuffer=e,this._cameraBGL=t,this._modelBGL=r,this._cameraBuffer=o,this._cameraBindGroup=i}static create(e,t){const{device:r}=e,o=r.createBindGroupLayout({label:"GeomCameraBGL",entries:[{binding:0,visibility:GPUShaderStage.VERTEX|GPUShaderStage.FRAGMENT,buffer:{type:"uniform"}}]}),i=r.createBindGroupLayout({label:"GeomModelBGL",entries:[{binding:0,visibility:GPUShaderStage.VERTEX,buffer:{type:"uniform"}}]}),a=r.createBuffer({label:"GeomCameraBuffer",size:Xn,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST}),s=r.createBindGroup({label:"GeomCameraBindGroup",layout:o,entries:[{binding:0,resource:{buffer:a}}]});return new zr(t,o,i,a,s)}setDrawItems(e){this._drawItems=e}updateCamera(e,t,r,o,i,a,s,l){const d=this._cameraScratch;d.set(t.data,0),d.set(r.data,16),d.set(o.data,32),d.set(i.data,48),d[64]=a.x,d[65]=a.y,d[66]=a.z,d[67]=s,d[68]=l,e.queue.writeBuffer(this._cameraBuffer,0,d.buffer)}execute(e,t){var i,a;const{device:r}=t;this._ensurePerDrawBuffers(r,this._drawItems.length);for(let s=0;s<this._drawItems.length;s++){const l=this._drawItems[s],d=this._modelData;d.set(l.modelMatrix.data,0),d.set(l.normalMatrix.data,16),t.queue.writeBuffer(this._modelBuffers[s],0,d.buffer),(a=(i=l.material).update)==null||a.call(i,t.queue)}const o=e.beginRenderPass({label:"GeometryPass",colorAttachments:[{view:this._gbuffer.albedoRoughnessView,clearValue:[0,0,0,1],loadOp:"clear",storeOp:"store"},{view:this._gbuffer.normalMetallicView,clearValue:[0,0,0,0],loadOp:"clear",storeOp:"store"}],depthStencilAttachment:{view:this._gbuffer.depthView,depthClearValue:1,depthLoadOp:"clear",depthStoreOp:"store"}});o.setBindGroup(0,this._cameraBindGroup);for(let s=0;s<this._drawItems.length;s++){const l=this._drawItems[s];o.setPipeline(this._getPipeline(r,l.material)),o.setBindGroup(1,this._modelBindGroups[s]),o.setBindGroup(2,l.material.getBindGroup(r)),o.setVertexBuffer(0,l.mesh.vertexBuffer),o.setIndexBuffer(l.mesh.indexBuffer,"uint32"),o.drawIndexed(l.mesh.indexCount)}o.end()}_getPipeline(e,t){let r=this._pipelineCache.get(t.shaderId);if(r)return r;const o=e.createShaderModule({label:`GeometryShader[${t.shaderId}]`,code:t.getShaderCode(gt.Geometry)});return r=e.createRenderPipeline({label:`GeometryPipeline[${t.shaderId}]`,layout:e.createPipelineLayout({bindGroupLayouts:[this._cameraBGL,this._modelBGL,t.getBindGroupLayout(e)]}),vertex:{module:o,entryPoint:"vs_main",buffers:[{arrayStride:Ar,attributes:Er}]},fragment:{module:o,entryPoint:"fs_main",targets:[{format:"rgba8unorm"},{format:"rgba16float"}]},depthStencil:{format:"depth32float",depthWriteEnabled:!0,depthCompare:"less"},primitive:{topology:"triangle-list",cullMode:"back"}}),this._pipelineCache.set(t.shaderId,r),r}_ensurePerDrawBuffers(e,t){for(;this._modelBuffers.length<t;){const r=e.createBuffer({size:oa,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST});this._modelBuffers.push(r),this._modelBindGroups.push(e.createBindGroup({layout:this._modelBGL,entries:[{binding:0,resource:{buffer:r}}]}))}}destroy(){this._cameraBuffer.destroy();for(const e of this._modelBuffers)e.destroy()}}const ia=`// GBuffer fill pass for voxel chunk geometry.\r
+// Vertex layout: position(vec3f) + face(f32, 0-5) + blockType(f32).\r
+// Writes albedo+roughness and normal+emission (same encoding as geometry.wgsl).\r
+\r
+struct CameraUniforms {\r
+  view       : mat4x4<f32>,\r
+  proj       : mat4x4<f32>,\r
+  viewProj   : mat4x4<f32>,\r
+  invViewProj: mat4x4<f32>,\r
+  position   : vec3<f32>,\r
+  near       : f32,\r
+  far        : f32,\r
+}\r
+\r
+struct ChunkUniforms {\r
+  offset    : vec3<f32>,\r
+  debugMode : u32,       // 0 = normal, 1 = debug chunks with color\r
+  debugColor: vec3<f32>,\r
+  _pad      : f32,\r
+}\r
+\r
+struct BlockData {\r
+  sideTile  : u32,\r
+  bottomTile: u32,\r
+  topTile   : u32,\r
+  _pad      : u32,\r
+}\r
+\r
+@group(0) @binding(0) var<uniform>       camera      : CameraUniforms;\r
+@group(1) @binding(0) var                color_atlas : texture_2d<f32>;\r
+@group(1) @binding(1) var                normal_atlas: texture_2d<f32>;\r
+@group(1) @binding(2) var                mer_atlas   : texture_2d<f32>;\r
+@group(1) @binding(3) var                atlas_samp  : sampler;\r
+@group(1) @binding(4) var<storage, read> block_data  : array<BlockData>;\r
+@group(2) @binding(0) var<uniform>       chunk       : ChunkUniforms;\r
+\r
+const ATLAS_COLS: u32 = 25u;\r
+const INV_COLS  : f32 = 1.0 / 25.0;\r
+const INV_ROWS  : f32 = 1.0 / 25.0;\r
+\r
+// World-space face normals, indexed by face id (0=back/-Z … 5=top/+Y)\r
+const FACE_NORMALS = array<vec3<f32>, 6>(\r
+  vec3<f32>( 0,  0, -1),  // 0 back  -Z\r
+  vec3<f32>( 0,  0,  1),  // 1 front +Z\r
+  vec3<f32>(-1,  0,  0),  // 2 left  -X\r
+  vec3<f32>( 1,  0,  0),  // 3 right +X\r
+  vec3<f32>( 0, -1,  0),  // 4 bottom-Y\r
+  vec3<f32>( 0,  1,  0),  // 5 top   +Y\r
+);\r
+\r
+// Tangent xyz + bitangent handedness w for each face.\r
+// B = cross(N, T) * w  →  TBN maps tangent-space normals to world space.\r
+const FACE_TANGENTS = array<vec4<f32>, 6>(\r
+  vec4<f32>( 1,  0,  0, 1),  // back\r
+  vec4<f32>( 1,  0,  0, 1),  // front\r
+  vec4<f32>( 0,  0,  1, 1),  // left\r
+  vec4<f32>( 0,  0, -1, 1),  // right\r
+  vec4<f32>( 1,  0,  0, 1),  // bottom\r
+  vec4<f32>( 1,  0,  0, 1),  // top\r
+);\r
+\r
+struct VertexInput {\r
+  @location(0) position  : vec3<f32>,\r
+  @location(1) face      : f32,\r
+  @location(2) block_type: f32,\r
+}\r
+\r
+struct VertexOutput {\r
+  @builtin(position)              clip_pos  : vec4<f32>,\r
+  @location(0)                    world_pos : vec3<f32>,\r
+  @location(1)                    world_norm: vec3<f32>,\r
+  @location(2)                    world_tan : vec4<f32>,\r
+  @location(3) @interpolate(flat) face_f    : f32,\r
+  @location(4) @interpolate(flat) block_f   : f32,\r
+}\r
+\r
+@vertex\r
+fn vs_main(vin: VertexInput) -> VertexOutput {\r
+  let wp   = vin.position + chunk.offset;\r
+  let face = u32(vin.face);\r
+  var out: VertexOutput;\r
+  out.clip_pos   = camera.viewProj * vec4<f32>(wp, 1.0);\r
+  out.world_pos  = wp;\r
+  out.world_norm = FACE_NORMALS[face];\r
+  out.world_tan  = FACE_TANGENTS[face];\r
+  out.face_f     = vin.face;\r
+  out.block_f    = vin.block_type;\r
+  return out;\r
+}\r
+\r
+struct FragOutput {\r
+  @location(0) albedo_roughness: vec4<f32>,\r
+  @location(1) normal_emission : vec4<f32>,\r
+}\r
+\r
+fn atlas_uv(world_pos: vec3<f32>, face: u32, block_type: u32) -> vec2<f32> {\r
+  let bd = block_data[block_type];\r
+  var tile: u32;\r
+  if face == 4u      { tile = bd.bottomTile; }\r
+  else if face == 5u { tile = bd.topTile; }\r
+  else               { tile = bd.sideTile; }\r
+\r
+  var local_uv: vec2<f32>;\r
+  if face == 2u || face == 3u {\r
+    local_uv = vec2<f32>(fract(world_pos.z), 1.0 - fract(world_pos.y));\r
+  } else if face == 4u || face == 5u {\r
+    local_uv = fract(world_pos.xz);\r
+  } else {\r
+    local_uv = vec2<f32>(fract(world_pos.x), 1.0 - fract(world_pos.y));\r
+  }\r
+\r
+  let tileX = f32(tile % ATLAS_COLS);\r
+  let tileY = f32(tile / ATLAS_COLS);\r
+  return (vec2<f32>(tileX, tileY) + local_uv) * vec2<f32>(INV_COLS, INV_ROWS);\r
+}\r
+\r
+fn shade(in: VertexOutput, uv: vec2<f32>) -> FragOutput {\r
+  // Debug mode: use solid chunk color\r
+  if (chunk.debugMode != 0u) {\r
+    let N = normalize(in.world_norm);\r
+    var out: FragOutput;\r
+    out.albedo_roughness = vec4<f32>(chunk.debugColor, 0.8);\r
+    out.normal_emission  = vec4<f32>(N * 0.5 + 0.5, 0.0);\r
+    return out;\r
+  }\r
+\r
+  let albedo_samp = textureSample(color_atlas,  atlas_samp, uv);\r
+  let mer         = textureSample(mer_atlas,     atlas_samp, uv);\r
+  let n_ts        = textureSample(normal_atlas,  atlas_samp, uv).rgb * 2.0 - 1.0;\r
+\r
+  let N       = normalize(in.world_norm);\r
+  let T       = normalize(in.world_tan.xyz);\r
+  let T_ortho = normalize(T - N * dot(T, N));\r
+  let B       = cross(N, T_ortho) * in.world_tan.w;\r
+  let tbn     = mat3x3<f32>(T_ortho, B, N);\r
+  let mapped_N = normalize(tbn * n_ts);\r
+\r
+  // Darken snow blocks for HDR displays (BlockType.SNOW = 17, GRASS_SNOW = 18, SNOWYLEAVES = 23)\r
+  let block_type = u32(in.block_f);\r
+  var albedo_scale = 1.0;\r
+  if (block_type == 17u || block_type == 18u || block_type == 23u) {\r
+    albedo_scale = 0.70;\r
+  }\r
+\r
+  var out: FragOutput;\r
+  out.albedo_roughness = vec4<f32>(albedo_samp.rgb * albedo_scale, mer.b);\r
+  out.normal_emission  = vec4<f32>(mapped_N * 0.5 + 0.5, mer.g);\r
+  return out;\r
+}\r
+\r
+@fragment\r
+fn fs_opaque(in: VertexOutput) -> FragOutput {\r
+  let uv = atlas_uv(in.world_pos, u32(in.face_f), u32(in.block_f));\r
+  if textureSample(color_atlas, atlas_samp, uv).a < 0.5 { discard; }\r
+  return shade(in, uv);\r
+}\r
+\r
+@fragment\r
+fn fs_transparent(in: VertexOutput) -> FragOutput {\r
+  let uv = atlas_uv(in.world_pos, u32(in.face_f), u32(in.block_f));\r
+  if textureSample(color_atlas, atlas_samp, uv).a < 0.5 { discard; }\r
+  return shade(in, uv);\r
+}\r
+\r
+// ---- Prop billboard -------------------------------------------------------\r
+\r
+struct PropVertexOutput {\r
+  @builtin(position)              clip_pos : vec4<f32>,\r
+  @location(0)                    world_pos: vec3<f32>,\r
+  @location(1)                    uv       : vec2<f32>,\r
+  @location(2) @interpolate(flat) block_f  : f32,\r
+  @location(3)                    face_norm: vec3<f32>,\r
+}\r
+\r
+fn billboard_offset(vid: u32) -> vec2<f32> {\r
+  switch vid % 6u {\r
+    case 0u: { return vec2<f32>(-0.5, -0.5); }\r
+    case 1u: { return vec2<f32>( 0.5, -0.5); }\r
+    case 2u: { return vec2<f32>(-0.5,  0.5); }\r
+    case 3u: { return vec2<f32>( 0.5, -0.5); }\r
+    case 4u: { return vec2<f32>( 0.5,  0.5); }\r
+    default: { return vec2<f32>(-0.5,  0.5); }\r
+  }\r
+}\r
+\r
+fn billboard_uv(vid: u32) -> vec2<f32> {\r
+  switch vid % 6u {\r
+    case 0u: { return vec2<f32>(0.0, 1.0); }\r
+    case 1u: { return vec2<f32>(1.0, 1.0); }\r
+    case 2u: { return vec2<f32>(0.0, 0.0); }\r
+    case 3u: { return vec2<f32>(1.0, 1.0); }\r
+    case 4u: { return vec2<f32>(1.0, 0.0); }\r
+    default: { return vec2<f32>(0.0, 0.0); }\r
+  }\r
+}\r
+\r
+@vertex\r
+fn vs_prop(vin: VertexInput, @builtin(vertex_index) vid: u32) -> PropVertexOutput {\r
+  let center = vin.position + chunk.offset;\r
+\r
+  // Camera right and up from the view matrix rows (column-major storage).\r
+  let cam_right = vec3<f32>(camera.view[0].x, camera.view[1].x, camera.view[2].x);\r
+  let cam_up    = vec3<f32>(camera.view[0].y, camera.view[1].y, camera.view[2].y);\r
+\r
+  let off = billboard_offset(vid);\r
+  let wp  = center + cam_right * off.x + cam_up * off.y;\r
+\r
+  var out: PropVertexOutput;\r
+  out.clip_pos  = camera.viewProj * vec4<f32>(wp, 1.0);\r
+  out.world_pos = wp;\r
+  out.uv        = billboard_uv(vid);\r
+  out.block_f   = vin.block_type;\r
+  out.face_norm = normalize(camera.position - center);\r
+  return out;\r
+}\r
+\r
+@fragment\r
+fn fs_prop(in: PropVertexOutput) -> FragOutput {\r
+  let tile  = block_data[u32(in.block_f)].sideTile;\r
+  let tileX = f32(tile % ATLAS_COLS);\r
+  let tileY = f32(tile / ATLAS_COLS);\r
+  let uv    = (vec2<f32>(tileX, tileY) + in.uv) * vec2<f32>(INV_COLS, INV_ROWS);\r
+\r
+  let albedo_samp = textureSample(color_atlas, atlas_samp, uv);\r
+  if albedo_samp.a < 0.5 { discard; }\r
+\r
+  let mer = textureSample(mer_atlas, atlas_samp, uv);\r
+  let N   = normalize(in.face_norm);\r
+\r
+  var out: FragOutput;\r
+  out.albedo_roughness = vec4<f32>(albedo_samp.rgb, mer.b);\r
+  out.normal_emission  = vec4<f32>(N * 0.5 + 0.5, mer.g);\r
+  return out;\r
+}\r
+`,$n=64*4+16+16,aa=16,mt=256,sa=2048,la=5,tt=la*4,pr=16;class Fr extends ge{constructor(e,t,r,o,i,a,s,l,d,p){super();c(this,"name","WorldGeometryPass");c(this,"_gbuffer");c(this,"_device");c(this,"_opaquePipeline");c(this,"_transparentPipeline");c(this,"_propPipeline");c(this,"_cameraBuffer");c(this,"_cameraBindGroup");c(this,"_sharedBindGroup");c(this,"_chunkUniformBuffer");c(this,"_chunkBindGroup");c(this,"_slotFreeList",[]);c(this,"_slotHighWater",0);c(this,"_chunks",new Map);c(this,"_frustumPlanes",new Float32Array(24));c(this,"drawCalls",0);c(this,"triangles",0);c(this,"_cameraData",new Float32Array($n/4));c(this,"_debugChunks",!1);this._device=e,this._gbuffer=t,this._opaquePipeline=r,this._transparentPipeline=o,this._propPipeline=i,this._cameraBuffer=a,this._cameraBindGroup=s,this._sharedBindGroup=l,this._chunkUniformBuffer=d,this._chunkBindGroup=p}static create(e,t,r){const{device:o}=e,i=o.createBindGroupLayout({label:"ChunkCameraBGL",entries:[{binding:0,visibility:GPUShaderStage.VERTEX|GPUShaderStage.FRAGMENT,buffer:{type:"uniform"}}]}),a=o.createBindGroupLayout({label:"ChunkSharedBGL",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:1,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:2,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:3,visibility:GPUShaderStage.FRAGMENT,sampler:{type:"filtering"}},{binding:4,visibility:GPUShaderStage.FRAGMENT,buffer:{type:"read-only-storage"}}]}),s=o.createBindGroupLayout({label:"ChunkOffsetBGL",entries:[{binding:0,visibility:GPUShaderStage.VERTEX|GPUShaderStage.FRAGMENT,buffer:{type:"uniform",hasDynamicOffset:!0,minBindingSize:32}}]}),l=N.MAX,d=o.createBuffer({label:"BlockDataBuffer",size:Math.max(l*aa,16),usage:GPUBufferUsage.STORAGE|GPUBufferUsage.COPY_DST}),p=Wo,f=new Uint32Array(l*4);for(let A=0;A<l;A++){const b=er[A];b&&(f[A*4+0]=b.sideFace.y*p+b.sideFace.x,f[A*4+1]=b.bottomFace.y*p+b.bottomFace.x,f[A*4+2]=b.topFace.y*p+b.topFace.x)}o.queue.writeBuffer(d,0,f);const h=o.createSampler({label:"ChunkAtlasSampler",magFilter:"nearest",minFilter:"nearest",addressModeU:"repeat",addressModeV:"repeat"}),_=o.createBindGroup({label:"ChunkSharedBG",layout:a,entries:[{binding:0,resource:r.colorAtlas.view},{binding:1,resource:r.normalAtlas.view},{binding:2,resource:r.merAtlas.view},{binding:3,resource:h},{binding:4,resource:{buffer:d}}]}),g=o.createBuffer({label:"ChunkCameraBuffer",size:$n,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST}),y=o.createBindGroup({label:"ChunkCameraBG",layout:i,entries:[{binding:0,resource:{buffer:g}}]}),w=o.createShaderModule({label:"ChunkGeometryShader",code:ia}),x=o.createPipelineLayout({bindGroupLayouts:[i,a,s]}),B={arrayStride:tt,attributes:[{shaderLocation:0,offset:0,format:"float32x3"},{shaderLocation:1,offset:12,format:"float32"},{shaderLocation:2,offset:16,format:"float32"}]},G=[{format:"rgba8unorm"},{format:"rgba16float"}],S=o.createRenderPipeline({label:"ChunkOpaquePipeline",layout:x,vertex:{module:w,entryPoint:"vs_main",buffers:[B]},fragment:{module:w,entryPoint:"fs_opaque",targets:G},depthStencil:{format:"depth32float",depthWriteEnabled:!0,depthCompare:"less"},primitive:{topology:"triangle-list",cullMode:"back"}}),E=o.createRenderPipeline({label:"ChunkTransparentPipeline",layout:x,vertex:{module:w,entryPoint:"vs_main",buffers:[B]},fragment:{module:w,entryPoint:"fs_transparent",targets:G},depthStencil:{format:"depth32float",depthWriteEnabled:!0,depthCompare:"less"},primitive:{topology:"triangle-list",cullMode:"back"}}),L=o.createRenderPipeline({label:"ChunkPropPipeline",layout:x,vertex:{module:w,entryPoint:"vs_prop",buffers:[B]},fragment:{module:w,entryPoint:"fs_prop",targets:G},depthStencil:{format:"depth32float",depthWriteEnabled:!0,depthCompare:"less"},primitive:{topology:"triangle-list",cullMode:"none"}}),M=o.createBuffer({label:"ChunkUniformBuffer",size:sa*mt,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST}),I=o.createBindGroup({label:"ChunkOffsetBG",layout:s,entries:[{binding:0,resource:{buffer:M,size:32}}]});return new Fr(o,t,S,E,L,g,y,_,M,I)}updateGBuffer(e){this._gbuffer=e}addChunk(e,t){const r=this._chunks.get(e);r?this._replaceMeshBuffers(r,t):this._chunks.set(e,this._createChunkGpu(e,t))}updateChunk(e,t){const r=this._chunks.get(e);r?this._replaceMeshBuffers(r,t):this._chunks.set(e,this._createChunkGpu(e,t))}removeChunk(e){var r,o,i;const t=this._chunks.get(e);t&&((r=t.opaqueBuffer)==null||r.destroy(),(o=t.transparentBuffer)==null||o.destroy(),(i=t.propBuffer)==null||i.destroy(),this._freeSlot(t.slot),this._chunks.delete(e))}updateCamera(e,t,r,o,i,a,s,l){const d=this._cameraData;d.set(t.data,0),d.set(r.data,16),d.set(o.data,32),d.set(i.data,48),d[64]=a.x,d[65]=a.y,d[66]=a.z,d[67]=s,d[68]=l,e.queue.writeBuffer(this._cameraBuffer,0,d.buffer),this._extractFrustumPlanes(o.data)}_extractFrustumPlanes(e){const t=this._frustumPlanes;t[0]=e[3]+e[0],t[1]=e[7]+e[4],t[2]=e[11]+e[8],t[3]=e[15]+e[12],t[4]=e[3]-e[0],t[5]=e[7]-e[4],t[6]=e[11]-e[8],t[7]=e[15]-e[12],t[8]=e[3]+e[1],t[9]=e[7]+e[5],t[10]=e[11]+e[9],t[11]=e[15]+e[13],t[12]=e[3]-e[1],t[13]=e[7]-e[5],t[14]=e[11]-e[9],t[15]=e[15]-e[13],t[16]=e[2],t[17]=e[6],t[18]=e[10],t[19]=e[14],t[20]=e[3]-e[2],t[21]=e[7]-e[6],t[22]=e[11]-e[10],t[23]=e[15]-e[14]}setDebugChunks(e){if(this._debugChunks!==e){this._debugChunks=e;for(const[t,r]of this._chunks)this._writeChunkUniforms(r.slot,r.ox,r.oy,r.oz)}}_isVisible(e,t,r){const o=this._frustumPlanes,i=e+pr,a=t+pr,s=r+pr;for(let l=0;l<6;l++){const d=o[l*4],p=o[l*4+1],f=o[l*4+2],h=o[l*4+3];if(d*(d>=0?i:e)+p*(p>=0?a:t)+f*(f>=0?s:r)+h<0)return!1}return!0}execute(e,t){const r=e.beginRenderPass({label:"WorldGeometryPass",colorAttachments:[{view:this._gbuffer.albedoRoughnessView,loadOp:"load",storeOp:"store"},{view:this._gbuffer.normalMetallicView,loadOp:"load",storeOp:"store"}],depthStencilAttachment:{view:this._gbuffer.depthView,depthLoadOp:"load",depthStoreOp:"store"}});r.setBindGroup(0,this._cameraBindGroup),r.setBindGroup(1,this._sharedBindGroup);let o=0,i=0;const a=[];for(const s of this._chunks.values())this._isVisible(s.ox,s.oy,s.oz)&&a.push(s);r.setPipeline(this._opaquePipeline);for(const s of a)s.opaqueBuffer&&s.opaqueCount>0&&(r.setBindGroup(2,this._chunkBindGroup,[s.slot*mt]),r.setVertexBuffer(0,s.opaqueBuffer),r.draw(s.opaqueCount),o++,i+=s.opaqueCount/3);r.setPipeline(this._transparentPipeline);for(const s of a)s.transparentBuffer&&s.transparentCount>0&&(r.setBindGroup(2,this._chunkBindGroup,[s.slot*mt]),r.setVertexBuffer(0,s.transparentBuffer),r.draw(s.transparentCount),o++,i+=s.transparentCount/3);r.setPipeline(this._propPipeline);for(const s of a)s.propBuffer&&s.propCount>0&&(r.setBindGroup(2,this._chunkBindGroup,[s.slot*mt]),r.setVertexBuffer(0,s.propBuffer),r.draw(s.propCount),o++,i+=s.propCount/3);this.drawCalls=o,this.triangles=i,r.end()}destroy(){var e,t,r;this._cameraBuffer.destroy(),this._chunkUniformBuffer.destroy();for(const o of this._chunks.values())(e=o.opaqueBuffer)==null||e.destroy(),(t=o.transparentBuffer)==null||t.destroy(),(r=o.propBuffer)==null||r.destroy();this._chunks.clear()}_allocSlot(){return this._slotFreeList.length>0?this._slotFreeList.pop():this._slotHighWater++}_freeSlot(e){this._slotFreeList.push(e)}_writeChunkUniforms(e,t,r,o){const i=t*73856093^r*19349663^o*83492791,a=(i&255)/255*.6+.4,s=(i>>8&255)/255*.6+.4,l=(i>>16&255)/255*.6+.4,d=new ArrayBuffer(32),p=new Float32Array(d),f=new Uint32Array(d);p[0]=t,p[1]=r,p[2]=o,f[3]=this._debugChunks?1:0,p[4]=a,p[5]=s,p[6]=l,p[7]=0,this._device.queue.writeBuffer(this._chunkUniformBuffer,e*mt,d)}_createChunkGpu(e,t){const r=this._allocSlot();this._writeChunkUniforms(r,e.globalPosition.x,e.globalPosition.y,e.globalPosition.z);const o={ox:e.globalPosition.x,oy:e.globalPosition.y,oz:e.globalPosition.z,slot:r,opaqueBuffer:null,opaqueCount:0,transparentBuffer:null,transparentCount:0,propBuffer:null,propCount:0};return this._replaceMeshBuffers(o,t),o}_replaceMeshBuffers(e,t){var r,o,i;if((r=e.opaqueBuffer)==null||r.destroy(),(o=e.transparentBuffer)==null||o.destroy(),(i=e.propBuffer)==null||i.destroy(),e.opaqueBuffer=null,e.transparentBuffer=null,e.propBuffer=null,e.opaqueCount=t.opaqueCount,e.transparentCount=t.transparentCount,e.propCount=t.propCount,t.opaqueCount>0){const a=this._device.createBuffer({label:"ChunkOpaqueBuf",size:t.opaqueCount*tt,usage:GPUBufferUsage.VERTEX|GPUBufferUsage.COPY_DST});this._device.queue.writeBuffer(a,0,t.opaque.buffer,0,t.opaqueCount*tt),e.opaqueBuffer=a}if(t.transparentCount>0){const a=this._device.createBuffer({label:"ChunkTransparentBuf",size:t.transparentCount*tt,usage:GPUBufferUsage.VERTEX|GPUBufferUsage.COPY_DST});this._device.queue.writeBuffer(a,0,t.transparent.buffer,0,t.transparentCount*tt),e.transparentBuffer=a}if(t.propCount>0){const a=this._device.createBuffer({label:"ChunkPropBuf",size:t.propCount*tt,usage:GPUBufferUsage.VERTEX|GPUBufferUsage.COPY_DST});this._device.queue.writeBuffer(a,0,t.prop.buffer,0,t.propCount*tt),e.propBuffer=a}}}const ca=`// Depth of Field: prefilter (CoC + 2x downsample) then fused disc-blur + composite.\r
+\r
+struct DofUniforms {\r
+  focus_distance: f32,  // linear depth of sharp plane (world units)\r
+  focus_range   : f32,  // half-range: blur ramps 0→max over this distance on each side\r
+  bokeh_radius  : f32,  // max blur radius in half-res texels\r
+  near          : f32,\r
+  far           : f32,\r
+  _pad1         : f32,\r
+  _pad2         : f32,\r
+  _pad3         : f32,\r
+}\r
+\r
+@group(0) @binding(0) var<uniform> dof     : DofUniforms;\r
+@group(0) @binding(1) var          hdr_tex : texture_2d<f32>;\r
+@group(0) @binding(2) var          dep_tex : texture_depth_2d;\r
+@group(0) @binding(3) var          samp    : sampler;\r
+// group 1 is only used by fs_composite; prefilter pipeline has no group 1\r
+@group(1) @binding(0) var          half_tex: texture_2d<f32>;\r
+\r
+struct VertexOutput {\r
+  @builtin(position) clip_pos: vec4<f32>,\r
+  @location(0)       uv     : vec2<f32>,\r
+}\r
+\r
+@vertex\r
+fn vs_main(@builtin(vertex_index) vid: u32) -> VertexOutput {\r
+  let x = f32((vid & 1u) << 2u) - 1.0;\r
+  let y = f32((vid & 2u) << 1u) - 1.0;\r
+  var out: VertexOutput;\r
+  out.clip_pos = vec4<f32>(x, y, 0.0, 1.0);\r
+  out.uv       = vec2<f32>(x * 0.5 + 0.5, -y * 0.5 + 0.5);\r
+  return out;\r
+}\r
+\r
+fn linear_depth(ndc_depth: f32) -> f32 {\r
+  return dof.near * dof.far / (dof.far - ndc_depth * (dof.far - dof.near));\r
+}\r
+\r
+fn compute_coc(lin_depth: f32) -> f32 {\r
+  return clamp(\r
+    (lin_depth - dof.focus_distance) / max(dof.focus_range, 0.001),\r
+    0.0, 1.0\r
+  ) * dof.bokeh_radius;\r
+}\r
+\r
+// Prefilter: 4-tap 2x downsample; RGB = colour, A = signed CoC (texels, half-res).\r
+// Negative CoC = in front of focus plane.\r
+@fragment\r
+fn fs_prefilter(in: VertexOutput) -> @location(0) vec4<f32> {\r
+  let full_size = vec2<f32>(textureDimensions(hdr_tex));\r
+  let texel = 1.0 / full_size;\r
+  let o = array<vec2<f32>, 4>(\r
+    vec2<f32>(-0.5, -0.5), vec2<f32>( 0.5, -0.5),\r
+    vec2<f32>(-0.5,  0.5), vec2<f32>( 0.5,  0.5)\r
+  );\r
+\r
+  var col = vec3<f32>(0.0);\r
+  var c   = 0.0;\r
+  for (var i = 0; i < 4; i++) {\r
+    let uv = in.uv + o[i] * texel;\r
+    col   += textureSampleLevel(hdr_tex, samp, uv, 0.0).rgb;\r
+    let px = clamp(vec2<u32>(uv * full_size), vec2<u32>(0u), vec2<u32>(full_size) - 1u);\r
+    c     += compute_coc(linear_depth(textureLoad(dep_tex, px, 0)));\r
+  }\r
+  return vec4<f32>(col * 0.25, c * 0.25);\r
+}\r
+\r
+// Composite: 48-tap Fibonacci spiral disc blur on the prefiltered half-res texture.\r
+// Radii are sqrt-distributed (uniform area coverage) so there are no discrete rings.\r
+// Per-pixel rotation breaks any residual spiral pattern into noise.\r
+const GOLDEN_ANGLE: f32 = 2.399963229728; // 2π(2 - φ), φ = golden ratio\r
+const NUM_TAPS: i32 = 48;\r
+\r
+@fragment\r
+fn fs_composite(in: VertexOutput) -> @location(0) vec4<f32> {\r
+  let sharp  = textureSampleLevel(hdr_tex,  samp, in.uv, 0.0).rgb;\r
+  let center = textureSampleLevel(half_tex, samp, in.uv, 0.0);\r
+  let coc_px = abs(center.a);\r
+\r
+  let texel = 1.0 / vec2<f32>(textureDimensions(half_tex));\r
+\r
+  // Per-pixel rotation offset — breaks the spiral into spatially-varying noise.\r
+  let coord = vec2<u32>(in.clip_pos.xy);\r
+  let rot   = f32((coord.x * 1619u + coord.y * 7919u) & 63u) * (6.28318 / 64.0);\r
+\r
+  var accum  = center.rgb;\r
+  var weight = 1.0;\r
+  for (var i = 0; i < NUM_TAPS; i++) {\r
+    // sqrt distribution → uniform area density, no discrete ring jumps\r
+    let r     = sqrt(f32(i) + 0.5) / sqrt(f32(NUM_TAPS)) * coc_px;\r
+    let theta = f32(i) * GOLDEN_ANGLE + rot;\r
+    let uv2   = in.uv + vec2<f32>(cos(theta), sin(theta)) * r * texel;\r
+    let s     = textureSampleLevel(half_tex, samp, uv2, 0.0);\r
+    let w     = clamp(abs(s.a) / max(dof.bokeh_radius, 0.001), 0.0, 1.0);\r
+    accum  += s.rgb * w;\r
+    weight += w;\r
+  }\r
+  let blurred = accum / weight;\r
+\r
+  let blend = smoothstep(0.0, 1.0, coc_px / max(dof.bokeh_radius, 0.001));\r
+  return vec4<f32>(mix(sharp, blurred, blend), 1.0);\r
+}\r
+`,ua=32;class Hr extends ge{constructor(e,t,r,o,i,a,s,l,d,p){super();c(this,"name","DofPass");c(this,"resultView");c(this,"_result");c(this,"_half");c(this,"_halfView");c(this,"_prefilterPipeline");c(this,"_compositePipeline");c(this,"_uniformBuffer");c(this,"_prefilterBG");c(this,"_compBG0");c(this,"_compBG1");this._result=e,this.resultView=t,this._half=r,this._halfView=o,this._prefilterPipeline=i,this._compositePipeline=a,this._uniformBuffer=s,this._prefilterBG=l,this._compBG0=d,this._compBG1=p}static create(e,t,r){const{device:o,width:i,height:a}=e,s=Math.max(1,i>>1),l=Math.max(1,a>>1),d=o.createTexture({label:"DofHalf",size:{width:s,height:l},format:ee,usage:GPUTextureUsage.RENDER_ATTACHMENT|GPUTextureUsage.TEXTURE_BINDING}),p=o.createTexture({label:"DofResult",size:{width:i,height:a},format:ee,usage:GPUTextureUsage.RENDER_ATTACHMENT|GPUTextureUsage.TEXTURE_BINDING}),f=d.createView(),h=p.createView(),_=o.createBuffer({label:"DofUniforms",size:ua,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST});o.queue.writeBuffer(_,0,new Float32Array([30,60,6,.1,1e3,0,0,0]).buffer);const g=o.createSampler({label:"DofSampler",magFilter:"linear",minFilter:"linear",addressModeU:"clamp-to-edge",addressModeV:"clamp-to-edge"}),y=o.createBindGroupLayout({label:"DofBGL0Prefilter",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,buffer:{type:"uniform"}},{binding:1,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:2,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"depth"}},{binding:3,visibility:GPUShaderStage.FRAGMENT,sampler:{type:"filtering"}}]}),w=o.createBindGroupLayout({label:"DofBGL0Composite",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,buffer:{type:"uniform"}},{binding:1,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:3,visibility:GPUShaderStage.FRAGMENT,sampler:{type:"filtering"}}]}),x=o.createBindGroupLayout({label:"DofBGL1",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}}]}),B=o.createShaderModule({label:"DofShader",code:ca}),G=o.createRenderPipeline({label:"DofPrefilterPipeline",layout:o.createPipelineLayout({bindGroupLayouts:[y]}),vertex:{module:B,entryPoint:"vs_main"},fragment:{module:B,entryPoint:"fs_prefilter",targets:[{format:ee}]},primitive:{topology:"triangle-list"}}),S=o.createRenderPipeline({label:"DofCompositePipeline",layout:o.createPipelineLayout({bindGroupLayouts:[w,x]}),vertex:{module:B,entryPoint:"vs_main"},fragment:{module:B,entryPoint:"fs_composite",targets:[{format:ee}]},primitive:{topology:"triangle-list"}}),E=o.createBindGroup({label:"DofPrefilterBG",layout:y,entries:[{binding:0,resource:{buffer:_}},{binding:1,resource:t},{binding:2,resource:r},{binding:3,resource:g}]}),L=o.createBindGroup({label:"DofCompBG0",layout:w,entries:[{binding:0,resource:{buffer:_}},{binding:1,resource:t},{binding:3,resource:g}]}),M=o.createBindGroup({label:"DofCompBG1",layout:x,entries:[{binding:0,resource:f}]});return new Hr(p,h,d,f,G,S,_,E,L,M)}updateParams(e,t=30,r=60,o=6,i=.1,a=1e3,s=1){e.device.queue.writeBuffer(this._uniformBuffer,0,new Float32Array([t,r,o,i,a,s,0,0]).buffer)}execute(e,t){{const r=e.beginRenderPass({label:"DofPrefilter",colorAttachments:[{view:this._halfView,clearValue:[0,0,0,0],loadOp:"clear",storeOp:"store"}]});r.setPipeline(this._prefilterPipeline),r.setBindGroup(0,this._prefilterBG),r.draw(3),r.end()}{const r=e.beginRenderPass({label:"DofComposite",colorAttachments:[{view:this.resultView,clearValue:[0,0,0,1],loadOp:"clear",storeOp:"store"}]});r.setPipeline(this._compositePipeline),r.setBindGroup(0,this._compBG0),r.setBindGroup(1,this._compBG1),r.draw(3),r.end()}}destroy(){this._result.destroy(),this._half.destroy(),this._uniformBuffer.destroy()}}const da=`// SSAO: hemisphere sampling in view space.\r
+// Reads GBuffer depth + normals, writes raw AO value [0,1].\r
+\r
+const KERNEL_SIZE: i32 = 16;\r
+\r
+struct SsaoUniforms {\r
+  view    : mat4x4<f32>,  // offset   0\r
+  proj    : mat4x4<f32>,  // offset  64\r
+  inv_proj: mat4x4<f32>,  // offset 128\r
+  radius  : f32,          // offset 192\r
+  bias    : f32,          // offset 196\r
+  strength: f32,          // offset 200\r
+  _pad    : f32,          // offset 204\r
+  kernel  : array<vec4<f32>, 16>, // offset 208 (256 bytes)\r
+}                          // total: 464 bytes\r
+\r
+@group(0) @binding(0) var<uniform> ssao: SsaoUniforms;\r
+\r
+@group(1) @binding(0) var normal_tex: texture_2d<f32>;   // GBuffer normalMetallic (rgba16float)\r
+@group(1) @binding(1) var depth_tex : texture_depth_2d;  // GBuffer depth (depth32float)\r
+@group(1) @binding(2) var noise_tex : texture_2d<f32>;   // 4×4 random rotation vectors (rgba8unorm)\r
+\r
+struct VertexOutput {\r
+  @builtin(position) clip_pos: vec4<f32>,\r
+  @location(0)       uv     : vec2<f32>,\r
+}\r
+\r
+@vertex\r
+fn vs_main(@builtin(vertex_index) vid: u32) -> VertexOutput {\r
+  let x = f32((vid & 1u) << 2u) - 1.0;\r
+  let y = f32((vid & 2u) << 1u) - 1.0;\r
+  var out: VertexOutput;\r
+  out.clip_pos = vec4<f32>(x, y, 0.0, 1.0);\r
+  out.uv       = vec2<f32>(x * 0.5 + 0.5, -y * 0.5 + 0.5);\r
+  return out;\r
+}\r
+\r
+// Reconstruct view-space position from UV + NDC depth.\r
+// WebGPU NDC: Y is up, depth [0,1]. UV: Y is down.\r
+fn view_pos(uv: vec2<f32>, depth: f32) -> vec3<f32> {\r
+  let ndc = vec4<f32>(uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0, depth, 1.0);\r
+  let vh  = ssao.inv_proj * ndc;\r
+  return vh.xyz / vh.w;\r
+}\r
+\r
+@fragment\r
+fn fs_ssao(in: VertexOutput) -> @location(0) vec4<f32> {\r
+  // This pass runs at half resolution. clip_pos is in half-res pixel space;\r
+  // GBuffer textures are full-res so multiply by 2 to address them correctly.\r
+  let half_coord = vec2<i32>(in.clip_pos.xy);\r
+  let coord      = half_coord * 2;\r
+  let depth = textureLoad(depth_tex, coord, 0);\r
+\r
+  // Sky pixels → full AO (no occlusion)\r
+  if (depth >= 1.0) { return vec4<f32>(1.0, 0.0, 0.0, 1.0); }\r
+\r
+  let P = view_pos(in.uv, depth);\r
+\r
+  // Decode world-space normal (stored as N*0.5+0.5), transform to view space\r
+  let raw_n   = textureLoad(normal_tex, coord, 0).rgb;\r
+  let world_N = normalize(raw_n * 2.0 - 1.0);\r
+  let N       = normalize((ssao.view * vec4<f32>(world_N, 0.0)).xyz);\r
+\r
+  // Tiled 4×4 noise using half-res coords so the pattern tiles the full screen.\r
+  let noise_coord = vec2<u32>(half_coord) % vec2<u32>(4u);\r
+  let rnd         = textureLoad(noise_tex, noise_coord, 0).rg * 2.0 - 1.0;\r
+\r
+  // Gram-Schmidt: build orthonormal tangent frame from random vector + N\r
+  let rand_vec = vec3<f32>(rnd, 0.0);\r
+  let T = normalize(rand_vec - N * dot(rand_vec, N));\r
+  let B = cross(N, T);\r
+  // TBN columns [T, B, N] maps from tangent space to view space\r
+  let tbn = mat3x3<f32>(T, B, N);\r
+\r
+  let tex_size = vec2<f32>(textureDimensions(depth_tex));\r
+  var occlusion = 0.0;\r
+\r
+  for (var i = 0; i < KERNEL_SIZE; i++) {\r
+    // View-space sample: kernel.z aligns with N (hemisphere above surface)\r
+    let sample_vs = P + (tbn * ssao.kernel[i].xyz) * ssao.radius;\r
+\r
+    // Project sample to screen UV\r
+    let clip       = ssao.proj * vec4<f32>(sample_vs, 1.0);\r
+    let ndc_xy     = clip.xy / clip.w;\r
+    let sample_uv  = vec2<f32>(ndc_xy.x * 0.5 + 0.5, -ndc_xy.y * 0.5 + 0.5);\r
+\r
+    // Sample depth at that UV and reconstruct view-space Z\r
+    let sc        = clamp(vec2<i32>(sample_uv * tex_size), vec2<i32>(0), vec2<i32>(tex_size) - 1);\r
+    let ref_depth = textureLoad(depth_tex, sc, 0);\r
+    let ref_z     = view_pos(sample_uv, ref_depth).z;\r
+\r
+    // Range check: weight falls to 0 when ref surface is beyond radius (different geometry).\r
+    // Inverted smoothstep avoids the reciprocal spike that caused self-occlusion on flat faces.\r
+    let range_check = 1.0 - smoothstep(0.0, ssao.radius, abs(P.z - ref_z));\r
+\r
+    // Right-handed view space: closer to camera = higher (less negative) Z.\r
+    // Occlude when actual geometry is closer to camera than the sample point (sample is inside geometry).\r
+    // Using sample_vs.z rather than P.z makes the check slope-invariant: the sample already sits\r
+    // above the surface, so same-surface pixels always satisfy ref_z < sample_vs.z regardless of tilt.\r
+    occlusion += select(0.0, 1.0, ref_z > sample_vs.z + ssao.bias) * range_check;\r
+  }\r
+\r
+  let ao = clamp(1.0 - (occlusion / f32(KERNEL_SIZE)) * ssao.strength, 0.0, 1.0);\r
+  return vec4<f32>(ao, 0.0, 0.0, 1.0);\r
+}\r
+`,fa=`// SSAO blur: 4×4 box blur to smooth raw SSAO output.\r
+\r
+@group(0) @binding(0) var ao_tex: texture_2d<f32>;\r
+@group(0) @binding(1) var samp  : sampler;\r
+\r
+struct VertexOutput {\r
+  @builtin(position) clip_pos: vec4<f32>,\r
+  @location(0)       uv     : vec2<f32>,\r
+}\r
+\r
+@vertex\r
+fn vs_main(@builtin(vertex_index) vid: u32) -> VertexOutput {\r
+  let x = f32((vid & 1u) << 2u) - 1.0;\r
+  let y = f32((vid & 2u) << 1u) - 1.0;\r
+  var out: VertexOutput;\r
+  out.clip_pos = vec4<f32>(x, y, 0.0, 1.0);\r
+  out.uv       = vec2<f32>(x * 0.5 + 0.5, -y * 0.5 + 0.5);\r
+  return out;\r
+}\r
+\r
+@fragment\r
+fn fs_blur(in: VertexOutput) -> @location(0) vec4<f32> {\r
+  let texel = 1.0 / vec2<f32>(textureDimensions(ao_tex));\r
+  var ao = 0.0;\r
+  for (var y = -1; y <= 2; y++) {\r
+    for (var x = -1; x <= 2; x++) {\r
+      ao += textureSampleLevel(ao_tex, samp, in.uv + vec2<f32>(f32(x), f32(y)) * texel, 0.0).r;\r
+    }\r
+  }\r
+  return vec4<f32>(ao / 16.0, 0.0, 0.0, 1.0);\r
+}\r
+`,Ct="r8unorm",hr=16,pa=464;function ha(){const u=new Float32Array(hr*4);for(let n=0;n<hr;n++){const e=Math.random(),t=Math.random()*Math.PI*2,r=Math.sqrt(1-e*e),o=.1+.9*(n/hr)**2;u[n*4+0]=r*Math.cos(t)*o,u[n*4+1]=r*Math.sin(t)*o,u[n*4+2]=e*o,u[n*4+3]=0}return u}function ma(){const u=new Uint8Array(64);for(let n=0;n<16;n++){const e=Math.random()*Math.PI*2;u[n*4+0]=Math.round((Math.cos(e)*.5+.5)*255),u[n*4+1]=Math.round((Math.sin(e)*.5+.5)*255),u[n*4+2]=128,u[n*4+3]=255}return u}class Wr extends ge{constructor(e,t,r,o,i,a,s,l,d,p,f){super();c(this,"name","SSAOPass");c(this,"aoView");c(this,"_raw");c(this,"_blurred");c(this,"_rawView");c(this,"_ssaoPipeline");c(this,"_blurPipeline");c(this,"_uniformBuffer");c(this,"_noiseTex");c(this,"_ssaoBG0");c(this,"_ssaoBG1");c(this,"_blurBG");this._raw=e,this._rawView=t,this._blurred=r,this.aoView=o,this._ssaoPipeline=i,this._blurPipeline=a,this._uniformBuffer=s,this._noiseTex=l,this._ssaoBG0=d,this._ssaoBG1=p,this._blurBG=f}static create(e,t){const{device:r,width:o,height:i}=e,a=Math.max(1,o>>1),s=Math.max(1,i>>1),l=r.createTexture({label:"SsaoRaw",size:{width:a,height:s},format:Ct,usage:GPUTextureUsage.RENDER_ATTACHMENT|GPUTextureUsage.TEXTURE_BINDING}),d=r.createTexture({label:"SsaoBlurred",size:{width:a,height:s},format:Ct,usage:GPUTextureUsage.RENDER_ATTACHMENT|GPUTextureUsage.TEXTURE_BINDING}),p=l.createView(),f=d.createView(),h=r.createTexture({label:"SsaoNoise",size:{width:4,height:4},format:"rgba8unorm",usage:GPUTextureUsage.TEXTURE_BINDING|GPUTextureUsage.COPY_DST});r.queue.writeTexture({texture:h},ma().buffer,{bytesPerRow:4*4,rowsPerImage:4},{width:4,height:4});const _=h.createView(),g=r.createBuffer({label:"SsaoUniforms",size:pa,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST});r.queue.writeBuffer(g,208,ha().buffer),r.queue.writeBuffer(g,192,new Float32Array([1,.005,2,0]).buffer);const y=r.createSampler({label:"SsaoBlurSampler",magFilter:"linear",minFilter:"linear",addressModeU:"clamp-to-edge",addressModeV:"clamp-to-edge"}),w=r.createBindGroupLayout({label:"SsaoBGL0",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,buffer:{type:"uniform"}}]}),x=r.createBindGroupLayout({label:"SsaoBGL1",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:1,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"depth"}},{binding:2,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}}]}),B=r.createBindGroupLayout({label:"SsaoBlurBGL",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:1,visibility:GPUShaderStage.FRAGMENT,sampler:{type:"filtering"}}]}),G=r.createShaderModule({label:"SsaoShader",code:da}),S=r.createShaderModule({label:"SsaoBlurShader",code:fa}),E=r.createRenderPipeline({label:"SsaoPipeline",layout:r.createPipelineLayout({bindGroupLayouts:[w,x]}),vertex:{module:G,entryPoint:"vs_main"},fragment:{module:G,entryPoint:"fs_ssao",targets:[{format:Ct}]},primitive:{topology:"triangle-list"}}),L=r.createRenderPipeline({label:"SsaoBlurPipeline",layout:r.createPipelineLayout({bindGroupLayouts:[B]}),vertex:{module:S,entryPoint:"vs_main"},fragment:{module:S,entryPoint:"fs_blur",targets:[{format:Ct}]},primitive:{topology:"triangle-list"}}),M=r.createBindGroup({label:"SsaoBG0",layout:w,entries:[{binding:0,resource:{buffer:g}}]}),I=r.createBindGroup({label:"SsaoBG1",layout:x,entries:[{binding:0,resource:t.normalMetallicView},{binding:1,resource:t.depthView},{binding:2,resource:_}]}),A=r.createBindGroup({label:"SsaoBlurBG",layout:B,entries:[{binding:0,resource:p},{binding:1,resource:y}]});return new Wr(l,p,d,f,E,L,g,h,M,I,A)}updateCamera(e,t,r,o){const i=new Float32Array(48);i.set(t.data,0),i.set(r.data,16),i.set(o.data,32),e.device.queue.writeBuffer(this._uniformBuffer,0,i.buffer)}updateParams(e,t=1,r=.005,o=2){e.device.queue.writeBuffer(this._uniformBuffer,192,new Float32Array([t,r,o,0]).buffer)}execute(e,t){{const r=e.beginRenderPass({label:"SSAOPass",colorAttachments:[{view:this._rawView,clearValue:[1,0,0,1],loadOp:"clear",storeOp:"store"}]});r.setPipeline(this._ssaoPipeline),r.setBindGroup(0,this._ssaoBG0),r.setBindGroup(1,this._ssaoBG1),r.draw(3),r.end()}{const r=e.beginRenderPass({label:"SSAOBlur",colorAttachments:[{view:this.aoView,clearValue:[1,0,0,1],loadOp:"clear",storeOp:"store"}]});r.setPipeline(this._blurPipeline),r.setBindGroup(0,this._blurBG),r.draw(3),r.end()}}destroy(){this._raw.destroy(),this._blurred.destroy(),this._uniformBuffer.destroy(),this._noiseTex.destroy()}}const _a=`// Screen-Space Global Illumination — ray march pass.\r
+// Cosine-weighted hemisphere rays in view space; hits sample previous frame's lit scene.\r
+\r
+struct SSGIUniforms {\r
+  view        : mat4x4<f32>,   // offset   0\r
+  proj        : mat4x4<f32>,   // offset  64\r
+  inv_proj    : mat4x4<f32>,   // offset 128\r
+  invViewProj : mat4x4<f32>,   // offset 192\r
+  prevViewProj: mat4x4<f32>,   // offset 256\r
+  camPos      : vec3<f32>,     // offset 320\r
+  numRays     : u32,           // offset 332\r
+  numSteps    : u32,           // offset 336\r
+  radius      : f32,           // offset 340\r
+  thickness   : f32,           // offset 344\r
+  strength    : f32,           // offset 348\r
+  frameIndex  : u32,           // offset 352\r
+}                              // stride 368 (padded to align 16)\r
+\r
+@group(0) @binding(0) var<uniform> u: SSGIUniforms;\r
+\r
+@group(1) @binding(0) var depth_tex    : texture_depth_2d;\r
+@group(1) @binding(1) var normal_tex   : texture_2d<f32>;\r
+@group(1) @binding(2) var prev_radiance: texture_2d<f32>;\r
+@group(1) @binding(3) var noise_tex    : texture_2d<f32>;\r
+@group(1) @binding(4) var lin_samp     : sampler;\r
+\r
+struct VertexOutput {\r
+  @builtin(position) clip_pos: vec4<f32>,\r
+  @location(0)       uv      : vec2<f32>,\r
+}\r
+\r
+@vertex\r
+fn vs_main(@builtin(vertex_index) vid: u32) -> VertexOutput {\r
+  let x = f32((vid & 1u) << 2u) - 1.0;\r
+  let y = f32((vid & 2u) << 1u) - 1.0;\r
+  var out: VertexOutput;\r
+  out.clip_pos = vec4<f32>(x, y, 0.0, 1.0);\r
+  out.uv       = vec2<f32>(x * 0.5 + 0.5, -y * 0.5 + 0.5);\r
+  return out;\r
+}\r
+\r
+fn view_pos_at(uv: vec2<f32>, depth: f32) -> vec3<f32> {\r
+  let ndc = vec4<f32>(uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0, depth, 1.0);\r
+  let h   = u.inv_proj * ndc;\r
+  return h.xyz / h.w;\r
+}\r
+\r
+@fragment\r
+fn fs_ssgi(in: VertexOutput) -> @location(0) vec4<f32> {\r
+  let coord = vec2<i32>(in.clip_pos.xy);\r
+  let depth = textureLoad(depth_tex, coord, 0);\r
+  if (depth >= 1.0) { return vec4<f32>(0.0); }\r
+\r
+  let vp = view_pos_at(in.uv, depth);\r
+\r
+  // World normal → view space\r
+  let nm      = textureLoad(normal_tex, coord, 0);\r
+  let N_world = normalize(nm.rgb * 2.0 - 1.0);\r
+  let N_vs    = normalize((u.view * vec4<f32>(N_world, 0.0)).xyz);\r
+\r
+  // Per-pixel TBN from tiled 4×4 noise (cos/sin rotation angle in rg)\r
+  let noise_coord = coord % vec2<i32>(4, 4);\r
+  let noise_val   = textureLoad(noise_tex, noise_coord, 0).rg;\r
+  let cos_a = noise_val.x * 2.0 - 1.0;\r
+  let sin_a = noise_val.y * 2.0 - 1.0;\r
+\r
+  var up = vec3<f32>(0.0, 1.0, 0.0);\r
+  if (abs(N_vs.y) > 0.99) { up = vec3<f32>(1.0, 0.0, 0.0); }\r
+  let T_raw = normalize(cross(up, N_vs));\r
+  let B_raw = cross(N_vs, T_raw);\r
+  // Rotate tangent frame by per-pixel noise angle\r
+  let T = cos_a * T_raw - sin_a * B_raw;\r
+  let B = sin_a * T_raw + cos_a * B_raw;\r
+\r
+  let screen_dim = vec2<f32>(textureDimensions(depth_tex));\r
+  let screen_i   = vec2<i32>(screen_dim);\r
+  var accum = vec3<f32>(0.0);\r
+  let nr    = f32(u.numRays);\r
+  let ns    = f32(u.numSteps);\r
+\r
+  for (var i = 0u; i < u.numRays; i++) {\r
+    // Cosine-weighted hemisphere with golden-ratio temporal jitter\r
+    let phi       = 6.28318530 * fract(f32(i) / nr + f32(u.frameIndex) * 0.618033988);\r
+    let ur        = fract(f32(u.frameIndex * u.numRays + i) * 0.381966011);\r
+    let cos_theta = sqrt(ur);\r
+    let sin_theta = sqrt(max(0.0, 1.0 - cos_theta * cos_theta));\r
+    let ray_local = vec3<f32>(sin_theta * cos(phi), sin_theta * sin(phi), cos_theta);\r
+    let ray_vs    = T * ray_local.x + B * ray_local.y + N_vs * ray_local.z;\r
+\r
+    for (var s = 0u; s < u.numSteps; s++) {\r
+      let t  = (f32(s) + 1.0) / ns;\r
+      let p  = vp + ray_vs * (u.radius * t);\r
+      if (p.z >= 0.0) { break; } // stepped behind the camera\r
+\r
+      let clip  = u.proj * vec4<f32>(p, 1.0);\r
+      let inv_w = 1.0 / clip.w;\r
+      let ray_uv = vec2<f32>(\r
+         clip.x * inv_w * 0.5 + 0.5,\r
+        -clip.y * inv_w * 0.5 + 0.5,\r
+      );\r
+      if (any(ray_uv < vec2<f32>(0.0)) || any(ray_uv > vec2<f32>(1.0))) { break; }\r
+\r
+      // Depth at ray UV (nearest texel to avoid sampler type restrictions)\r
+      let ray_tc       = clamp(vec2<i32>(ray_uv * screen_dim), vec2<i32>(0), screen_i - vec2<i32>(1));\r
+      let stored_depth = textureLoad(depth_tex, ray_tc, 0);\r
+      if (stored_depth >= 1.0) { continue; } // hit sky — keep stepping\r
+\r
+      let stored_h = u.inv_proj * vec4<f32>(ray_uv.x * 2.0 - 1.0, 1.0 - ray_uv.y * 2.0, stored_depth, 1.0);\r
+      let stored_z = stored_h.z / stored_h.w;\r
+\r
+      // View-space Z is negative in front; hit when ray just passed behind surface.\r
+      if (p.z < stored_z && stored_z - p.z < u.thickness) {\r
+        accum += textureSampleLevel(prev_radiance, lin_samp, ray_uv, 0.0).rgb;\r
+        break;\r
+      }\r
+    }\r
+  }\r
+\r
+  return vec4<f32>(accum * u.strength / nr, 1.0);\r
+}\r
+`,ga=`// Screen-Space Global Illumination — temporal accumulation pass.\r
+// Reprojects SSGI into previous frame, AABB-clamps, blends 10% new / 90% history.\r
+\r
+struct SSGIUniforms {\r
+  view        : mat4x4<f32>,\r
+  proj        : mat4x4<f32>,\r
+  inv_proj    : mat4x4<f32>,\r
+  invViewProj : mat4x4<f32>,\r
+  prevViewProj: mat4x4<f32>,\r
+  camPos      : vec3<f32>,\r
+  numRays     : u32,\r
+  numSteps    : u32,\r
+  radius      : f32,\r
+  thickness   : f32,\r
+  strength    : f32,\r
+  frameIndex  : u32,\r
+}\r
+\r
+@group(0) @binding(0) var<uniform> u: SSGIUniforms;\r
+\r
+@group(1) @binding(0) var raw_ssgi    : texture_2d<f32>;\r
+@group(1) @binding(1) var ssgi_history: texture_2d<f32>;\r
+@group(1) @binding(2) var depth_tex   : texture_depth_2d;\r
+@group(1) @binding(3) var lin_samp    : sampler;\r
+\r
+struct VertexOutput {\r
+  @builtin(position) clip_pos: vec4<f32>,\r
+  @location(0)       uv      : vec2<f32>,\r
+}\r
+\r
+@vertex\r
+fn vs_main(@builtin(vertex_index) vid: u32) -> VertexOutput {\r
+  let x = f32((vid & 1u) << 2u) - 1.0;\r
+  let y = f32((vid & 2u) << 1u) - 1.0;\r
+  var out: VertexOutput;\r
+  out.clip_pos = vec4<f32>(x, y, 0.0, 1.0);\r
+  out.uv       = vec2<f32>(x * 0.5 + 0.5, -y * 0.5 + 0.5);\r
+  return out;\r
+}\r
+\r
+@fragment\r
+fn fs_temporal(in: VertexOutput) -> @location(0) vec4<f32> {\r
+  let coord   = vec2<i32>(in.clip_pos.xy);\r
+  let current = textureLoad(raw_ssgi, coord, 0).rgb;\r
+\r
+  // Sky pixels carry no indirect irradiance\r
+  let depth = textureLoad(depth_tex, coord, 0);\r
+  if (depth >= 1.0) { return vec4<f32>(0.0); }\r
+\r
+  // Reproject to previous frame\r
+  let ndc       = vec4<f32>(in.uv.x * 2.0 - 1.0, 1.0 - in.uv.y * 2.0, depth, 1.0);\r
+  let world_h   = u.invViewProj * ndc;\r
+  let world_pos = world_h.xyz / world_h.w;\r
+  let prev_clip = u.prevViewProj * vec4<f32>(world_pos, 1.0);\r
+  let prev_uv   = vec2<f32>(\r
+     prev_clip.x / prev_clip.w * 0.5 + 0.5,\r
+    -prev_clip.y / prev_clip.w * 0.5 + 0.5,\r
+  );\r
+\r
+  // Disocclusion or out-of-frame: trust current sample fully\r
+  if (any(prev_uv < vec2<f32>(0.0)) || any(prev_uv > vec2<f32>(1.0))) {\r
+    return vec4<f32>(current, 1.0);\r
+  }\r
+\r
+  // AABB clamp: 3×3 neighbourhood min/max of raw SSGI prevents ghosting\r
+  let dim = vec2<i32>(textureDimensions(raw_ssgi));\r
+  var nb_min = vec3<f32>(1e9);\r
+  var nb_max = vec3<f32>(-1e9);\r
+  for (var dy = -1; dy <= 1; dy++) {\r
+    for (var dx = -1; dx <= 1; dx++) {\r
+      let nc = clamp(coord + vec2<i32>(dx, dy), vec2<i32>(0), dim - vec2<i32>(1));\r
+      let s  = textureLoad(raw_ssgi, nc, 0).rgb;\r
+      nb_min = min(nb_min, s);\r
+      nb_max = max(nb_max, s);\r
+    }\r
+  }\r
+\r
+  let history         = textureSampleLevel(ssgi_history, lin_samp, prev_uv, 0.0).rgb;\r
+  let history_clamped = clamp(history, nb_min, nb_max);\r
+\r
+  // 10% new / 90% history → effective ~40-sample average with 4 rays/frame\r
+  return vec4<f32>(mix(history_clamped, current, 0.1), 1.0);\r
+}\r
+`,Zn=368,va={numRays:4,numSteps:16,radius:3,thickness:.5,strength:1};function ba(){const u=new Uint8Array(new ArrayBuffer(64));for(let n=0;n<16;n++){const e=Math.random()*Math.PI*2;u[n*4+0]=Math.round((Math.cos(e)*.5+.5)*255),u[n*4+1]=Math.round((Math.sin(e)*.5+.5)*255),u[n*4+2]=128,u[n*4+3]=255}return u}class qr extends ge{constructor(e,t,r,o,i,a,s,l,d,p,f,h,_,g,y,w){super();c(this,"name","SSGIPass");c(this,"resultView");c(this,"_uniformBuffer");c(this,"_noiseTexture");c(this,"_rawTexture");c(this,"_rawView");c(this,"_historyTexture");c(this,"_resultTexture");c(this,"_ssgiPipeline");c(this,"_temporalPipeline");c(this,"_ssgiBG0");c(this,"_ssgiBG1");c(this,"_tempBG0");c(this,"_tempBG1");c(this,"_settings");c(this,"_frameIndex",0);c(this,"_width");c(this,"_height");this._uniformBuffer=e,this._noiseTexture=t,this._rawTexture=r,this._rawView=o,this._historyTexture=i,this._resultTexture=a,this.resultView=s,this._ssgiPipeline=l,this._temporalPipeline=d,this._ssgiBG0=p,this._ssgiBG1=f,this._tempBG0=h,this._tempBG1=_,this._settings=g,this._width=y,this._height=w}static create(e,t,r,o=va){const{device:i,width:a,height:s}=e,l=i.createBuffer({label:"SSGIUniforms",size:Zn,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST}),d=i.createTexture({label:"SSGINoise",size:{width:4,height:4},format:"rgba8unorm",usage:GPUTextureUsage.TEXTURE_BINDING|GPUTextureUsage.COPY_DST});i.queue.writeTexture({texture:d},ba(),{bytesPerRow:4*4,rowsPerImage:4},{width:4,height:4});const p=d.createView(),f=i.createTexture({label:"SSGIRaw",size:{width:a,height:s},format:ee,usage:GPUTextureUsage.RENDER_ATTACHMENT|GPUTextureUsage.TEXTURE_BINDING}),h=f.createView(),_=i.createTexture({label:"SSGIHistory",size:{width:a,height:s},format:ee,usage:GPUTextureUsage.TEXTURE_BINDING|GPUTextureUsage.COPY_DST|GPUTextureUsage.RENDER_ATTACHMENT}),g=_.createView(),y=i.createTexture({label:"SSGIResult",size:{width:a,height:s},format:ee,usage:GPUTextureUsage.RENDER_ATTACHMENT|GPUTextureUsage.TEXTURE_BINDING|GPUTextureUsage.COPY_SRC}),w=y.createView(),x=i.createSampler({label:"SSGILinearSampler",magFilter:"linear",minFilter:"linear",addressModeU:"clamp-to-edge",addressModeV:"clamp-to-edge"}),B=i.createBindGroupLayout({label:"SSGIUniformBGL",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT|GPUShaderStage.VERTEX,buffer:{type:"uniform"}}]}),G=i.createBindGroupLayout({label:"SSGITexBGL",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"depth"}},{binding:1,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:2,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:3,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:4,visibility:GPUShaderStage.FRAGMENT,sampler:{type:"filtering"}}]}),S=i.createBindGroupLayout({label:"SSGITempTexBGL",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:1,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:2,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"depth"}},{binding:3,visibility:GPUShaderStage.FRAGMENT,sampler:{type:"filtering"}}]}),E=i.createBindGroup({label:"SSGIUniformBG",layout:B,entries:[{binding:0,resource:{buffer:l}}]}),L=i.createBindGroup({label:"SSGITexBG",layout:G,entries:[{binding:0,resource:t.depthView},{binding:1,resource:t.normalMetallicView},{binding:2,resource:r},{binding:3,resource:p},{binding:4,resource:x}]}),M=i.createBindGroup({label:"SSGITempUniformBG",layout:B,entries:[{binding:0,resource:{buffer:l}}]}),I=i.createBindGroup({label:"SSGITempTexBG",layout:S,entries:[{binding:0,resource:h},{binding:1,resource:g},{binding:2,resource:t.depthView},{binding:3,resource:x}]}),A=i.createShaderModule({label:"SSGIShader",code:_a}),b=i.createShaderModule({label:"SSGITempShader",code:ga}),k=i.createRenderPipeline({label:"SSGIPipeline",layout:i.createPipelineLayout({bindGroupLayouts:[B,G]}),vertex:{module:A,entryPoint:"vs_main"},fragment:{module:A,entryPoint:"fs_ssgi",targets:[{format:ee}]},primitive:{topology:"triangle-list"}}),m=i.createRenderPipeline({label:"SSGITempPipeline",layout:i.createPipelineLayout({bindGroupLayouts:[B,S]}),vertex:{module:b,entryPoint:"vs_main"},fragment:{module:b,entryPoint:"fs_temporal",targets:[{format:ee}]},primitive:{topology:"triangle-list"}});return new qr(l,d,f,h,_,y,w,k,m,E,L,M,I,o,a,s)}updateCamera(e,t,r,o,i,a,s){const l=new Float32Array(Zn/4);l.set(t.data,0),l.set(r.data,16),l.set(o.data,32),l.set(i.data,48),l.set(a.data,64),l[80]=s.x,l[81]=s.y,l[82]=s.z;const d=new Uint32Array(l.buffer);d[83]=this._settings.numRays,d[84]=this._settings.numSteps,l[85]=this._settings.radius,l[86]=this._settings.thickness,l[87]=this._settings.strength,d[88]=this._frameIndex++,e.queue.writeBuffer(this._uniformBuffer,0,l.buffer)}updateSettings(e){this._settings={...this._settings,...e}}execute(e,t){{const r=e.beginRenderPass({label:"SSGIRayMarch",colorAttachments:[{view:this._rawView,clearValue:[0,0,0,0],loadOp:"clear",storeOp:"store"}]});r.setPipeline(this._ssgiPipeline),r.setBindGroup(0,this._ssgiBG0),r.setBindGroup(1,this._ssgiBG1),r.draw(3),r.end()}{const r=e.beginRenderPass({label:"SSGITemporal",colorAttachments:[{view:this.resultView,clearValue:[0,0,0,0],loadOp:"clear",storeOp:"store"}]});r.setPipeline(this._temporalPipeline),r.setBindGroup(0,this._tempBG0),r.setBindGroup(1,this._tempBG1),r.draw(3),r.end()}e.copyTextureToTexture({texture:this._resultTexture},{texture:this._historyTexture},{width:this._width,height:this._height})}destroy(){this._uniformBuffer.destroy(),this._noiseTexture.destroy(),this._rawTexture.destroy(),this._historyTexture.destroy(),this._resultTexture.destroy()}}const ya=`// VSM shadow map generation for point and spot lights.\r
+//\r
+// Point light faces: output linear depth (distance/radius) and depth² into rgba16float.\r
+// Spot light maps  : output NDC depth and depth² into rgba16float.\r
+//\r
+// Two pipeline pairs share identical bind group layouts:\r
+//   group 0: ShadowUniforms (lightViewProj + lightPos + lightRadius)\r
+//   group 1: ModelUniforms  (model matrix)\r
+\r
+struct ShadowUniforms {\r
+  lightViewProj: mat4x4<f32>,  // offset 0, 64 bytes\r
+  lightPos     : vec3<f32>,    // offset 64, 12 bytes\r
+  lightRadius  : f32,          // offset 76, 4 bytes\r
+}  // 80 bytes\r
+\r
+struct ModelUniforms {\r
+  model: mat4x4<f32>,  // 64 bytes\r
+}\r
+\r
+@group(0) @binding(0) var<uniform> shadow: ShadowUniforms;\r
+@group(1) @binding(0) var<uniform> model : ModelUniforms;\r
+\r
+// ---- Point light (linear depth) -----------------------------------------------\r
+\r
+struct PointVaryings {\r
+  @builtin(position) clip    : vec4<f32>,\r
+  @location(0)       worldPos: vec3<f32>,\r
+}\r
+\r
+@vertex\r
+fn vs_point(@location(0) pos: vec3<f32>) -> PointVaryings {\r
+  let worldPos = model.model * vec4<f32>(pos, 1.0);\r
+  var out: PointVaryings;\r
+  out.clip     = shadow.lightViewProj * worldPos;\r
+  out.worldPos = worldPos.xyz;\r
+  return out;\r
+}\r
+\r
+@fragment\r
+fn fs_point(in: PointVaryings) -> @location(0) vec4<f32> {\r
+  let d = length(in.worldPos - shadow.lightPos) / shadow.lightRadius;\r
+  return vec4<f32>(d, d * d, 0.0, 1.0);\r
+}\r
+\r
+// ---- Spot light (NDC depth) ----------------------------------------------------\r
+\r
+struct SpotVaryings {\r
+  @builtin(position) clip    : vec4<f32>,\r
+  @location(0)       ndcDepth: f32,\r
+}\r
+\r
+@vertex\r
+fn vs_spot(@location(0) pos: vec3<f32>) -> SpotVaryings {\r
+  let worldPos = model.model * vec4<f32>(pos, 1.0);\r
+  let clip     = shadow.lightViewProj * worldPos;\r
+  var out: SpotVaryings;\r
+  out.clip     = clip;\r
+  out.ndcDepth = clip.z / clip.w;\r
+  return out;\r
+}\r
+\r
+@fragment\r
+fn fs_spot(in: SpotVaryings) -> @location(0) vec4<f32> {\r
+  let d = in.ndcDepth;\r
+  return vec4<f32>(d, d * d, 0.0, 1.0);\r
+}\r
+`,kt=32,Lt=32,st=4,Ye=8,Nt=256,Rt=512,Ie=256,mr=80,xa=64,wa=6*st,Ba=wa+Ye;class jr extends ge{constructor(e,t,r,o,i,a,s,l,d,p,f,h,_,g){super();c(this,"name","PointSpotShadowPass");c(this,"pointVsmView");c(this,"spotVsmView");c(this,"projTexView");c(this,"_pointVsmTex");c(this,"_spotVsmTex");c(this,"_projTexArray");c(this,"_pointDepth");c(this,"_spotDepth");c(this,"_pointFaceViews");c(this,"_spotFaceViews");c(this,"_pointDepthView");c(this,"_spotDepthView");c(this,"_pointPipeline");c(this,"_spotPipeline");c(this,"_shadowBufs");c(this,"_shadowBGs");c(this,"_modelBufs",[]);c(this,"_modelBGs",[]);c(this,"_modelBGL");c(this,"_snapshot",[]);c(this,"_pointLights",[]);c(this,"_spotLights",[]);this._pointVsmTex=e,this._spotVsmTex=t,this._projTexArray=r,this._pointDepth=o,this._spotDepth=i,this._pointFaceViews=a,this._spotFaceViews=s,this._pointDepthView=l,this._spotDepthView=d,this._pointPipeline=p,this._spotPipeline=f,this._shadowBufs=h,this._shadowBGs=_,this._modelBGL=g,this.pointVsmView=e.createView({dimension:"cube-array",arrayLayerCount:st*6}),this.spotVsmView=t.createView({dimension:"2d-array"}),this.projTexView=r.createView({dimension:"2d-array"})}static create(e){const{device:t}=e,r=t.createTexture({label:"PointVSM",size:{width:Nt,height:Nt,depthOrArrayLayers:st*6},format:"rgba16float",usage:GPUTextureUsage.RENDER_ATTACHMENT|GPUTextureUsage.TEXTURE_BINDING}),o=t.createTexture({label:"SpotVSM",size:{width:Rt,height:Rt,depthOrArrayLayers:Ye},format:"rgba16float",usage:GPUTextureUsage.RENDER_ATTACHMENT|GPUTextureUsage.TEXTURE_BINDING}),i=t.createTexture({label:"ProjTexArray",size:{width:Ie,height:Ie,depthOrArrayLayers:Ye},format:"rgba8unorm",usage:GPUTextureUsage.TEXTURE_BINDING|GPUTextureUsage.COPY_DST|GPUTextureUsage.RENDER_ATTACHMENT}),a=new Uint8Array(Ie*Ie*4).fill(255);for(let L=0;L<Ye;L++)t.queue.writeTexture({texture:i,origin:{x:0,y:0,z:L}},a,{bytesPerRow:Ie*4,rowsPerImage:Ie},{width:Ie,height:Ie,depthOrArrayLayers:1});const s=t.createTexture({label:"PointShadowDepth",size:{width:Nt,height:Nt},format:"depth32float",usage:GPUTextureUsage.RENDER_ATTACHMENT}),l=t.createTexture({label:"SpotShadowDepth",size:{width:Rt,height:Rt},format:"depth32float",usage:GPUTextureUsage.RENDER_ATTACHMENT}),d=Array.from({length:st*6},(L,M)=>r.createView({dimension:"2d",baseArrayLayer:M,arrayLayerCount:1})),p=Array.from({length:Ye},(L,M)=>o.createView({dimension:"2d",baseArrayLayer:M,arrayLayerCount:1})),f=s.createView(),h=l.createView(),_=t.createBindGroupLayout({label:"PSShadowBGL",entries:[{binding:0,visibility:GPUShaderStage.VERTEX|GPUShaderStage.FRAGMENT,buffer:{type:"uniform"}}]}),g=t.createBindGroupLayout({label:"PSModelBGL",entries:[{binding:0,visibility:GPUShaderStage.VERTEX,buffer:{type:"uniform"}}]}),y=[],w=[];for(let L=0;L<Ba;L++){const M=t.createBuffer({label:`PSShadowUniform ${L}`,size:mr,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST});y.push(M),w.push(t.createBindGroup({label:`PSShadowBG ${L}`,layout:_,entries:[{binding:0,resource:{buffer:M}}]}))}const x=t.createPipelineLayout({bindGroupLayouts:[_,g]}),B=t.createShaderModule({label:"PointSpotShadowShader",code:ya}),G={module:B,buffers:[{arrayStride:Ar,attributes:[Er[0]]}]},S=t.createRenderPipeline({label:"PointShadowPipeline",layout:x,vertex:{...G,entryPoint:"vs_point"},fragment:{module:B,entryPoint:"fs_point",targets:[{format:"rgba16float"}]},depthStencil:{format:"depth32float",depthWriteEnabled:!0,depthCompare:"less"},primitive:{topology:"triangle-list",cullMode:"back"}}),E=t.createRenderPipeline({label:"SpotShadowPipeline",layout:x,vertex:{...G,entryPoint:"vs_spot"},fragment:{module:B,entryPoint:"fs_spot",targets:[{format:"rgba16float"}]},depthStencil:{format:"depth32float",depthWriteEnabled:!0,depthCompare:"less"},primitive:{topology:"triangle-list",cullMode:"back"}});return new jr(r,o,i,s,l,d,p,f,h,S,E,y,w,g)}update(e,t,r){this._pointLights=e,this._spotLights=t,this._snapshot=r}setProjectionTexture(e,t,r){e.copyTextureToTexture({texture:r},{texture:this._projTexArray,origin:{x:0,y:0,z:t}},{width:Ie,height:Ie,depthOrArrayLayers:1})}execute(e,t){const{device:r}=t,o=this._snapshot;this._ensureModelBuffers(r,o.length);for(let l=0;l<this._spotLights.length&&l<Ye;l++){const d=this._spotLights[l];d.projectionTexture&&this.setProjectionTexture(e,l,d.projectionTexture)}for(let l=0;l<o.length;l++)t.queue.writeBuffer(this._modelBufs[l],0,o[l].modelMatrix.data.buffer);let i=0,a=0;for(const l of this._pointLights){if(!l.castShadow||a>=st)continue;const d=l.worldPosition(),p=l.cubeFaceViewProjs(),f=new Float32Array(mr/4);f[16]=d.x,f[17]=d.y,f[18]=d.z,f[19]=l.radius;for(let h=0;h<6;h++){f.set(p[h].data,0),t.queue.writeBuffer(this._shadowBufs[i],0,f.buffer);const _=a*6+h,g=e.beginRenderPass({label:`PointShadow light${a} face${h}`,colorAttachments:[{view:this._pointFaceViews[_],clearValue:{r:1,g:1,b:0,a:1},loadOp:"clear",storeOp:"store"}],depthStencilAttachment:{view:this._pointDepthView,depthClearValue:1,depthLoadOp:"clear",depthStoreOp:"discard"}});g.setPipeline(this._pointPipeline),g.setBindGroup(0,this._shadowBGs[i]),this._drawItems(g,o),g.end(),i++}a++}let s=0;for(const l of this._spotLights){if(!l.castShadow||s>=Ye)continue;const d=l.lightViewProj(),p=l.worldPosition(),f=new Float32Array(mr/4);f.set(d.data,0),f[16]=p.x,f[17]=p.y,f[18]=p.z,f[19]=l.range,t.queue.writeBuffer(this._shadowBufs[i],0,f.buffer);const h=e.beginRenderPass({label:`SpotShadow light${s}`,colorAttachments:[{view:this._spotFaceViews[s],clearValue:{r:1,g:1,b:0,a:1},loadOp:"clear",storeOp:"store"}],depthStencilAttachment:{view:this._spotDepthView,depthClearValue:1,depthLoadOp:"clear",depthStoreOp:"discard"}});h.setPipeline(this._spotPipeline),h.setBindGroup(0,this._shadowBGs[i]),this._drawItems(h,o),h.end(),i++,s++}}_drawItems(e,t){for(let r=0;r<t.length;r++){const{mesh:o}=t[r];e.setBindGroup(1,this._modelBGs[r]),e.setVertexBuffer(0,o.vertexBuffer),e.setIndexBuffer(o.indexBuffer,"uint32"),e.drawIndexed(o.indexCount)}}_ensureModelBuffers(e,t){for(;this._modelBufs.length<t;){const r=e.createBuffer({label:`PSModelUniform ${this._modelBufs.length}`,size:xa,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST});this._modelBufs.push(r),this._modelBGs.push(e.createBindGroup({layout:this._modelBGL,entries:[{binding:0,resource:{buffer:r}}]}))}}destroy(){this._pointVsmTex.destroy(),this._spotVsmTex.destroy(),this._projTexArray.destroy(),this._pointDepth.destroy(),this._spotDepth.destroy();for(const e of this._shadowBufs)e.destroy();for(const e of this._modelBufs)e.destroy()}}const Sa=`// Water pass — forward-rendered on top of the deferred-lit HDR buffer.\r
+// Vertex format: [x, y, z] (3 floats, chunk-local).\r
+// Group 0: camera uniforms (matches WorldGeometryPass layout — 4 mat4 + vec3 pos + near + far)\r
+// Group 1: per-frame water uniforms (time)\r
+// Group 2: per-chunk offset\r
+// Group 3: scene textures (refraction copy, depth, dudv, gradient, sky)\r
+\r
+struct CameraUniforms {\r
+  view        : mat4x4<f32>,\r
+  proj        : mat4x4<f32>,\r
+  viewProj    : mat4x4<f32>,\r
+  invViewProj : mat4x4<f32>,\r
+  position    : vec3<f32>,\r
+  near        : f32,\r
+  far         : f32,\r
+  _pad0       : f32,\r
+  _pad1       : f32,\r
+  _pad2       : f32,\r
+}\r
+\r
+struct WaterUniforms {\r
+  time          : f32,\r
+  sky_intensity : f32,  // 0 at night, 1 at noon — dims the HDR sky reflection\r
+  _p1           : f32,\r
+  _p2           : f32,\r
+}\r
+\r
+struct ChunkUniforms {\r
+  offset : vec3<f32>,\r
+  _pad   : f32,\r
+}\r
+\r
+@group(0) @binding(0) var<uniform> cam   : CameraUniforms;\r
+@group(1) @binding(0) var<uniform> water : WaterUniforms;\r
+@group(2) @binding(0) var<uniform> chunk : ChunkUniforms;\r
+\r
+@group(3) @binding(0) var refraction_tex : texture_2d<f32>;\r
+@group(3) @binding(1) var depth_tex      : texture_depth_2d;\r
+@group(3) @binding(2) var dudv_tex       : texture_2d<f32>;\r
+@group(3) @binding(3) var gradient_tex   : texture_2d<f32>;\r
+@group(3) @binding(4) var sky_tex        : texture_2d<f32>;\r
+@group(3) @binding(5) var samp           : sampler;\r
+\r
+struct VertOut {\r
+  @builtin(position) clip_pos   : vec4<f32>,\r
+  @location(0)       world_pos  : vec3<f32>,\r
+  @location(1)       clip_coords: vec4<f32>,\r
+}\r
+\r
+const PI            : f32 = 3.14159265358979;\r
+const WAVE_AMPLITUDE: f32 = 3.8;\r
+\r
+fn calc_wave(world_pos: vec3<f32>) -> f32 {\r
+  let fy   = fract(world_pos.y + 0.001);\r
+  let wave = 0.05 * sin(2.0 * PI * (water.time * 0.8 + world_pos.x /  2.5 + world_pos.z /  5.0))\r
+           + 0.05 * sin(2.0 * PI * (water.time * 0.6 + world_pos.x /  6.0 + world_pos.z / 12.0));\r
+  return clamp(wave, -fy, 1.0 - fy) * WAVE_AMPLITUDE;\r
+}\r
+\r
+@vertex\r
+fn vs_main(@location(0) pos: vec3<f32>) -> VertOut {\r
+  var world_pos  = pos + chunk.offset;\r
+  //world_pos.y   += calc_wave(world_pos);\r
+  let clip       = cam.viewProj * vec4<f32>(world_pos, 1.0);\r
+  var out: VertOut;\r
+  out.clip_pos    = clip;\r
+  out.world_pos   = world_pos;\r
+  out.clip_coords = clip;\r
+  return out;\r
+}\r
+\r
+fn linearize(d: f32, near: f32, far: f32) -> f32 {\r
+  return near * far / (far - d * (far - near));\r
+}\r
+\r
+// Equirectangular sampling for the sky texture (which is stored as a 2D panorama).\r
+fn sky_uv(d: vec3<f32>) -> vec2<f32> {\r
+  let u = 0.5 + atan2(d.z, d.x) / (2.0 * PI);\r
+  let v = 0.5 - asin(clamp(d.y, -1.0, 1.0)) / PI;\r
+  return vec2<f32>(u, v);\r
+}\r
+\r
+// Screen-space reflection: ray-march the reflected ray in view space, sampling\r
+// refraction_tex (the pre-water HDR copy) for radiance at each hit.\r
+// Returns vec4(colour, confidence) — confidence fades to 0 near screen edges or on a miss.\r
+fn ssr(world_pos: vec3<f32>, normal: vec3<f32>, view_dir: vec3<f32>) -> vec4<f32> {\r
+  let reflect_dir = reflect(-view_dir, normal);\r
+  // Transform reflected direction and surface origin to view space.\r
+  let ray_vs    = normalize((cam.view * vec4<f32>(reflect_dir, 0.0)).xyz);\r
+  let origin_vs = (cam.view * vec4<f32>(world_pos, 1.0)).xyz;\r
+\r
+  // Only trace rays heading away from the camera (negative view-space Z).\r
+  if (ray_vs.z >= -0.001) { return vec4<f32>(0.0); }\r
+\r
+  let screen_dim = vec2<f32>(textureDimensions(refraction_tex));\r
+  let screen_i   = vec2<i32>(screen_dim);\r
+\r
+  let NUM_STEPS: u32 = 32u;\r
+  let MAX_DIST : f32 = 50.0;  // world-unit ray length\r
+  let THICKNESS: f32 = 1.5;   // hit tolerance in view-space units\r
+\r
+  for (var s = 0u; s < NUM_STEPS; s++) {\r
+    let t = (f32(s) + 1.0) * MAX_DIST / f32(NUM_STEPS);\r
+    let p = origin_vs + ray_vs * t;\r
+    if (p.z >= 0.0) { break; }  // stepped behind the near plane\r
+\r
+    // Project the ray point to screen UV.\r
+    let clip  = cam.proj * vec4<f32>(p, 1.0);\r
+    let inv_w = 1.0 / clip.w;\r
+    let uv    = vec2<f32>(clip.x * inv_w * 0.5 + 0.5, -clip.y * inv_w * 0.5 + 0.5);\r
+    if (any(uv < vec2<f32>(0.0)) || any(uv > vec2<f32>(1.0))) { break; }\r
+\r
+    // Compare ray depth against the stored GBuffer depth (converted to view-space Z).\r
+    let tc           = clamp(vec2<i32>(uv * screen_dim), vec2<i32>(0), screen_i - vec2<i32>(1));\r
+    let stored_depth = textureLoad(depth_tex, tc, 0);\r
+    if (stored_depth >= 1.0) { continue; }  // sky pixel — keep stepping\r
+\r
+    let stored_z = -linearize(stored_depth, cam.near, cam.far);  // view-space Z (negative)\r
+    if (p.z < stored_z && stored_z - p.z < THICKNESS) {\r
+      // Fade confidence near screen edges to hide ray-termination seams.\r
+      let edge = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y)) * 8.0;\r
+      let conf = clamp(edge, 0.0, 1.0);\r
+      let sample_uv = clamp(uv, vec2<f32>(0.001), vec2<f32>(0.999));\r
+      return vec4<f32>(textureSampleLevel(refraction_tex, samp, sample_uv, 0.0).rgb, conf);\r
+    }\r
+  }\r
+  return vec4<f32>(0.0);  // miss\r
+}\r
+\r
+@fragment\r
+fn fs_main(in: VertOut) -> @location(0) vec4<f32> {\r
+  if (in.clip_coords.w < cam.near) { discard; }\r
+\r
+  // Screen UV from clip coordinates\r
+  let ndc       = in.clip_coords.xy / in.clip_coords.w;\r
+  let screen_uv = vec2<f32>(ndc.x * 0.5 + 0.5, ndc.y * -0.5 + 0.5);\r
+\r
+  // Manual depth test: discard water behind solid geometry\r
+  let px        = vec2<u32>(in.clip_pos.xy);\r
+  let floor_lin = linearize(textureLoad(depth_tex, px, 0), cam.near, cam.far);\r
+  let water_lin = linearize(in.clip_pos.z, cam.near, cam.far);\r
+  if (water_lin > floor_lin) { discard; }\r
+  let water_depth = floor_lin - water_lin;\r
+\r
+  // Animated DUDV distortion — two-pass stacked sampling for complex ripples\r
+  let base_uv    = vec2<f32>(in.world_pos.x, in.world_pos.z) * (1.0 / 8.0);\r
+  let d1         = textureSample(dudv_tex, samp, vec2<f32>(base_uv.x + water.time * 0.02, base_uv.y)).rg;\r
+  let d2_uv      = d1 + vec2<f32>(d1.x, d1.y + water.time * 0.02);\r
+  let distortion = (textureSample(dudv_tex, samp, d2_uv).rg * 2.0 - 1.0) * 0.02;\r
+\r
+  // Refraction: sample the pre-water HDR copy at distorted screen coords\r
+  let ref_uv    = clamp(screen_uv + distortion, vec2<f32>(0.001), vec2<f32>(0.999));\r
+  let refraction = textureSample(refraction_tex, samp, ref_uv).rgb;\r
+\r
+  // Water surface normal from DUDV map\r
+  let nc     = textureSample(dudv_tex, samp, d2_uv).rgb;\r
+  let normal = normalize(vec3<f32>(nc.r * 2.0 - 1.0, 3.0, nc.g * 2.0 - 1.0));\r
+\r
+  let view_dir = normalize(cam.position - in.world_pos);\r
+\r
+  // Schlick Fresnel for water (F0 ≈ 0.02): low reflection when looking straight down,\r
+  // rising towards grazing. Capped at 0.6 so bright HDR sky values cannot saturate to\r
+  // white when viewing water at a shallow angle from far away.\r
+  let VdotN     = clamp(dot(view_dir, normal), 0.0, 1.0);\r
+  let fresnel_r = min(0.02 + 0.98 * pow(1.0 - VdotN, 5.0), 0.6);\r
+\r
+  // Screen-space reflection, with the equirectangular sky as fallback for missed rays.\r
+  let ssr_result = ssr(in.world_pos, normal, view_dir);\r
+  let sky_color  = textureSample(sky_tex, samp, sky_uv(reflect(-view_dir, normal))).rgb * water.sky_intensity;\r
+  let reflection = mix(sky_color, ssr_result.rgb, ssr_result.a);\r
+\r
+  // Depth-based water tint via gradient map, with murkiness blend (Litecraft approach).\r
+  // Shallow water is transparent refraction; deep water takes the gradient map colour.\r
+  const MURKY_DEPTH: f32 = 4.0;\r
+  let murk_factor = clamp(water_depth / MURKY_DEPTH, 0.0, 1.0);\r
+  let inv_depth   = clamp(1.0 - murk_factor, 0.1, 0.99);\r
+  let water_color = textureSample(gradient_tex, samp, vec2<f32>(inv_depth, 0.5)).rgb\r
+                    * max(water.sky_intensity, 0.05);\r
+  let tinted      = mix(refraction, water_color, murk_factor);\r
+\r
+  // Fresnel blend: refraction dominant head-on, SSR reflection rises at grazing angles.\r
+  let world_color = mix(tinted, reflection, fresnel_r);\r
+\r
+  // Alpha: transparent at edges/shallow, opaque in deep water (Litecraft smoothstep approach).\r
+  let depth_clamp = clamp(1.0 / max(water_depth, 0.001), 0.0, 1.0);\r
+  let edge_alpha  = clamp(smoothstep(1.0, 0.0, depth_clamp), 0.0, 0.95);\r
+\r
+  return vec4<f32>(world_color, edge_alpha);\r
+}\r
+`,Kn=64*4+16+16,Pa=16,Ga=16,Ta=3,_r=Ta*4,gr=16;class nt extends ge{constructor(e,t,r,o,i,a,s,l,d,p,f,h,_,g,y){super();c(this,"name","WaterPass");c(this,"_device");c(this,"_hdrTexture");c(this,"_hdrView");c(this,"_refractionTex");c(this,"_pipeline");c(this,"_cameraBuffer");c(this,"_waterBuffer");c(this,"_cameraBG");c(this,"_waterBG");c(this,"_sceneBG");c(this,"_sceneBGL");c(this,"_chunkBGL");c(this,"_skyTexture");c(this,"_dudvTexture");c(this,"_gradientTexture");c(this,"_chunks",new Map);c(this,"_frustumPlanes",new Float32Array(24));this._device=e,this._hdrTexture=t,this._hdrView=r,this._refractionTex=o,this._pipeline=i,this._cameraBuffer=a,this._waterBuffer=s,this._cameraBG=l,this._waterBG=d,this._sceneBG=p,this._sceneBGL=f,this._chunkBGL=h,this._skyTexture=_,this._dudvTexture=g,this._gradientTexture=y}static create(e,t,r,o,i,a,s){const{device:l,width:d,height:p}=e,f=l.createBindGroupLayout({label:"WaterCameraBGL",entries:[{binding:0,visibility:GPUShaderStage.VERTEX|GPUShaderStage.FRAGMENT,buffer:{type:"uniform"}}]}),h=l.createBindGroupLayout({label:"WaterUniformBGL",entries:[{binding:0,visibility:GPUShaderStage.VERTEX|GPUShaderStage.FRAGMENT,buffer:{type:"uniform"}}]}),_=l.createBindGroupLayout({label:"WaterChunkBGL",entries:[{binding:0,visibility:GPUShaderStage.VERTEX,buffer:{type:"uniform"}}]}),g=l.createBindGroupLayout({label:"WaterSceneBGL",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:1,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"depth"}},{binding:2,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:3,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:4,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:5,visibility:GPUShaderStage.FRAGMENT,sampler:{type:"filtering"}}]}),{refractionTex:y,refractionView:w}=nt._makeRefractionTex(l,d,p),x=l.createSampler({magFilter:"linear",minFilter:"linear",addressModeU:"repeat",addressModeV:"repeat"}),B=l.createBuffer({label:"WaterCameraBuffer",size:Kn,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST}),G=l.createBuffer({label:"WaterUniformBuffer",size:Pa,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST}),S=l.createBindGroup({label:"WaterCameraBG",layout:f,entries:[{binding:0,resource:{buffer:B}}]}),E=l.createBindGroup({label:"WaterUniformBG",layout:h,entries:[{binding:0,resource:{buffer:G}}]}),L=nt._makeSceneBG(l,g,w,o,a,s,i,x),M=l.createShaderModule({label:"WaterShader",code:Sa}),I=l.createPipelineLayout({bindGroupLayouts:[f,h,_,g]}),A={arrayStride:_r,attributes:[{shaderLocation:0,offset:0,format:"float32x3"}]},b=l.createRenderPipeline({label:"WaterPipeline",layout:I,vertex:{module:M,entryPoint:"vs_main",buffers:[A]},fragment:{module:M,entryPoint:"fs_main",targets:[{format:ee,blend:{color:{srcFactor:"src-alpha",dstFactor:"one-minus-src-alpha",operation:"add"},alpha:{srcFactor:"one",dstFactor:"one-minus-src-alpha",operation:"add"}}}]},primitive:{topology:"triangle-list",cullMode:"none"}});return new nt(l,t,r,y,b,B,G,S,E,L,g,_,i,a,s)}updateRenderTargets(e,t,r,o){this._refractionTex.destroy(),this._hdrTexture=e,this._hdrView=t,o&&(this._skyTexture=o);const{width:i,height:a}=e,{refractionTex:s,refractionView:l}=nt._makeRefractionTex(this._device,i,a);this._refractionTex=s;const d=this._device.createSampler({magFilter:"linear",minFilter:"linear",addressModeU:"repeat",addressModeV:"repeat"});this._sceneBG=nt._makeSceneBG(this._device,this._sceneBGL,l,r,this._dudvTexture,this._gradientTexture,this._skyTexture,d)}updateCamera(e,t,r,o,i,a,s,l){const d=new Float32Array(Kn/4);d.set(t.data,0),d.set(r.data,16),d.set(o.data,32),d.set(i.data,48),d[64]=a.x,d[65]=a.y,d[66]=a.z,d[67]=s,d[68]=l,e.queue.writeBuffer(this._cameraBuffer,0,d.buffer),this._extractFrustumPlanes(o.data)}_extractFrustumPlanes(e){const t=this._frustumPlanes;t[0]=e[3]+e[0],t[1]=e[7]+e[4],t[2]=e[11]+e[8],t[3]=e[15]+e[12],t[4]=e[3]-e[0],t[5]=e[7]-e[4],t[6]=e[11]-e[8],t[7]=e[15]-e[12],t[8]=e[3]+e[1],t[9]=e[7]+e[5],t[10]=e[11]+e[9],t[11]=e[15]+e[13],t[12]=e[3]-e[1],t[13]=e[7]-e[5],t[14]=e[11]-e[9],t[15]=e[15]-e[13],t[16]=e[2],t[17]=e[6],t[18]=e[10],t[19]=e[14],t[20]=e[3]-e[2],t[21]=e[7]-e[6],t[22]=e[11]-e[10],t[23]=e[15]-e[14]}_isVisible(e,t,r){const o=this._frustumPlanes,i=e+gr,a=t+gr,s=r+gr;for(let l=0;l<6;l++){const d=o[l*4],p=o[l*4+1],f=o[l*4+2],h=o[l*4+3];if(d*(d>=0?i:e)+p*(p>=0?a:t)+f*(f>=0?s:r)+h<0)return!1}return!0}updateTime(e,t,r=1){e.queue.writeBuffer(this._waterBuffer,0,new Float32Array([t,r,0,0]).buffer)}addChunk(e,t){const r=this._chunks.get(e);r?this._replaceMeshBuffer(r,t):this._chunks.set(e,this._createChunkGpu(e,t))}updateChunk(e,t){const r=this._chunks.get(e);r?this._replaceMeshBuffer(r,t):this._chunks.set(e,this._createChunkGpu(e,t))}removeChunk(e){var r;const t=this._chunks.get(e);t&&((r=t.buffer)==null||r.destroy(),t.uniformBuffer.destroy(),this._chunks.delete(e))}execute(e,t){const{width:r,height:o}=this._refractionTex;e.copyTextureToTexture({texture:this._hdrTexture},{texture:this._refractionTex},{width:r,height:o,depthOrArrayLayers:1});const i=e.beginRenderPass({label:"WaterPass",colorAttachments:[{view:this._hdrView,loadOp:"load",storeOp:"store"}]});i.setPipeline(this._pipeline),i.setBindGroup(0,this._cameraBG),i.setBindGroup(1,this._waterBG),i.setBindGroup(3,this._sceneBG);for(const a of this._chunks.values())!a.buffer||a.vertexCount===0||this._isVisible(a.ox,a.oy,a.oz)&&(i.setBindGroup(2,a.chunkBG),i.setVertexBuffer(0,a.buffer),i.draw(a.vertexCount));i.end()}destroy(){var e;this._cameraBuffer.destroy(),this._waterBuffer.destroy(),this._refractionTex.destroy();for(const t of this._chunks.values())(e=t.buffer)==null||e.destroy(),t.uniformBuffer.destroy();this._chunks.clear()}static _makeRefractionTex(e,t,r){const o=e.createTexture({label:"WaterRefractionTex",size:{width:t,height:r},format:ee,usage:GPUTextureUsage.COPY_DST|GPUTextureUsage.TEXTURE_BINDING|GPUTextureUsage.RENDER_ATTACHMENT}),i=o.createView();return{refractionTex:o,refractionView:i}}static _makeSceneBG(e,t,r,o,i,a,s,l){return e.createBindGroup({label:"WaterSceneBG",layout:t,entries:[{binding:0,resource:r},{binding:1,resource:o},{binding:2,resource:i.view},{binding:3,resource:a.view},{binding:4,resource:s.view},{binding:5,resource:l}]})}_createChunkGpu(e,t){const r=this._device.createBuffer({label:`WaterChunkBuf(${e.globalPosition.x},${e.globalPosition.y},${e.globalPosition.z})`,size:Ga,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST});this._device.queue.writeBuffer(r,0,new Float32Array([e.globalPosition.x,e.globalPosition.y,e.globalPosition.z,0]));const o=this._device.createBindGroup({label:"WaterChunkBG",layout:this._chunkBGL,entries:[{binding:0,resource:{buffer:r}}]}),i={ox:e.globalPosition.x,oy:e.globalPosition.y,oz:e.globalPosition.z,buffer:null,vertexCount:0,uniformBuffer:r,chunkBG:o};return this._replaceMeshBuffer(i,t),i}_replaceMeshBuffer(e,t){var r;if((r=e.buffer)==null||r.destroy(),e.buffer=null,e.vertexCount=t.waterCount,t.waterCount>0){const o=this._device.createBuffer({label:"WaterVertexBuf",size:t.waterCount*_r,usage:GPUBufferUsage.VERTEX|GPUBufferUsage.COPY_DST});this._device.queue.writeBuffer(o,0,t.water.buffer,0,t.waterCount*_r),e.buffer=o}}}const Ma=`// Shadow pass for transparent chunk geometry — samples color atlas alpha for discard.\r
+// Opaque chunks use the simpler shadow.wgsl (no fragment shader needed).\r
+\r
+struct ShadowUniforms {\r
+  lightViewProj: mat4x4<f32>,\r
+}\r
+struct ModelUniforms {\r
+  model: mat4x4<f32>,\r
+}\r
+struct BlockData {\r
+  sideTile  : u32,\r
+  bottomTile: u32,\r
+  topTile   : u32,\r
+  _pad      : u32,\r
+}\r
+\r
+@group(0) @binding(0) var<uniform>       shadow    : ShadowUniforms;\r
+@group(1) @binding(0) var<uniform>       model     : ModelUniforms;\r
+@group(2) @binding(0) var                color_atlas: texture_2d<f32>;\r
+@group(2) @binding(1) var                atlas_samp : sampler;\r
+@group(2) @binding(2) var<storage, read> block_data : array<BlockData>;\r
+\r
+const ATLAS_COLS: u32 = 25u;\r
+const INV_COLS  : f32 = 1.0 / 25.0;\r
+const INV_ROWS  : f32 = 1.0 / 25.0;\r
+\r
+struct VertexInput {\r
+  @location(0) position  : vec3<f32>,\r
+  @location(1) face      : f32,\r
+  @location(2) block_type: f32,\r
+}\r
+\r
+struct VertexOutput {\r
+  @builtin(position)              clip_pos : vec4<f32>,\r
+  @location(0)                    world_pos: vec3<f32>,\r
+  @location(1) @interpolate(flat) face_f   : f32,\r
+  @location(2) @interpolate(flat) block_f  : f32,\r
+}\r
+\r
+@vertex\r
+fn vs_main(vin: VertexInput) -> VertexOutput {\r
+  let wp = (model.model * vec4<f32>(vin.position, 1.0)).xyz;\r
+  var out: VertexOutput;\r
+  out.clip_pos  = shadow.lightViewProj * vec4<f32>(wp, 1.0);\r
+  out.world_pos = wp;\r
+  out.face_f    = vin.face;\r
+  out.block_f   = vin.block_type;\r
+  return out;\r
+}\r
+\r
+fn atlas_uv(world_pos: vec3<f32>, face: u32, block_type: u32) -> vec2<f32> {\r
+  let bd = block_data[block_type];\r
+  var tile: u32;\r
+  if face == 4u      { tile = bd.bottomTile; }\r
+  else if face == 5u { tile = bd.topTile; }\r
+  else               { tile = bd.sideTile; }\r
+\r
+  var local_uv: vec2<f32>;\r
+  if face == 2u || face == 3u {\r
+    local_uv = vec2<f32>(fract(world_pos.z), 1.0 - fract(world_pos.y));\r
+  } else if face == 4u || face == 5u {\r
+    local_uv = fract(world_pos.xz);\r
+  } else {\r
+    local_uv = vec2<f32>(fract(world_pos.x), 1.0 - fract(world_pos.y));\r
+  }\r
+\r
+  let tileX = f32(tile % ATLAS_COLS);\r
+  let tileY = f32(tile / ATLAS_COLS);\r
+  return (vec2<f32>(tileX, tileY) + local_uv) * vec2<f32>(INV_COLS, INV_ROWS);\r
+}\r
+\r
+@fragment\r
+fn fs_alpha_test(in: VertexOutput) {\r
+  let uv = atlas_uv(in.world_pos, u32(in.face_f), u32(in.block_f));\r
+  if textureSample(color_atlas, atlas_samp, uv).a < 0.5 { discard; }\r
+}\r
+`,Aa=`// Shadow pass for prop billboards (flowers, grass, torches, etc.).\r
+// Expands each 6-vertex centre-point into a 1×1 quad using a right-axis supplied\r
+// via a per-call orient uniform.  Called twice per chunk — once with right=(1,0,0)\r
+// and once with right=(0,0,1) — to produce a cross-shaped shadow.\r
+\r
+struct ShadowUniforms { lightViewProj: mat4x4<f32> }\r
+struct ModelUniforms  { model: mat4x4<f32> }\r
+struct OrientUniforms { right: vec3<f32>, _pad: f32 }\r
+\r
+struct BlockData {\r
+  sideTile  : u32,\r
+  bottomTile: u32,\r
+  topTile   : u32,\r
+  _pad      : u32,\r
+}\r
+\r
+@group(0) @binding(0) var<uniform>       shadow     : ShadowUniforms;\r
+@group(1) @binding(0) var<uniform>       model      : ModelUniforms;\r
+@group(2) @binding(0) var                color_atlas: texture_2d<f32>;\r
+@group(2) @binding(1) var                atlas_samp : sampler;\r
+@group(2) @binding(2) var<storage, read> block_data : array<BlockData>;\r
+@group(3) @binding(0) var<uniform>       orient     : OrientUniforms;\r
+\r
+const ATLAS_COLS: u32 = 25u;\r
+const INV_COLS  : f32 = 1.0 / 25.0;\r
+const INV_ROWS  : f32 = 1.0 / 25.0;\r
+\r
+struct VertexInput {\r
+  @location(0) position  : vec3<f32>,\r
+  @location(1) face      : f32,\r
+  @location(2) block_type: f32,\r
+}\r
+\r
+struct VertexOutput {\r
+  @builtin(position) clip_pos: vec4<f32>,\r
+  @location(0)       uv     : vec2<f32>,\r
+  @location(1)       block_f: f32,\r
+}\r
+\r
+fn quad_offset(vid: u32) -> vec2<f32> {\r
+  switch vid % 6u {\r
+    case 0u: { return vec2<f32>(-0.5, -0.5); }\r
+    case 1u: { return vec2<f32>( 0.5, -0.5); }\r
+    case 2u: { return vec2<f32>(-0.5,  0.5); }\r
+    case 3u: { return vec2<f32>( 0.5, -0.5); }\r
+    case 4u: { return vec2<f32>( 0.5,  0.5); }\r
+    default: { return vec2<f32>(-0.5,  0.5); }\r
+  }\r
+}\r
+\r
+fn quad_uv(vid: u32) -> vec2<f32> {\r
+  switch vid % 6u {\r
+    case 0u: { return vec2<f32>(0.0, 1.0); }\r
+    case 1u: { return vec2<f32>(1.0, 1.0); }\r
+    case 2u: { return vec2<f32>(0.0, 0.0); }\r
+    case 3u: { return vec2<f32>(1.0, 1.0); }\r
+    case 4u: { return vec2<f32>(1.0, 0.0); }\r
+    default: { return vec2<f32>(0.0, 0.0); }\r
+  }\r
+}\r
+\r
+@vertex\r
+fn vs_main(vin: VertexInput, @builtin(vertex_index) vid: u32) -> VertexOutput {\r
+  let center = (model.model * vec4<f32>(vin.position, 1.0)).xyz;\r
+  let up  = vec3<f32>(0.0, 1.0, 0.0);\r
+  let off = quad_offset(vid);\r
+  let wp  = center + orient.right * off.x + up * off.y;\r
+  var out: VertexOutput;\r
+  out.clip_pos = shadow.lightViewProj * vec4<f32>(wp, 1.0);\r
+  out.uv       = quad_uv(vid);\r
+  out.block_f  = vin.block_type;\r
+  return out;\r
+}\r
+\r
+@fragment\r
+fn fs_alpha_test(in: VertexOutput) {\r
+  let tile  = block_data[u32(in.block_f)].sideTile;\r
+  let tileX = f32(tile % ATLAS_COLS);\r
+  let tileY = f32(tile / ATLAS_COLS);\r
+  let uv    = (vec2<f32>(tileX, tileY) + in.uv) * vec2<f32>(INV_COLS, INV_ROWS);\r
+  if textureSample(color_atlas, atlas_samp, uv).a < 0.5 { discard; }\r
+}\r
+`,Ea=4,ze=5*4;class Yr extends ge{constructor(e,t,r,o,i,a,s,l,d,p,f){super();c(this,"name","WorldShadowPass");c(this,"shadowChunkRadius",4);c(this,"_camX",0);c(this,"_camZ",0);c(this,"_device");c(this,"_shadowMapArrayViews");c(this,"_pipeline");c(this,"_transparentPipeline");c(this,"_propPipeline");c(this,"_cascadeBGs");c(this,"_cascadeBuffers");c(this,"_modelBGL");c(this,"_atlasBG");c(this,"_orientBG_X");c(this,"_orientBG_Z");c(this,"_chunks",new Map);c(this,"_cascades",[]);this._device=e,this._shadowMapArrayViews=t,this._pipeline=r,this._transparentPipeline=o,this._propPipeline=i,this._cascadeBGs=a,this._cascadeBuffers=s,this._modelBGL=l,this._atlasBG=d,this._orientBG_X=p,this._orientBG_Z=f}static create(e,t,r,o){const{device:i}=e,a=i.createBindGroupLayout({label:"WorldShadowCascadeBGL",entries:[{binding:0,visibility:GPUShaderStage.VERTEX,buffer:{type:"uniform"}}]}),s=i.createBindGroupLayout({label:"WorldShadowModelBGL",entries:[{binding:0,visibility:GPUShaderStage.VERTEX,buffer:{type:"uniform"}}]}),l=i.createBindGroupLayout({label:"WorldShadowAtlasBGL",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:1,visibility:GPUShaderStage.FRAGMENT,sampler:{type:"filtering"}},{binding:2,visibility:GPUShaderStage.FRAGMENT,buffer:{type:"read-only-storage"}}]}),d=[],p=[];for(let v=0;v<Math.min(r,Ea);v++){const U=i.createBuffer({label:`WorldShadowCascadeBuf${v}`,size:64,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST});d.push(U),p.push(i.createBindGroup({label:`WorldShadowCascadeBG${v}`,layout:a,entries:[{binding:0,resource:{buffer:U}}]}))}const f=N.MAX,h=i.createBuffer({label:"WorldShadowBlockDataBuf",size:Math.max(f*16,16),usage:GPUBufferUsage.STORAGE|GPUBufferUsage.COPY_DST}),_=Wo,g=new Uint32Array(f*4);for(let v=0;v<f;v++){const U=er[v];U&&(g[v*4+0]=U.sideFace.y*_+U.sideFace.x,g[v*4+1]=U.bottomFace.y*_+U.bottomFace.x,g[v*4+2]=U.topFace.y*_+U.topFace.x)}i.queue.writeBuffer(h,0,g);const y=i.createSampler({label:"WorldShadowAtlasSampler",magFilter:"nearest",minFilter:"nearest"}),w=i.createBindGroup({label:"WorldShadowAtlasBG",layout:l,entries:[{binding:0,resource:o.colorAtlas.view},{binding:1,resource:y},{binding:2,resource:{buffer:h}}]}),x=i.createShaderModule({label:"WorldShadowShader",code:qo}),B=i.createPipelineLayout({bindGroupLayouts:[a,s]}),G=i.createRenderPipeline({label:"WorldShadowPipeline",layout:B,vertex:{module:x,entryPoint:"vs_main",buffers:[{arrayStride:ze,attributes:[{shaderLocation:0,offset:0,format:"float32x3"}]}]},depthStencil:{format:"depth32float",depthWriteEnabled:!0,depthCompare:"less"},primitive:{topology:"triangle-list",cullMode:"none"}}),S=i.createShaderModule({label:"WorldShadowTranspShader",code:Ma}),E=i.createPipelineLayout({bindGroupLayouts:[a,s,l]}),L=i.createRenderPipeline({label:"WorldShadowTransparentPipeline",layout:E,vertex:{module:S,entryPoint:"vs_main",buffers:[{arrayStride:ze,attributes:[{shaderLocation:0,offset:0,format:"float32x3"},{shaderLocation:1,offset:12,format:"float32"},{shaderLocation:2,offset:16,format:"float32"}]}]},fragment:{module:S,entryPoint:"fs_alpha_test",targets:[]},depthStencil:{format:"depth32float",depthWriteEnabled:!0,depthCompare:"less"},primitive:{topology:"triangle-list",cullMode:"none"}}),M=i.createBindGroupLayout({label:"WorldShadowOrientBGL",entries:[{binding:0,visibility:GPUShaderStage.VERTEX,buffer:{type:"uniform"}}]}),I=(v,U,C,z)=>{const H=i.createBuffer({label:v,size:16,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST});return i.queue.writeBuffer(H,0,new Float32Array([U,C,z,0])),i.createBindGroup({label:v,layout:M,entries:[{binding:0,resource:{buffer:H}}]})},A=I("PropShadowOrientBG_X",1,0,0),b=I("PropShadowOrientBG_Z",0,0,1),k=i.createShaderModule({label:"WorldShadowPropShader",code:Aa}),m=i.createPipelineLayout({bindGroupLayouts:[a,s,l,M]}),P=i.createRenderPipeline({label:"WorldShadowPropPipeline",layout:m,vertex:{module:k,entryPoint:"vs_main",buffers:[{arrayStride:ze,attributes:[{shaderLocation:0,offset:0,format:"float32x3"},{shaderLocation:1,offset:12,format:"float32"},{shaderLocation:2,offset:16,format:"float32"}]}]},fragment:{module:k,entryPoint:"fs_alpha_test",targets:[]},depthStencil:{format:"depth32float",depthWriteEnabled:!0,depthCompare:"less"},primitive:{topology:"triangle-list",cullMode:"none"}});return new Yr(i,t,G,L,P,p,d,s,w,A,b)}update(e,t,r,o){this._cascades=t,this._camX=r,this._camZ=o;const i=Math.min(t.length,this._cascadeBuffers.length);for(let a=0;a<i;a++)e.queue.writeBuffer(this._cascadeBuffers[a],0,t[a].lightViewProj.data.buffer)}addChunk(e,t){const r=this._chunks.get(e);r?this._replaceMeshBuffer(r,t):this._chunks.set(e,this._createChunkGpu(e,t))}updateChunk(e,t){const r=this._chunks.get(e);r?this._replaceMeshBuffer(r,t):this._chunks.set(e,this._createChunkGpu(e,t))}removeChunk(e){var r,o,i;const t=this._chunks.get(e);t&&((r=t.opaqueBuffer)==null||r.destroy(),(o=t.transparentBuffer)==null||o.destroy(),(i=t.propBuffer)==null||i.destroy(),t.modelBuffer.destroy(),this._chunks.delete(e))}execute(e,t){const r=Math.min(this._cascades.length,this._cascadeBuffers.length);for(let o=0;o<r;o++){const i=e.beginRenderPass({label:`WorldShadowPass cascade ${o}`,colorAttachments:[],depthStencilAttachment:{view:this._shadowMapArrayViews[o],depthLoadOp:"load",depthStoreOp:"store"}});i.setBindGroup(0,this._cascadeBGs[o]);const a=this.shadowChunkRadius*16,s=a*a;i.setPipeline(this._pipeline);for(const l of this._chunks.values()){if(!l.opaqueBuffer||l.opaqueCount===0)continue;const d=l.ox-this._camX,p=l.oz-this._camZ;d*d+p*p>s||(i.setBindGroup(1,l.modelBG),i.setVertexBuffer(0,l.opaqueBuffer),i.draw(l.opaqueCount))}i.setPipeline(this._transparentPipeline),i.setBindGroup(2,this._atlasBG);for(const l of this._chunks.values()){if(!l.transparentBuffer||l.transparentCount===0)continue;const d=l.ox-this._camX,p=l.oz-this._camZ;d*d+p*p>s||(i.setBindGroup(1,l.modelBG),i.setVertexBuffer(0,l.transparentBuffer),i.draw(l.transparentCount))}i.setPipeline(this._propPipeline),i.setBindGroup(2,this._atlasBG);for(const l of[this._orientBG_X,this._orientBG_Z]){i.setBindGroup(3,l);for(const d of this._chunks.values()){if(!d.propBuffer||d.propCount===0)continue;const p=d.ox-this._camX,f=d.oz-this._camZ;p*p+f*f>s||(i.setBindGroup(1,d.modelBG),i.setVertexBuffer(0,d.propBuffer),i.draw(d.propCount))}}i.end()}}destroy(){var e,t,r;for(const o of this._cascadeBuffers)o.destroy();for(const o of this._chunks.values())(e=o.opaqueBuffer)==null||e.destroy(),(t=o.transparentBuffer)==null||t.destroy(),(r=o.propBuffer)==null||r.destroy(),o.modelBuffer.destroy();this._chunks.clear()}_createChunkGpu(e,t){const r=e.globalPosition,o=new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,r.x,r.y,r.z,1]),i=this._device.createBuffer({label:"WorldShadowModelBuf",size:64,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST});this._device.queue.writeBuffer(i,0,o.buffer);const a=this._device.createBindGroup({label:"WorldShadowModelBG",layout:this._modelBGL,entries:[{binding:0,resource:{buffer:i}}]}),s={ox:r.x,oz:r.z,opaqueBuffer:null,opaqueCount:0,transparentBuffer:null,transparentCount:0,propBuffer:null,propCount:0,modelBuffer:i,modelBG:a};return this._replaceMeshBuffer(s,t),s}_replaceMeshBuffer(e,t){var r,o,i;if((r=e.opaqueBuffer)==null||r.destroy(),e.opaqueBuffer=null,e.opaqueCount=t.opaqueCount,t.opaqueCount>0){const a=this._device.createBuffer({label:"WorldShadowOpaqueBuf",size:t.opaqueCount*ze,usage:GPUBufferUsage.VERTEX|GPUBufferUsage.COPY_DST});this._device.queue.writeBuffer(a,0,t.opaque.buffer,0,t.opaqueCount*ze),e.opaqueBuffer=a}if((o=e.transparentBuffer)==null||o.destroy(),e.transparentBuffer=null,e.transparentCount=t.transparentCount,t.transparentCount>0){const a=this._device.createBuffer({label:"WorldShadowTransparentBuf",size:t.transparentCount*ze,usage:GPUBufferUsage.VERTEX|GPUBufferUsage.COPY_DST});this._device.queue.writeBuffer(a,0,t.transparent.buffer,0,t.transparentCount*ze),e.transparentBuffer=a}if((i=e.propBuffer)==null||i.destroy(),e.propBuffer=null,e.propCount=t.propCount,t.propCount>0){const a=this._device.createBuffer({label:"WorldShadowPropBuf",size:t.propCount*ze,usage:GPUBufferUsage.VERTEX|GPUBufferUsage.COPY_DST});this._device.queue.writeBuffer(a,0,t.prop.buffer,0,t.propCount*ze),e.propBuffer=a}}}const Ua=`// Additive deferred pass for point and spot lights.\r
+// Runs after LightingPass (which handles directional + IBL) with loadOp:'load'\r
+// and srcFactor:'one' dstFactor:'one' so results accumulate on the HDR texture.\r
+\r
+const PI: f32 = 3.14159265358979323846;\r
+\r
+// ---- Camera (same layout as lighting.wgsl, 288 bytes) -------------------------\r
+\r
+struct CameraUniforms {\r
+  view       : mat4x4<f32>,\r
+  proj       : mat4x4<f32>,\r
+  viewProj   : mat4x4<f32>,\r
+  invViewProj: mat4x4<f32>,\r
+  position   : vec3<f32>,\r
+  near       : f32,\r
+  far        : f32,\r
+}\r
+\r
+// ---- Light data ---------------------------------------------------------------\r
+\r
+struct LightCounts {\r
+  numPoint: u32,\r
+  numSpot : u32,\r
+}\r
+\r
+// 48 bytes — must match TypeScript packing in updateLights()\r
+struct PointLightGpu {\r
+  position : vec3<f32>,   // offset 0\r
+  radius   : f32,         // offset 12\r
+  color    : vec3<f32>,   // offset 16\r
+  intensity: f32,         // offset 28\r
+  shadowIdx: i32,         // offset 32  — negative means no shadow\r
+  _pad0    : i32,\r
+  _pad1    : i32,\r
+  _pad2    : i32,\r
+}\r
+\r
+// 128 bytes — must match TypeScript packing in updateLights()\r
+struct SpotLightGpu {\r
+  position  : vec3<f32>,    // offset 0\r
+  range     : f32,          // offset 12\r
+  direction : vec3<f32>,    // offset 16\r
+  innerCos  : f32,          // offset 28\r
+  color     : vec3<f32>,    // offset 32\r
+  outerCos  : f32,          // offset 44\r
+  intensity : f32,          // offset 48\r
+  shadowIdx : i32,          // offset 52\r
+  projTexIdx: i32,          // offset 56\r
+  _pad      : f32,          // offset 60\r
+  lightViewProj: mat4x4<f32>, // offset 64\r
+}\r
+\r
+@group(0) @binding(0) var<uniform>       camera     : CameraUniforms;\r
+@group(2) @binding(0) var<uniform>       lightCounts: LightCounts;\r
+@group(2) @binding(1) var<storage, read> pointLights: array<PointLightGpu>;\r
+@group(2) @binding(2) var<storage, read> spotLights : array<SpotLightGpu>;\r
+\r
+// ---- GBuffer -----------------------------------------------------------------\r
+\r
+@group(1) @binding(0) var albedoRoughnessTex: texture_2d<f32>;\r
+@group(1) @binding(1) var normalMetallicTex : texture_2d<f32>;\r
+@group(1) @binding(2) var depthTex          : texture_depth_2d;\r
+@group(1) @binding(3) var gbufferSampler    : sampler;\r
+\r
+// ---- Shadow maps + projection textures ----------------------------------------\r
+\r
+@group(3) @binding(0) var vsm_point   : texture_cube_array<f32>;\r
+@group(3) @binding(1) var vsm_spot    : texture_2d_array<f32>;\r
+@group(3) @binding(2) var proj_tex    : texture_2d_array<f32>;\r
+@group(3) @binding(3) var vsm_sampler : sampler;\r
+@group(3) @binding(4) var proj_sampler: sampler;\r
+\r
+// ---- Vertex ------------------------------------------------------------------\r
+\r
+struct VertexOutput {\r
+  @builtin(position) clip_pos: vec4<f32>,\r
+  @location(0)       uv      : vec2<f32>,\r
+}\r
+\r
+@vertex\r
+fn vs_main(@builtin(vertex_index) vid: u32) -> VertexOutput {\r
+  let x = f32((vid & 1u) << 2u) - 1.0;\r
+  let y = f32((vid & 2u) << 1u) - 1.0;\r
+  var out: VertexOutput;\r
+  out.clip_pos = vec4<f32>(x, y, 0.0, 1.0);\r
+  out.uv       = vec2<f32>(x * 0.5 + 0.5, -y * 0.5 + 0.5);\r
+  return out;\r
+}\r
+\r
+// ---- Helpers -----------------------------------------------------------------\r
+\r
+fn reconstruct_world_pos(uv: vec2<f32>, depth: f32) -> vec3<f32> {\r
+  let ndc    = vec4<f32>(uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0, depth, 1.0);\r
+  let world_h = camera.invViewProj * ndc;\r
+  return world_h.xyz / world_h.w;\r
+}\r
+\r
+// Variance shadow map: Chebyshev upper bound\r
+fn vsm_shadow(moments: vec2<f32>, compare: f32) -> f32 {\r
+  if (compare <= moments.x + 0.001) { return 1.0; }\r
+  let variance = max(moments.y - moments.x * moments.x, 1e-5);\r
+  let d = compare - moments.x;\r
+  return variance / (variance + d * d);\r
+}\r
+\r
+// Epic-style inverse-square attenuation with smooth radius falloff\r
+fn point_attenuation(dist: f32, radius: f32) -> f32 {\r
+  let r = dist / radius;\r
+  return pow(saturate(1.0 - r * r * r * r), 2.0) / max(dist * dist, 0.0001);\r
+}\r
+\r
+// ---- BRDF (same as lighting.wgsl) --------------------------------------------\r
+\r
+fn distribution_ggx(NdotH: f32, roughness: f32) -> f32 {\r
+  let a  = roughness * roughness;\r
+  let a2 = a * a;\r
+  let d  = NdotH * NdotH * (a2 - 1.0) + 1.0;\r
+  return a2 / (PI * d * d);\r
+}\r
+\r
+fn geometry_direct(NdotX: f32, roughness: f32) -> f32 {\r
+  let r = roughness + 1.0;\r
+  let k = r * r / 8.0;\r
+  return NdotX / (NdotX * (1.0 - k) + k);\r
+}\r
+\r
+fn smith_direct(NdotV: f32, NdotL: f32, roughness: f32) -> f32 {\r
+  return geometry_direct(NdotV, roughness) * geometry_direct(NdotL, roughness);\r
+}\r
+\r
+fn fresnel_schlick(cosTheta: f32, F0: vec3<f32>) -> vec3<f32> {\r
+  return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);\r
+}\r
+\r
+fn cook_torrance(NdotV: f32, NdotL: f32, NdotH: f32, VdotH: f32, roughness: f32, F0: vec3<f32>, albedo: vec3<f32>, metallic: f32) -> vec3<f32> {\r
+  let D  = distribution_ggx(NdotH, roughness);\r
+  let G  = smith_direct(NdotV, NdotL, roughness);\r
+  let Fd = fresnel_schlick(VdotH, F0);\r
+  let kD = (vec3<f32>(1.0) - Fd) * (1.0 - metallic);\r
+  let specular = D * G * Fd / max(4.0 * NdotV * NdotL, 0.001);\r
+  let diffuse  = kD * albedo / PI;\r
+  return diffuse + specular;\r
+}\r
+\r
+// ---- Fragment ----------------------------------------------------------------\r
+\r
+@fragment\r
+fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {\r
+  let coord = vec2<i32>(in.clip_pos.xy);\r
+  let depth = textureLoad(depthTex, coord, 0);\r
+  if (depth >= 1.0) { discard; }  // sky — directional pass handles it\r
+\r
+  let albedo_rough = textureLoad(albedoRoughnessTex, coord, 0);\r
+  let normal_metal = textureLoad(normalMetallicTex,  coord, 0);\r
+\r
+  let albedo    = albedo_rough.rgb;\r
+  let roughness = max(albedo_rough.a, 0.04);\r
+  let N         = normalize(normal_metal.rgb * 2.0 - 1.0);\r
+  let metallic  = normal_metal.a;\r
+\r
+  let world_pos = reconstruct_world_pos(in.uv, depth);\r
+  let V         = normalize(camera.position - world_pos);\r
+  let NdotV     = max(dot(N, V), 0.001);\r
+  let F0        = mix(vec3<f32>(0.04), albedo, metallic);\r
+\r
+  var accum = vec3<f32>(0.0);\r
+\r
+  // ---- Point lights ----------------------------------------------------------\r
+  for (var i = 0u; i < lightCounts.numPoint; i++) {\r
+    let pl   = pointLights[i];\r
+    let diff = pl.position - world_pos;\r
+    let dist = length(diff);\r
+    if (dist >= pl.radius) { continue; }\r
+\r
+    let L     = diff / dist;\r
+    let NdotL = max(dot(N, L), 0.0);\r
+    if (NdotL <= 0.0) { continue; }\r
+\r
+    let H     = normalize(L + V);\r
+    let NdotH = max(dot(N, H), 0.0);\r
+    let VdotH = max(dot(V, H), 0.0);\r
+\r
+    let brdf = cook_torrance(NdotV, NdotL, NdotH, VdotH, roughness, F0, albedo, metallic);\r
+    let att  = point_attenuation(dist, pl.radius);\r
+\r
+    // VSM cube-array shadow\r
+    var shad = 1.0;\r
+    if (pl.shadowIdx >= 0) {\r
+      let dir     = -normalize(diff);  // from light toward surface\r
+      let compare = dist / pl.radius;\r
+      let moments = textureSampleLevel(vsm_point, vsm_sampler, dir, pl.shadowIdx, 0.0).rg;\r
+      shad = vsm_shadow(moments, compare);\r
+    }\r
+\r
+    accum += brdf * pl.color * pl.intensity * NdotL * att * shad;\r
+  }\r
+\r
+  // ---- Spot lights -----------------------------------------------------------\r
+  for (var i = 0u; i < lightCounts.numSpot; i++) {\r
+    let sl   = spotLights[i];\r
+    let diff = sl.position - world_pos;\r
+    let dist = length(diff);\r
+    if (dist >= sl.range) { continue; }\r
+\r
+    let L        = diff / dist;\r
+    let NdotL    = max(dot(N, L), 0.0);\r
+    if (NdotL <= 0.0) { continue; }\r
+\r
+    // Spot cone attenuation\r
+    let cos_angle = dot(-L, sl.direction);\r
+    if (cos_angle <= sl.outerCos) { continue; }\r
+    let cone = smoothstep(sl.outerCos, sl.innerCos, cos_angle);\r
+\r
+    let H     = normalize(L + V);\r
+    let NdotH = max(dot(N, H), 0.0);\r
+    let VdotH = max(dot(V, H), 0.0);\r
+\r
+    let brdf = cook_torrance(NdotV, NdotL, NdotH, VdotH, roughness, F0, albedo, metallic);\r
+    let att  = point_attenuation(dist, sl.range);\r
+\r
+    // VSM + projection texture (computed from light-space coords)\r
+    var modulator = vec3<f32>(1.0);\r
+    if (sl.shadowIdx >= 0 || sl.projTexIdx >= 0) {\r
+      let ls     = sl.lightViewProj * vec4<f32>(world_pos, 1.0);\r
+      let sc     = ls.xyz / ls.w;\r
+      let uv     = vec2<f32>(sc.x * 0.5 + 0.5, -sc.y * 0.5 + 0.5);\r
+      let in_frustum = all(uv >= vec2<f32>(0.0)) && all(uv <= vec2<f32>(1.0)) && sc.z >= 0.0 && sc.z <= 1.0;\r
+\r
+      if (in_frustum) {\r
+        if (sl.shadowIdx >= 0) {\r
+          let moments = textureSampleLevel(vsm_spot, vsm_sampler, uv, sl.shadowIdx, 0.0).rg;\r
+          modulator *= vec3<f32>(vsm_shadow(moments, sc.z));\r
+        }\r
+        if (sl.projTexIdx >= 0) {\r
+          modulator *= textureSampleLevel(proj_tex, proj_sampler, uv, sl.projTexIdx, 0.0).rgb;\r
+        }\r
+      } else {\r
+        modulator = vec3<f32>(0.0);  // outside frustum → no contribution\r
+      }\r
+    }\r
+\r
+    accum += brdf * sl.color * sl.intensity * NdotL * att * cone * modulator;\r
+  }\r
+\r
+  return vec4<f32>(accum, 0.0);\r
+}\r
+`,Qn=64*4+16+16,Ca=8,Jn=48,eo=128;class Xr extends ge{constructor(e,t,r,o,i,a,s,l,d,p){super();c(this,"name","PointSpotLightPass");c(this,"_pipeline");c(this,"_cameraBG");c(this,"_gbufferBG");c(this,"_lightBG");c(this,"_shadowBG");c(this,"_cameraBuffer");c(this,"_lightCountsBuffer");c(this,"_pointBuffer");c(this,"_spotBuffer");c(this,"_hdrView");c(this,"_cameraData",new Float32Array(Qn/4));c(this,"_lightCountsArr",new Uint32Array(2));c(this,"_pointBuf",new ArrayBuffer(kt*Jn));c(this,"_pointF32",new Float32Array(this._pointBuf));c(this,"_pointI32",new Int32Array(this._pointBuf));c(this,"_spotBuf",new ArrayBuffer(Lt*eo));c(this,"_spotF32",new Float32Array(this._spotBuf));c(this,"_spotI32",new Int32Array(this._spotBuf));this._pipeline=e,this._cameraBG=t,this._gbufferBG=r,this._lightBG=o,this._shadowBG=i,this._cameraBuffer=a,this._lightCountsBuffer=s,this._pointBuffer=l,this._spotBuffer=d,this._hdrView=p}static create(e,t,r,o){const{device:i}=e,a=i.createBuffer({label:"PSLCameraBuffer",size:Qn,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST}),s=i.createBuffer({label:"PSLLightCounts",size:Ca,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST}),l=i.createBuffer({label:"PSLPointBuffer",size:kt*Jn,usage:GPUBufferUsage.STORAGE|GPUBufferUsage.COPY_DST}),d=i.createBuffer({label:"PSLSpotBuffer",size:Lt*eo,usage:GPUBufferUsage.STORAGE|GPUBufferUsage.COPY_DST}),p=i.createSampler({label:"PSLLinearSampler",magFilter:"linear",minFilter:"linear",addressModeU:"clamp-to-edge",addressModeV:"clamp-to-edge"}),f=i.createSampler({label:"PSLVsmSampler",magFilter:"linear",minFilter:"linear",addressModeU:"clamp-to-edge",addressModeV:"clamp-to-edge",addressModeW:"clamp-to-edge"}),h=i.createSampler({label:"PSLProjSampler",magFilter:"linear",minFilter:"linear",addressModeU:"clamp-to-edge",addressModeV:"clamp-to-edge"}),_=i.createBindGroupLayout({label:"PSLCameraBGL",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT|GPUShaderStage.VERTEX,buffer:{type:"uniform"}}]}),g=i.createBindGroupLayout({label:"PSLGBufferBGL",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:1,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:2,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"depth"}},{binding:3,visibility:GPUShaderStage.FRAGMENT,sampler:{type:"filtering"}}]}),y=i.createBindGroupLayout({label:"PSLLightBGL",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,buffer:{type:"uniform"}},{binding:1,visibility:GPUShaderStage.FRAGMENT,buffer:{type:"read-only-storage"}},{binding:2,visibility:GPUShaderStage.FRAGMENT,buffer:{type:"read-only-storage"}}]}),w=i.createBindGroupLayout({label:"PSLShadowBGL",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float",viewDimension:"cube-array"}},{binding:1,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float",viewDimension:"2d-array"}},{binding:2,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float",viewDimension:"2d-array"}},{binding:3,visibility:GPUShaderStage.FRAGMENT,sampler:{type:"filtering"}},{binding:4,visibility:GPUShaderStage.FRAGMENT,sampler:{type:"filtering"}}]}),x=i.createBindGroup({label:"PSLCameraBG",layout:_,entries:[{binding:0,resource:{buffer:a}}]}),B=i.createBindGroup({label:"PSLGBufferBG",layout:g,entries:[{binding:0,resource:t.albedoRoughnessView},{binding:1,resource:t.normalMetallicView},{binding:2,resource:t.depthView},{binding:3,resource:p}]}),G=i.createBindGroup({label:"PSLLightBG",layout:y,entries:[{binding:0,resource:{buffer:s}},{binding:1,resource:{buffer:l}},{binding:2,resource:{buffer:d}}]}),S=i.createBindGroup({label:"PSLShadowBG",layout:w,entries:[{binding:0,resource:r.pointVsmView},{binding:1,resource:r.spotVsmView},{binding:2,resource:r.projTexView},{binding:3,resource:f},{binding:4,resource:h}]}),E=i.createShaderModule({label:"PointSpotLightShader",code:Ua}),L=i.createRenderPipeline({label:"PointSpotLightPipeline",layout:i.createPipelineLayout({bindGroupLayouts:[_,g,y,w]}),vertex:{module:E,entryPoint:"vs_main"},fragment:{module:E,entryPoint:"fs_main",targets:[{format:ee,blend:{color:{srcFactor:"one",dstFactor:"one",operation:"add"},alpha:{srcFactor:"one",dstFactor:"one",operation:"add"}}}]},primitive:{topology:"triangle-list"}});return new Xr(L,x,B,G,S,a,s,l,d,o)}updateCamera(e,t,r,o,i,a,s,l){const d=this._cameraData;d.set(t.data,0),d.set(r.data,16),d.set(o.data,32),d.set(i.data,48),d[64]=a.x,d[65]=a.y,d[66]=a.z,d[67]=s,d[68]=l,e.queue.writeBuffer(this._cameraBuffer,0,d.buffer)}updateLights(e,t,r){const o=this._lightCountsArr;o[0]=Math.min(t.length,kt),o[1]=Math.min(r.length,Lt),e.queue.writeBuffer(this._lightCountsBuffer,0,o.buffer);const i=this._pointF32,a=this._pointI32;let s=0;for(let f=0;f<Math.min(t.length,kt);f++){const h=t[f],_=h.worldPosition(),g=f*12;i[g+0]=_.x,i[g+1]=_.y,i[g+2]=_.z,i[g+3]=h.radius,i[g+4]=h.color.x,i[g+5]=h.color.y,i[g+6]=h.color.z,i[g+7]=h.intensity,h.castShadow&&s<st?a[g+8]=s++:a[g+8]=-1,a[g+9]=0,a[g+10]=0,a[g+11]=0}e.queue.writeBuffer(this._pointBuffer,0,this._pointBuf);const l=this._spotF32,d=this._spotI32;let p=0;for(let f=0;f<Math.min(r.length,Lt);f++){const h=r[f],_=h.worldPosition(),g=h.worldDirection(),y=h.lightViewProj(),w=f*32;l[w+0]=_.x,l[w+1]=_.y,l[w+2]=_.z,l[w+3]=h.range,l[w+4]=g.x,l[w+5]=g.y,l[w+6]=g.z,l[w+7]=Math.cos(h.innerAngle*Math.PI/180),l[w+8]=h.color.x,l[w+9]=h.color.y,l[w+10]=h.color.z,l[w+11]=Math.cos(h.outerAngle*Math.PI/180),l[w+12]=h.intensity,h.castShadow&&p<Ye?d[w+13]=p++:d[w+13]=-1,d[w+14]=h.projectionTexture!==null?f:-1,d[w+15]=0,l.set(y.data,w+16)}e.queue.writeBuffer(this._spotBuffer,0,this._spotBuf)}execute(e,t){const r=e.beginRenderPass({label:"PointSpotLightPass",colorAttachments:[{view:this._hdrView,loadOp:"load",storeOp:"store"}]});r.setPipeline(this._pipeline),r.setBindGroup(0,this._cameraBG),r.setBindGroup(1,this._gbufferBG),r.setBindGroup(2,this._lightBG),r.setBindGroup(3,this._shadowBG),r.draw(3),r.end()}destroy(){this._cameraBuffer.destroy(),this._lightCountsBuffer.destroy(),this._pointBuffer.destroy(),this._spotBuffer.destroy()}}const jo=`
+struct Particle {
+  position : vec3<f32>,  // offset  0
+  life     : f32,        // offset 12  (-1 = dead)
+  velocity : vec3<f32>,  // offset 16
+  max_life : f32,        // offset 28
+  color    : vec4<f32>,  // offset 32
+  size     : f32,        // offset 48
+  rotation : f32,        // offset 52
+  _pad     : vec2<f32>,  // offset 56
+}                        // total: 64 bytes
+
+struct ComputeUniforms {
+  world_pos     : vec3<f32>,
+  spawn_count   : u32,
+  world_quat    : vec4<f32>,
+  spawn_offset  : u32,
+  max_particles : u32,
+  frame_seed    : u32,
+  _pad0         : u32,
+  dt            : f32,
+  time          : f32,
+  _pad1         : vec2<f32>,
+}
+
+fn pcg_hash(v: u32) -> u32 {
+  let state = v * 747796405u + 2891336453u;
+  let word  = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+  return (word >> 22u) ^ word;
+}
+
+fn rand_f32(seed: u32) -> f32 {
+  return f32(pcg_hash(seed)) / 4294967295.0;
+}
+
+fn rand_range(lo: f32, hi: f32, seed: u32) -> f32 {
+  return lo + rand_f32(seed) * (hi - lo);
+}
+
+fn quat_rotate(q: vec4<f32>, v: vec3<f32>) -> vec3<f32> {
+  let t = 2.0 * cross(q.xyz, v);
+  return v + q.w * t + cross(q.xyz, t);
+}
+
+// Uniform sample in a spherical cap of half-angle acos(cos_max) around +Y.
+fn sample_cone(seed0: u32, seed1: u32, cos_max: f32) -> vec3<f32> {
+  let cos_theta = mix(cos_max, 1.0, rand_f32(seed0));
+  let sin_theta = sqrt(max(0.0, 1.0 - cos_theta * cos_theta));
+  let phi       = rand_f32(seed1) * 6.28318530717958647;
+  return vec3<f32>(sin_theta * cos(phi), cos_theta, sin_theta * sin(phi));
+}
+
+// 3-component gradient noise helpers for curl noise
+fn hash3(p: vec3<f32>) -> vec3<f32> {
+  var q = vec3<f32>(
+    dot(p, vec3<f32>(127.1, 311.7, 74.7)),
+    dot(p, vec3<f32>(269.5, 183.3, 246.1)),
+    dot(p, vec3<f32>(113.5,  271.9, 124.6)),
+  );
+  return fract(sin(q) * 43758.5453123);
+}
+
+fn noise3(p: vec3<f32>) -> f32 {
+  let i = floor(p);
+  let f = fract(p);
+  let u = f * f * (3.0 - 2.0 * f);
+  return mix(
+    mix(mix(dot(hash3(i + vec3(0.,0.,0.)) * 2.0 - 1.0, f - vec3(0.,0.,0.)),
+            dot(hash3(i + vec3(1.,0.,0.)) * 2.0 - 1.0, f - vec3(1.,0.,0.)), u.x),
+        mix(dot(hash3(i + vec3(0.,1.,0.)) * 2.0 - 1.0, f - vec3(0.,1.,0.)),
+            dot(hash3(i + vec3(1.,1.,0.)) * 2.0 - 1.0, f - vec3(1.,1.,0.)), u.x), u.y),
+    mix(mix(dot(hash3(i + vec3(0.,0.,1.)) * 2.0 - 1.0, f - vec3(0.,0.,1.)),
+            dot(hash3(i + vec3(1.,0.,1.)) * 2.0 - 1.0, f - vec3(1.,0.,1.)), u.x),
+        mix(dot(hash3(i + vec3(0.,1.,1.)) * 2.0 - 1.0, f - vec3(0.,1.,1.)),
+            dot(hash3(i + vec3(1.,1.,1.)) * 2.0 - 1.0, f - vec3(1.,1.,1.)), u.x), u.y), u.z);
+}
+
+fn curl_noise(p: vec3<f32>) -> vec3<f32> {
+  let e  = 0.1;
+  let ex = vec3<f32>(e,   0.0, 0.0);
+  let ey = vec3<f32>(0.0, e,   0.0);
+  let ez = vec3<f32>(0.0, 0.0, e  );
+  // Three decorrelated potential fields: Fx=noise3(p), Fy=noise3(p+o1), Fz=noise3(p+o2)
+  let o1 = vec3<f32>(31.416, 27.183, 14.142);
+  let o2 = vec3<f32>(62.832, 54.366, 28.284);
+  // curl(F).x = dFz/dy - dFy/dz
+  let cx = (noise3(p + o2 + ey) - noise3(p + o2 - ey))
+         - (noise3(p + o1 + ez) - noise3(p + o1 - ez));
+  // curl(F).y = dFx/dz - dFz/dx
+  let cy = (noise3(p + ez)      - noise3(p - ez))
+         - (noise3(p + o2 + ex) - noise3(p + o2 - ex));
+  // curl(F).z = dFy/dx - dFx/dy
+  let cz = (noise3(p + o1 + ex) - noise3(p + o1 - ex))
+         - (noise3(p + ey)      - noise3(p - ey));
+  return vec3<f32>(cx, cy, cz) / (2.0 * e);
+}
+
+// FBM curl noise: sums octaves at increasing frequencies / decreasing amplitudes.
+// Normalized so output magnitude matches single-octave curl_noise.
+fn curl_noise_fbm(p: vec3<f32>, octaves: i32) -> vec3<f32> {
+  var result    = vec3<f32>(0.0);
+  var freq      = 1.0;
+  var amp       = 0.5;
+  var total_amp = 0.0;
+  for (var o = 0; o < octaves; o++) {
+    result    += curl_noise(p * freq) * amp;
+    total_amp += amp;
+    freq      *= 2.0;
+    amp       *= 0.5;
+  }
+  return result / total_amp;
+}
+`;function ka(u){switch(u.kind){case"sphere":{const n=Math.cos(u.solidAngle).toFixed(6),e=u.radius.toFixed(6);return`{
+  let dir = sample_cone(seed + 10u, seed + 11u, ${n});
+  let world_dir = quat_rotate(uniforms.world_quat, dir);
+  p.position = uniforms.world_pos + world_dir * ${e};
+  p.velocity = world_dir * speed;
+}`}case"cone":{const n=Math.cos(u.angle).toFixed(6),e=u.radius.toFixed(6);return`{
+  let dir = sample_cone(seed + 10u, seed + 11u, ${n});
+  let world_dir = quat_rotate(uniforms.world_quat, dir);
+  p.position = uniforms.world_pos + world_dir * ${e};
+  p.velocity = world_dir * speed;
+}`}case"box":{const[n,e,t]=u.halfExtents.map(r=>r.toFixed(6));return`{
+  let local_off = vec3<f32>(
+    (rand_f32(seed + 10u) * 2.0 - 1.0) * ${n},
+    (rand_f32(seed + 11u) * 2.0 - 1.0) * ${e},
+    (rand_f32(seed + 12u) * 2.0 - 1.0) * ${t},
+  );
+  let up = quat_rotate(uniforms.world_quat, vec3<f32>(0.0, 1.0, 0.0));
+  p.position = uniforms.world_pos + quat_rotate(uniforms.world_quat, local_off);
+  p.velocity = up * speed;
+}`}}}function Yo(u){switch(u.type){case"gravity":return`p.velocity.y -= ${u.strength.toFixed(6)} * uniforms.dt;`;case"drag":return`p.velocity -= p.velocity * ${u.coefficient.toFixed(6)} * uniforms.dt;`;case"force":{const[n,e,t]=u.direction.map(r=>r.toFixed(6));return`p.velocity += vec3<f32>(${n}, ${e}, ${t}) * ${u.strength.toFixed(6)} * uniforms.dt;`}case"swirl_force":{const n=u.speed.toFixed(6),e=u.strength.toFixed(6);return`{
+  let swirl_angle = uniforms.time * ${n};
+  p.velocity += vec3<f32>(cos(swirl_angle), 0.0, sin(swirl_angle)) * ${e} * uniforms.dt;
+}`}case"vortex":return`{
+  let vx_radial = p.position.xz - uniforms.world_pos.xz;
+  p.velocity += vec3<f32>(-vx_radial.y, 0.0, vx_radial.x) * ${u.strength.toFixed(6)} * uniforms.dt;
+}`;case"curl_noise":{const n=u.octaves??1,e=n>1?`curl_noise_fbm(cn_pos, ${n})`:"curl_noise(cn_pos)";return`{
+  let cn_pos = p.position * ${u.scale.toFixed(6)} + uniforms.time * ${u.timeScale.toFixed(6)};
+  p.velocity += ${e} * ${u.strength.toFixed(6)} * uniforms.dt;
+}`}case"size_random":return`p.size = rand_range(${u.min.toFixed(6)}, ${u.max.toFixed(6)}, pcg_hash(idx * 2654435761u));`;case"size_over_lifetime":return`p.size = mix(${u.start.toFixed(6)}, ${u.end.toFixed(6)}, t);`;case"color_over_lifetime":{const[n,e,t,r]=u.startColor.map(l=>l.toFixed(6)),[o,i,a,s]=u.endColor.map(l=>l.toFixed(6));return`p.color = mix(vec4<f32>(${n}, ${e}, ${t}, ${r}), vec4<f32>(${o}, ${i}, ${a}, ${s}), t);`}case"block_collision":return`{
+  let _bc_uv = (p.position.xz - vec2<f32>(hm.origin_x, hm.origin_z)) / (hm.extent * 2.0) + 0.5;
+  if (all(_bc_uv >= vec2<f32>(0.0)) && all(_bc_uv <= vec2<f32>(1.0))) {
+    let _bc_xi = clamp(u32(_bc_uv.x * f32(hm.resolution)), 0u, hm.resolution - 1u);
+    let _bc_zi = clamp(u32(_bc_uv.y * f32(hm.resolution)), 0u, hm.resolution - 1u);
+    if (p.position.y <= hm_data[_bc_zi * hm.resolution + _bc_xi]) {
+      particles[idx].life = -1.0; return;
+    }
+  }
+}`}}function Xo(u,n){return u?u.filter(e=>e.trigger===n).flatMap(e=>e.actions.map(Yo)).join(`
+  `):""}function La(u){const{emitter:n,events:e}=u,[t,r]=n.lifetime.map(h=>h.toFixed(6)),[o,i]=n.initialSpeed.map(h=>h.toFixed(6)),[a,s]=n.initialSize.map(h=>h.toFixed(6)),[l,d,p,f]=n.initialColor.map(h=>h.toFixed(6));return`
+${jo}
+
+@group(0) @binding(0) var<storage, read_write> particles  : array<Particle>;
+@group(0) @binding(1) var<storage, read_write> alive_list : array<u32>;
+@group(0) @binding(2) var<storage, read_write> counter    : atomic<u32>;
+@group(0) @binding(3) var<storage, read_write> indirect   : array<u32>;
+@group(1) @binding(0) var<uniform>             uniforms   : ComputeUniforms;
+
+@compute @workgroup_size(64)
+fn cs_main(@builtin(global_invocation_id) gid: vec3<u32>) {
+  if (gid.x >= uniforms.spawn_count) { return; }
+
+  let idx  = (uniforms.spawn_offset + gid.x) % uniforms.max_particles;
+  // Use the globally unique cumulative spawn index as the seed so consecutive frames
+  // never collide on gid.x + frame_seed = (gid.x+1) + (frame_seed-1).
+  let seed = pcg_hash(uniforms.spawn_offset + gid.x);
+
+  let speed = rand_range(${o}, ${i}, seed + 1u);
+
+  var p: Particle;
+  p.life     = 0.0;
+  p.max_life = rand_range(${t}, ${r}, seed + 2u);
+  p.color    = vec4<f32>(${l}, ${d}, ${p}, ${f});
+  p.size     = rand_range(${a}, ${s}, seed + 3u);
+  p.rotation = rand_f32(seed + 4u) * 6.28318530717958647;
+
+  ${ka(n.shape)}
+
+  ${Xo(e,"on_spawn")}
+
+  particles[idx] = p;
+}
+`}function Na(u){return u.modifiers.some(n=>n.type==="block_collision")}const Ra=`
+struct HeightmapUniforms {
+  origin_x  : f32,
+  origin_z  : f32,
+  extent    : f32,
+  resolution: u32,
+}
+@group(2) @binding(0) var<storage, read> hm_data: array<f32>;
+@group(2) @binding(1) var<uniform>       hm     : HeightmapUniforms;
+`;function Ia(u){const n=u.modifiers.some(r=>r.type==="block_collision"),e=u.modifiers.map(Yo).join(`
+  `),t=Xo(u.events,"on_death");return`
+${jo}
+${n?Ra:""}
+
+@group(0) @binding(0) var<storage, read_write> particles  : array<Particle>;
+@group(0) @binding(1) var<storage, read_write> alive_list : array<u32>;
+@group(0) @binding(2) var<storage, read_write> counter    : atomic<u32>;
+@group(0) @binding(3) var<storage, read_write> indirect   : array<u32>;
+@group(1) @binding(0) var<uniform>             uniforms   : ComputeUniforms;
+
+@compute @workgroup_size(64)
+fn cs_main(@builtin(global_invocation_id) gid: vec3<u32>) {
+  let idx = gid.x;
+  if (idx >= uniforms.max_particles) { return; }
+
+  var p = particles[idx];
+  if (p.life < 0.0) { return; }
+
+  p.life += uniforms.dt;
+  if (p.life >= p.max_life) {
+    ${t}
+    particles[idx].life = -1.0;
+    return;
+  }
+
+  let t = p.life / p.max_life;
+
+  ${e}
+
+  p.position += p.velocity * uniforms.dt;
+  particles[idx] = p;
+}
+`}const Oa=`// Compact pass — rebuilds alive_list and writes indirect draw instance count.\r
+// Two entry points used as two sequential dispatches within one compute pass:\r
+//   cs_compact      — ceil(maxParticles/64) workgroups, fills alive_list\r
+//   cs_write_indirect — 1 workgroup, copies alive_count → indirect.instanceCount\r
+\r
+struct Particle {\r
+  position : vec3<f32>,\r
+  life     : f32,\r
+  velocity : vec3<f32>,\r
+  max_life : f32,\r
+  color    : vec4<f32>,\r
+  size     : f32,\r
+  rotation : f32,\r
+  _pad     : vec2<f32>,\r
+}\r
+\r
+struct CompactUniforms {\r
+  max_particles: u32,\r
+  _pad0        : u32,\r
+  _pad1        : u32,\r
+  _pad2        : u32,\r
+}\r
+\r
+@group(0) @binding(0) var<storage, read>       particles  : array<Particle>;\r
+@group(0) @binding(1) var<storage, read_write> alive_list : array<u32>;\r
+@group(0) @binding(2) var<storage, read_write> counter    : atomic<u32>;\r
+@group(0) @binding(3) var<storage, read_write> indirect   : array<u32>;\r
+@group(1) @binding(0) var<uniform>             uniforms   : CompactUniforms;\r
+\r
+@compute @workgroup_size(64)\r
+fn cs_compact(@builtin(global_invocation_id) gid: vec3<u32>) {\r
+  let idx = gid.x;\r
+  if (idx >= uniforms.max_particles) { return; }\r
+  if (particles[idx].life < 0.0) { return; }\r
+  let slot = atomicAdd(&counter, 1u);\r
+  alive_list[slot] = idx;\r
+}\r
+\r
+@compute @workgroup_size(1)\r
+fn cs_write_indirect() {\r
+  // indirect layout: [vertexCount, instanceCount, firstVertex, firstInstance]\r
+  indirect[1] = atomicLoad(&counter);\r
+}\r
+`,Va=`// Particle GBuffer render pass — camera-facing billboard quads.\r
+// Each instance reads one alive particle and writes to the deferred GBuffer.\r
+// Normal is the billboard face direction (toward camera) for deferred lighting.\r
+\r
+struct Particle {\r
+  position : vec3<f32>,\r
+  life     : f32,\r
+  velocity : vec3<f32>,\r
+  max_life : f32,\r
+  color    : vec4<f32>,\r
+  size     : f32,\r
+  rotation : f32,\r
+  _pad     : vec2<f32>,\r
+}\r
+\r
+struct CameraUniforms {\r
+  view       : mat4x4<f32>,\r
+  proj       : mat4x4<f32>,\r
+  viewProj   : mat4x4<f32>,\r
+  invViewProj: mat4x4<f32>,\r
+  position   : vec3<f32>,\r
+  near       : f32,\r
+  far        : f32,\r
+}\r
+\r
+struct ParticleRenderUniforms {\r
+  roughness : f32,\r
+  metallic  : f32,\r
+  _pad      : vec2<f32>,\r
+}\r
+\r
+@group(0) @binding(0) var<storage, read> particles  : array<Particle>;\r
+@group(0) @binding(1) var<storage, read> alive_list : array<u32>;\r
+@group(1) @binding(0) var<uniform>       camera     : CameraUniforms;\r
+@group(2) @binding(0) var<uniform>       mat_params : ParticleRenderUniforms;\r
+\r
+struct VertexOutput {\r
+  @builtin(position) clip_pos  : vec4<f32>,\r
+  @location(0)       color     : vec4<f32>,\r
+  @location(1)       uv        : vec2<f32>,\r
+  @location(2)       world_pos : vec3<f32>,\r
+  @location(3)       face_norm : vec3<f32>,\r
+}\r
+\r
+// 2-triangle quad: 6 vertex positions in [-0.5, 0.5]²\r
+fn quad_offset(vid: u32) -> vec2<f32> {\r
+  switch vid {\r
+    case 0u: { return vec2<f32>(-0.5, -0.5); }\r
+    case 1u: { return vec2<f32>( 0.5, -0.5); }\r
+    case 2u: { return vec2<f32>(-0.5,  0.5); }\r
+    case 3u: { return vec2<f32>( 0.5, -0.5); }\r
+    case 4u: { return vec2<f32>( 0.5,  0.5); }\r
+    default: { return vec2<f32>(-0.5,  0.5); }\r
+  }\r
+}\r
+\r
+fn quad_uv(vid: u32) -> vec2<f32> {\r
+  switch vid {\r
+    case 0u: { return vec2<f32>(0.0, 1.0); }\r
+    case 1u: { return vec2<f32>(1.0, 1.0); }\r
+    case 2u: { return vec2<f32>(0.0, 0.0); }\r
+    case 3u: { return vec2<f32>(1.0, 1.0); }\r
+    case 4u: { return vec2<f32>(1.0, 0.0); }\r
+    default: { return vec2<f32>(0.0, 0.0); }\r
+  }\r
+}\r
+\r
+@vertex\r
+fn vs_main(\r
+  @builtin(vertex_index)   vid: u32,\r
+  @builtin(instance_index) iid: u32,\r
+) -> VertexOutput {\r
+  let p_idx = alive_list[iid];\r
+  let p     = particles[p_idx];\r
+\r
+  // Camera right and up from the view matrix rows (column-major storage)\r
+  let cam_right = vec3<f32>(camera.view[0].x, camera.view[1].x, camera.view[2].x);\r
+  let cam_up    = vec3<f32>(camera.view[0].y, camera.view[1].y, camera.view[2].y);\r
+\r
+  // Rotate quad corner around particle center using particle.rotation angle\r
+  let ofs    = quad_offset(vid);\r
+  let c      = cos(p.rotation);\r
+  let s      = sin(p.rotation);\r
+  let rotated = vec2<f32>(c * ofs.x - s * ofs.y, s * ofs.x + c * ofs.y);\r
+\r
+  let world_pos = p.position\r
+    + cam_right * rotated.x * p.size\r
+    + cam_up    * rotated.y * p.size;\r
+\r
+  let face_norm = normalize(camera.position - p.position);\r
+\r
+  var out: VertexOutput;\r
+  out.clip_pos  = camera.viewProj * vec4<f32>(world_pos, 1.0);\r
+  out.color     = p.color;\r
+  out.uv        = quad_uv(vid);\r
+  out.world_pos = world_pos;\r
+  out.face_norm = face_norm;\r
+  return out;\r
+}\r
+\r
+struct GBufferOutput {\r
+  @location(0) albedo_roughness : vec4<f32>,  // rgba8unorm\r
+  @location(1) normal_metallic  : vec4<f32>,  // rgba16float\r
+}\r
+\r
+@fragment\r
+fn fs_main(in: VertexOutput) -> GBufferOutput {\r
+  // Circular clip for round particles\r
+  let d = length(in.uv - 0.5) * 2.0;\r
+  if (d > 1.0) { discard; }\r
+\r
+  // Encode world-space normal as [0,1]\r
+  let N = normalize(in.face_norm);\r
+\r
+  var out: GBufferOutput;\r
+  out.albedo_roughness = vec4<f32>(in.color.rgb, mat_params.roughness);\r
+  out.normal_metallic  = vec4<f32>(N * 0.5 + 0.5, mat_params.metallic);\r
+  return out;\r
+}\r
+`,Da=`// Particle forward HDR render pass — velocity-aligned billboard quads.\r
+// Writes directly to the HDR buffer with alpha blending.\r
+// Used for transparent effects like rain, smoke, sparks.\r
+\r
+struct Particle {\r
+  position : vec3<f32>,\r
+  life     : f32,\r
+  velocity : vec3<f32>,\r
+  max_life : f32,\r
+  color    : vec4<f32>,\r
+  size     : f32,\r
+  rotation : f32,\r
+  _pad     : vec2<f32>,\r
+}\r
+\r
+struct CameraUniforms {\r
+  view       : mat4x4<f32>,\r
+  proj       : mat4x4<f32>,\r
+  viewProj   : mat4x4<f32>,\r
+  invViewProj: mat4x4<f32>,\r
+  position   : vec3<f32>,\r
+  near       : f32,\r
+  far        : f32,\r
+}\r
+\r
+@group(0) @binding(0) var<storage, read> particles  : array<Particle>;\r
+@group(0) @binding(1) var<storage, read> alive_list : array<u32>;\r
+@group(1) @binding(0) var<uniform>       camera     : CameraUniforms;\r
+\r
+struct VertexOutput {\r
+  @builtin(position) clip_pos : vec4<f32>,\r
+  @location(0)       color    : vec4<f32>,\r
+  @location(1)       uv       : vec2<f32>,\r
+}\r
+\r
+// Quad UV: x in [-0.5, 0.5], y in [-0.5, 0.5].\r
+// y=−0.5 is the tail (toward velocity), y=+0.5 is the head.\r
+fn quad_offset(vid: u32) -> vec2<f32> {\r
+  switch vid {\r
+    case 0u: { return vec2<f32>(-0.5, -0.5); }\r
+    case 1u: { return vec2<f32>( 0.5, -0.5); }\r
+    case 2u: { return vec2<f32>(-0.5,  0.5); }\r
+    case 3u: { return vec2<f32>( 0.5, -0.5); }\r
+    case 4u: { return vec2<f32>( 0.5,  0.5); }\r
+    default: { return vec2<f32>(-0.5,  0.5); }\r
+  }\r
+}\r
+\r
+fn quad_uv(vid: u32) -> vec2<f32> {\r
+  switch vid {\r
+    case 0u: { return vec2<f32>(0.0, 1.0); }\r
+    case 1u: { return vec2<f32>(1.0, 1.0); }\r
+    case 2u: { return vec2<f32>(0.0, 0.0); }\r
+    case 3u: { return vec2<f32>(1.0, 1.0); }\r
+    case 4u: { return vec2<f32>(1.0, 0.0); }\r
+    default: { return vec2<f32>(0.0, 0.0); }\r
+  }\r
+}\r
+\r
+@vertex\r
+fn vs_main(\r
+  @builtin(vertex_index)   vid: u32,\r
+  @builtin(instance_index) iid: u32,\r
+) -> VertexOutput {\r
+  let p_idx = alive_list[iid];\r
+  let p     = particles[p_idx];\r
+\r
+  let ofs = quad_offset(vid);\r
+\r
+  // Velocity-aligned billboard: long axis follows velocity direction.\r
+  let vel     = p.velocity;\r
+  let spd     = length(vel);\r
+  let vel_dir = select(vec3<f32>(0.0, 1.0, 0.0), vel / max(spd, 0.001), spd > 0.001);\r
+  let cam_dir = normalize(camera.position - p.position);\r
+  // right is perpendicular to both velocity and cam direction\r
+  let right   = normalize(cross(vel_dir, cam_dir));\r
+\r
+  // Minimal stretch so each drop stays compact\r
+  let stretch = 1.0 + spd * 0.04;\r
+\r
+  let world_pos = p.position\r
+    + right   * ofs.x * p.size\r
+    + vel_dir * ofs.y * p.size * stretch;\r
+\r
+  var out: VertexOutput;\r
+  out.clip_pos = camera.viewProj * vec4<f32>(world_pos, 1.0);\r
+  out.color    = p.color;\r
+  out.uv       = quad_uv(vid);\r
+  return out;\r
+}\r
+\r
+const EMIT_SCALE: f32 = 4.0;\r
+\r
+@fragment\r
+fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {\r
+  // Fade alpha at the tips of the streak (uv.y near 0 or 1)\r
+  let t = abs(in.uv.y * 2.0 - 1.0);\r
+  let alpha = in.color.a * (1.0 - t * t);\r
+  return vec4<f32>(in.color.rgb * EMIT_SCALE, alpha);\r
+}\r
+\r
+// ---- Camera-aligned billboard (snow, soft particles) ------------------------\r
+\r
+@vertex\r
+fn vs_camera(\r
+  @builtin(vertex_index)   vid: u32,\r
+  @builtin(instance_index) iid: u32,\r
+) -> VertexOutput {\r
+  let p_idx = alive_list[iid];\r
+  let p     = particles[p_idx];\r
+\r
+  let ofs = quad_offset(vid);\r
+\r
+  // Extract world-space right and up from the view matrix rows.\r
+  // Column-major mat4x4: view[col][row], so row 0 = right, row 1 = up.\r
+  let right = vec3<f32>(camera.view[0][0], camera.view[1][0], camera.view[2][0]);\r
+  let up    = vec3<f32>(camera.view[0][1], camera.view[1][1], camera.view[2][1]);\r
+\r
+  let world_pos = p.position\r
+    + right * ofs.x * p.size\r
+    + up    * ofs.y * p.size;\r
+\r
+  var out: VertexOutput;\r
+  out.clip_pos = camera.viewProj * vec4<f32>(world_pos, 1.0);\r
+  out.color    = p.color;\r
+  out.uv       = quad_uv(vid);\r
+  return out;\r
+}\r
+\r
+@fragment\r
+fn fs_snow(in: VertexOutput) -> @location(0) vec4<f32> {\r
+  // Soft circular disc with radial falloff from centre.\r
+  let uv = in.uv * 2.0 - 1.0;\r
+  let d2 = dot(uv, uv);\r
+  if (d2 > 1.0) { discard; }\r
+  let alpha = in.color.a * (1.0 - d2);\r
+  return vec4<f32>(in.color.rgb * EMIT_SCALE, alpha);\r
+}\r
+`,to=64,ro=80,za=16,Fa=16,no=288,oo=16,vr=128;class $r extends ge{constructor(e,t,r,o,i,a,s,l,d,p,f,h,_,g,y,w,x,B,G,S,E,L,M,I,A,b,k){super();c(this,"name","ParticlePass");c(this,"_gbuffer");c(this,"_hdrView");c(this,"_isForward");c(this,"_maxParticles");c(this,"_config");c(this,"_particleBuffer");c(this,"_aliveList");c(this,"_counterBuffer");c(this,"_indirectBuffer");c(this,"_computeUniforms");c(this,"_renderUniforms");c(this,"_cameraBuffer");c(this,"_spawnPipeline");c(this,"_updatePipeline");c(this,"_compactPipeline");c(this,"_indirectPipeline");c(this,"_renderPipeline");c(this,"_computeDataBG");c(this,"_computeUniBG");c(this,"_compactDataBG");c(this,"_compactUniBG");c(this,"_renderDataBG");c(this,"_cameraRenderBG");c(this,"_renderParamsBG");c(this,"_heightmapDataBuf");c(this,"_heightmapUniBuf");c(this,"_heightmapBG");c(this,"_spawnAccum",0);c(this,"_spawnOffset",0);c(this,"_spawnCount",0);c(this,"_time",0);c(this,"_frameSeed",0);c(this,"_cuBuf",new Float32Array(ro/4));c(this,"_cuiView",new Uint32Array(this._cuBuf.buffer));c(this,"_camBuf",new Float32Array(no/4));c(this,"_hmUniBuf",new Float32Array(oo/4));c(this,"_hmRes",new Uint32Array([vr]));c(this,"_resetArr",new Uint32Array(1));this._gbuffer=e,this._hdrView=t,this._isForward=r,this._config=o,this._maxParticles=i,this._particleBuffer=a,this._aliveList=s,this._counterBuffer=l,this._indirectBuffer=d,this._computeUniforms=p,this._renderUniforms=f,this._cameraBuffer=h,this._spawnPipeline=_,this._updatePipeline=g,this._compactPipeline=y,this._indirectPipeline=w,this._renderPipeline=x,this._computeDataBG=B,this._computeUniBG=G,this._compactDataBG=S,this._compactUniBG=E,this._renderDataBG=L,this._cameraRenderBG=M,this._renderParamsBG=I,this._heightmapDataBuf=A,this._heightmapUniBuf=b,this._heightmapBG=k}static create(e,t,r,o){const{device:i}=e,a=t.renderer.type==="sprites"&&t.renderer.renderTarget==="hdr",s=t.emitter.maxParticles,l=i.createBuffer({label:"ParticleBuffer",size:s*to,usage:GPUBufferUsage.STORAGE|GPUBufferUsage.COPY_DST}),d=new Float32Array(s*(to/4));for(let ne=0;ne<s;ne++)d[ne*16+3]=-1;i.queue.writeBuffer(l,0,d.buffer);const p=i.createBuffer({label:"ParticleAliveList",size:s*4,usage:GPUBufferUsage.STORAGE}),f=i.createBuffer({label:"ParticleCounter",size:4,usage:GPUBufferUsage.STORAGE|GPUBufferUsage.COPY_DST}),h=i.createBuffer({label:"ParticleIndirect",size:16,usage:GPUBufferUsage.INDIRECT|GPUBufferUsage.STORAGE|GPUBufferUsage.COPY_DST});i.queue.writeBuffer(h,0,new Uint32Array([6,0,0,0]));const _=i.createBuffer({label:"ParticleComputeUniforms",size:ro,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST}),g=i.createBuffer({label:"ParticleCompactUniforms",size:za,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST});i.queue.writeBuffer(g,0,new Uint32Array([s,0,0,0]));const y=i.createBuffer({label:"ParticleRenderUniforms",size:Fa,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST});i.queue.writeBuffer(y,0,new Float32Array([t.emitter.roughness,t.emitter.metallic,0,0]));const w=i.createBuffer({label:"ParticleCameraBuffer",size:no,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST}),x=i.createBindGroupLayout({label:"ParticleComputeDataBGL",entries:[{binding:0,visibility:GPUShaderStage.COMPUTE,buffer:{type:"storage"}},{binding:1,visibility:GPUShaderStage.COMPUTE,buffer:{type:"storage"}},{binding:2,visibility:GPUShaderStage.COMPUTE,buffer:{type:"storage"}},{binding:3,visibility:GPUShaderStage.COMPUTE,buffer:{type:"storage"}}]}),B=i.createBindGroupLayout({label:"ParticleCompactDataBGL",entries:[{binding:0,visibility:GPUShaderStage.COMPUTE,buffer:{type:"read-only-storage"}},{binding:1,visibility:GPUShaderStage.COMPUTE,buffer:{type:"storage"}},{binding:2,visibility:GPUShaderStage.COMPUTE,buffer:{type:"storage"}},{binding:3,visibility:GPUShaderStage.COMPUTE,buffer:{type:"storage"}}]}),G=i.createBindGroupLayout({label:"ParticleComputeUniBGL",entries:[{binding:0,visibility:GPUShaderStage.COMPUTE,buffer:{type:"uniform"}}]}),S=i.createBindGroupLayout({label:"ParticleRenderDataBGL",entries:[{binding:0,visibility:GPUShaderStage.VERTEX,buffer:{type:"read-only-storage"}},{binding:1,visibility:GPUShaderStage.VERTEX,buffer:{type:"read-only-storage"}}]}),E=i.createBindGroupLayout({label:"ParticleCameraRenderBGL",entries:[{binding:0,visibility:GPUShaderStage.VERTEX,buffer:{type:"uniform"}}]}),L=i.createBindGroupLayout({label:"ParticleRenderParamsBGL",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,buffer:{type:"uniform"}}]}),M=i.createBindGroup({label:"ParticleComputeDataBG",layout:x,entries:[{binding:0,resource:{buffer:l}},{binding:1,resource:{buffer:p}},{binding:2,resource:{buffer:f}},{binding:3,resource:{buffer:h}}]}),I=i.createBindGroup({label:"ParticleCompactDataBG",layout:B,entries:[{binding:0,resource:{buffer:l}},{binding:1,resource:{buffer:p}},{binding:2,resource:{buffer:f}},{binding:3,resource:{buffer:h}}]}),A=i.createBindGroup({label:"ParticleComputeUniBG",layout:G,entries:[{binding:0,resource:{buffer:_}}]}),b=i.createBindGroup({label:"ParticleCompactUniBG",layout:G,entries:[{binding:0,resource:{buffer:g}}]}),k=i.createBindGroup({label:"ParticleRenderDataBG",layout:S,entries:[{binding:0,resource:{buffer:l}},{binding:1,resource:{buffer:p}}]}),m=i.createBindGroup({label:"ParticleCameraRenderBG",layout:E,entries:[{binding:0,resource:{buffer:w}}]}),P=i.createBindGroup({label:"ParticleRenderParamsBG",layout:L,entries:[{binding:0,resource:{buffer:y}}]});let v,U,C,z;Na(t)&&(v=i.createBuffer({label:"ParticleHeightmapData",size:vr*vr*4,usage:GPUBufferUsage.STORAGE|GPUBufferUsage.COPY_DST}),U=i.createBuffer({label:"ParticleHeightmapUniforms",size:oo,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST}),z=i.createBindGroupLayout({label:"ParticleHeightmapBGL",entries:[{binding:0,visibility:GPUShaderStage.COMPUTE,buffer:{type:"read-only-storage"}},{binding:1,visibility:GPUShaderStage.COMPUTE,buffer:{type:"uniform"}}]}),C=i.createBindGroup({label:"ParticleHeightmapBG",layout:z,entries:[{binding:0,resource:{buffer:v}},{binding:1,resource:{buffer:U}}]}));const H=i.createPipelineLayout({bindGroupLayouts:[x,G]}),O=z?i.createPipelineLayout({bindGroupLayouts:[x,G,z]}):i.createPipelineLayout({bindGroupLayouts:[x,G]}),te=i.createPipelineLayout({bindGroupLayouts:[B,G]}),pe=i.createShaderModule({label:"ParticleSpawn",code:La(t)}),he=i.createShaderModule({label:"ParticleUpdate",code:Ia(t)}),re=i.createShaderModule({label:"ParticleCompact",code:Oa}),ie=i.createComputePipeline({label:"ParticleSpawnPipeline",layout:H,compute:{module:pe,entryPoint:"cs_main"}}),j=i.createComputePipeline({label:"ParticleUpdatePipeline",layout:O,compute:{module:he,entryPoint:"cs_main"}}),K=i.createComputePipeline({label:"ParticleCompactPipeline",layout:te,compute:{module:re,entryPoint:"cs_compact"}}),q=i.createComputePipeline({label:"ParticleIndirectPipeline",layout:te,compute:{module:re,entryPoint:"cs_write_indirect"}});let $;if(a){const ne=t.renderer.type==="sprites"?t.renderer.billboard:"camera",be=ne==="camera"?"vs_camera":"vs_main",Pe=ne==="camera"?"fs_snow":"fs_main",ye=i.createShaderModule({label:"ParticleRenderForward",code:Da}),oe=i.createPipelineLayout({bindGroupLayouts:[S,E]});$=i.createRenderPipeline({label:"ParticleForwardPipeline",layout:oe,vertex:{module:ye,entryPoint:be},fragment:{module:ye,entryPoint:Pe,targets:[{format:ee,blend:{color:{srcFactor:"src-alpha",dstFactor:"one-minus-src-alpha",operation:"add"},alpha:{srcFactor:"one",dstFactor:"one-minus-src-alpha",operation:"add"}}}]},depthStencil:{format:"depth32float",depthWriteEnabled:!1,depthCompare:"less"},primitive:{topology:"triangle-list",cullMode:"none"}})}else{const ne=i.createShaderModule({label:"ParticleRender",code:Va}),be=i.createPipelineLayout({bindGroupLayouts:[S,E,L]});$=i.createRenderPipeline({label:"ParticleRenderPipeline",layout:be,vertex:{module:ne,entryPoint:"vs_main"},fragment:{module:ne,entryPoint:"fs_main",targets:[{format:"rgba8unorm"},{format:"rgba16float"}]},depthStencil:{format:"depth32float",depthWriteEnabled:!0,depthCompare:"less"},primitive:{topology:"triangle-list",cullMode:"none"}})}return new $r(r,o,a,t,s,l,p,f,h,_,y,w,ie,j,K,q,$,M,A,I,b,k,m,a?void 0:P,v,U,C)}updateHeightmap(e,t,r,o,i){if(!this._heightmapDataBuf||!this._heightmapUniBuf)return;e.queue.writeBuffer(this._heightmapDataBuf,0,t.buffer);const a=this._hmUniBuf;a[0]=r,a[1]=o,a[2]=i,e.queue.writeBuffer(this._heightmapUniBuf,0,a.buffer,0,12),e.queue.writeBuffer(this._heightmapUniBuf,12,this._hmRes)}update(e,t,r,o,i,a,s,l,d,p){this._time+=t,this._frameSeed=this._frameSeed+1&4294967295,this._spawnAccum+=this._config.emitter.spawnRate*t,this._spawnCount=Math.min(Math.floor(this._spawnAccum),this._maxParticles),this._spawnAccum-=this._spawnCount;const f=p.data,h=f[12],_=f[13],g=f[14],y=Math.hypot(f[0],f[1],f[2]),w=Math.hypot(f[4],f[5],f[6]),x=Math.hypot(f[8],f[9],f[10]),B=f[0]/y,G=f[1]/y,S=f[2]/y,E=f[4]/w,L=f[5]/w,M=f[6]/w,I=f[8]/x,A=f[9]/x,b=f[10]/x,k=B+L+b;let m,P,v,U;if(k>0){const O=.5/Math.sqrt(k+1);U=.25/O,m=(M-A)*O,P=(I-S)*O,v=(G-E)*O}else if(B>L&&B>b){const O=2*Math.sqrt(1+B-L-b);U=(M-A)/O,m=.25*O,P=(E+G)/O,v=(I+S)/O}else if(L>b){const O=2*Math.sqrt(1+L-B-b);U=(I-S)/O,m=(E+G)/O,P=.25*O,v=(A+M)/O}else{const O=2*Math.sqrt(1+b-B-L);U=(G-E)/O,m=(I+S)/O,P=(A+M)/O,v=.25*O}const C=this._cuBuf,z=this._cuiView;C[0]=h,C[1]=_,C[2]=g,z[3]=this._spawnCount,C[4]=m,C[5]=P,C[6]=v,C[7]=U,z[8]=this._spawnOffset,z[9]=this._maxParticles,z[10]=this._frameSeed,z[11]=0,C[12]=t,C[13]=this._time,e.queue.writeBuffer(this._computeUniforms,0,C.buffer),e.queue.writeBuffer(this._counterBuffer,0,this._resetArr),this._spawnOffset=(this._spawnOffset+this._spawnCount)%this._maxParticles;const H=this._camBuf;H.set(r.data,0),H.set(o.data,16),H.set(i.data,32),H.set(a.data,48),H[64]=s.x,H[65]=s.y,H[66]=s.z,H[67]=l,H[68]=d,e.queue.writeBuffer(this._cameraBuffer,0,H.buffer)}execute(e,t){const r=e.beginComputePass({label:"ParticleCompute"});if(this._spawnCount>0&&(r.setPipeline(this._spawnPipeline),r.setBindGroup(0,this._computeDataBG),r.setBindGroup(1,this._computeUniBG),r.dispatchWorkgroups(Math.ceil(this._spawnCount/64))),r.setPipeline(this._updatePipeline),r.setBindGroup(0,this._computeDataBG),r.setBindGroup(1,this._computeUniBG),this._heightmapBG&&r.setBindGroup(2,this._heightmapBG),r.dispatchWorkgroups(Math.ceil(this._maxParticles/64)),r.setPipeline(this._compactPipeline),r.setBindGroup(0,this._compactDataBG),r.setBindGroup(1,this._compactUniBG),r.dispatchWorkgroups(Math.ceil(this._maxParticles/64)),r.setPipeline(this._indirectPipeline),r.dispatchWorkgroups(1),r.end(),this._isForward){const o=e.beginRenderPass({label:"ParticleForwardPass",colorAttachments:[{view:this._hdrView,loadOp:"load",storeOp:"store"}],depthStencilAttachment:{view:this._gbuffer.depthView,depthReadOnly:!0}});o.setPipeline(this._renderPipeline),o.setBindGroup(0,this._renderDataBG),o.setBindGroup(1,this._cameraRenderBG),o.drawIndirect(this._indirectBuffer,0),o.end()}else{const o=e.beginRenderPass({label:"ParticleGBufferPass",colorAttachments:[{view:this._gbuffer.albedoRoughnessView,loadOp:"load",storeOp:"store"},{view:this._gbuffer.normalMetallicView,loadOp:"load",storeOp:"store"}],depthStencilAttachment:{view:this._gbuffer.depthView,depthLoadOp:"load",depthStoreOp:"store"}});o.setPipeline(this._renderPipeline),o.setBindGroup(0,this._renderDataBG),o.setBindGroup(1,this._cameraRenderBG),o.setBindGroup(2,this._renderParamsBG),o.drawIndirect(this._indirectBuffer,0),o.end()}}destroy(){var e,t;this._particleBuffer.destroy(),this._aliveList.destroy(),this._counterBuffer.destroy(),this._indirectBuffer.destroy(),this._computeUniforms.destroy(),this._renderUniforms.destroy(),this._cameraBuffer.destroy(),(e=this._heightmapDataBuf)==null||e.destroy(),(t=this._heightmapUniBuf)==null||t.destroy()}}const Ha=`// Auto-exposure — two-pass histogram approach.\r
+//\r
+// cs_histogram : samples the HDR scene texture (every 4th pixel), bins each\r
+//                pixel's log2-luminance into 64 workgroup-local bins, then\r
+//                flushes to the global histogram atomically.\r
+// cs_adapt     : reads the 64-bin histogram, computes a weighted average\r
+//                log-luminance (skipping the darkest 5% and brightest 2% of\r
+//                samples), derives the target linear exposure that maps the\r
+//                average to 18% grey, then lerps the current exposure toward\r
+//                that target with a time-constant controlled by adapt_speed.\r
+\r
+const NUM_BINS      : u32 = 64u;\r
+const LOG_LUM_MIN   : f32 = -10.0;   // log2 luminance range bottom (2^-10 ≈ 0.001)\r
+const LOG_LUM_MAX   : f32 =   6.0;   // log2 luminance range top   (2^6  = 64)\r
+const LOG_LUM_RANGE : f32 = 16.0;    // LOG_LUM_MAX - LOG_LUM_MIN\r
+const GREY_LOG2     : f32 = -2.474;  // log2(0.18) — target middle-grey point\r
+\r
+struct AutoExposureParams {\r
+  dt          : f32,\r
+  adapt_speed : f32,   // EV/second rate constant (higher = faster adaptation)\r
+  min_exposure: f32,   // minimum linear exposure multiplier\r
+  max_exposure: f32,   // maximum linear exposure multiplier\r
+  low_pct     : f32,   // fraction of darkest samples to ignore (default 0.05)\r
+  high_pct    : f32,   // fraction of brightest samples to ignore (default 0.02)\r
+  _pad        : vec2<f32>,\r
+}\r
+\r
+struct ExposureBuffer {\r
+  value : f32,\r
+  _pad0 : f32,\r
+  _pad1 : f32,\r
+  _pad2 : f32,\r
+}\r
+\r
+@group(0) @binding(0) var                        hdr_tex  : texture_2d<f32>;\r
+@group(0) @binding(1) var<storage, read_write>   histogram: array<atomic<u32>>;  // 64 bins\r
+@group(0) @binding(2) var<storage, read_write>   exposure : ExposureBuffer;\r
+@group(0) @binding(3) var<uniform>               params   : AutoExposureParams;\r
+\r
+// ---- Pass 1: Histogram ------------------------------------------------------\r
+\r
+var<workgroup> wg_hist: array<atomic<u32>, 64>;\r
+\r
+@compute @workgroup_size(8, 8)\r
+fn cs_histogram(\r
+  @builtin(global_invocation_id)    gid: vec3<u32>,\r
+  @builtin(local_invocation_index)  lid: u32,\r
+) {\r
+  // wg_hist is zero-initialised per WGSL spec — no explicit clear needed.\r
+\r
+  let size  = textureDimensions(hdr_tex);\r
+  let coord = gid.xy * 4u;   // sample every 4th pixel in each dimension\r
+\r
+  if (coord.x < size.x && coord.y < size.y) {\r
+    let rgb = textureLoad(hdr_tex, vec2<i32>(coord), 0).rgb;\r
+    let lum = dot(rgb, vec3<f32>(0.2126, 0.7152, 0.0722));\r
+    if (lum > 1e-5) {\r
+      let t   = clamp((log2(lum) - LOG_LUM_MIN) / LOG_LUM_RANGE, 0.0, 1.0);\r
+      let bin = min(u32(t * f32(NUM_BINS)), NUM_BINS - 1u);\r
+      atomicAdd(&wg_hist[bin], 1u);\r
+    }\r
+  }\r
+  workgroupBarrier();\r
+\r
+  // Each thread (lid 0-63) flushes one histogram bin to the global buffer.\r
+  atomicAdd(&histogram[lid], atomicLoad(&wg_hist[lid]));\r
+}\r
+\r
+// ---- Pass 2: Adapt ----------------------------------------------------------\r
+\r
+var<workgroup> wg_bins: array<u32, 64>;\r
+\r
+@compute @workgroup_size(64)\r
+fn cs_adapt(@builtin(local_invocation_index) lid: u32) {\r
+  // Read and clear the global histogram for this frame.\r
+  wg_bins[lid] = atomicExchange(&histogram[lid], 0u);\r
+  workgroupBarrier();\r
+\r
+  // Only thread 0 performs the sequential reduction.\r
+  if (lid != 0u) { return; }\r
+\r
+  var total = 0u;\r
+  for (var i = 0u; i < NUM_BINS; i++) { total += wg_bins[i]; }\r
+  if (total == 0u) { return; }\r
+\r
+  // Skip the darkest low_pct and brightest high_pct samples.\r
+  let low_cut  = u32(f32(total) * params.low_pct);\r
+  let high_cut = total - u32(f32(total) * params.high_pct);\r
+\r
+  var acc     = 0u;\r
+  var sum_log = 0.0;\r
+  var cnt     = 0u;\r
+  for (var i = 0u; i < NUM_BINS; i++) {\r
+    let b       = wg_bins[i];\r
+    let b_start = acc;\r
+    let b_end   = acc + b;\r
+    acc = b_end;\r
+    if (b_end > low_cut && b_start < high_cut) {\r
+      let in_cnt  = min(b_end, high_cut) - max(b_start, low_cut);\r
+      let log_lum = LOG_LUM_MIN + (f32(i) + 0.5) / f32(NUM_BINS) * LOG_LUM_RANGE;\r
+      sum_log += log_lum * f32(in_cnt);\r
+      cnt     += in_cnt;\r
+    }\r
+  }\r
+  if (cnt == 0u) { return; }\r
+\r
+  // target exposure = 0.18 / avg_lum  →  in log-space: GREY_LOG2 - avg_log\r
+  let avg_log    = sum_log / f32(cnt);\r
+  let target_ev  = clamp(GREY_LOG2 - avg_log,\r
+                         log2(params.min_exposure),\r
+                         log2(params.max_exposure));\r
+  let target_exp = exp2(target_ev);\r
+\r
+  // Exponential smoothing toward target.\r
+  let blend = 1.0 - exp(-params.adapt_speed * params.dt);\r
+  exposure.value = exposure.value + (target_exp - exposure.value) * blend;\r
+}\r
+`,Wa=64,qa=32,ja=16,Ya=Wa*4,io={adaptSpeed:1.5,minExposure:.1,maxExposure:10,lowPct:.05,highPct:.02};class vt extends ge{constructor(e,t,r,o,i,a,s,l){super();c(this,"name","AutoExposurePass");c(this,"exposureBuffer");c(this,"_histogramPipeline");c(this,"_adaptPipeline");c(this,"_bindGroup");c(this,"_paramsBuffer");c(this,"_histogramBuffer");c(this,"_hdrWidth");c(this,"_hdrHeight");c(this,"enabled",!0);this._histogramPipeline=e,this._adaptPipeline=t,this._bindGroup=r,this._paramsBuffer=o,this._histogramBuffer=i,this.exposureBuffer=a,this._hdrWidth=s,this._hdrHeight=l}static create(e,t,r=io){const{device:o}=e,i=o.createBindGroupLayout({label:"AutoExposureBGL",entries:[{binding:0,visibility:GPUShaderStage.COMPUTE,texture:{sampleType:"float"}},{binding:1,visibility:GPUShaderStage.COMPUTE,buffer:{type:"storage"}},{binding:2,visibility:GPUShaderStage.COMPUTE,buffer:{type:"storage"}},{binding:3,visibility:GPUShaderStage.COMPUTE,buffer:{type:"uniform"}}]}),a=o.createBuffer({label:"AutoExposureHistogram",size:Ya,usage:GPUBufferUsage.STORAGE}),s=o.createBuffer({label:"AutoExposureValue",size:ja,usage:GPUBufferUsage.STORAGE|GPUBufferUsage.COPY_DST});o.queue.writeBuffer(s,0,new Float32Array([1,0,0,0]));const l=o.createBuffer({label:"AutoExposureParams",size:qa,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST});vt._writeParams(o,l,0,r);const d=o.createBindGroup({label:"AutoExposureBG",layout:i,entries:[{binding:0,resource:t.createView()},{binding:1,resource:{buffer:a}},{binding:2,resource:{buffer:s}},{binding:3,resource:{buffer:l}}]}),p=o.createPipelineLayout({bindGroupLayouts:[i]}),f=o.createShaderModule({label:"AutoExposure",code:Ha}),h=o.createComputePipeline({label:"AutoExposureHistogramPipeline",layout:p,compute:{module:f,entryPoint:"cs_histogram"}}),_=o.createComputePipeline({label:"AutoExposureAdaptPipeline",layout:p,compute:{module:f,entryPoint:"cs_adapt"}});return new vt(h,_,d,l,a,s,t.width,t.height)}update(e,t,r=io){if(!this.enabled){e.device.queue.writeBuffer(this.exposureBuffer,0,new Float32Array([1,0,0,0]));return}vt._writeParams(e.device,this._paramsBuffer,t,r)}execute(e,t){if(!this.enabled)return;const r=e.beginComputePass({label:"AutoExposurePass"});r.setPipeline(this._histogramPipeline),r.setBindGroup(0,this._bindGroup),r.dispatchWorkgroups(Math.ceil(this._hdrWidth/32),Math.ceil(this._hdrHeight/32)),r.setPipeline(this._adaptPipeline),r.dispatchWorkgroups(1),r.end()}destroy(){this._paramsBuffer.destroy(),this._histogramBuffer.destroy(),this.exposureBuffer.destroy()}static _writeParams(e,t,r,o){e.queue.writeBuffer(t,0,new Float32Array([r,o.adaptSpeed,o.minExposure,o.maxExposure,o.lowPct,o.highPct,0,0]))}}function Xa(u,n,e){let t=(Math.imul(u,1664525)^Math.imul(n,1013904223)^Math.imul(e,22695477))>>>0;return t=Math.imul(t^t>>>16,73244475)>>>0,t=Math.imul(t^t>>>16,73244475)>>>0,((t^t>>>16)>>>0)/4294967295}function Xt(u,n,e,t){return Xa(u^t,n^t*7+3,e^t*13+5)}function br(u){return u*u*u*(u*(u*6-15)+10)}function $a(u,n,e,t,r,o,i,a,s,l,d){const p=u+(n-u)*s,f=e+(t-e)*s,h=r+(o-r)*s,_=i+(a-i)*s,g=p+(f-p)*l,y=h+(_-h)*l;return g+(y-g)*d}const Za=new Int8Array([1,-1,1,-1,1,-1,1,-1,0,0,0,0]),Ka=new Int8Array([1,1,-1,-1,0,0,0,0,1,-1,1,-1]),Qa=new Int8Array([0,0,0,0,1,1,-1,-1,1,1,-1,-1]);function qe(u,n,e,t,r,o,i,a){const s=(u%t+t)%t,l=(n%t+t)%t,d=(e%t+t)%t,p=Math.floor(Xt(s,l,d,r)*12)%12;return Za[p]*o+Ka[p]*i+Qa[p]*a}function Ja(u,n,e,t,r){const o=Math.floor(u),i=Math.floor(n),a=Math.floor(e),s=u-o,l=n-i,d=e-a,p=br(s),f=br(l),h=br(d);return $a(qe(o,i,a,t,r,s,l,d),qe(o+1,i,a,t,r,s-1,l,d),qe(o,i+1,a,t,r,s,l-1,d),qe(o+1,i+1,a,t,r,s-1,l-1,d),qe(o,i,a+1,t,r,s,l,d-1),qe(o+1,i,a+1,t,r,s-1,l,d-1),qe(o,i+1,a+1,t,r,s,l-1,d-1),qe(o+1,i+1,a+1,t,r,s-1,l-1,d-1),p,f,h)}function es(u,n,e,t,r,o){let i=0,a=.5,s=1,l=0;for(let d=0;d<t;d++)i+=Ja(u*s,n*s,e*s,r*s,o+d*17)*a,l+=a,a*=.5,s*=2;return Math.max(0,Math.min(1,i/l*.85+.5))}function it(u,n,e,t,r){const o=u*t,i=n*t,a=e*t,s=Math.floor(o),l=Math.floor(i),d=Math.floor(a);let p=1/0;for(let f=-1;f<=1;f++)for(let h=-1;h<=1;h++)for(let _=-1;_<=1;_++){const g=s+_,y=l+h,w=d+f,x=(g%t+t)%t,B=(y%t+t)%t,G=(w%t+t)%t,S=g+Xt(x,B,G,r),E=y+Xt(x,B,G,r+1),L=w+Xt(x,B,G,r+2),M=o-S,I=i-E,A=a-L,b=M*M+I*I+A*A;b<p&&(p=b)}return 1-Math.min(Math.sqrt(p),1)}function ao(u,n,e,t){const r=u.createTexture({label:n,dimension:"3d",size:{width:e,height:e,depthOrArrayLayers:e},format:"rgba8unorm",usage:GPUTextureUsage.TEXTURE_BINDING|GPUTextureUsage.COPY_DST});return u.queue.writeTexture({texture:r},t.buffer,{bytesPerRow:e*4,rowsPerImage:e},{width:e,height:e,depthOrArrayLayers:e}),r}function ts(u){const e=new Uint8Array(1048576);for(let a=0;a<64;a++)for(let s=0;s<64;s++)for(let l=0;l<64;l++){const d=(a*64*64+s*64+l)*4,p=l/64,f=s/64,h=a/64,_=es(p,f,h,4,4,0),g=it(p,f,h,2,100),y=it(p,f,h,4,200),w=it(p,f,h,8,300);e[d]=Math.round(_*255),e[d+1]=Math.round(g*255),e[d+2]=Math.round(y*255),e[d+3]=Math.round(w*255)}const t=32,r=new Uint8Array(t*t*t*4);for(let a=0;a<t;a++)for(let s=0;s<t;s++)for(let l=0;l<t;l++){const d=(a*t*t+s*t+l)*4,p=l/t,f=s/t,h=a/t,_=it(p,f,h,4,400),g=it(p,f,h,8,500),y=it(p,f,h,16,600);r[d]=Math.round(_*255),r[d+1]=Math.round(g*255),r[d+2]=Math.round(y*255),r[d+3]=255}const o=ao(u,"CloudBaseNoise",64,e),i=ao(u,"CloudDetailNoise",t,r);return{baseNoise:o,baseView:o.createView({dimension:"3d"}),detailNoise:i,detailView:i.createView({dimension:"3d"}),destroy(){o.destroy(),i.destroy()}}}const rs=`// IBL baking — two compute entry points share the same bind group layout.\r
+//\r
+// cs_irradiance : cosine-weighted hemisphere integral for diffuse irradiance.\r
+// cs_prefilter  : GGX importance-sampled integral for specular pre-filtered env.\r
+//\r
+// Both sample the sky equirectangular texture and write to one face of a cube\r
+// texture (6 dispatches per roughness level, one face per dispatch).\r
+\r
+const PI      : f32 = 3.14159265358979323846;\r
+const SAMPLES : u32 = 256u;\r
+\r
+struct IblParams {\r
+  exposure  : f32,\r
+  roughness : f32,   // ignored by cs_irradiance\r
+  face      : f32,   // cube face index 0-5 (written as float, cast to u32)\r
+  _pad      : f32,\r
+}\r
+\r
+@group(0) @binding(0) var<uniform> params   : IblParams;\r
+@group(0) @binding(1) var          sky_tex  : texture_2d<f32>;\r
+@group(0) @binding(2) var          sky_samp : sampler;\r
+@group(1) @binding(0) var          out_tex  : texture_storage_2d<rgba16float, write>;\r
+\r
+// ---- Helpers ----------------------------------------------------------------\r
+\r
+fn equirect_uv(dir: vec3<f32>) -> vec2<f32> {\r
+  let u = atan2(-dir.z, dir.x) / (2.0 * PI) + 0.5;\r
+  let v = acos(clamp(dir.y, -1.0, 1.0)) / PI;\r
+  return vec2<f32>(u, v);\r
+}\r
+\r
+// Van der Corput radical inverse (base 2) — low-discrepancy quasi-random sequence\r
+fn radical_inverse(n: u32) -> f32 {\r
+  var bits = (n << 16u) | (n >> 16u);\r
+  bits = ((bits & 0x55555555u) << 1u) | ((bits >> 1u) & 0x55555555u);\r
+  bits = ((bits & 0x33333333u) << 2u) | ((bits >> 2u) & 0x33333333u);\r
+  bits = ((bits & 0x0f0f0f0fu) << 4u) | ((bits >> 4u) & 0x0f0f0f0fu);\r
+  bits = ((bits & 0x00ff00ffu) << 8u) | ((bits >> 8u) & 0x00ff00ffu);\r
+  return f32(bits) * 2.3283064365386963e-10;\r
+}\r
+\r
+// Tangent frame around N — columns are (T, B, N), so TBN * local = world.\r
+fn tangent_frame(N: vec3<f32>) -> mat3x3<f32> {\r
+  let up = select(vec3<f32>(1.0, 0.0, 0.0), vec3<f32>(0.0, 1.0, 0.0), abs(N.y) < 0.999);\r
+  let T  = normalize(cross(up, N));\r
+  let B  = cross(N, T);\r
+  return mat3x3<f32>(T, B, N);\r
+}\r
+\r
+// Convert cube face + normalised UV in [-1,1] to a world-space direction.\r
+// Uses the standard WebGPU/OpenGL cubemap face convention.\r
+fn cube_dir(face: u32, uc: f32, vc: f32) -> vec3<f32> {\r
+  switch face {\r
+    case 0u: { return normalize(vec3<f32>( 1.0, -vc, -uc)); }  // +X\r
+    case 1u: { return normalize(vec3<f32>(-1.0, -vc,  uc)); }  // -X\r
+    case 2u: { return normalize(vec3<f32>( uc,   1.0,  vc)); }  // +Y\r
+    case 3u: { return normalize(vec3<f32>( uc,  -1.0, -vc)); }  // -Y\r
+    case 4u: { return normalize(vec3<f32>( uc,  -vc,  1.0)); }  // +Z\r
+    default: { return normalize(vec3<f32>(-uc,  -vc, -1.0)); }  // -Z\r
+  }\r
+}\r
+\r
+// ---- Irradiance (diffuse IBL) -----------------------------------------------\r
+//\r
+// E(N) = (1/N) Σ L(ωi)   with cosine-weighted PDF = cosθ/π  (estimator = L)\r
+\r
+@compute @workgroup_size(8, 8)\r
+fn cs_irradiance(@builtin(global_invocation_id) gid: vec3<u32>) {\r
+  let size = textureDimensions(out_tex);\r
+  if (gid.x >= size.x || gid.y >= size.y) { return; }\r
+\r
+  let uc = 2.0 * (f32(gid.x) + 0.5) / f32(size.x) - 1.0;\r
+  let vc = 2.0 * (f32(gid.y) + 0.5) / f32(size.y) - 1.0;\r
+  let N  = cube_dir(u32(params.face), uc, vc);\r
+  let TBN = tangent_frame(N);\r
+\r
+  var rgb = vec3<f32>(0.0);\r
+  for (var i = 0u; i < SAMPLES; i++) {\r
+    let xi1  = (f32(i) + 0.5) / f32(SAMPLES);\r
+    let xi2  = radical_inverse(i);\r
+    let sinT = sqrt(xi1);\r
+    let cosT = sqrt(1.0 - xi1);\r
+    let phi2 = xi2 * 2.0 * PI;\r
+    let L    = TBN * vec3<f32>(sinT*cos(phi2), sinT*sin(phi2), cosT);\r
+    rgb     += textureSampleLevel(sky_tex, sky_samp, equirect_uv(L), 0.0).rgb;\r
+  }\r
+\r
+  textureStore(out_tex, vec2<i32>(gid.xy),\r
+    vec4<f32>(rgb * params.exposure / f32(SAMPLES), 1.0));\r
+}\r
+\r
+// ---- Pre-filtered environment (specular IBL) ---------------------------------\r
+//\r
+// Integrates L(ω) weighted by GGX NDF at params.roughness using importance sampling.\r
+\r
+@compute @workgroup_size(8, 8)\r
+fn cs_prefilter(@builtin(global_invocation_id) gid: vec3<u32>) {\r
+  let size = textureDimensions(out_tex);\r
+  if (gid.x >= size.x || gid.y >= size.y) { return; }\r
+\r
+  let uc = 2.0 * (f32(gid.x) + 0.5) / f32(size.x) - 1.0;\r
+  let vc = 2.0 * (f32(gid.y) + 0.5) / f32(size.y) - 1.0;\r
+  let N  = cube_dir(u32(params.face), uc, vc);\r
+  let TBN = tangent_frame(N);\r
+\r
+  let a  = params.roughness * params.roughness;\r
+  let a2 = a * a;\r
+\r
+  var sumRGB = vec3<f32>(0.0);\r
+  var sumW   = 0.0;\r
+  for (var i = 0u; i < SAMPLES; i++) {\r
+    let xi1   = (f32(i) + 0.5) / f32(SAMPLES);\r
+    let xi2   = radical_inverse(i);\r
+    let cosT2 = (1.0 - xi2) / (1.0 + (a2 - 1.0) * xi2);\r
+    let cosT  = sqrt(cosT2);\r
+    let sinT  = sqrt(max(0.0, 1.0 - cosT2));\r
+    let phiH  = xi1 * 2.0 * PI;\r
+    let H     = TBN * vec3<f32>(sinT*cos(phiH), sinT*sin(phiH), cosT);\r
+    let VdotH = cosT; // V = N in the split-sum approximation\r
+    let L     = 2.0 * VdotH * H - N;\r
+    let NdotL = max(0.0, dot(N, L));\r
+    if (NdotL <= 0.0) { continue; }\r
+    sumRGB += textureSampleLevel(sky_tex, sky_samp, equirect_uv(L), 0.0).rgb * NdotL;\r
+    sumW   += NdotL;\r
+  }\r
+\r
+  let w = select(sumW, 1.0, sumW <= 0.0);\r
+  textureStore(out_tex, vec2<i32>(gid.xy),\r
+    vec4<f32>(sumRGB / w * params.exposure, 1.0));\r
+}\r
+`,It=5,yr=128,Ot=32,ns=[0,.25,.5,.75,1],os=Math.PI;function is(u){let n=u>>>0;return n=(n<<16|n>>>16)>>>0,n=((n&1431655765)<<1|n>>>1&1431655765)>>>0,n=((n&858993459)<<2|n>>>2&858993459)>>>0,n=((n&252645135)<<4|n>>>4&252645135)>>>0,n=((n&16711935)<<8|n>>>8&16711935)>>>0,n*23283064365386963e-26}function as(u,n,e){const t=new Float32Array(u*n*4);for(let r=0;r<n;r++)for(let o=0;o<u;o++){const i=(o+.5)/u,a=(r+.5)/n,s=a*a,l=s*s,d=Math.sqrt(1-i*i),p=i;let f=0,h=0;for(let g=0;g<e;g++){const y=(g+.5)/e,w=is(g),x=(1-w)/(1+(l-1)*w),B=Math.sqrt(x),G=Math.sqrt(Math.max(0,1-x)),S=2*os*y,E=G*Math.cos(S),L=B,M=d*E+p*L;if(M<=0)continue;const I=2*M*L-p,A=Math.max(0,I),b=Math.max(0,B);if(A<=0)continue;const k=l/2,m=i/(i*(1-k)+k),P=A/(A*(1-k)+k),v=m*P*M/(b*i),U=Math.pow(1-M,5);f+=v*(1-U),h+=v*U}const _=(r*u+o)*4;t[_+0]=f/e,t[_+1]=h/e,t[_+2]=0,t[_+3]=1}return t}function ss(u){const n=new Float32Array([u]),e=new Uint32Array(n.buffer)[0],t=e>>31&1,r=e>>23&255,o=e&8388607;if(r===255)return t<<15|31744|(o?1:0);if(r===0)return t<<15;const i=r-127+15;return i>=31?t<<15|31744:i<=0?t<<15:t<<15|i<<10|o>>13}function ls(u){const n=new Uint16Array(u.length);for(let e=0;e<u.length;e++)n[e]=ss(u[e]);return n}const so=new WeakMap;function cs(u){const n=so.get(u);if(n)return n;const e=ls(as(64,64,512)),t=u.createTexture({label:"IBL BRDF LUT",size:{width:64,height:64},format:"rgba16float",usage:GPUTextureUsage.TEXTURE_BINDING|GPUTextureUsage.COPY_DST});return u.queue.writeTexture({texture:t},e,{bytesPerRow:64*8},{width:64,height:64}),so.set(u,t),t}const lo=new WeakMap;function us(u){const n=lo.get(u);if(n)return n;const e=u.createBindGroupLayout({label:"IblBGL0",entries:[{binding:0,visibility:GPUShaderStage.COMPUTE,buffer:{type:"uniform"}},{binding:1,visibility:GPUShaderStage.COMPUTE,texture:{sampleType:"float"}},{binding:2,visibility:GPUShaderStage.COMPUTE,sampler:{type:"filtering"}}]}),t=u.createBindGroupLayout({label:"IblBGL1",entries:[{binding:0,visibility:GPUShaderStage.COMPUTE,storageTexture:{access:"write-only",format:"rgba16float",viewDimension:"2d"}}]}),r=u.createPipelineLayout({bindGroupLayouts:[e,t]}),o=u.createShaderModule({label:"IblCompute",code:rs}),i=u.createComputePipeline({label:"IblIrradiancePipeline",layout:r,compute:{module:o,entryPoint:"cs_irradiance"}}),a=u.createComputePipeline({label:"IblPrefilterPipeline",layout:r,compute:{module:o,entryPoint:"cs_prefilter"}}),s=u.createSampler({magFilter:"linear",minFilter:"linear",addressModeU:"repeat",addressModeV:"clamp-to-edge"}),l={irrPipeline:i,pfPipeline:a,bgl0:e,bgl1:t,sampler:s};return lo.set(u,l),l}async function ds(u,n,e=.2){const{irrPipeline:t,pfPipeline:r,bgl0:o,bgl1:i,sampler:a}=us(u),s=u.createTexture({label:"IBL Irradiance",size:{width:Ot,height:Ot,depthOrArrayLayers:6},format:"rgba16float",usage:GPUTextureUsage.TEXTURE_BINDING|GPUTextureUsage.STORAGE_BINDING}),l=u.createTexture({label:"IBL Prefiltered",size:{width:yr,height:yr,depthOrArrayLayers:6},mipLevelCount:It,format:"rgba16float",usage:GPUTextureUsage.TEXTURE_BINDING|GPUTextureUsage.STORAGE_BINDING}),d=(A,b)=>{const k=u.createBuffer({size:16,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST});return u.queue.writeBuffer(k,0,new Float32Array([e,A,b,0])),k},p=n.createView(),f=A=>u.createBindGroup({layout:o,entries:[{binding:0,resource:{buffer:A}},{binding:1,resource:p},{binding:2,resource:a}]}),h=A=>u.createBindGroup({layout:i,entries:[{binding:0,resource:A}]}),_=Array.from({length:6},(A,b)=>d(0,b)),g=ns.flatMap((A,b)=>Array.from({length:6},(k,m)=>d(A,m))),y=_.map(f),w=g.map(f),x=Array.from({length:6},(A,b)=>h(s.createView({dimension:"2d",baseArrayLayer:b,arrayLayerCount:1}))),B=Array.from({length:It*6},(A,b)=>{const k=Math.floor(b/6),m=b%6;return h(l.createView({dimension:"2d",baseMipLevel:k,mipLevelCount:1,baseArrayLayer:m,arrayLayerCount:1}))}),G=u.createCommandEncoder({label:"IblComputeEncoder"}),S=G.beginComputePass({label:"IblComputePass"});S.setPipeline(t);for(let A=0;A<6;A++)S.setBindGroup(0,y[A]),S.setBindGroup(1,x[A]),S.dispatchWorkgroups(Math.ceil(Ot/8),Math.ceil(Ot/8));S.setPipeline(r);for(let A=0;A<It;A++){const b=yr>>A;for(let k=0;k<6;k++)S.setBindGroup(0,w[A*6+k]),S.setBindGroup(1,B[A*6+k]),S.dispatchWorkgroups(Math.ceil(b/8),Math.ceil(b/8))}S.end(),u.queue.submit([G.finish()]),await u.queue.onSubmittedWorkDone(),_.forEach(A=>A.destroy()),g.forEach(A=>A.destroy());const E=cs(u),L=s.createView({dimension:"cube"}),M=l.createView({dimension:"cube"}),I=E.createView();return{irradiance:s,prefiltered:l,brdfLut:E,irradianceView:L,prefilteredView:M,brdfLutView:I,levels:It,destroy(){s.destroy(),l.destroy()}}}class Le{constructor(n,e){c(this,"gpuTexture");c(this,"view");c(this,"type");this.gpuTexture=n,this.type=e,this.view=n.createView({dimension:e==="cube"?"cube":e==="3d"?"3d":"2d"})}destroy(){this.gpuTexture.destroy()}static createSolid(n,e,t,r,o=255){const i=n.createTexture({size:{width:1,height:1},format:"rgba8unorm",usage:GPUTextureUsage.TEXTURE_BINDING|GPUTextureUsage.COPY_DST});return n.queue.writeTexture({texture:i},new Uint8Array([e,t,r,o]),{bytesPerRow:4},{width:1,height:1}),new Le(i,"2d")}static fromBitmap(n,e,{srgb:t=!1,usage:r}={}){const o=t?"rgba8unorm-srgb":"rgba8unorm";r=r?r|(GPUTextureUsage.TEXTURE_BINDING|GPUTextureUsage.COPY_DST|GPUTextureUsage.RENDER_ATTACHMENT):GPUTextureUsage.TEXTURE_BINDING|GPUTextureUsage.COPY_DST|GPUTextureUsage.RENDER_ATTACHMENT;const i=n.createTexture({size:{width:e.width,height:e.height},format:o,usage:r});return n.queue.copyExternalImageToTexture({source:e,flipY:!1},{texture:i},{width:e.width,height:e.height}),new Le(i,"2d")}static async fromUrl(n,e,t={}){const r=await(await fetch(e)).blob(),o={colorSpaceConversion:"none"};t.resizeWidth!==void 0&&t.resizeHeight!==void 0&&(o.resizeWidth=t.resizeWidth,o.resizeHeight=t.resizeHeight,o.resizeQuality="high");const i=await createImageBitmap(r,o);return Le.fromBitmap(n,i,t)}}const fs=`// Decodes an RGBE (Radiance HDR) texture into a linear rgba16float texture.\r
+// src: rgba8uint — raw RGBE bytes (R, G, B, Exponent), 4 bytes per pixel.\r
+// dst: rgba16float storage texture — linear HDR output.\r
+\r
+@group(0) @binding(0) var src : texture_2d<u32>;\r
+@group(1) @binding(0) var dst : texture_storage_2d<rgba16float, write>;\r
+\r
+@compute @workgroup_size(8, 8)\r
+fn cs_decode(@builtin(global_invocation_id) gid: vec3<u32>) {\r
+  let size = textureDimensions(src);\r
+  if (gid.x >= size.x || gid.y >= size.y) { return; }\r
+\r
+  let rgbe = textureLoad(src, vec2<i32>(gid.xy), 0);\r
+  var rgb  : vec3<f32>;\r
+  if (rgbe.a == 0u) {\r
+    rgb = vec3<f32>(0.0);\r
+  } else {\r
+    // RGBE: scale = 2^(E - 128) / 256  →  2^(E - 136)\r
+    let scale = pow(2.0, f32(rgbe.a) - 136.0);\r
+    rgb = vec3<f32>(f32(rgbe.r), f32(rgbe.g), f32(rgbe.b)) * scale;\r
+  }\r
+  textureStore(dst, vec2<i32>(gid.xy), vec4<f32>(rgb, 1.0));\r
+}\r
+`;function ps(u){const n=new Uint8Array(u);let e=0;function t(){let f="";for(;e<n.length&&n[e]!==10;)n[e]!==13&&(f+=String.fromCharCode(n[e])),e++;return e<n.length&&e++,f}const r=t();if(!r.startsWith("#?RADIANCE")&&!r.startsWith("#?RGBE"))throw new Error(`Not a Radiance HDR file (magic: "${r}")`);for(;t().length!==0;);const o=t(),i=o.match(/-Y\s+(\d+)\s+\+X\s+(\d+)/);if(!i)throw new Error(`Unrecognized HDR resolution: "${o}"`);const a=parseInt(i[1],10),s=parseInt(i[2],10),l=new Uint8Array(s*a*4);function d(f){const h=new Uint8Array(s),_=new Uint8Array(s),g=new Uint8Array(s),y=new Uint8Array(s),w=[h,_,g,y];for(let B=0;B<4;B++){const G=w[B];let S=0;for(;S<s;){const E=n[e++];if(E>128){const L=E-128,M=n[e++];G.fill(M,S,S+L),S+=L}else G.set(n.subarray(e,e+E),S),e+=E,S+=E}}const x=f*s*4;for(let B=0;B<s;B++)l[x+B*4+0]=h[B],l[x+B*4+1]=_[B],l[x+B*4+2]=g[B],l[x+B*4+3]=y[B]}function p(f,h,_,g,y){const w=f*s*4;l[w+0]=h,l[w+1]=_,l[w+2]=g,l[w+3]=y;let x=1;for(;x<s;){const B=n[e++],G=n[e++],S=n[e++],E=n[e++];if(B===1&&G===1&&S===1){const L=w+(x-1)*4;for(let M=0;M<E;M++)l[w+x*4+0]=l[L+0],l[w+x*4+1]=l[L+1],l[w+x*4+2]=l[L+2],l[w+x*4+3]=l[L+3],x++}else l[w+x*4+0]=B,l[w+x*4+1]=G,l[w+x*4+2]=S,l[w+x*4+3]=E,x++}}for(let f=0;f<a&&!(e+4>n.length);f++){const h=n[e++],_=n[e++],g=n[e++],y=n[e++];if(h===2&&_===2&&!(g&128)){const w=g<<8|y;if(w!==s)throw new Error(`HDR scanline width mismatch: ${w} vs ${s}`);d(f)}else p(f,h,_,g,y)}return{width:s,height:a,data:l}}const co=new WeakMap;function hs(u){const n=co.get(u);if(n)return n;const e=u.createBindGroupLayout({label:"RgbeSrcBGL",entries:[{binding:0,visibility:GPUShaderStage.COMPUTE,texture:{sampleType:"uint"}}]}),t=u.createBindGroupLayout({label:"RgbeDstBGL",entries:[{binding:0,visibility:GPUShaderStage.COMPUTE,storageTexture:{access:"write-only",format:"rgba16float",viewDimension:"2d"}}]}),r=u.createPipelineLayout({bindGroupLayouts:[e,t]}),o=u.createShaderModule({label:"RgbeDecode",code:fs}),a={pipeline:u.createComputePipeline({label:"RgbeDecodePipeline",layout:r,compute:{module:o,entryPoint:"cs_decode"}}),srcBGL:e,dstBGL:t};return co.set(u,a),a}async function ms(u,n){const{width:e,height:t,data:r}=n,{pipeline:o,srcBGL:i,dstBGL:a}=hs(u),s=u.createTexture({label:"Sky RGBE Raw",size:{width:e,height:t},format:"rgba8uint",usage:GPUTextureUsage.TEXTURE_BINDING|GPUTextureUsage.COPY_DST});u.queue.writeTexture({texture:s},r.buffer,{bytesPerRow:e*4},{width:e,height:t});const l=u.createTexture({label:"Sky HDR Texture",size:{width:e,height:t},format:"rgba16float",usage:GPUTextureUsage.TEXTURE_BINDING|GPUTextureUsage.STORAGE_BINDING}),d=u.createBindGroup({layout:i,entries:[{binding:0,resource:s.createView()}]}),p=u.createBindGroup({layout:a,entries:[{binding:0,resource:l.createView()}]}),f=u.createCommandEncoder({label:"RgbeDecodeEncoder"}),h=f.beginComputePass({label:"RgbeDecodePass"});return h.setPipeline(o),h.setBindGroup(0,d),h.setBindGroup(1,p),h.dispatchWorkgroups(Math.ceil(e/8),Math.ceil(t/8)),h.end(),u.queue.submit([f.finish()]),await u.queue.onSubmittedWorkDone(),s.destroy(),new Le(l,"2d")}class Zr{constructor(n,e,t,r,o,i,a){c(this,"colorAtlas");c(this,"normalAtlas");c(this,"merAtlas");c(this,"heightAtlas");c(this,"blockSize");c(this,"blockCount");c(this,"_atlasWidth");c(this,"_atlasHeight");this.colorAtlas=n,this.normalAtlas=e,this.merAtlas=t,this.heightAtlas=r,this.blockSize=o,this._atlasWidth=i,this._atlasHeight=a,this.blockCount=Math.floor(i/o)}static async load(n,e,t,r,o,i=16){async function a(x){const B=await(await fetch(x)).blob();return createImageBitmap(B,{colorSpaceConversion:"none"})}const[s,l,d,p]=await Promise.all([a(e),a(t),a(r),a(o)]),f=s.width,h=s.height,_=Le.fromBitmap(n,s,{srgb:!0}),g=Le.fromBitmap(n,l,{srgb:!1}),y=Le.fromBitmap(n,d,{srgb:!1}),w=Le.fromBitmap(n,p,{srgb:!1});return new Zr(_,g,y,w,i,f,h)}uvTransform(n){const e=this.blockSize/this._atlasWidth,t=this.blockSize/this._atlasHeight;return[n*e,0,e,t]}destroy(){this.colorAtlas.destroy(),this.normalAtlas.destroy(),this.merAtlas.destroy(),this.heightAtlas.destroy()}}var Ae=(u=>(u[u.None=0]="None",u[u.SnowyMountains=1]="SnowyMountains",u[u.RockyMountains=2]="RockyMountains",u[u.GrassyPlains=3]="GrassyPlains",u[u.SnowyPlains=4]="SnowyPlains",u[u.Desert=5]="Desert",u[u.Max=6]="Max",u))(Ae||{}),lt=(u=>(u[u.None=0]="None",u[u.Rain=1]="Rain",u[u.Snow=2]="Snow",u))(lt||{});function _s(u){switch(u){case 1:return 2;case 4:return 2;default:return 0}}function uo(u){switch(u){case 1:return{cloudBase:90,cloudTop:200};case 2:return{cloudBase:75,cloudTop:160};default:return{cloudBase:75,cloudTop:105}}}const Vt=.05,gs=[[.35,5,3],[-.15,3,4],[-.3,4,1],[-.5,1,2]];function vs(u){for(const[e,t,r]of gs){const o=u-e;if(o>=-Vt&&o<=Vt)return{biome1:r,biome2:t,blend:(o+Vt)/(2*Vt)}}const n=bs(u);return{biome1:n,biome2:n,blend:0}}function bs(u){return u>.35?5:u>-.15?3:u>-.3?4:u>-.5?1:2}function fo(u){switch(u){case 1:return 1.2;case 4:return 1;case 3:return .75;case 2:return .9;case 5:return .15;default:return .55}}function ys(u,n){let e=(Math.imul(u|0,2654435769)^Math.imul(n|0,1367130551))>>>0;return e=Math.imul(e^e>>>16,73244475)>>>0,e=(e^e>>>16)>>>0,e/4294967296}const W=class W{constructor(n,e,t){c(this,"blocks",new Uint8Array(W.CHUNK_WIDTH*W.CHUNK_HEIGHT*W.CHUNK_DEPTH));c(this,"globalPosition",new V);c(this,"opaqueIndex",-1);c(this,"transparentIndex",-1);c(this,"waterIndex",-1);c(this,"drawCommandIndex",-1);c(this,"chunkDataIndex",-1);c(this,"aabbTreeIndex",-1);c(this,"aliveBlocks",0);c(this,"opaqueBlocks",0);c(this,"transparentBlocks",0);c(this,"waterBlocks",0);c(this,"lightBlocks",0);c(this,"isDeleted",!1);this.globalPosition.set(n,e,t)}generateVertices(n){const e=W.CHUNK_WIDTH,t=W.CHUNK_HEIGHT,r=W.CHUNK_DEPTH,o=5;let i=0,a=0,s=0;for(let m=0;m<this.blocks.length;m++){const P=this.blocks[m];P===N.NONE||le(P)||(Ee(P)?s++:At(P)?a++:i++)}const l=new Float32Array(i*36*o),d=new Float32Array(a*36*o),p=new Float32Array(s*6*o),f=new Uint16Array(e*t*6);let h=0,_=0,g=0,y=!1;const w=[],x=e+2,B=t+2,G=x*B,S=new Uint8Array(x*B*(r+2));for(let m=0;m<r;m++)for(let P=0;P<t;P++)for(let v=0;v<e;v++)S[v+1+(P+1)*x+(m+1)*G]=this.blocks[v+P*e+m*e*t];if(n!=null&&n.negX){const m=n.negX;for(let P=0;P<r;P++)for(let v=0;v<t;v++)S[0+(v+1)*x+(P+1)*G]=m[e-1+v*e+P*e*t]}if(n!=null&&n.posX){const m=n.posX;for(let P=0;P<r;P++)for(let v=0;v<t;v++)S[e+1+(v+1)*x+(P+1)*G]=m[0+v*e+P*e*t]}if(n!=null&&n.negY){const m=n.negY;for(let P=0;P<r;P++)for(let v=0;v<e;v++)S[v+1+0+(P+1)*G]=m[v+(t-1)*e+P*e*t]}if(n!=null&&n.posY){const m=n.posY;for(let P=0;P<r;P++)for(let v=0;v<e;v++)S[v+1+(t+1)*x+(P+1)*G]=m[v+0*e+P*e*t]}if(n!=null&&n.negZ){const m=n.negZ;for(let P=0;P<t;P++)for(let v=0;v<e;v++)S[v+1+(P+1)*x+0]=m[v+P*e+(r-1)*e*t]}if(n!=null&&n.posZ){const m=n.posZ;for(let P=0;P<t;P++)for(let v=0;v<e;v++)S[v+1+(P+1)*x+(r+1)*G]=m[v+P*e+0*e*t]}const E=(m,P,v,U)=>{f[(m*t+P)*6+U]|=1<<v},L=(m,P,v,U)=>(f[(m*t+P)*6+U]&1<<v)!==0,M=(m,P,v)=>S[m+1+(P+1)*x+(v+1)*G],I=(m,P)=>!(P===N.NONE||Ee(m)||Ee(P)||!le(m)&&le(P)),A=W.CUBE_VERTS;for(let m=0;m<e;m++)for(let P=0;P<t;P++)for(let v=0;v<r;v++){const U=M(m,P,v);if(U===N.NONE)continue;if(le(U)){w.push({x:m,y:P,z:v}),y=!0;continue}if(Ee(U)){for(let j=0;j<6;j++)p[g++]=m+.5,p[g++]=P+.5,p[g++]=v+.5,p[g++]=6,p[g++]=U;continue}const z=At(U),H=I(U,M(m,P,v-1))||L(m,P,v,0),O=I(U,M(m,P,v+1))||L(m,P,v,1),te=I(U,M(m-1,P,v))||L(m,P,v,2),pe=I(U,M(m+1,P,v))||L(m,P,v,3),he=I(U,M(m,P-1,v))||L(m,P,v,4),re=I(U,M(m,P+1,v))||L(m,P,v,5);if(H&&O&&te&&pe&&he&&re)continue;let ie=P;if(!H||!O||!te||!pe){let j=P;for(;j<t&&M(m,j,v)===U;){ie=j;j++}}if(!H||!O){let j=m,K=m,q=0;for(;K<e&&M(K,P,v)===U;){let X=P;for(;X<=ie&&M(K,X,v)===U;){q=X;X++}if(q===ie)j=K,K++;else break}for(let X=m;X<=j;X++)for(let ue=P;ue<=ie;ue++)H||E(X,ue,v,0),O||E(X,ue,v,1);let $,ne;!H&&!O?($=0,ne=12):H?($=6,ne=12):($=0,ne=6);const be=j+1-m,Pe=ie+1-P,ye=z?d:l;let oe=z?_:h;for(let X=$;X<ne;X++){const ue=A[X*3],me=A[X*3+1],Ue=A[X*3+2];ye[oe++]=m+.5*(be-1)+.5+ue*be,ye[oe++]=P+.5*(Pe-1)+.5+me*Pe,ye[oe++]=v+.5+Ue,ye[oe++]=X<6?0:1,ye[oe++]=U}z?_=oe:h=oe}if(!te||!pe){let j=v,K=v,q=0;for(;K<r&&M(m,P,K)===U;){let X=P;for(;X<=ie&&M(m,X,K)===U;){q=X;X++}if(q===ie)j=K,K++;else break}for(let X=v;X<=j;X++)for(let ue=P;ue<=ie;ue++)te||E(m,ue,X,2),pe||E(m,ue,X,3);let $,ne;!te&&!pe?($=12,ne=24):te?($=18,ne=24):($=12,ne=18);const be=j+1-v,Pe=ie+1-P,ye=z?d:l;let oe=z?_:h;for(let X=$;X<ne;X++){const ue=A[X*3],me=A[X*3+1],Ue=A[X*3+2];ye[oe++]=m+.5+ue,ye[oe++]=P+.5*(Pe-1)+.5+me*Pe,ye[oe++]=v+.5*(be-1)+.5+Ue*be,ye[oe++]=X<18?2:3,ye[oe++]=U}z?_=oe:h=oe}if(!he||!re){let j=m,K=m;for(;K<e&&M(K,P,v)===U;){j=K;K++}let q=v,$=v,ne=0;for(;$<r&&M(m,P,$)===U;){let me=m;for(;me<=j&&M(me,P,$)===U;){ne=me;me++}if(ne===j)q=$,$++;else break}for(let me=m;me<=j;me++)for(let Ue=v;Ue<=q;Ue++)he||E(me,P,Ue,4),re||E(me,P,Ue,5);let be,Pe;!he&&!re?(be=24,Pe=36):he?(be=30,Pe=36):(be=24,Pe=30);const ye=j+1-m,oe=q+1-v,X=z?d:l;let ue=z?_:h;for(let me=be;me<Pe;me++){const Ue=A[me*3],ut=A[me*3+1],dt=A[me*3+2];X[ue++]=m+.5*(ye-1)+.5+Ue*ye,X[ue++]=P+.5+ut,X[ue++]=v+.5*(oe-1)+.5+dt*oe,X[ue++]=me<30?4:5,X[ue++]=U}z?_=ue:h=ue}}let b=null,k=0;if(y){b=new Float32Array(w.length*6*6*3);let m=0;for(const P of w){const{x:v,y:U,z:C}=P,z=v+1,H=U+1,O=C+1,te=S[z+(H+1)*x+O*G];le(te)||(b[m++]=v,b[m++]=U+1,b[m++]=C,b[m++]=v+1,b[m++]=U+1,b[m++]=C,b[m++]=v+1,b[m++]=U+1,b[m++]=C+1,b[m++]=v,b[m++]=U+1,b[m++]=C,b[m++]=v,b[m++]=U+1,b[m++]=C+1,b[m++]=v+1,b[m++]=U+1,b[m++]=C+1);const pe=S[z+H*x+(O+1)*G],he=C===r-1;!le(pe)&&!(he&&pe===N.NONE)&&(b[m++]=v,b[m++]=U,b[m++]=C+1,b[m++]=v+1,b[m++]=U,b[m++]=C+1,b[m++]=v+1,b[m++]=U+1,b[m++]=C+1,b[m++]=v,b[m++]=U,b[m++]=C+1,b[m++]=v,b[m++]=U+1,b[m++]=C+1,b[m++]=v+1,b[m++]=U+1,b[m++]=C+1);const re=S[z+H*x+(O-1)*G],ie=C===0;!le(re)&&!(ie&&re===N.NONE)&&(b[m++]=v+1,b[m++]=U,b[m++]=C,b[m++]=v,b[m++]=U,b[m++]=C,b[m++]=v,b[m++]=U+1,b[m++]=C,b[m++]=v+1,b[m++]=U,b[m++]=C,b[m++]=v+1,b[m++]=U+1,b[m++]=C,b[m++]=v,b[m++]=U+1,b[m++]=C);const j=S[z+1+H*x+O*G],K=v===e-1;!le(j)&&!(K&&j===N.NONE)&&(b[m++]=v+1,b[m++]=U,b[m++]=C,b[m++]=v+1,b[m++]=U+1,b[m++]=C,b[m++]=v+1,b[m++]=U+1,b[m++]=C+1,b[m++]=v+1,b[m++]=U,b[m++]=C,b[m++]=v+1,b[m++]=U,b[m++]=C+1,b[m++]=v+1,b[m++]=U+1,b[m++]=C+1);const q=S[z-1+H*x+O*G],$=v===0;!le(q)&&!($&&q===N.NONE)&&(b[m++]=v,b[m++]=U,b[m++]=C+1,b[m++]=v,b[m++]=U+1,b[m++]=C+1,b[m++]=v,b[m++]=U+1,b[m++]=C,b[m++]=v,b[m++]=U,b[m++]=C+1,b[m++]=v,b[m++]=U,b[m++]=C,b[m++]=v,b[m++]=U+1,b[m++]=C);const ne=S[z+(H-1)*x+O*G];le(ne)||(b[m++]=v,b[m++]=U,b[m++]=C+1,b[m++]=v+1,b[m++]=U,b[m++]=C+1,b[m++]=v+1,b[m++]=U,b[m++]=C,b[m++]=v,b[m++]=U,b[m++]=C+1,b[m++]=v,b[m++]=U,b[m++]=C,b[m++]=v+1,b[m++]=U,b[m++]=C)}k=m/3,b=b.subarray(0,m)}return{opaque:l.subarray(0,h),opaqueCount:h/o,transparent:d.subarray(0,_),transparentCount:_/o,water:b||new Float32Array(0),waterCount:k,prop:p.subarray(0,g),propCount:g/o}}generateBlocks(n,e){const t=W.CHUNK_WIDTH,r=W.CHUNK_HEIGHT,o=W.CHUNK_DEPTH,i=new Float64Array(t*o),a=new Float64Array(t*o),s=new Float32Array(t*o),l=new Uint8Array(t*o),d=new Uint8Array(t*o),p=new Float32Array(t*o);for(let f=0;f<o;f++)for(let h=0;h<t;h++){const _=h+this.globalPosition.x,g=f+this.globalPosition.z,y=h+f*t,w=Ce(_/512,-5,g/512,0,0,0,n+31337),x=Ce(_/2048,10,g/2048,0,0,0,n);i[y]=Math.abs(Ce(_/1024,0,g/1024,0,0,0,n)*450)*Math.max(.1,(x+1)*.5),a[y]=Do(_/256,15,g/256,2,.6,1.2,6)*12,s[y]=e?e(_,g):0;const B=vs(w);l[y]=B.biome1,d[y]=B.biome2,p[y]=B.blend}for(let f=0;f<o;f++)for(let h=0;h<r;h++)for(let _=0;_<t;_++){if(this.getBlock(_,h,f)!==N.NONE)continue;const g=_+f*t,y=_+this.globalPosition.x,w=h+this.globalPosition.y,x=f+this.globalPosition.z,B=Math.abs(Ce(y/256,w/512,x/256,0,0,0,n)*i[g])+a[g]+s[g];w<B?W._isCave(y,w,x,n,B-w)?w<W.SEA_LEVEL+1?this.setBlock(_,h,f,N.WATER):this.setBlock(_,h,f,N.NONE):this.setBlock(_,h,f,this._generateBlockBasedOnBiome(l[g],d[g],p[g],y,w,x,B)):w<W.SEA_LEVEL+1&&this.setBlock(_,h,f,N.WATER)}for(let f=0;f<W.CHUNK_DEPTH;f++)for(let h=0;h<W.CHUNK_HEIGHT;h++)for(let _=0;_<W.CHUNK_WIDTH;_++){if(this.getBlock(_,h,f)===N.NONE)continue;const g=_+this.globalPosition.x,y=h+this.globalPosition.y,w=f+this.globalPosition.z;this._generateAdditionalBlocks(_,h,f,g,y,w,n)}}setBlock(n,e,t,r){if(n<0||n>=W.CHUNK_WIDTH||e<0||e>=W.CHUNK_HEIGHT||t<0||t>=W.CHUNK_DEPTH)return;const o=n+e*W.CHUNK_WIDTH+t*W.CHUNK_WIDTH*W.CHUNK_HEIGHT,i=this.blocks[o];i!==N.NONE&&(this.aliveBlocks--,le(i)?this.waterBlocks--:At(i)?this.transparentBlocks--:this.opaqueBlocks--,Cn(i)&&this.lightBlocks--),this.blocks[o]=r,r!==N.NONE&&(this.aliveBlocks++,le(r)?this.waterBlocks++:At(r)?this.transparentBlocks++:this.opaqueBlocks++,Cn(r)&&this.lightBlocks++)}getBlock(n,e,t){if(n<0||n>=W.CHUNK_WIDTH||e<0||e>=W.CHUNK_HEIGHT||t<0||t>=W.CHUNK_DEPTH)return N.NONE;const r=n+e*W.CHUNK_WIDTH+t*W.CHUNK_WIDTH*W.CHUNK_HEIGHT;return this.blocks[r]}getBlockIndex(n,e,t){return n<0||n>=W.CHUNK_WIDTH||e<0||e>=W.CHUNK_HEIGHT||t<0||t>=W.CHUNK_DEPTH?-1:n+e*W.CHUNK_WIDTH+t*W.CHUNK_WIDTH*W.CHUNK_HEIGHT}_generateAdditionalBlocks(n,e,t,r,o,i,a){const s=this.getBlock(n,e,t),l=this.getBlock(n-1,e,t),d=this.getBlock(n+1,e,t),p=this.getBlock(n,e,t+1),f=this.getBlock(n,e,t-1),h=this.getBlock(n,e+1,t);if(s==N.SAND)if(o>0&&Me.global.randomUint32()%512==0){const _=Me.global.randomUint32()%5;for(let g=0;g<_;g++)this.setBlock(n,e+g,t,N.CACTUS)}else Me.global.randomUint32()%128==0&&this.setBlock(n,e+1,t,N.DEAD_BUSH);else if(s==N.SNOW||s==N.GRASS_SNOW){if(Me.global.randomUint32()%16==0&&o>12&&(h==N.NONE||le(h))&&(l==N.NONE||f==N.NONE))this.setBlock(n,e+1,t,N.DEAD_BUSH);else if(Me.global.randomUint32()%16==0&&o>12&&o<300&&e<W.CHUNK_HEIGHT-5&&n>2&&t>2&&n<W.CHUNK_WIDTH-2&&t<W.CHUNK_DEPTH-2&&h==N.NONE&&d==N.NONE&&p==N.NONE&&f==N.NONE){const g=Math.max(Me.global.randomUint32()%5,5);for(let y=0;y<g;y++)this.setBlock(n,e+y,t,N.TRUNK);for(let y=-2;y<=2;y++){const w=y<-1||y>1?0:-1,x=y<-1||y>1?0:1;for(let B=-1+w;B<=1+x;B++){const G=Math.abs(B-n);for(let S=-1+w;S<=1+x;S++){const E=Math.abs(S-t),L=B*B+y*y+S*S,M=this.getBlock(n+B,e+g+y,t+S);L+2<Me.global.randomUint32()%24&&G!=2-w&&G!=2+x&&E!=2-w&&E!=2+x&&(M==N.NONE||M==N.SNOWYLEAVES)&&this.setBlock(n+B,e+g+y,t+S,N.SNOWYLEAVES)}}}}}else if(s==N.GRASS||s==N.DIRT)if(Me.global.randomUint32()%2==0&&o>5&&o<300&&e<W.CHUNK_HEIGHT-5&&n>2&&t>2&&n<W.CHUNK_WIDTH-2&&t<W.CHUNK_DEPTH-2&&h==N.NONE&&d==N.NONE&&p==N.NONE&&f==N.NONE){const g=Math.max(Me.global.randomUint32()%5,5);for(let y=0;y<g;y++)this.setBlock(n,e+y,t,N.TRUNK);for(let y=-2;y<=2;y++){const w=y<-1||y>1?0:-1,x=y<-1||y>1?0:1;for(let B=-1+w;B<=1+x;B++){const G=Math.abs(B-n);for(let S=-1+w;S<=1+x;S++){const E=Math.abs(S-t),L=B*B+y*y+S*S,M=this.getBlock(n+B,e+g+y,t+S);L+2<Me.global.randomUint32()%24&&G!=2-w&&G!=2+x&&E!=2-w&&E!=2+x&&(M==N.NONE||M==N.TREELEAVES)&&this.setBlock(n+B,e+g+y,t+S,N.TREELEAVES)}}}}else o>5&&h==N.NONE&&(l==N.NONE||f==N.NONE)&&(Me.global.randomUint32()%8==0?this.setBlock(n,e+1,t,N.GRASS_PROP):Me.global.randomUint32()%8==0&&this.setBlock(n,e+1,t,N.FLOWER))}_generateBlockBasedOnBiome(n,e,t,r,o,i,a){const s=t>0&&n!==e&&ys(r,i)<t?e:n,l=Math.floor(a)-o,d=a<W.SEA_LEVEL+1;switch(s){case Ae.GrassyPlains:return l===0?d?N.DIRT:N.GRASS:l<=3?N.DIRT:N.STONE;case Ae.Desert:return l<=3?N.SAND:N.STONE;case Ae.SnowyPlains:return l===0?N.GRASS_SNOW:l<=2?N.SNOW:N.STONE;case Ae.SnowyMountains:{const p=Math.abs(Un(r/256,o/256,i/256,2,.6,1))*35;return l===0?N.GRASS_SNOW:l<=4||p>20?N.SNOW:N.STONE}case Ae.RockyMountains:return l===0&&Math.abs(Un(r/64,o/64,i/64,2,.6,1))<.12?N.SNOW:N.STONE;default:return N.GRASS}}static _determineBiomeFromNoise(n){return n>.35?Ae.Desert:n>-.15?Ae.GrassyPlains:n>-.3?Ae.SnowyPlains:n>-.5?Ae.SnowyMountains:Ae.RockyMountains}static _determineBiome(n,e,t,r){const o=Ce(n/512,-5,t/512,0,0,0,r+31337);return W._determineBiomeFromNoise(o)}static _isCave(n,e,t,r,o){if(o<3)return!1;if(Ce(n/60,e/60,t/60,0,0,0,r+777)>.6)return!0;const a=Ce(n/24,e/24,t/24,0,0,0,r+13579),s=Ce(n/24,e/14,t/24,0,0,0,r+24680);if(Math.abs(a)<.12&&Math.abs(s)<.12)return!0;const l=Ce(n/28,e/18,t/28,0,0,0,r+55555),d=Ce(n/28,e/28,t/28,0,0,0,r+99999);return Math.abs(l)<.1&&Math.abs(d)<.1}};c(W,"CHUNK_WIDTH",16),c(W,"CHUNK_HEIGHT",16),c(W,"CHUNK_DEPTH",16),c(W,"SEA_LEVEL",15),c(W,"CUBE_VERTS",new Float32Array([-.5,-.5,-.5,.5,.5,-.5,.5,-.5,-.5,.5,.5,-.5,-.5,-.5,-.5,-.5,.5,-.5,-.5,-.5,.5,.5,-.5,.5,.5,.5,.5,.5,.5,.5,-.5,.5,.5,-.5,-.5,.5,-.5,.5,.5,-.5,.5,-.5,-.5,-.5,-.5,-.5,-.5,-.5,-.5,-.5,.5,-.5,.5,.5,.5,.5,.5,.5,-.5,-.5,.5,.5,-.5,.5,-.5,-.5,.5,.5,.5,.5,-.5,.5,-.5,-.5,-.5,.5,-.5,-.5,.5,-.5,.5,.5,-.5,.5,-.5,-.5,.5,-.5,-.5,-.5,-.5,.5,-.5,.5,.5,.5,.5,.5,-.5,.5,.5,.5,-.5,.5,-.5,-.5,.5,.5]));let Z=W;const $o=128;function xs(u,n,e){const t=Ce(u/2048,10,n/2048,0,0,0,e),r=Math.abs(Ce(u/1024,0,n/1024,0,0,0,e)*450)*Math.max(.1,(t+1)*.5),o=Do(u/256,15,n/256,2,.6,1.2,6)*12;return Math.abs(Ce(u/256,0,n/256,0,0,0,e)*r)+o}function po(u,n,e,t){const r=e|0,o=t|0,i=e-r,a=t-o,s=u[r+o*n],l=u[r+1+o*n],d=u[r+(o+1)*n],p=u[r+1+(o+1)*n];return[(l-s)*(1-a)+(p-d)*a,(d-s)*(1-i)+(p-l)*i,s*(1-i)*(1-a)+l*i*(1-a)+d*(1-i)*a+p*i*a]}function ho(u){return Math.imul(u,1664525)+1013904223>>>0}function ws(u,n,e){const t=n*n>>2,r=.05,o=4,i=.01,a=.4,s=.3,l=.01,d=4,p=20,f=2,h=f*2+1,_=new Float32Array(h*h);let g=0;for(let x=-f;x<=f;x++)for(let B=-f;B<=f;B++){const G=Math.sqrt(B*B+x*x);if(G<f){const S=1-G/f;_[B+f+(x+f)*h]=S,g+=S}}for(let x=0;x<_.length;x++)_[x]/=g;const y=n-2;let w=(e^3735928559)>>>0;for(let x=0;x<t;x++){w=ho(w);let B=w/4294967295*y;w=ho(w);let G=w/4294967295*y,S=0,E=0,L=1,M=1,I=0;for(let A=0;A<p;A++){const b=B|0,k=G|0;if(b<0||b>=y||k<0||k>=y)break;const m=B-b,P=G-k,[v,U,C]=po(u,n,B,G);S=S*r-v*(1-r),E=E*r-U*(1-r);const z=Math.sqrt(S*S+E*E);if(z<1e-6)break;S/=z,E/=z;const H=B+S,O=G+E;if(H<0||H>=y||O<0||O>=y)break;const[,,te]=po(u,n,H,O),pe=te-C,he=Math.max(-pe*L*M*o,i);if(I>he||pe>0){const re=pe>0?Math.min(pe,I):(I-he)*s;I-=re,u[b+k*n]+=re*(1-m)*(1-P),u[b+1+k*n]+=re*m*(1-P),u[b+(k+1)*n]+=re*(1-m)*P,u[b+1+(k+1)*n]+=re*m*P}else{const re=Math.min((he-I)*a,-pe);for(let ie=-f;ie<=f;ie++)for(let j=-f;j<=f;j++){const K=b+j,q=k+ie;K<0||K>=n||q<0||q>=n||(u[K+q*n]-=_[j+f+(ie+f)*h]*re)}I+=re}L=Math.sqrt(Math.max(L*L+pe*d,0)),M*=1-l,B=H,G=O}}}function Bs(u,n,e){const t=$o,r=u*t,o=n*t,i=new Float32Array(t*t);for(let p=0;p<t;p++)for(let f=0;f<t;f++)i[f+p*t]=xs(r+f,o+p,e);const a=new Float32Array(i),s=(e^(Math.imul(u,73856093)^Math.imul(n,19349663)))>>>0;ws(a,t,s);const l=12,d=new Float32Array(t*t);for(let p=0;p<t;p++)for(let f=0;f<t;f++){const h=f+p*t,_=Math.min(f,t-1-f,p,t-1-p),g=Math.min(_/l,1);d[h]=(a[h]-i[h])*g}return d}const F=class F{constructor(n){c(this,"seed");c(this,"renderDistanceH",8);c(this,"renderDistanceV",4);c(this,"chunksPerFrame",2);c(this,"time",0);c(this,"waterSimulationRadius",32);c(this,"waterTickInterval",.25);c(this,"_waterTickTimer",0);c(this,"_dirtyChunks",null);c(this,"onChunkAdded");c(this,"onChunkUpdated");c(this,"onChunkRemoved");c(this,"_chunks",new Map);c(this,"_generated",new Set);c(this,"_erosionCache",new Map);c(this,"pendingChunks",0);c(this,"_neighborScratch",{negX:void 0,posX:void 0,negY:void 0,posY:void 0,negZ:void 0,posZ:void 0});c(this,"_scratchTopD2",null);c(this,"_scratchTopXYZ",null);c(this,"_scratchToDelete",[]);c(this,"_scratchWaterBlocks",[]);c(this,"_scratchDirtyChunks",new Set);this.seed=n}get chunkCount(){return this._chunks.size}get chunks(){return this._chunks.values()}getBiomeAt(n,e,t){return Z._determineBiome(n,e,t,this.seed)}static normalizeChunkPosition(n,e,t){return[Math.floor(n/Z.CHUNK_WIDTH),Math.floor(e/Z.CHUNK_HEIGHT),Math.floor(t/Z.CHUNK_DEPTH)]}static _cx(n){return Math.floor(n/Z.CHUNK_WIDTH)}static _cy(n){return Math.floor(n/Z.CHUNK_HEIGHT)}static _cz(n){return Math.floor(n/Z.CHUNK_DEPTH)}static _key(n,e,t){return(n+32768)*4294967296+(e+32768)*65536+(t+32768)}getChunk(n,e,t){return this._chunks.get(F._key(F._cx(n),F._cy(e),F._cz(t)))}chunkExists(n,e,t){return this.getChunk(n,e,t)!==void 0}getBlockType(n,e,t){const r=this.getChunk(n,e,t);if(!r)return N.NONE;const o=Math.round(n)-r.globalPosition.x,i=Math.round(e)-r.globalPosition.y,a=Math.round(t)-r.globalPosition.z;return r.getBlock(o,i,a)}setBlockType(n,e,t,r){let o=this.getChunk(n,e,t);if(!o){const l=F._cx(n),d=F._cy(e),p=F._cz(t);o=new Z(l*Z.CHUNK_WIDTH,d*Z.CHUNK_HEIGHT,p*Z.CHUNK_DEPTH),this._insertChunk(o)}const i=Math.round(n)-o.globalPosition.x,a=Math.round(e)-o.globalPosition.y,s=Math.round(t)-o.globalPosition.z;return o.setBlock(i,a,s,r),this._updateChunk(o,i,a,s),!0}getTopBlockY(n,e,t){const r=Z.CHUNK_HEIGHT,o=Math.floor(n),i=Math.floor(e);for(let a=Math.floor(t/r);a>=0;a--){const s=this.getChunk(o,a*r,i);if(!s)continue;const l=o-s.globalPosition.x,d=i-s.globalPosition.z;for(let p=r-1;p>=0;p--){const f=s.getBlock(l,p,d);if(f!==N.NONE&&!Ee(f))return s.globalPosition.y+p+1}}return 0}getBlockByRay(n,e,t){const r=Number.MAX_VALUE;let o=Math.floor(n.x),i=Math.floor(n.y),a=Math.floor(n.z);const s=1/e.x,l=1/e.y,d=1/e.z,p=e.x>0?1:-1,f=e.y>0?1:-1,h=e.z>0?1:-1,_=Math.min(s*p,r),g=Math.min(l*f,r),y=Math.min(d*h,r);let w=Math.abs((o+Math.max(p,0)-n.x)*s),x=Math.abs((i+Math.max(f,0)-n.y)*l),B=Math.abs((a+Math.max(h,0)-n.z)*d),G=0,S=0,E=0;for(let L=0;L<t;L++){if(L>0){const M=this.getChunk(o,i,a);if(M){const I=o-M.globalPosition.x,A=i-M.globalPosition.y,b=a-M.globalPosition.z,k=M.getBlock(I,A,b);if(k!==N.NONE&&!le(k))return{blockType:k,position:new V(o,i,a),face:new V(-G*p,-S*f,-E*h),chunk:M,relativePosition:new V(I,A,b)}}}G=(w<=B?1:0)*(w<=x?1:0),S=(x<=w?1:0)*(x<=B?1:0),E=(B<=x?1:0)*(B<=w?1:0),w+=_*G,x+=g*S,B+=y*E,o+=p*G,i+=f*S,a+=h*E}return null}addBlock(n,e,t,r,o,i,a){if(a===N.NONE||!this.getChunk(n,e,t))return!1;const l=this.getBlockType(n,e,t);if(Ee(l))return!1;const d=n+r,p=e+o,f=t+i,h=this.getBlockType(d,p,f);if(le(a)){if(h!==N.NONE&&!le(h))return!1}else if(h!==N.NONE&&!le(h))return!1;let _=this.getChunk(d,p,f);if(!_){const x=F._cx(d),B=F._cy(p),G=F._cz(f);_=new Z(x*Z.CHUNK_WIDTH,B*Z.CHUNK_HEIGHT,G*Z.CHUNK_DEPTH),this._insertChunk(_)}const g=d-_.globalPosition.x,y=p-_.globalPosition.y,w=f-_.globalPosition.z;return _.setBlock(g,y,w,a),this._updateChunk(_,g,y,w),!0}mineBlock(n,e,t){const r=this.getChunk(n,e,t);if(!r)return!1;const o=n-r.globalPosition.x,i=e-r.globalPosition.y,a=t-r.globalPosition.z,s=r.getBlock(o,i,a);return s===N.NONE?!1:le(s)?(r.setBlock(o,i,a,N.NONE),this._updateChunk(r,o,i,a),!0):(r.setBlock(o,i,a,N.NONE),this._updateChunk(r,o,i,a),!0)}update(n,e){this.time+=e,this._removeDistantChunks(n),this._createNearbyChunks(n),this._waterTickTimer+=e,this._waterTickTimer>=this.waterTickInterval&&(this._waterTickTimer=0,this._updateWaterFlow(n))}deleteChunk(n){var i;const e=F._cx(n.globalPosition.x),t=F._cy(n.globalPosition.y),r=F._cz(n.globalPosition.z),o=F._key(e,t,r);this._chunks.delete(o),this._generated.delete(o),n.isDeleted=!0,(i=this.onChunkRemoved)==null||i.call(this,n)}calcWaterLevel(n,e,t){const r=this.getChunk(n,e,t);if(!r||r.waterBlocks<=0)return 0;let o=this._calcWaterLevelInChunk(r,e);for(let i=1;i<=4;i++){const a=this.getChunk(n,e+i*Z.CHUNK_HEIGHT,t);if(!a)break;const s=F._cx(n),l=F._cz(t),d=s*Z.CHUNK_WIDTH-a.globalPosition.x,p=l*Z.CHUNK_DEPTH-a.globalPosition.z;if(a.waterBlocks>0&&le(a.getBlock(d,0,p)))o+=this._calcWaterLevelInChunk(a,e);else break}return o}_calcWaterLevelInChunk(n,e){const t=n.globalPosition.y,r=Z.CHUNK_HEIGHT;let o=0;return e<=t+r*.8&&o++,e<=t+r*.7&&o++,e<=t+r*.6&&o++,e<=t+r*.5&&o++,o}_getErosionRegion(n,e){const t=`${n},${e}`;let r=this._erosionCache.get(t);return r||(r=Bs(n,e,this.seed),this._erosionCache.set(t,r)),r}getErosionDisplacement(n,e){const t=$o,r=Math.floor(n/t),o=Math.floor(e/t),i=(n%t+t)%t,a=(e%t+t)%t;return this._getErosionRegion(r,o)[i+a*t]}_insertChunk(n){const e=F._cx(n.globalPosition.x),t=F._cy(n.globalPosition.y),r=F._cz(n.globalPosition.z);this._chunks.set(F._key(e,t,r),n),n.isDeleted=!1}_gatherNeighbors(n,e,t){var o,i,a,s,l,d;const r=this._neighborScratch;return r.negX=(o=this._chunks.get(F._key(n-1,e,t)))==null?void 0:o.blocks,r.posX=(i=this._chunks.get(F._key(n+1,e,t)))==null?void 0:i.blocks,r.negY=(a=this._chunks.get(F._key(n,e-1,t)))==null?void 0:a.blocks,r.posY=(s=this._chunks.get(F._key(n,e+1,t)))==null?void 0:s.blocks,r.negZ=(l=this._chunks.get(F._key(n,e,t-1)))==null?void 0:l.blocks,r.posZ=(d=this._chunks.get(F._key(n,e,t+1)))==null?void 0:d.blocks,r}_remeshSingleNeighbor(n,e,t){var o;const r=this._chunks.get(F._key(n,e,t));r&&((o=this.onChunkUpdated)==null||o.call(this,r,r.generateVertices(this._gatherNeighbors(n,e,t))))}_updateChunk(n,e,t,r){var p;const o=F._cx(n.globalPosition.x),i=F._cy(n.globalPosition.y),a=F._cz(n.globalPosition.z);if(this._dirtyChunks){if(this._dirtyChunks.add(n),e===void 0)return;const f=Z.CHUNK_WIDTH,h=Z.CHUNK_HEIGHT,_=Z.CHUNK_DEPTH,g=(y,w,x)=>{const B=this._chunks.get(F._key(y,w,x));B&&this._dirtyChunks.add(B)};e===0&&g(o-1,i,a),e===f-1&&g(o+1,i,a),t===0&&g(o,i-1,a),t===h-1&&g(o,i+1,a),r===0&&g(o,i,a-1),r===_-1&&g(o,i,a+1);return}if((p=this.onChunkUpdated)==null||p.call(this,n,n.generateVertices(this._gatherNeighbors(o,i,a))),e===void 0)return;const s=Z.CHUNK_WIDTH,l=Z.CHUNK_HEIGHT,d=Z.CHUNK_DEPTH;e===0&&this._remeshSingleNeighbor(o-1,i,a),e===s-1&&this._remeshSingleNeighbor(o+1,i,a),t===0&&this._remeshSingleNeighbor(o,i-1,a),t===l-1&&this._remeshSingleNeighbor(o,i+1,a),r===0&&this._remeshSingleNeighbor(o,i,a-1),r===d-1&&this._remeshSingleNeighbor(o,i,a+1)}_createNearbyChunks(n){const e=F._cx(n.x),t=F._cy(n.y),r=F._cz(n.z),o=this.renderDistanceH,i=this.renderDistanceV,a=o*o,s=Math.max(1,this.chunksPerFrame);(!this._scratchTopD2||this._scratchTopD2.length!==s)&&(this._scratchTopD2=new Float64Array(s),this._scratchTopXYZ=new Int32Array(s*3));for(let f=0;f<s;f++)this._scratchTopD2[f]=1/0;let l=0,d=0,p=1/0;for(let f=-o;f<=o;f++){const h=f*f;for(let _=-o;_<=o;_++){const g=h+_*_;if(!(g>a))for(let y=-i;y<=i;y++){const w=e+f,x=t+y,B=r+_;if(this._generated.has(F._key(w,x,B)))continue;l++;const G=g+y*y;if(!(G>=p)){this._scratchTopD2[d]=G,this._scratchTopXYZ[d*3]=w,this._scratchTopXYZ[d*3+1]=x,this._scratchTopXYZ[d*3+2]=B,p=-1/0;for(let S=0;S<s;S++){const E=this._scratchTopD2[S];E>p&&(p=E,d=S)}}}}}if(this.pendingChunks=l,!(this._chunks.size>=F.MAX_CHUNKS))for(let f=0;f<s;f++){let h=-1,_=1/0;for(let x=0;x<s;x++){const B=this._scratchTopD2[x];B<_&&(_=B,h=x)}if(h<0||_===1/0||this._chunks.size>=F.MAX_CHUNKS)break;const g=this._scratchTopXYZ[h*3],y=this._scratchTopXYZ[h*3+1],w=this._scratchTopXYZ[h*3+2];this._scratchTopD2[h]=1/0,this._createChunkAt(g,y,w)}}_removeDistantChunks(n){const e=F._cx(n.x),t=F._cy(n.y),r=F._cz(n.z),o=this.renderDistanceH+1,i=this.renderDistanceV+1,a=this._scratchToDelete;a.length=0;for(const s of this._chunks.values()){const l=F._cx(s.globalPosition.x),d=F._cy(s.globalPosition.y),p=F._cz(s.globalPosition.z),f=l-e,h=d-t,_=p-r;(f*f+_*_>o*o||Math.abs(h)>i)&&a.push(s)}for(let s=0;s<a.length;s++)this.deleteChunk(a[s]);a.length=0}_createChunkAt(n,e,t){var i;const r=F._key(n,e,t);this._generated.add(r);const o=new Z(n*Z.CHUNK_WIDTH,e*Z.CHUNK_HEIGHT,t*Z.CHUNK_DEPTH);o.generateBlocks(this.seed,(a,s)=>this.getErosionDisplacement(a,s)),o.aliveBlocks>0&&(this._insertChunk(o),(i=this.onChunkAdded)==null||i.call(this,o,o.generateVertices(this._gatherNeighbors(n,e,t))),this._remeshSingleNeighbor(n-1,e,t),this._remeshSingleNeighbor(n+1,e,t),this._remeshSingleNeighbor(n,e-1,t),this._remeshSingleNeighbor(n,e+1,t),this._remeshSingleNeighbor(n,e,t-1),this._remeshSingleNeighbor(n,e,t+1))}_updateWaterFlow(n){var G;const e=this.waterSimulationRadius,t=Math.floor(n.x-e),r=Math.floor(n.x+e),o=Math.floor(Math.max(0,n.y-e)),i=Math.floor(n.y+e),a=Math.floor(n.z-e),s=Math.floor(n.z+e),l=Z.CHUNK_WIDTH,d=Z.CHUNK_HEIGHT,p=Z.CHUNK_DEPTH,f=Math.floor(t/l),h=Math.floor(r/l),_=Math.floor(o/d),g=Math.floor(i/d),y=Math.floor(a/p),w=Math.floor(s/p),x=this._scratchWaterBlocks;x.length=0;for(let S=f;S<=h;S++)for(let E=_;E<=g;E++)for(let L=y;L<=w;L++){const M=this._chunks.get(F._key(S,E,L));if(!M||M.waterBlocks===0)continue;const I=M.globalPosition.x,A=M.globalPosition.y,b=M.globalPosition.z,k=Math.max(0,t-I),m=Math.min(l-1,r-I),P=Math.max(0,o-A),v=Math.min(d-1,i-A),U=Math.max(0,a-b),C=Math.min(p-1,s-b);for(let z=U;z<=C;z++)for(let H=P;H<=v;H++)for(let O=k;O<=m;O++)le(M.getBlock(O,H,z))&&x.push(I+O,A+H,b+z)}const B=this._scratchDirtyChunks;B.clear(),this._dirtyChunks=B;try{for(let S=0;S<x.length;S+=3)this._flowWater(x[S],x[S+1],x[S+2])}finally{this._dirtyChunks=null}for(const S of B){const E=F._cx(S.globalPosition.x),L=F._cy(S.globalPosition.y),M=F._cz(S.globalPosition.z);(G=this.onChunkUpdated)==null||G.call(this,S,S.generateVertices(this._gatherNeighbors(E,L,M)))}B.clear(),x.length=0}_flowWater(n,e,t){const r=this.getBlockType(n,e-1,t);if(r===N.NONE||Ee(r)){this.setBlockType(n,e-1,t,N.WATER),this.setBlockType(n,e,t,N.NONE);return}let o=!1;for(let i=1;i<=4;i++){const a=this.getBlockType(n,e-i,t);if(a!==N.NONE&&!le(a)&&!Ee(a)){o=!0;break}if(a===N.NONE||Ee(a))break}if(!o){const i=[{x:n+1,y:e,z:t},{x:n-1,y:e,z:t},{x:n,y:e,z:t+1},{x:n,y:e,z:t-1}];for(const a of i){const s=this.getBlockType(a.x,a.y,a.z);if(s===N.NONE||Ee(s)){this.setBlockType(a.x,a.y,a.z,N.WATER),this.setBlockType(n,e,t,N.NONE);return}}}if(o){const i=[{x:n+1,y:e,z:t},{x:n-1,y:e,z:t},{x:n,y:e,z:t+1},{x:n,y:e,z:t-1}];for(const a of i){const s=this.getBlockType(a.x,a.y,a.z);if(s===N.NONE||Ee(s)){this.setBlockType(a.x,a.y,a.z,N.WATER);return}}}}};c(F,"MAX_CHUNKS",2048);let Sr=F;function Kt(u,n,e,t,r,o,i,a){const s=[{n:[0,0,-1],t:[-1,0,0,1],v:[[-o,-i,-a],[o,-i,-a],[o,i,-a],[-o,i,-a]]},{n:[0,0,1],t:[1,0,0,1],v:[[o,-i,a],[-o,-i,a],[-o,i,a],[o,i,a]]},{n:[-1,0,0],t:[0,0,-1,1],v:[[-o,-i,a],[-o,-i,-a],[-o,i,-a],[-o,i,a]]},{n:[1,0,0],t:[0,0,1,1],v:[[o,-i,-a],[o,-i,a],[o,i,a],[o,i,-a]]},{n:[0,1,0],t:[1,0,0,1],v:[[-o,i,-a],[o,i,-a],[o,i,a],[-o,i,a]]},{n:[0,-1,0],t:[1,0,0,1],v:[[-o,-i,a],[o,-i,a],[o,-i,-a],[-o,-i,-a]]}],l=[[0,1],[1,1],[1,0],[0,0]];for(const d of s){const p=u.length/12;for(let f=0;f<4;f++){const[h,_,g]=d.v[f];u.push(e+h,t+_,r+g,d.n[0],d.n[1],d.n[2],l[f][0],l[f][1],d.t[0],d.t[1],d.t[2],d.t[3])}n.push(p,p+2,p+1,p,p+3,p+2)}}function mo(u,n=1){const e=[],t=[],r=n;return Kt(e,t,0,0,0,.19*r,.11*r,.225*r),Kt(e,t,0,.07*r,.225*r,.075*r,.06*r,.06*r),ke.fromData(u,new Float32Array(e),new Uint32Array(t))}function _o(u,n=1){const e=[],t=[],r=n;return Kt(e,t,0,0,0,.085*r,.085*r,.075*r),ke.fromData(u,new Float32Array(e),new Uint32Array(t))}function go(u,n=1){const e=[],t=[],r=n;return Kt(e,t,0,0,0,.065*r,.03*r,.055*r),ke.fromData(u,new Float32Array(e),new Uint32Array(t))}function Xe(u,n,e,t,r,o,i,a){const s=[{n:[0,0,-1],t:[-1,0,0,1],v:[[-o,-i,-a],[o,-i,-a],[o,i,-a],[-o,i,-a]]},{n:[0,0,1],t:[1,0,0,1],v:[[o,-i,a],[-o,-i,a],[-o,i,a],[o,i,a]]},{n:[-1,0,0],t:[0,0,-1,1],v:[[-o,-i,a],[-o,-i,-a],[-o,i,-a],[-o,i,a]]},{n:[1,0,0],t:[0,0,1,1],v:[[o,-i,-a],[o,-i,a],[o,i,a],[o,i,-a]]},{n:[0,1,0],t:[1,0,0,1],v:[[-o,i,-a],[o,i,-a],[o,i,a],[-o,i,a]]},{n:[0,-1,0],t:[1,0,0,1],v:[[-o,-i,a],[o,-i,a],[o,-i,-a],[-o,-i,-a]]}],l=[[0,1],[1,1],[1,0],[0,0]];for(const d of s){const p=u.length/12;for(let f=0;f<4;f++){const[h,_,g]=d.v[f];u.push(e+h,t+_,r+g,d.n[0],d.n[1],d.n[2],l[f][0],l[f][1],d.t[0],d.t[1],d.t[2],d.t[3])}n.push(p,p+2,p+1,p,p+3,p+2)}}function vo(u,n=1){const e=[],t=[],r=n;Xe(e,t,0,0,0,.22*r,.15*r,.32*r),Xe(e,t,0,.07*r,.32*r,.035*r,.035*r,.035*r);const o=.155*r,i=-.25*r,a=.255*r,s=.065*r,l=.1*r,d=.065*r;return Xe(e,t,-o,i,-a,s,l,d),Xe(e,t,o,i,-a,s,l,d),Xe(e,t,-o,i,a,s,l,d),Xe(e,t,o,i,a,s,l,d),ke.fromData(u,new Float32Array(e),new Uint32Array(t))}function bo(u,n=1){const e=[],t=[],r=n;return Xe(e,t,0,0,0,.18*r,.16*r,.16*r),ke.fromData(u,new Float32Array(e),new Uint32Array(t))}function yo(u,n=1){const e=[],t=[],r=n;return Xe(e,t,0,0,0,.1*r,.08*r,.06*r),ke.fromData(u,new Float32Array(e),new Uint32Array(t))}const Ss=new V(0,1,0),Jt=class Jt extends Ze{constructor(e){super();c(this,"_world");c(this,"_state","idle");c(this,"_timer",0);c(this,"_targetX",0);c(this,"_targetZ",0);c(this,"_hasTarget",!1);c(this,"_velY",0);c(this,"_yaw",0);c(this,"_headGO",null);c(this,"_headBaseY",0);c(this,"_bobPhase");this._world=e,this._timer=1+Math.random()*4,this._yaw=Math.random()*Math.PI*2,this._bobPhase=Math.random()*Math.PI*2}onAttach(){for(const e of this.gameObject.children)if(e.name==="Duck.Head"){this._headGO=e,this._headBaseY=e.position.y;break}}update(e){const t=this.gameObject,r=t.position.x,o=t.position.z,i=Jt.playerPos,a=i.x-r,s=i.z-o,l=a*a+s*s;this._velY-=9.8*e,t.position.y+=this._velY*e;const d=this._world.getTopBlockY(Math.floor(r),Math.floor(o),Math.ceil(t.position.y)+4);if(d>0&&t.position.y<=d+.1){const p=this._world.getBlockType(Math.floor(r),Math.floor(d-1),Math.floor(o));N.WATER,t.position.y=d,this._velY=0}switch(this._state){case"idle":{this._timer-=e,l<36?this._enterFlee():this._timer<=0&&this._pickWanderTarget();break}case"wander":{if(this._timer-=e,l<36){this._enterFlee();break}if(!this._hasTarget||this._timer<=0){this._enterIdle();break}const p=this._targetX-r,f=this._targetZ-o,h=p*p+f*f;if(h<.25){this._enterIdle();break}const _=Math.sqrt(h),g=p/_,y=f/_;t.position.x+=g*1.5*e,t.position.z+=y*1.5*e,this._yaw=Math.atan2(-g,-y);break}case"flee":{if(l>196){this._enterIdle();break}const p=Math.sqrt(l),f=p>0?-a/p:0,h=p>0?-s/p:0;t.position.x+=f*4*e,t.position.z+=h*4*e,this._yaw=Math.atan2(-f,-h);break}}if(t.rotation=ce.fromAxisAngle(Ss,this._yaw),this._headGO){this._bobPhase+=e*(this._state==="wander"?6:2);const p=this._state==="wander"?.018:.008;this._headGO.position.y=this._headBaseY+Math.sin(this._bobPhase)*p}}_enterIdle(){this._state="idle",this._hasTarget=!1,this._timer=2+Math.random()*5}_enterFlee(){this._state="flee",this._hasTarget=!1}_pickWanderTarget(){const e=this.gameObject,t=Math.random()*Math.PI*2,r=3+Math.random()*8;this._targetX=e.position.x+Math.cos(t)*r,this._targetZ=e.position.z+Math.sin(t)*r,this._hasTarget=!0,this._state="wander",this._timer=6+Math.random()*6}};c(Jt,"playerPos",new V(0,0,0));let ct=Jt;const xo=""+new URL("hotbar-DkVq2FsR.png",import.meta.url).href,Dt=[N.DIRT,N.IRON,N.STONE,N.SAND,N.TRUNK,N.SPRUCE_PLANKS,N.GLASS,N.TORCH,N.WATER];function Ps(u){const n=Dt.length;let e=0;const t=document.createElement("div");t.style.cssText=["position:fixed","bottom:12px","left:50%","transform:translateX(-50%)","display:flex","flex-direction:row","flex-wrap:nowrap","align-items:center","gap:0px","background:url("+xo+") no-repeat","background-position:-48px 0px","background-size:414px 48px","width:364px","height:44px","padding:1px 2px","image-rendering:pixelated","box-sizing:border-box"].join(";");const r=[];for(let d=0;d<n;d++){const p=document.createElement("div");p.style.cssText=["width:40px","height:40px","display:flex","align-items:center","justify-content:center","position:relative","flex-shrink:0"].join(";");const f=document.createElement("canvas");f.width=f.height=32,f.style.cssText="width:32px;height:32px;image-rendering:pixelated;",p.appendChild(f);const h=document.createElement("span");h.textContent=String(d+1),h.style.cssText=["position:absolute","top:1px","left:3px","font-family:ui-monospace,monospace","font-size:9px","color:#ccc","text-shadow:0 0 2px #000","pointer-events:none"].join(";"),p.appendChild(h),t.appendChild(p),r.push(f)}document.body.appendChild(t);const o=document.createElement("div");o.style.cssText=["position:fixed","bottom:12px","width:44px","height:48px","background:url("+xo+") no-repeat","background-position:0px 0px","background-size:414px 48px","pointer-events:none","image-rendering:pixelated","transition:left 60ms linear"].join(";"),document.body.appendChild(o);let i=null;function a(){const d=t.getBoundingClientRect();o.style.left=d.left-2+e*40+"px",i==null||i()}const s=new Image;s.src=u;function l(){if(!s.complete)return;const d=16;for(let p=0;p<n;p++){const f=er.find(_=>_.blockType===Dt[p]),h=r[p].getContext("2d");h.clearRect(0,0,32,32),f&&(h.imageSmoothingEnabled=!1,h.drawImage(s,f.sideFace.x*d,f.sideFace.y*d,d,d,0,0,32,32))}}return s.onload=l,window.addEventListener("keydown",d=>{const p=parseInt(d.key);p>=1&&p<=n&&(e=p-1,a())}),window.addEventListener("wheel",d=>{e=(e+(d.deltaY>0?1:n-1))%n,a()},{passive:!0}),requestAnimationFrame(a),{getSelected:()=>Dt[e],refresh:l,getSelectedSlot:()=>e,setSelectedSlot:d=>{e=d,a()},setOnSelectionChanged:d=>{i=d},slots:Dt,element:t}}const Gs="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAZAAAACWCAYAAADwkd5lAAAD7ElEQVR4nO3dUU7bahSF0eOqgyIwDU/EkmcBUibicQRm5ftyE7UoacvOb+LEa0l9obD7P/VTKdKpAgAA+C7dX35//pZXALBWFzvxp4DM86wfAFvWdV3VhVZcCoh4AFBVlyNyLiCneLy/vy/7KgBWbbfbVdX5iPy4wXsAeAACAkBEQACICAgAEQEBIPLzK588DMPVf2Df9zVNkx07duxsfqflVqud/X7/z5/7pR/jHYah+r6/5m01jmM9PT3ZsWPHzuZ3pmmqj4+Pent7W83O54D4MV4AmhMQACICAkBEQACICAgAEQEBICIgAEQEBICIgAAQERAAIgICQERAAIgICAARAQEgIiAANDMfHQ6H3369vr7OLdixY8eOnXW95bjz+e/9o6qaP8fiywelrrW261t27Nixc6udlltLXST800EpFwnt2LFj50Y7LhICsEkCAkBEQACICAgAEQEBICIgAEQEBICIgAAQERAAIgICQERAAIgICAARAQEgIiAARAQEgGZOF6hcJLRjx46d5XbW9JbjjouEduzYsXMHOy23XCS0Y8eOnQ3tuEgIwCYJCAARAQEgIiAARAQEgIiAABAREAAiAgJAREAAiAgIABEBASAiIABEBASAiIAAEBEQAJo5XaBykdCOHTt2lttZ01uOOy4S2rFjx84d7LTccpHQjh07dja04yIhAJskIABEBASAiIAAEBEQACICAkBEQACICAgAEQEBICIgAEQEBICIgAAQERAAIgICQERAAGjmdIHKRUI7duzYWW5nTW857rhIaMeOHTt3sNNyy0VCO3bs2NnQjouEAGySgAAQERAAIgICQERAAIgICAARAQEgIiAARAQEgIiAABAREAAiAgJAREAAiAgIABEBAaCZ0wUqFwnt2LFjZ7mdNb3luOMioR07duzcwU7LLRcJ7dixY2dDOy4SArBJAgJAREAAiAgIABEBASAiIABEBASAiIAAEBEQACICAkBEQACICAgAEQEBICIgAEQEBIBmTheoXCS0Y8eOneV21vSW485iFwkB2BYHpQBoTkAAiAgIAJGft34AyxmG4eqNvu9rmiY7duKdl5eXq3dYJwF5cH3fX/X14zjWNE127MQ7fhjncfkWFgARAQEgIiAARAQEgIiAABAREAAiAgJAREAAiAgIABEBASAiIABEBASAiIAAEBEQACICAkDEPZAH1vd9jeNox85Nd3hc3ZmPzfM8V1U5BAOwcbvdrqqquq6r+tQM38ICICIgAEQEBIDIuf9E77qumw+HQ+33+29/EADr8vz8XHXm/8wv/Quk+/8LANiwS/G4+MFfzM1fA8A9+VsnAAAAvsF/uG+b8sfhThMAAAAASUVORK5CYII=";function Ts(u,n,e,t,r,o){const y=[];for(let k=1;k<N.MAX;k++)k!==N.WATER&&y.push(k);const w=document.createElement("div");w.style.cssText="position:relative;display:inline-block;align-self:center;";const x=document.createElement("img");x.src=Gs,x.draggable=!1,x.style.cssText=[`width:${400*2}px`,`height:${150*2}px`,"display:block","image-rendering:pixelated","user-select:none"].join(";"),w.appendChild(x);const B=new Image;B.src=n;function G(k,m){const P=k.getContext("2d");if(P.clearRect(0,0,k.width,k.height),!m)return;const v=er.find(U=>U.blockType===m);v&&(P.imageSmoothingEnabled=!1,P.drawImage(B,v.sideFace.x*16,v.sideFace.y*16,16,16,0,0,k.width,k.height))}let S=null,E=null;const L=[];function M(){L.forEach((k,m)=>{k.style.outline=m===r()?"2px solid #ff0":""})}function I(k,m,P){const v=document.createElement("div");v.style.cssText=["position:absolute",`left:${k}px`,`top:${m}px`,"width:32px","height:32px","box-sizing:border-box","cursor:grab"].join(";"),v.draggable=P;const U=document.createElement("canvas");return U.width=U.height=32,U.style.cssText="width:32px;height:32px;image-rendering:pixelated;pointer-events:none;display:block;",v.appendChild(U),w.appendChild(v),[v,U]}for(let k=0;k<6;k++)for(let m=0;m<21;m++){const P=y[k*21+m]??null;if(!P)continue;const[v,U]=I(24+m*36,24+k*36,!0);v.title=String(Ni[P]),B.complete?G(U,P):B.addEventListener("load",()=>G(U,P),{once:!1}),v.addEventListener("click",()=>{e[r()]=P,b(),t()}),v.addEventListener("dragstart",C=>{S=P,E=null,C.dataTransfer.effectAllowed="copy",v.style.opacity="0.4"}),v.addEventListener("dragend",()=>{v.style.opacity="1"})}const A=[];for(let k=0;k<9;k++){const[m,P]=I(240+k*36,248,!0);A.push(P),L.push(m),m.title=`Slot ${k+1}`,m.addEventListener("click",()=>{o(k),M()}),m.addEventListener("dragstart",v=>{S=e[k],E=k,v.dataTransfer.effectAllowed="move",m.style.opacity="0.4"}),m.addEventListener("dragend",()=>{m.style.opacity="1"}),m.addEventListener("dragover",v=>{v.preventDefault(),v.dataTransfer.dropEffect=E!==null?"move":"copy",m.style.boxShadow="inset 0 0 0 2px #7ff"}),m.addEventListener("dragleave",()=>{m.style.boxShadow=""}),m.addEventListener("drop",v=>{v.preventDefault(),m.style.boxShadow="",S&&(E!==null&&E!==k?[e[k],e[E]]=[e[E],e[k]]:E===null&&(e[k]=S),b(),t(),S=null,E=null)})}function b(){for(let k=0;k<9;k++)G(A[k],e[k])}return B.addEventListener("load",b),B.complete&&b(),u.appendChild(w),{syncHotbar:b,refreshSlotHighlight:M}}function Ms(u,n,e){const t=document.createElement("div");t.style.cssText=["display:flex","flex-wrap:wrap","gap:8px","justify-content:center","font-family:ui-monospace,monospace","font-size:13px","user-select:none"].join(";");const r="background:#1a2e1a;color:#5f5;border-color:#5f5",o="background:#2e1a1a;color:#f55;border-color:#f55";for(const i of Object.keys(u)){const a=document.createElement("button"),s=i.toUpperCase().padEnd(5),l=()=>{const d=u[i];a.textContent=`${s} ${d?"ON ":"OFF"}`,a.setAttribute("style",["padding:5px 10px","border-width:1px","border-style:solid","border-radius:4px","cursor:pointer","letter-spacing:0.04em",d?r:o].join(";"))};a.addEventListener("click",()=>{u[i]=!u[i],l(),n(i)}),l(),t.appendChild(a)}return e.appendChild(t),t}function As(u,n){const e=document.createElement("div");e.style.cssText=["position:fixed","inset:0","z-index:100","background:rgba(0,0,0,0.78)","display:none","align-items:center","justify-content:center","font-family:ui-monospace,monospace"].join(";"),document.body.appendChild(e);const t=document.createElement("div");t.style.cssText=["display:flex","flex-direction:column","align-items:center","gap:24px","padding:48px 56px","background:rgba(255,255,255,0.24)","border:1px solid rgba(255,255,255,0.12)","border-radius:12px","max-width:860px","width:90%"].join(";"),e.appendChild(t);const r=document.createElement("h1");r.textContent="CRAFTY",r.style.cssText=["margin:0","font-size:52px","font-weight:900","color:#fff","letter-spacing:0.12em","text-shadow:0 0 48px rgba(100,200,255,0.45)","font-family:ui-monospace,monospace"].join(";"),t.appendChild(r);const o=document.createElement("button");o.textContent="Back to Game",o.style.cssText=["padding:10px 40px","font-size:15px","font-family:ui-monospace,monospace","background:#1a3a1a","color:#5f5","border:1px solid #5f5","border-radius:6px","cursor:pointer","letter-spacing:0.06em","transition:background 0.15s"].join(";"),o.addEventListener("mouseenter",()=>{o.style.background="#243e24"}),o.addEventListener("mouseleave",()=>{o.style.background="#1a3a1a"});const i=()=>{d();try{u.requestPointerLock()}catch{}};o.addEventListener("click",i),o.addEventListener("touchend",f=>{f.preventDefault(),i()},{passive:!1}),t.appendChild(o);const a=document.createElement("div");a.style.cssText="width:100%;height:1px;background:rgba(255,255,255,0.12)",t.appendChild(a);let s=0;function l(){s=performance.now(),e.style.display="flex",n.style.display="none"}function d(){e.style.display="none",n.style.display=""}function p(){return e.style.display!=="none"}return document.addEventListener("pointerlockchange",()=>{document.pointerLockElement===u?d():l()}),document.addEventListener("keydown",f=>{if(f.code==="Escape"&&p()){if(performance.now()-s<200)return;d(),u.requestPointerLock()}}),{overlay:e,card:t,open:l,close:d,isOpen:p}}function Es(){const u=document.createElement("div");u.style.cssText=["position:fixed","top:50%","left:50%","width:16px","height:16px","transform:translate(-50%,-50%)","pointer-events:none"].join(";"),u.innerHTML=['<div style="position:absolute;top:50%;left:0;width:100%;height:3px;background:#fff;opacity:0.8;transform:translateY(-50%)"></div>','<div style="position:absolute;left:50%;top:0;width:3px;height:100%;background:#fff;opacity:0.8;transform:translateX(-50%)"></div>','<div style="position:absolute;top:50%;left:50%;width:7px;height:3px;background:#fff;opacity:0.9;transform:translate(-50%,-50%);border-radius:50%"></div>'].join(""),document.body.appendChild(u);const n=document.createElement("div");n.style.cssText=["position:fixed","top:12px","right:12px","font-family:ui-monospace,monospace","font-size:13px","color:#ff0","background:rgba(0,0,0,0.85)","padding:4px 8px","border-radius:4px","pointer-events:none"].join(";"),document.body.appendChild(n);const e=document.createElement("div");e.style.cssText=["position:fixed","top:44px","right:12px","font-family:ui-monospace,monospace","font-size:11px","color:#aaf","background:rgba(0,0,0,0.85)","padding:4px 8px","border-radius:4px","pointer-events:none","white-space:pre"].join(";"),document.body.appendChild(e);const t=document.createElement("div");t.style.cssText=["position:fixed","bottom:12px","right:12px","font-family:ui-monospace,monospace","font-size:13px","color:#ff0","background:rgba(0,0,0,0.85)","padding:4px 8px","border-radius:4px","pointer-events:none"].join(";"),document.body.appendChild(t);const r=document.createElement("div");return r.style.cssText=["position:fixed","bottom:44px","right:12px","font-family:ui-monospace,monospace","font-size:11px","color:#ccf","background:rgba(0,0,0,0.85)","padding:4px 8px","border-radius:4px","pointer-events:none"].join(";"),document.body.appendChild(r),{fps:n,stats:e,biome:t,pos:r,reticle:u}}function Us(u,n,e,t,r,o,i,a){const s=new fe("Camera");s.position.set(64,25,64);const l=s.addComponent(new zo(70,.1,1e3,t/r));n.add(s);const d=new fe("Flashlight"),p=d.addComponent(new Ho);p.color=new V(1,.95,.9),p.intensity=0,p.range=40,p.innerAngle=12,p.outerAngle=25,p.castShadow=!1,p.projectionTexture=o,s.addChild(d),n.add(d);let f=!1;const h=new qi(e,Math.PI,.1);h.attach(u);const _=new Ci(Math.PI,.1,15);let g=!0;const y=document.createElement("div");y.textContent="PLAYER",y.style.cssText=["position:fixed","top:12px","left:12px","font-family:ui-monospace,monospace","font-size:13px","font-weight:bold","color:#4f4","background:rgba(0,0,0,0.45)","padding:4px 8px","border-radius:4px","pointer-events:none","letter-spacing:0.05em"].join(";"),document.body.appendChild(y);function w(S){i&&(i.style.display=S?"":"none"),a&&(a.style.display=S?"":"none")}function x(){g=!g,g?(h.yaw=_.yaw,h.pitch=_.pitch,_.detach(),h.attach(u)):(_.yaw=h.yaw,_.pitch=h.pitch,h.detach(),_.attach(u)),y.textContent=g?"PLAYER":"FREE",y.style.color=g?"#4f4":"#4cf",w(g)}function B(S){f=S,p.intensity=f?25:0}let G=-1/0;return document.addEventListener("keyup",S=>{S.code==="Space"&&(G=performance.now())}),document.addEventListener("keydown",S=>{if(S.code==="KeyC"&&!S.repeat){x();return}if(!(S.code!=="Space"||S.repeat)&&performance.now()-G<400&&document.pointerLockElement===u){const E=g;x(),G=-1/0,E&&_.pressKey("Space")}}),window.addEventListener("keydown",S=>{S.code==="KeyF"&&!S.repeat&&(B(!f),console.log(`Flashlight ${f?"ON":"OFF"} (intensity: ${p.intensity})`)),S.ctrlKey&&S.key==="w"&&(S.preventDefault(),window.location.reload())}),{cameraGO:s,camera:l,player:h,freeCamera:_,isPlayerMode:()=>g,flashlight:p,isFlashlightEnabled:()=>f,modeEl:y,toggleController:x,setFlashlightEnabled:B,setPlayerUIVisible:w}}const yt=new Map,xt=new Map,tr=(u,n,e)=>`${u},${n},${e}`;function Zo(u,n,e,t){const r=tr(u,n,e);if(yt.has(r))return;const o=new fe("TorchLight");o.position.set(u+.5,n+.9,e+.5);const i=o.addComponent(new Tr);i.color=new V(1,.52,.18),i.intensity=4,i.radius=6,i.castShadow=!1,t.add(o);const a=(u*127.1+n*311.7+e*74.3)%(Math.PI*2);yt.set(r,{go:o,pl:i,phase:a})}function Pr(u,n,e,t){const r=tr(u,n,e),o=yt.get(r);o&&(t.remove(o.go),yt.delete(r))}function Cs(u){for(const{pl:n,phase:e}of yt.values()){const t=1+.08*Math.sin(u*11.7+e)+.05*Math.sin(u*7.3+e*1.7)+.03*Math.sin(u*23.1+e*.5);n.intensity=4*t}}function Ko(u,n,e,t){const r=tr(u,n,e);if(xt.has(r))return;const o=new fe("MagmaLight");o.position.set(u+.5,n+.5,e+.5);const i=o.addComponent(new Tr);i.color=new V(1,.28,0),i.intensity=6,i.radius=10,i.castShadow=!1,t.add(o);const a=(u*127.1+n*311.7+e*74.3)%(Math.PI*2);xt.set(r,{go:o,pl:i,phase:a})}function Qo(u,n,e,t){const r=tr(u,n,e),o=xt.get(r);o&&(t.remove(o.go),xt.delete(r))}function ks(u){for(const{pl:n,phase:e}of xt.values()){const t=1+.18*Math.sin(u*1.1+e)+.1*Math.sin(u*2.9+e*.7)+.06*Math.sin(u*.5+e*1.4);n.intensity=6*t}}const Ls=700,Ns=300;function Rs(){return{targetBlock:null,targetHit:null,mouseHeld:-1,mouseHoldTime:0,lastBlockAction:0}}function Kr(u,n,e,t,r,o){var i,a,s;if(u===0&&e.targetBlock){const l=e.targetBlock.x,d=e.targetBlock.y,p=e.targetBlock.z,f=t.getBlockType(l,d,p);if(f===N.TORCH&&Pr(l,d,p,o),f===N.MAGMA&&Qo(l,d,p,o),t.mineBlock(l,d,p)&&((i=e.onLocalEdit)==null||i.call(e,{kind:"break",x:l,y:d,z:p}),!Ee(f))){const h=t.getBlockType(l,d+1,p);Ee(h)&&(h===N.TORCH&&Pr(l,d+1,p,o),t.mineBlock(l,d+1,p)&&((a=e.onLocalEdit)==null||a.call(e,{kind:"break",x:l,y:d+1,z:p})))}e.lastBlockAction=n}else if(u===2&&e.targetHit){const l=e.targetHit,d=r(),p=l.position.x+l.face.x,f=l.position.y+l.face.y,h=l.position.z+l.face.z;t.addBlock(l.position.x,l.position.y,l.position.z,l.face.x,l.face.y,l.face.z,d)&&(d===N.TORCH&&Zo(p,f,h,o),d===N.MAGMA&&Ko(p,f,h,o),(s=e.onLocalEdit)==null||s.call(e,{kind:"place",x:l.position.x,y:l.position.y,z:l.position.z,fx:l.face.x,fy:l.face.y,fz:l.face.z,blockType:d})),e.lastBlockAction=n}}function wo(u,n,e){if(u.kind==="break"){const i=n.getBlockType(u.x,u.y,u.z);i===N.TORCH&&Pr(u.x,u.y,u.z,e),i===N.MAGMA&&Qo(u.x,u.y,u.z,e),n.mineBlock(u.x,u.y,u.z);return}const t=u.x+u.fx,r=u.y+u.fy,o=u.z+u.fz;n.setBlockType(t,r,o,u.blockType),u.blockType===N.TORCH&&Zo(t,r,o,e),u.blockType===N.MAGMA&&Ko(t,r,o,e)}function Is(u,n,e,t,r){u.addEventListener("contextmenu",o=>o.preventDefault()),u.addEventListener("mousedown",o=>{document.pointerLockElement===u&&(o.button!==0&&o.button!==2||(n.mouseHeld=o.button,n.mouseHoldTime=o.timeStamp,Kr(o.button,o.timeStamp,n,e,t,r)))}),u.addEventListener("mouseup",o=>{o.button===n.mouseHeld&&(n.mouseHeld=-1)})}function Os(u,n,e,t,r,o){e.mouseHeld>=0&&document.pointerLockElement===n&&u-e.mouseHoldTime>=Ls&&u-e.lastBlockAction>=Ns&&Kr(e.mouseHeld,u,e,t,r,o)}const je=60,Vs=.1,zt=28,at=64,Bo=44,Ds=.005;function zs(u,n,e){const t={controls:null,cancel(){}},r=()=>{t.controls||(t.controls=new Hs(u,n),e==null||e(t.controls))};return window.addEventListener("touchstart",r,{once:!0,passive:!0,capture:!0}),t.cancel=()=>window.removeEventListener("touchstart",r,!0),t}function Fs(){if(typeof location<"u"&&/[?&]touch(=1|=true|=on|$|&)/.test(location.search))return!0;if(typeof navigator<"u"){const u=navigator;if((u.maxTouchPoints??0)>0||(u.msMaxTouchPoints??0)>0)return!0}if(typeof window<"u"&&"ontouchstart"in window)return!0;if(typeof window<"u"&&typeof window.matchMedia=="function")try{if(window.matchMedia("(any-pointer: coarse)").matches||window.matchMedia("(pointer: coarse)").matches)return!0}catch{}return!1}class Hs{constructor(n,e){c(this,"_root");c(this,"_joystick");c(this,"_stick");c(this,"_btnJump");c(this,"_btnSneak");c(this,"_btnMine");c(this,"_btnPlace");c(this,"_btnMenu");c(this,"_joyTouchId",null);c(this,"_joyOriginX",0);c(this,"_joyOriginY",0);c(this,"_lookTouchId",null);c(this,"_lookLastX",0);c(this,"_lookLastY",0);c(this,"_lookLastTapAt",-1/0);c(this,"_lookSensitivity");c(this,"_onJoyStart",n=>{if(this._joyTouchId!==null)return;n.preventDefault();const e=n.changedTouches[0];this._joyTouchId=e.identifier;const t=this._joystick.getBoundingClientRect();this._joyOriginX=t.left+t.width*.5,this._joyOriginY=t.top+t.height*.5,this._updateJoystick(e.clientX,e.clientY)});c(this,"_onJoyMove",n=>{if(this._joyTouchId!==null)for(let e=0;e<n.changedTouches.length;e++){const t=n.changedTouches[e];if(t.identifier===this._joyTouchId){n.preventDefault(),this._updateJoystick(t.clientX,t.clientY);return}}});c(this,"_onJoyEnd",n=>{if(this._joyTouchId!==null){for(let e=0;e<n.changedTouches.length;e++)if(n.changedTouches[e].identifier===this._joyTouchId){n.preventDefault(),this._joyTouchId=null,this._setMovement(0,0),this._stick.style.transform="translate(0px, 0px)";return}}});c(this,"_onLookStart",n=>{if(this._lookTouchId!==null)return;const e=n.changedTouches[0],t=window.innerWidth*.5;if(e.clientX<t)return;n.preventDefault(),this._lookTouchId=e.identifier,this._lookLastX=e.clientX,this._lookLastY=e.clientY;const r=performance.now();r-this._lookLastTapAt<350&&this._opts.onLookDoubleTap?(this._opts.onLookDoubleTap(),this._lookLastTapAt=-1/0):this._lookLastTapAt=r});c(this,"_onLookMove",n=>{if(this._lookTouchId!==null)for(let e=0;e<n.changedTouches.length;e++){const t=n.changedTouches[e];if(t.identifier!==this._lookTouchId)continue;n.preventDefault();const r=t.clientX-this._lookLastX,o=t.clientY-this._lookLastY;this._lookLastX=t.clientX,this._lookLastY=t.clientY,this._applyLook(r,o);return}});c(this,"_onLookEnd",n=>{if(this._lookTouchId!==null){for(let e=0;e<n.changedTouches.length;e++)if(n.changedTouches[e].identifier===this._lookTouchId){n.preventDefault(),this._lookTouchId=null;return}}});this._canvas=n,this._opts=e,this._lookSensitivity=e.lookSensitivity??Ds,this._root=document.createElement("div"),this._root.style.cssText=["position:fixed","inset:0","pointer-events:none","user-select:none","-webkit-user-select:none","touch-action:none","z-index:50"].join(";"),this._joystick=document.createElement("div"),this._joystick.style.cssText=["position:absolute","left:24px","bottom:24px",`width:${je*2}px`,`height:${je*2}px`,"border-radius:50%","background:rgba(255,255,255,0.10)","border:2px solid rgba(255,255,255,0.30)","pointer-events:auto"].join(";"),this._stick=document.createElement("div"),this._stick.style.cssText=["position:absolute",`left:${je-zt}px`,`top:${je-zt}px`,`width:${zt*2}px`,`height:${zt*2}px`,"border-radius:50%","background:rgba(255,255,255,0.30)","border:2px solid rgba(255,255,255,0.50)","pointer-events:none","transition:transform 80ms ease-out"].join(";"),this._joystick.appendChild(this._stick),this._root.appendChild(this._joystick),this._btnMine=this._makeButton("⛏",`right:${24+at+12}px`,`bottom:${24+at+12}px`,"rgba(220,80,80,0.45)"),this._btnPlace=this._makeButton("▣","right:24px",`bottom:${24+at+12}px`,"rgba(80,180,90,0.45)"),this._btnJump=this._makeButton("⤒","right:24px","bottom:24px","rgba(255,255,255,0.18)"),this._btnSneak=this._makeButton("⤓",`right:${24+at+12}px`,"bottom:24px","rgba(255,255,255,0.10)"),this._btnMenu=this._makeButton("☰","right:16px","top:16px","rgba(0,0,0,0.45)"),this._btnMenu.style.width=`${Bo}px`,this._btnMenu.style.height=`${Bo}px`,this._btnMenu.style.fontSize="24px",document.body.appendChild(this._root),this._attachEvents()}destroy(){this._detachEvents(),this._root.remove()}_makeButton(n,e,t,r){const o=document.createElement("div");return o.textContent=n,o.style.cssText=["position:absolute",e,t,`width:${at}px`,`height:${at}px`,"border-radius:50%",`background:${r}`,"border:2px solid rgba(255,255,255,0.45)","color:#fff","font-size:32px","font-family:sans-serif","display:flex","align-items:center","justify-content:center","pointer-events:auto","user-select:none"].join(";"),this._root.appendChild(o),o}_attachEvents(){this._joystick.addEventListener("touchstart",this._onJoyStart,{passive:!1}),this._joystick.addEventListener("touchmove",this._onJoyMove,{passive:!1}),this._joystick.addEventListener("touchend",this._onJoyEnd,{passive:!1}),this._joystick.addEventListener("touchcancel",this._onJoyEnd,{passive:!1}),this._canvas.addEventListener("touchstart",this._onLookStart,{passive:!1}),this._canvas.addEventListener("touchmove",this._onLookMove,{passive:!1}),this._canvas.addEventListener("touchend",this._onLookEnd,{passive:!1}),this._canvas.addEventListener("touchcancel",this._onLookEnd,{passive:!1}),this._bindHoldButton(this._btnJump,()=>this._setJump(!0),()=>this._setJump(!1)),this._bindHoldButton(this._btnSneak,()=>this._setSneak(!0),()=>this._setSneak(!1)),this._bindHoldButton(this._btnMine,()=>this._actionDown(0),()=>this._actionUp(0)),this._bindHoldButton(this._btnPlace,()=>this._actionDown(2),()=>this._actionUp(2));const n=e=>{var t,r;e.preventDefault(),this._btnMenu.style.filter="",(r=(t=this._opts).onMenu)==null||r.call(t)};this._btnMenu.addEventListener("touchstart",e=>{e.preventDefault(),this._btnMenu.style.filter="brightness(1.5)"},{passive:!1}),this._btnMenu.addEventListener("touchend",n,{passive:!1}),this._btnMenu.addEventListener("touchcancel",()=>{this._btnMenu.style.filter=""},{passive:!1})}_detachEvents(){this._joystick.removeEventListener("touchstart",this._onJoyStart),this._joystick.removeEventListener("touchmove",this._onJoyMove),this._joystick.removeEventListener("touchend",this._onJoyEnd),this._joystick.removeEventListener("touchcancel",this._onJoyEnd),this._canvas.removeEventListener("touchstart",this._onLookStart),this._canvas.removeEventListener("touchmove",this._onLookMove),this._canvas.removeEventListener("touchend",this._onLookEnd),this._canvas.removeEventListener("touchcancel",this._onLookEnd)}_bindHoldButton(n,e,t){const r=i=>{i.preventDefault(),n.style.filter="brightness(1.5)",e()},o=i=>{i.preventDefault(),n.style.filter="",t()};n.addEventListener("touchstart",r,{passive:!1}),n.addEventListener("touchend",o,{passive:!1}),n.addEventListener("touchcancel",o,{passive:!1})}_updateJoystick(n,e){let t=n-this._joyOriginX,r=e-this._joyOriginY;const o=Math.hypot(t,r);if(o>je){const l=je/o;t*=l,r*=l}this._stick.style.transition="none",this._stick.style.transform=`translate(${t}px, ${r}px)`,requestAnimationFrame(()=>{this._stick.style.transition="transform 80ms ease-out"});const i=t/je,a=r/je;if(Math.hypot(i,a)<Vs){this._setMovement(0,0);return}this._setMovement(i,-a)}_activeIsCamera(){return(this._opts.getActive?this._opts.getActive():"player")==="camera"}_setMovement(n,e){const t=this._activeIsCamera();t&&this._opts.camera?(this._opts.camera.inputForward=e,this._opts.camera.inputStrafe=n):this._opts.player&&(this._opts.player.inputForward=e,this._opts.player.inputStrafe=n),t&&this._opts.player?(this._opts.player.inputForward=0,this._opts.player.inputStrafe=0):!t&&this._opts.camera&&(this._opts.camera.inputForward=0,this._opts.camera.inputStrafe=0)}_setJump(n){this._activeIsCamera()&&this._opts.camera?this._opts.camera.inputUp=n:this._opts.player&&(this._opts.player.inputJump=n)}_setSneak(n){this._activeIsCamera()&&this._opts.camera?this._opts.camera.inputDown=n:this._opts.player&&(this._opts.player.inputSneak=n)}_applyLook(n,e){const t=n*(this._lookSensitivity/.002),r=e*(this._lookSensitivity/.002);this._activeIsCamera()&&this._opts.camera?this._opts.camera.applyLookDelta(t,r):this._opts.player&&this._opts.player.applyLookDelta(t,r)}_actionDown(n){const{world:e,scene:t,blockInteraction:r,getSelectedBlock:o}=this._opts;if(!e||!t||!r||!o)return;const i=performance.now();r.mouseHeld=n,r.mouseHoldTime=i,Kr(n,i,r,e,o,t)}_actionUp(n){const e=this._opts.blockInteraction;e&&e.mouseHeld===n&&(e.mouseHeld=-1)}}const Ws=`// Forward PBR shader with multi-light support
+// Supports: directional, point, spot lights with shadows
+// Materials: PBR with IBL, normal mapping, MER textures
+
+const PI: f32 = 3.14159265358979323846;
+
+// Maximum lights supported
+const MAX_POINT_LIGHTS: u32 = 8u;
+const MAX_SPOT_LIGHTS: u32 = 4u;
+
+struct CameraUniforms {
+  view        : mat4x4<f32>,
+  proj        : mat4x4<f32>,
+  viewProj    : mat4x4<f32>,
+  invViewProj : mat4x4<f32>,
+  position    : vec3<f32>,
+  near        : f32,
+  far         : f32,
+}
+
+struct ModelUniforms {
+  model        : mat4x4<f32>,
+  normalMatrix : mat4x4<f32>,
+}
+
+struct MaterialUniforms {
+  albedo    : vec4<f32>,
+  roughness : f32,
+  metallic  : f32,
+  uvOffset  : vec2<f32>,
+  uvScale   : vec2<f32>,
+  uvTile    : vec2<f32>,
+}
+
+struct PointLight {
+  position    : vec3<f32>,
+  range       : f32,
+  color       : vec3<f32>,
+  intensity   : f32,
+  castShadows : u32,
+  _pad        : vec3<u32>,
+}
+
+struct SpotLight {
+  position        : vec3<f32>,
+  range           : f32,
+  direction       : vec3<f32>,
+  innerAngle      : f32,
+  color           : vec3<f32>,
+  outerAngle      : f32,
+  intensity       : f32,
+  castShadows     : u32,
+  shadowMapIndex  : u32,
+  _pad            : u32,
+  lightViewProj   : mat4x4<f32>,
+}
+
+struct DirectionalLight {
+  direction       : vec3<f32>,
+  intensity       : f32,
+  color           : vec3<f32>,
+  castShadows     : u32,
+  shadowMapIndex  : u32,
+  _pad            : vec3<u32>,
+  lightViewProj   : mat4x4<f32>,
+}
+
+struct LightingUniforms {
+  numPointLights : u32,
+  numSpotLights  : u32,
+  _pad           : vec2<u32>,
+}
+
+// Group 0: Camera
+@group(0) @binding(0) var<uniform> camera : CameraUniforms;
+
+// Group 1: Model
+@group(1) @binding(0) var<uniform> model    : ModelUniforms;
+
+// Group 2: Material (uniforms + texture maps + sampler)
+@group(2) @binding(0) var<uniform> material : MaterialUniforms;
+@group(2) @binding(1) var albedo_map  : texture_2d<f32>;
+@group(2) @binding(2) var normal_map  : texture_2d<f32>;
+@group(2) @binding(3) var mer_map     : texture_2d<f32>;
+@group(2) @binding(4) var mat_sampler : sampler;
+
+// Group 3: Lighting + Shadow + IBL
+@group(3) @binding(0) var<uniform> lighting            : LightingUniforms;
+@group(3) @binding(1) var<uniform> directionalLight    : DirectionalLight;
+@group(3) @binding(2) var<storage, read> pointLights   : array<PointLight>;
+@group(3) @binding(3) var<storage, read> spotLights    : array<SpotLight>;
+@group(3) @binding(4) var shadowMapArray     : texture_depth_2d_array;
+@group(3) @binding(5) var shadowSampler      : sampler_comparison;
+@group(3) @binding(6) var irradiance_cube    : texture_cube<f32>;
+@group(3) @binding(7) var prefilter_cube     : texture_cube<f32>;
+@group(3) @binding(8) var brdf_lut           : texture_2d<f32>;
+@group(3) @binding(9) var ibl_sampler        : sampler;
+@group(3) @binding(10) var pointShadowCubeArray : texture_depth_cube_array;
+
+const IBL_MIP_LEVELS: f32 = 5.0;
+
+// Vertex input/output
+struct VertexInput {
+  @location(0) position : vec3<f32>,
+  @location(1) normal   : vec3<f32>,
+  @location(2) uv       : vec2<f32>,
+  @location(3) tangent  : vec4<f32>,
+}
+
+struct VertexOutput {
+  @builtin(position) clip_pos   : vec4<f32>,
+  @location(0)       world_pos  : vec3<f32>,
+  @location(1)       world_norm : vec3<f32>,
+  @location(2)       uv         : vec2<f32>,
+  @location(3)       world_tan  : vec4<f32>,
+}
+
+@vertex
+fn vs_main(vin: VertexInput) -> VertexOutput {
+  let world_pos  = model.model * vec4<f32>(vin.position, 1.0);
+  let world_norm = normalize((model.normalMatrix * vec4<f32>(vin.normal,      0.0)).xyz);
+  let world_tan  = normalize((model.normalMatrix * vec4<f32>(vin.tangent.xyz, 0.0)).xyz);
+
+  var out: VertexOutput;
+  out.clip_pos   = camera.viewProj * world_pos;
+  out.world_pos  = world_pos.xyz;
+  out.world_norm = world_norm;
+  out.uv         = vin.uv;
+  out.world_tan  = vec4<f32>(world_tan, vin.tangent.w);
+  return out;
+}
+
+// PBR functions
+fn fresnel_schlick(cos_theta: f32, F0: vec3<f32>) -> vec3<f32> {
+  return F0 + (vec3<f32>(1.0) - F0) * pow(max(1.0 - cos_theta, 0.0), 5.0);
+}
+
+fn fresnel_schlick_roughness(cos_theta: f32, F0: vec3<f32>, roughness: f32) -> vec3<f32> {
+  let one_minus_roughness = vec3<f32>(1.0 - roughness);
+  return F0 + (max(one_minus_roughness, F0) - F0) * pow(max(1.0 - cos_theta, 0.0), 5.0);
+}
+
+fn distribution_ggx(N: vec3<f32>, H: vec3<f32>, roughness: f32) -> f32 {
+  let a = roughness * roughness;
+  let a2 = a * a;
+  let NdotH = max(dot(N, H), 0.0);
+  let NdotH2 = NdotH * NdotH;
+  let denom = NdotH2 * (a2 - 1.0) + 1.0;
+  return a2 / (PI * denom * denom);
+}
+
+fn geometry_schlick_ggx(NdotV: f32, roughness: f32) -> f32 {
+  let r = roughness + 1.0;
+  let k = (r * r) / 8.0;
+  return NdotV / (NdotV * (1.0 - k) + k);
+}
+
+fn geometry_smith(N: vec3<f32>, V: vec3<f32>, L: vec3<f32>, roughness: f32) -> f32 {
+  let NdotV = max(dot(N, V), 0.0);
+  let NdotL = max(dot(N, L), 0.0);
+  let ggx1 = geometry_schlick_ggx(NdotV, roughness);
+  let ggx2 = geometry_schlick_ggx(NdotL, roughness);
+  return ggx1 * ggx2;
+}
+
+// Shadow sampling for directional light
+fn sample_shadow(world_pos: vec3<f32>) -> f32 {
+  if (directionalLight.castShadows == 0u) {
+    return 1.0;
+  }
+
+  let light_space = directionalLight.lightViewProj * vec4<f32>(world_pos, 1.0);
+  var shadow_coord = light_space.xyz / light_space.w;
+  shadow_coord = vec3<f32>(shadow_coord.xy * 0.5 + 0.5, shadow_coord.z);
+  shadow_coord.y = 1.0 - shadow_coord.y;
+
+  if (shadow_coord.x < 0.0 || shadow_coord.x > 1.0 ||
+      shadow_coord.y < 0.0 || shadow_coord.y > 1.0 ||
+      shadow_coord.z < 0.0 || shadow_coord.z > 1.0) {
+    return 1.0;
+  }
+
+  // Use slope-based bias to prevent shadow acne
+  let bias = 0.002;
+  let arrayIndex = i32(directionalLight.shadowMapIndex);
+  return textureSampleCompareLevel(shadowMapArray, shadowSampler, shadow_coord.xy, arrayIndex, shadow_coord.z - bias);
+}
+
+// Shadow sampling for spot light
+fn sample_spot_shadow(world_pos: vec3<f32>, light: SpotLight) -> f32 {
+  if (light.castShadows == 0u) {
+    return 1.0;
+  }
+
+  let light_space = light.lightViewProj * vec4<f32>(world_pos, 1.0);
+  var shadow_coord = light_space.xyz / light_space.w;
+  shadow_coord = vec3<f32>(shadow_coord.xy * 0.5 + 0.5, shadow_coord.z);
+  shadow_coord.y = 1.0 - shadow_coord.y;
+
+  if (shadow_coord.x < 0.0 || shadow_coord.x > 1.0 ||
+      shadow_coord.y < 0.0 || shadow_coord.y > 1.0 ||
+      shadow_coord.z < 0.0 || shadow_coord.z > 1.0) {
+    return 1.0;
+  }
+
+  let bias = 0.002;
+  let arrayIndex = i32(light.shadowMapIndex);
+  return textureSampleCompareLevel(shadowMapArray, shadowSampler, shadow_coord.xy, arrayIndex, shadow_coord.z - bias);
+}
+
+// Shadow sampling for point light (cube array, linear normalized depth)
+fn sample_point_shadow(world_pos: vec3<f32>, light: PointLight, slot: i32) -> f32 {
+  if (light.castShadows == 0u) {
+    return 1.0;
+  }
+
+  let to_frag = world_pos - light.position;
+  let dist = length(to_frag);
+  if (dist >= light.range) {
+    return 1.0;
+  }
+
+  let dir = to_frag / dist;
+  let compare = dist / light.range;
+  let bias = 0.005;
+  return textureSampleCompareLevel(pointShadowCubeArray, shadowSampler, dir, slot, compare - bias);
+}
+
+// Lighting calculations
+fn calculate_pbr_lighting(
+  albedo: vec3<f32>,
+  N: vec3<f32>,
+  V: vec3<f32>,
+  world_pos: vec3<f32>,
+  roughness: f32,
+  metallic: f32,
+) -> vec3<f32> {
+  let F0 = mix(vec3<f32>(0.04), albedo, metallic);
+  let NdotV = max(dot(N, V), 0.001);
+
+  var Lo = vec3<f32>(0.0);
+
+  // Directional light
+  {
+    let L = normalize(-directionalLight.direction);
+    let H = normalize(V + L);
+    let NdotL = max(dot(N, L), 0.0);
+
+    if (NdotL > 0.0) {
+      let radiance = directionalLight.color * directionalLight.intensity;
+
+      let D = distribution_ggx(N, H, roughness);
+      let G = geometry_smith(N, V, L, roughness);
+      let F = fresnel_schlick(max(dot(H, V), 0.0), F0);
+
+      let numerator = D * G * F;
+      let denominator = 4.0 * NdotV * NdotL;
+      let specular = numerator / max(denominator, 0.001);
+
+      let kD = (vec3<f32>(1.0) - F) * (1.0 - metallic);
+      let diffuse = kD * albedo / PI;
+
+      let shadow = sample_shadow(world_pos);
+      Lo += (diffuse + specular) * radiance * NdotL * shadow;
+    }
+  }
+
+  // Point lights
+  for (var i = 0u; i < lighting.numPointLights && i < MAX_POINT_LIGHTS; i++) {
+    let light = pointLights[i];
+    let L = light.position - world_pos;
+    let distance = length(L);
+    let L_norm = L / distance;
+
+    if (distance < light.range) {
+      let H = normalize(V + L_norm);
+      let NdotL = max(dot(N, L_norm), 0.0);
+
+      if (NdotL > 0.0) {
+        let attenuation = max(1.0 - (distance / light.range), 0.0);
+        let attenuation2 = attenuation * attenuation;
+        let radiance = light.color * light.intensity * attenuation2;
+
+        let D = distribution_ggx(N, H, roughness);
+        let G = geometry_smith(N, V, L_norm, roughness);
+        let F = fresnel_schlick(max(dot(H, V), 0.0), F0);
+
+        let numerator = D * G * F;
+        let denominator = 4.0 * NdotV * NdotL;
+        let specular = numerator / max(denominator, 0.001);
+
+        let kD = (vec3<f32>(1.0) - F) * (1.0 - metallic);
+        let diffuse = kD * albedo / PI;
+
+        let shadow = sample_point_shadow(world_pos, light, i32(i));
+        Lo += (diffuse + specular) * radiance * NdotL * shadow;
+      }
+    }
+  }
+
+  // Spot lights
+  for (var i = 0u; i < lighting.numSpotLights && i < MAX_SPOT_LIGHTS; i++) {
+    let light = spotLights[i];
+    let L = light.position - world_pos;
+    let distance = length(L);
+    let L_norm = L / distance;
+
+    if (distance < light.range) {
+      let spot_dir = normalize(-light.direction);
+      let theta = dot(L_norm, spot_dir);
+      let inner = cos(light.innerAngle * 0.0174533);
+      let outer = cos(light.outerAngle * 0.0174533);
+      let epsilon = inner - outer;
+      let intensity_factor = clamp((theta - outer) / epsilon, 0.0, 1.0);
+
+      if (intensity_factor > 0.0) {
+        let H = normalize(V + L_norm);
+        let NdotL = max(dot(N, L_norm), 0.0);
+
+        if (NdotL > 0.0) {
+          let attenuation = max(1.0 - (distance / light.range), 0.0);
+          let attenuation2 = attenuation * attenuation;
+          let radiance = light.color * light.intensity * attenuation2 * intensity_factor;
+
+          let D = distribution_ggx(N, H, roughness);
+          let G = geometry_smith(N, V, L_norm, roughness);
+          let F = fresnel_schlick(max(dot(H, V), 0.0), F0);
+
+          let numerator = D * G * F;
+          let denominator = 4.0 * NdotV * NdotL;
+          let specular = numerator / max(denominator, 0.001);
+
+          let kD = (vec3<f32>(1.0) - F) * (1.0 - metallic);
+          let diffuse = kD * albedo / PI;
+
+          let shadow = sample_spot_shadow(world_pos, light);
+          Lo += (diffuse + specular) * radiance * NdotL * shadow;
+        }
+      }
+    }
+  }
+
+  // IBL ambient
+  let kS_ibl = fresnel_schlick_roughness(NdotV, F0, roughness);
+  let kD_ibl = (vec3<f32>(1.0) - kS_ibl) * (1.0 - metallic);
+
+  let irradiance = textureSampleLevel(irradiance_cube, ibl_sampler, N, 0.0).rgb;
+  let diffuse_ibl = irradiance * albedo * kD_ibl;
+
+  let R = reflect(-V, N);
+  let prefiltered = textureSampleLevel(prefilter_cube, ibl_sampler, R, roughness * (IBL_MIP_LEVELS - 1.0)).rgb;
+  let brdf = textureSampleLevel(brdf_lut, ibl_sampler, vec2<f32>(NdotV, roughness), 0.0).rg;
+  let specular_ibl = prefiltered * (kS_ibl * brdf.x + brdf.y);
+
+  let ambient = (diffuse_ibl + specular_ibl) * 0.5;
+
+  return Lo + ambient;
+}
+
+@fragment
+fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
+  let atlas_uv = fract(in.uv * material.uvTile) * material.uvScale + material.uvOffset;
+
+  let tex_albedo = textureSample(albedo_map, mat_sampler, atlas_uv);
+  let albedo = tex_albedo.rgb * material.albedo.rgb;
+  let alpha = tex_albedo.a * material.albedo.a;
+
+  let mer = textureSample(mer_map, mat_sampler, atlas_uv);
+  let roughness = max(material.roughness * mer.b, 0.04);
+  let metallic = material.metallic * mer.r;
+  let emission = mer.g;
+
+  // Build TBN matrix for normal mapping
+  let N_geom = normalize(in.world_norm);
+  let T = normalize(in.world_tan.xyz);
+  let T_ortho = normalize(T - N_geom * dot(T, N_geom));
+  let B = cross(N_geom, T_ortho) * in.world_tan.w;
+  let tbn = mat3x3<f32>(T_ortho, B, N_geom);
+
+  let n_ts = textureSample(normal_map, mat_sampler, atlas_uv).rgb * 2.0 - 1.0;
+  let N = normalize(tbn * n_ts);
+
+  let V = normalize(camera.position - in.world_pos);
+
+  let lit_color = calculate_pbr_lighting(albedo, N, V, in.world_pos, roughness, metallic);
+  let emissive = albedo * emission * 2.0;
+  let final_color = lit_color + emissive;
+
+  return vec4<f32>(final_color, alpha);
+}
+`,qs=`// GBuffer fill pass — writes albedo+roughness and normal+metallic.\r
+// Group 2 texture maps are optional; the material binds 1×1 fallbacks when unset.\r
+\r
+struct CameraUniforms {\r
+  view      : mat4x4<f32>,\r
+  proj      : mat4x4<f32>,\r
+  viewProj  : mat4x4<f32>,\r
+  invViewProj: mat4x4<f32>,\r
+  position  : vec3<f32>,\r
+  near      : f32,\r
+  far       : f32,\r
+}\r
+\r
+struct ModelUniforms {\r
+  model       : mat4x4<f32>,\r
+  normalMatrix: mat4x4<f32>,\r
+}\r
+\r
+struct MaterialUniforms {\r
+  albedo   : vec4<f32>,    // offset  0\r
+  roughness: f32,          // offset 16\r
+  metallic : f32,          // offset 20\r
+  uvOffset : vec2<f32>,    // offset 24  atlas tile offset (0,0 = identity)\r
+  uvScale  : vec2<f32>,    // offset 32  atlas tile scale  (1,1 = identity)\r
+  uvTile   : vec2<f32>,    // offset 40  repetitions across the mesh surface (1,1 = no tiling)\r
+}\r
+\r
+@group(0) @binding(0) var<uniform> camera  : CameraUniforms;\r
+@group(1) @binding(0) var<uniform> model   : ModelUniforms;\r
+// Group 2: Material (uniforms + texture maps + sampler).\r
+// Texture maps: albedoMap (srgb), normalMap (tangent-space linear), merMap (R=metallic, G=emissive, B=roughness).\r
+@group(2) @binding(0) var<uniform> material: MaterialUniforms;\r
+@group(2) @binding(1) var albedo_map: texture_2d<f32>;\r
+@group(2) @binding(2) var normal_map: texture_2d<f32>;\r
+@group(2) @binding(3) var mer_map   : texture_2d<f32>;\r
+@group(2) @binding(4) var mat_samp  : sampler;\r
+\r
+struct VertexInput {\r
+  @location(0) position: vec3<f32>,\r
+  @location(1) normal  : vec3<f32>,\r
+  @location(2) uv      : vec2<f32>,\r
+  @location(3) tangent : vec4<f32>,  // xyz=tangent, w=bitangent sign\r
+}\r
+\r
+struct VertexOutput {\r
+  @builtin(position) clip_pos  : vec4<f32>,\r
+  @location(0)       world_pos : vec3<f32>,\r
+  @location(1)       world_norm: vec3<f32>,\r
+  @location(2)       uv        : vec2<f32>,\r
+  @location(3)       world_tan : vec4<f32>,  // xyz=tangent, w=bitangent sign\r
+}\r
+\r
+@vertex\r
+fn vs_main(vin: VertexInput) -> VertexOutput {\r
+  let world_pos  = model.model * vec4<f32>(vin.position, 1.0);\r
+  let world_norm = normalize((model.normalMatrix * vec4<f32>(vin.normal,       0.0)).xyz);\r
+  let world_tan  = normalize((model.normalMatrix * vec4<f32>(vin.tangent.xyz,  0.0)).xyz);\r
+\r
+  var out: VertexOutput;\r
+  out.clip_pos   = camera.viewProj * world_pos;\r
+  out.world_pos  = world_pos.xyz;\r
+  out.world_norm = world_norm;\r
+  out.uv         = vin.uv;\r
+  out.world_tan  = vec4<f32>(world_tan, vin.tangent.w);\r
+  return out;\r
+}\r
+\r
+struct FragmentOutput {\r
+  @location(0) albedo_roughness: vec4<f32>,\r
+  @location(1) normal_emission : vec4<f32>,\r
+}\r
+\r
+@fragment\r
+fn fs_main(in: VertexOutput) -> FragmentOutput {\r
+  // Tile within the mesh surface, then map into the atlas tile region\r
+  let atlas_uv = fract(in.uv * material.uvTile) * material.uvScale + material.uvOffset;\r
+\r
+  // Albedo: texture rgb × material colour\r
+  let tex_albedo = textureSample(albedo_map, mat_samp, atlas_uv);\r
+  let albedo     = tex_albedo.rgb * material.albedo.rgb;\r
+\r
+  // MER: r=metallic multiplier, g=emissive, b=roughness multiplier\r
+  let mer      = textureSample(mer_map, mat_samp, atlas_uv);\r
+  let roughness = material.roughness * mer.b;\r
+  let metallic  = material.metallic  * mer.r;\r
+  let emission  = mer.g;\r
+\r
+  // Build TBN in world space for normal mapping\r
+  let N = normalize(in.world_norm);\r
+  let T = normalize(in.world_tan.xyz);\r
+  // Re-orthogonalise to handle interpolation artefacts\r
+  let T_ortho = normalize(T - N * dot(T, N));\r
+  let B       = cross(N, T_ortho) * in.world_tan.w;  // w encodes bitangent handedness\r
+  let tbn     = mat3x3<f32>(T_ortho, B, N);\r
+\r
+  // Decode tangent-space normal map and transform to world space\r
+  let n_ts    = textureSample(normal_map, mat_samp, atlas_uv).rgb * 2.0 - 1.0;\r
+  let mapped_N = normalize(tbn * n_ts);\r
+\r
+  var out: FragmentOutput;\r
+  out.albedo_roughness = vec4<f32>(albedo, roughness);\r
+  // Store world normal in [0,1] range (decoded in lighting pass with n*2-1) and emission\r
+  out.normal_emission  = vec4<f32>(mapped_N * 0.5 + 0.5, emission);\r
+  return out;\r
+}\r
+`,js=`// Skinned GBuffer fill pass — GPU vertex skinning with up to 4 bone influences.\r
+// Identical to geometry.wgsl except for the extra joint/weight inputs and the\r
+// joint_matrices storage buffer at group 4.\r
+\r
+struct CameraUniforms {\r
+  view       : mat4x4<f32>,\r
+  proj       : mat4x4<f32>,\r
+  viewProj   : mat4x4<f32>,\r
+  invViewProj: mat4x4<f32>,\r
+  position   : vec3<f32>,\r
+  near       : f32,\r
+  far        : f32,\r
+}\r
+\r
+struct ModelUniforms {\r
+  model       : mat4x4<f32>,\r
+  normalMatrix: mat4x4<f32>,\r
+}\r
+\r
+struct MaterialUniforms {\r
+  albedo   : vec4<f32>,\r
+  roughness: f32,\r
+  metallic : f32,\r
+  uvOffset : vec2<f32>,\r
+  uvScale  : vec2<f32>,\r
+  uvTile   : vec2<f32>,\r
+}\r
+\r
+@group(0) @binding(0) var<uniform>       camera        : CameraUniforms;\r
+@group(1) @binding(0) var<uniform>       model         : ModelUniforms;\r
+@group(1) @binding(1) var<storage, read> joint_matrices: array<mat4x4<f32>>;\r
+@group(2) @binding(0) var<uniform>       material      : MaterialUniforms;\r
+@group(2) @binding(1) var                albedo_map    : texture_2d<f32>;\r
+@group(2) @binding(2) var                normal_map    : texture_2d<f32>;\r
+@group(2) @binding(3) var                mer_map       : texture_2d<f32>;\r
+@group(2) @binding(4) var                mat_samp      : sampler;\r
+\r
+struct VertexInput {\r
+  @location(0) position: vec3<f32>,\r
+  @location(1) normal  : vec3<f32>,\r
+  @location(2) uv      : vec2<f32>,\r
+  @location(3) tangent : vec4<f32>,\r
+  @location(4) joints  : vec4<u32>,\r
+  @location(5) weights : vec4<f32>,\r
+}\r
+\r
+struct VertexOutput {\r
+  @builtin(position) clip_pos  : vec4<f32>,\r
+  @location(0)       world_pos : vec3<f32>,\r
+  @location(1)       world_norm: vec3<f32>,\r
+  @location(2)       uv        : vec2<f32>,\r
+  @location(3)       world_tan : vec4<f32>,\r
+}\r
+\r
+@vertex\r
+fn vs_main(vin: VertexInput) -> VertexOutput {\r
+  // Blend joint matrices by weights\r
+  let skin_mat =\r
+      vin.weights.x * joint_matrices[vin.joints.x] +\r
+      vin.weights.y * joint_matrices[vin.joints.y] +\r
+      vin.weights.z * joint_matrices[vin.joints.z] +\r
+      vin.weights.w * joint_matrices[vin.joints.w];\r
+\r
+  let skinned_pos  = skin_mat * vec4<f32>(vin.position,    1.0);\r
+  let skinned_norm = skin_mat * vec4<f32>(vin.normal,      0.0);\r
+  let skinned_tan  = skin_mat * vec4<f32>(vin.tangent.xyz, 0.0);\r
+\r
+  let world_pos  = model.model * skinned_pos;\r
+  let world_norm = normalize((model.normalMatrix * skinned_norm).xyz);\r
+  let world_tan  = normalize((model.normalMatrix * skinned_tan).xyz);\r
+\r
+  var out: VertexOutput;\r
+  out.clip_pos   = camera.viewProj * world_pos;\r
+  out.world_pos  = world_pos.xyz;\r
+  out.world_norm = world_norm;\r
+  out.uv         = vin.uv;\r
+  out.world_tan  = vec4<f32>(world_tan, vin.tangent.w);\r
+  return out;\r
+}\r
+\r
+struct FragmentOutput {\r
+  @location(0) albedo_roughness: vec4<f32>,\r
+  @location(1) normal_metallic : vec4<f32>,\r
+}\r
+\r
+@fragment\r
+fn fs_main(in: VertexOutput) -> FragmentOutput {\r
+  let atlas_uv = fract(in.uv * material.uvTile) * material.uvScale + material.uvOffset;\r
+\r
+  let tex_albedo = textureSample(albedo_map, mat_samp, atlas_uv);\r
+  let albedo     = tex_albedo.rgb * material.albedo.rgb;\r
+\r
+  let mer      = textureSample(mer_map, mat_samp, atlas_uv);\r
+  let roughness = material.roughness * mer.b;\r
+  let metallic  = material.metallic  * mer.r;\r
+\r
+  let N       = normalize(in.world_norm);\r
+  let T       = normalize(in.world_tan.xyz);\r
+  let T_ortho = normalize(T - N * dot(T, N));\r
+  let B       = cross(N, T_ortho) * in.world_tan.w;\r
+  let tbn     = mat3x3<f32>(T_ortho, B, N);\r
+\r
+  let n_ts    = textureSample(normal_map, mat_samp, atlas_uv).rgb * 2.0 - 1.0;\r
+  let mapped_N = normalize(tbn * n_ts);\r
+\r
+  var out: FragmentOutput;\r
+  out.albedo_roughness = vec4<f32>(albedo, roughness);\r
+  out.normal_metallic  = vec4<f32>(mapped_N * 0.5 + 0.5, metallic);\r
+  return out;\r
+}\r
+`,So=48,de=class de extends xi{constructor(e={}){super();c(this,"shaderId","pbr");c(this,"albedo");c(this,"roughness");c(this,"metallic");c(this,"uvOffset");c(this,"uvScale");c(this,"uvTile");c(this,"_albedoMap");c(this,"_normalMap");c(this,"_merMap");c(this,"_uniformBuffer",null);c(this,"_uniformDevice",null);c(this,"_bindGroup",null);c(this,"_bindGroupAlbedo");c(this,"_bindGroupNormal");c(this,"_bindGroupMer");c(this,"_dirty",!0);c(this,"_scratch",new Float32Array(So/4));this.albedo=e.albedo??[1,1,1,1],this.roughness=e.roughness??.5,this.metallic=e.metallic??0,this.uvOffset=e.uvOffset,this.uvScale=e.uvScale,this.uvTile=e.uvTile,this._albedoMap=e.albedoMap,this._normalMap=e.normalMap,this._merMap=e.merMap,this.transparent=e.transparent??!1}get albedoMap(){return this._albedoMap}set albedoMap(e){e!==this._albedoMap&&(this._albedoMap=e,this._bindGroup=null)}get normalMap(){return this._normalMap}set normalMap(e){e!==this._normalMap&&(this._normalMap=e,this._bindGroup=null)}get merMap(){return this._merMap}set merMap(e){e!==this._merMap&&(this._merMap=e,this._bindGroup=null)}markDirty(){this._dirty=!0}getShaderCode(e){switch(e){case gt.Forward:return Ws;case gt.Geometry:return qs;case gt.SkinnedGeometry:return js}}getBindGroupLayout(e){let t=de._layoutByDevice.get(e);return t||(t=e.createBindGroupLayout({label:"PbrMaterialBGL",entries:[{binding:0,visibility:GPUShaderStage.VERTEX|GPUShaderStage.FRAGMENT,buffer:{type:"uniform"}},{binding:1,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:2,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:3,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:4,visibility:GPUShaderStage.FRAGMENT,sampler:{type:"filtering"}}]}),de._layoutByDevice.set(e,t)),t}getBindGroup(e){var a,s,l,d;if(this._bindGroup&&this._bindGroupAlbedo===this._albedoMap&&this._bindGroupNormal===this._normalMap&&this._bindGroupMer===this._merMap)return this._bindGroup;(!this._uniformBuffer||this._uniformDevice!==e)&&((a=this._uniformBuffer)==null||a.destroy(),this._uniformBuffer=e.createBuffer({label:"PbrMaterialUniform",size:So,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST}),this._uniformDevice=e,this._dirty=!0);const t=de._getSampler(e),r=((s=this._albedoMap)==null?void 0:s.view)??de._getWhite(e),o=((l=this._normalMap)==null?void 0:l.view)??de._getFlatNormal(e),i=((d=this._merMap)==null?void 0:d.view)??de._getMerDefault(e);return this._bindGroup=e.createBindGroup({label:"PbrMaterialBG",layout:this.getBindGroupLayout(e),entries:[{binding:0,resource:{buffer:this._uniformBuffer}},{binding:1,resource:r},{binding:2,resource:o},{binding:3,resource:i},{binding:4,resource:t}]}),this._bindGroupAlbedo=this._albedoMap,this._bindGroupNormal=this._normalMap,this._bindGroupMer=this._merMap,this._bindGroup}update(e){var r,o,i,a,s,l;if(!this._dirty||!this._uniformBuffer)return;const t=this._scratch;t[0]=this.albedo[0],t[1]=this.albedo[1],t[2]=this.albedo[2],t[3]=this.albedo[3],t[4]=this.roughness,t[5]=this.metallic,t[6]=((r=this.uvOffset)==null?void 0:r[0])??0,t[7]=((o=this.uvOffset)==null?void 0:o[1])??0,t[8]=((i=this.uvScale)==null?void 0:i[0])??1,t[9]=((a=this.uvScale)==null?void 0:a[1])??1,t[10]=((s=this.uvTile)==null?void 0:s[0])??1,t[11]=((l=this.uvTile)==null?void 0:l[1])??1,e.writeBuffer(this._uniformBuffer,0,t.buffer),this._dirty=!1}destroy(){var e;(e=this._uniformBuffer)==null||e.destroy(),this._uniformBuffer=null,this._uniformDevice=null,this._bindGroup=null}static _getSampler(e){let t=de._samplerByDevice.get(e);return t||(t=e.createSampler({label:"PbrMaterialSampler",magFilter:"linear",minFilter:"linear",addressModeU:"repeat",addressModeV:"repeat"}),de._samplerByDevice.set(e,t)),t}static _make1x1View(e,t,r,o,i,a){const s=e.createTexture({label:t,size:{width:1,height:1},format:"rgba8unorm",usage:GPUTextureUsage.TEXTURE_BINDING|GPUTextureUsage.COPY_DST});return e.queue.writeTexture({texture:s},new Uint8Array([r,o,i,a]),{bytesPerRow:4},{width:1,height:1}),s.createView()}static _getWhite(e){let t=de._whiteByDevice.get(e);return t||(t=de._make1x1View(e,"PbrFallbackWhite",255,255,255,255),de._whiteByDevice.set(e,t)),t}static _getFlatNormal(e){let t=de._flatNormalByDevice.get(e);return t||(t=de._make1x1View(e,"PbrFallbackFlatNormal",128,128,255,255),de._flatNormalByDevice.set(e,t)),t}static _getMerDefault(e){let t=de._merDefaultByDevice.get(e);return t||(t=de._make1x1View(e,"PbrFallbackMer",255,0,255,255),de._merDefaultByDevice.set(e,t)),t}};c(de,"_layoutByDevice",new WeakMap),c(de,"_samplerByDevice",new WeakMap),c(de,"_whiteByDevice",new WeakMap),c(de,"_flatNormalByDevice",new WeakMap),c(de,"_merDefaultByDevice",new WeakMap);let we=de;const Ys=.5;function Xs(u,n,e,t,r,o,i){const a=e.getTopBlockY(u,n,200);if(a<=0||e.getBiomeAt(u,a,n)!==Ae.GrassyPlains)return null;const d=e.getBlockType(Math.floor(u),Math.floor(a-1),Math.floor(n))===N.WATER?Math.floor(a-.05):a,p=new fe("Duck");p.position.set(u+.5,d,n+.5);const f=new fe("Duck.Body");f.position.set(0,.15,0),f.addComponent(new Se(r,new we({albedo:[.93,.93,.93,1],roughness:.9}))),p.addChild(f);const h=new fe("Duck.Head");h.position.set(0,.32,-.12),h.addComponent(new Se(o,new we({albedo:[.08,.32,.1,1],roughness:.9}))),p.addChild(h);const _=new fe("Duck.Bill");return _.position.set(0,.27,-.205),_.addComponent(new Se(i,new we({albedo:[1,.55,.05,1],roughness:.8}))),p.addChild(_),p.addComponent(new ct(e)),t.add(p),p}function $s(u,n,e,t,r,o){const i=Math.random()*Math.PI*2,a=.5+Math.random()*1,s=u.position.x+Math.cos(i)*a,l=u.position.z+Math.sin(i)*a,d=n.getTopBlockY(Math.floor(s),Math.floor(l),200);if(d<=0)return;const p=Ys,f=new fe("Duckling");f.position.set(s,d,l);const h=new fe("Duckling.Body");h.position.set(0,.15*p,0),h.addComponent(new Se(t,new we({albedo:[.95,.87,.25,1],roughness:.9}))),f.addChild(h);const _=new fe("Duckling.Head");_.position.set(0,.32*p,-.12*p),_.addComponent(new Se(r,new we({albedo:[.88,.78,.15,1],roughness:.9}))),f.addChild(_);const g=new fe("Duckling.Bill");g.position.set(0,.27*p,-.205*p),g.addComponent(new Se(o,new we({albedo:[1,.55,.05,1],roughness:.8}))),f.addChild(g),f.addComponent(new Mi(u,n)),e.add(f)}const Po=[.96,.7,.72,1],Zs=[.98,.76,.78,1];function Go(u,n,e,t,r,o,i,a=1){const s=e.getTopBlockY(u,n,200);if(s<=0||e.getBiomeAt(u,s,n)!==Ae.GrassyPlains)return;const d=a,p=new fe("Pig");p.position.set(u+.5,s,n+.5);const f=new fe("Pig.Body");f.position.set(0,.35*d,0),f.addComponent(new Se(r,new we({albedo:Po,roughness:.85}))),p.addChild(f);const h=new fe("Pig.Head");h.position.set(0,.35*d,-.48*d),h.addComponent(new Se(o,new we({albedo:Po,roughness:.85}))),p.addChild(h);const _=new fe("Pig.Snout");_.position.set(0,.31*d,-.7*d),_.addComponent(new Se(i,new we({albedo:Zs,roughness:.8}))),p.addChild(_),p.addComponent(new Gi(e)),t.add(p)}const $e=16,Ks=.15,Qs=.2,Js=.25,el=5,tl=.25;function rl(u,n,e){const t=new Set,r=u.onChunkAdded;u.onChunkAdded=(o,i)=>{if(r==null||r(o,i),o.aliveBlocks===0)return;const a=Math.floor(o.globalPosition.x/$e),s=Math.floor(o.globalPosition.z/$e),l=`${a}:${s}`;t.has(l)||(t.add(l),nl(a,s,u,n,e))}}function nl(u,n,e,t,r){const o=u*$e,i=n*$e;if(Math.random()<Ks){const a=1+Math.floor(Math.random()*2);for(let s=0;s<a;s++){const l=Math.floor(o+Math.random()*$e),d=Math.floor(i+Math.random()*$e),p=Xs(l,d,e,t,r.duckBody,r.duckHead,r.duckBill);if(p&&Math.random()<Js)for(let f=0;f<el;f++)$s(p,e,t,r.ducklingBody,r.ducklingHead,r.ducklingBill)}}if(Math.random()<Qs){const a=1+Math.floor(Math.random()*2);for(let s=0;s<a;s++){const l=Math.floor(o+Math.random()*$e),d=Math.floor(i+Math.random()*$e);Math.random()<tl?Go(l,d,e,t,r.babyPigBody,r.babyPigHead,r.babyPigSnout,.55):Go(l,d,e,t,r.pigBody,r.pigHead,r.pigSnout,1)}}}const rt=128,Ft=40;class ol{constructor(){c(this,"data",new Float32Array(rt*rt));c(this,"resolution",rt);c(this,"extent",Ft);c(this,"_camX",NaN);c(this,"_camZ",NaN)}update(n,e,t){if(Math.abs(n-this._camX)<2&&Math.abs(e-this._camZ)<2)return;this._camX=n,this._camZ=e;const r=Ft*2/rt,o=n-Ft,i=e-Ft,a=Math.ceil(e)+80;for(let s=0;s<rt;s++)for(let l=0;l<rt;l++)this.data[s*rt+l]=t.getTopBlockY(Math.floor(o+l*r),Math.floor(i+s*r),a)}}function Ht(u,n,e,t,r,o,i,a){const s=[{n:[0,0,-1],t:[-1,0,0,1],v:[[-o,-i,-a],[o,-i,-a],[o,i,-a],[-o,i,-a]]},{n:[0,0,1],t:[1,0,0,1],v:[[o,-i,a],[-o,-i,a],[-o,i,a],[o,i,a]]},{n:[-1,0,0],t:[0,0,-1,1],v:[[-o,-i,a],[-o,-i,-a],[-o,i,-a],[-o,i,a]]},{n:[1,0,0],t:[0,0,1,1],v:[[o,-i,-a],[o,-i,a],[o,i,a],[o,i,-a]]},{n:[0,1,0],t:[1,0,0,1],v:[[-o,i,-a],[o,i,-a],[o,i,a],[-o,i,a]]},{n:[0,-1,0],t:[1,0,0,1],v:[[-o,-i,a],[o,-i,a],[o,-i,-a],[-o,-i,-a]]}],l=[[0,1],[1,1],[1,0],[0,0]];for(const d of s){const p=u.length/12;for(let f=0;f<4;f++){const[h,_,g]=d.v[f];u.push(e+h,t+_,r+g,d.n[0],d.n[1],d.n[2],l[f][0],l[f][1],d.t[0],d.t[1],d.t[2],d.t[3])}n.push(p,p+2,p+1,p,p+3,p+2)}}function il(u){const n=Wt(u,(o,i)=>Ht(o,i,0,0,0,.25,.375,.125)),e=Wt(u,(o,i)=>Ht(o,i,0,0,0,.25,.25,.25)),t=Wt(u,(o,i)=>Ht(o,i,0,-.375,0,.125,.375,.125)),r=Wt(u,(o,i)=>Ht(o,i,0,-.375,0,.125,.375,.125));return{body:n,head:e,arm:t,leg:r}}function Wt(u,n){const e=[],t=[];return n(e,t),ke.fromData(u,new Float32Array(e),new Uint32Array(t))}const al=[.95,.78,.62,1],xr=[.3,.55,.85,1],To=[.25,.3,.45,1];class sl{constructor(n,e,t,r){c(this,"playerId");c(this,"name");c(this,"root");c(this,"_scene");c(this,"_head");c(this,"_armL");c(this,"_armR");c(this,"_legL");c(this,"_legR");c(this,"_curX",0);c(this,"_curY",0);c(this,"_curZ",0);c(this,"_curYaw",0);c(this,"_curPitch",0);c(this,"_tgtX",0);c(this,"_tgtY",0);c(this,"_tgtZ",0);c(this,"_tgtYaw",0);c(this,"_tgtPitch",0);c(this,"_hasTarget",!1);c(this,"_walkPhase",0);this.playerId=n,this.name=e,this._scene=t;const o=new fe(`RemotePlayer.${n}`);this.root=o;const i=new fe("RP.Body");i.position.set(0,1.125,0),i.addComponent(new Se(r.body,new we({albedo:xr,roughness:.85}))),o.addChild(i);const a=new fe("RP.Head");a.position.set(0,1.75,0),a.addComponent(new Se(r.head,new we({albedo:al,roughness:.8}))),o.addChild(a),this._head=a;const s=new fe("RP.ArmL");s.position.set(-.375,1.5,0),s.addComponent(new Se(r.arm,new we({albedo:xr,roughness:.85}))),o.addChild(s),this._armL=s;const l=new fe("RP.ArmR");l.position.set(.375,1.5,0),l.addComponent(new Se(r.arm,new we({albedo:xr,roughness:.85}))),o.addChild(l),this._armR=l;const d=new fe("RP.LegL");d.position.set(-.125,.75,0),d.addComponent(new Se(r.leg,new we({albedo:To,roughness:.85}))),o.addChild(d),this._legL=d;const p=new fe("RP.LegR");p.position.set(.125,.75,0),p.addComponent(new Se(r.leg,new we({albedo:To,roughness:.85}))),o.addChild(p),this._legR=p,t.add(o)}setTargetTransform(n,e,t,r,o){this._hasTarget||(this._curX=n,this._curY=e,this._curZ=t,this._curYaw=r,this._curPitch=o),this._tgtX=n,this._tgtY=e,this._tgtZ=t,this._tgtYaw=r,this._tgtPitch=o,this._hasTarget=!0}update(n){if(!this._hasTarget)return;const e=1-Math.exp(-12*n),t=this._tgtX-this._curX,r=this._tgtY-this._curY,o=this._tgtZ-this._curZ;this._curX+=t*e,this._curY+=r*e,this._curZ+=o*e,this._curYaw=cl(this._curYaw,this._tgtYaw,e),this._curPitch+=(this._tgtPitch-this._curPitch)*e,this.root.position.set(this._curX,this._curY-1.625,this._curZ),this.root.rotation=ce.fromAxisAngle(ll,this._curYaw),this._head.rotation=ce.fromAxisAngle(_t,this._curPitch);const a=Math.hypot(t,o)/Math.max(n,.001),s=a>.3,l=s?Math.min(a*1.2,8):4;this._walkPhase+=n*l;const d=s?Math.sin(this._walkPhase)*.55:0;this._armL.rotation=ce.fromAxisAngle(_t,d),this._armR.rotation=ce.fromAxisAngle(_t,-d),this._legL.rotation=ce.fromAxisAngle(_t,-d),this._legR.rotation=ce.fromAxisAngle(_t,d)}headWorldPosition(n){return n.x=this.root.position.x,n.y=this.root.position.y+2.1,n.z=this.root.position.z,n}dispose(){this._scene.remove(this.root)}}const ll=new V(0,1,0),_t=new V(1,0,0);function cl(u,n,e){let t=n-u;for(;t>Math.PI;)t-=2*Math.PI;for(;t<-Math.PI;)t+=2*Math.PI;return u+t*e}const Mo=64;class ul{constructor(n){c(this,"_root");c(this,"_labels",new Map);const e=document.createElement("div");e.style.position="absolute",e.style.left="0",e.style.top="0",e.style.width="100%",e.style.height="100%",e.style.pointerEvents="none",e.style.overflow="hidden",n.appendChild(e),this._root=e}add(n,e){if(this._labels.has(n))return;const t=document.createElement("div");t.textContent=e,t.style.position="absolute",t.style.transform="translate(-50%, -100%)",t.style.padding="2px 6px",t.style.font="12px sans-serif",t.style.color="#fff",t.style.background="rgba(0,0,0,0.55)",t.style.border="1px solid rgba(255,255,255,0.2)",t.style.borderRadius="4px",t.style.whiteSpace="nowrap",t.style.userSelect="none",t.style.display="none",this._root.appendChild(t),this._labels.set(n,t)}remove(n){const e=this._labels.get(n);e!==void 0&&(e.remove(),this._labels.delete(n))}update(n,e,t,r,o){for(const[i,a]of this._labels){const s=o.get(i);if(s===void 0){a.style.display="none";continue}const l=s.x-e.x,d=s.y-e.y,p=s.z-e.z;if(l*l+d*d+p*p>Mo*Mo){a.style.display="none";continue}const h=n.transformVec4(new Oe(s.x,s.y,s.z,1));if(h.w<=.001){a.style.display="none";continue}const _=h.x/h.w,g=h.y/h.w;if(_<-1||_>1||g<-1||g>1){a.style.display="none";continue}const y=(_*.5+.5)*t,w=(1-(g*.5+.5))*r;a.style.display="block",a.style.left=`${y}px`,a.style.top=`${w}px`}}}const $t=1,dl="crafty",fl=1,qt="worlds";class Qr{constructor(n){c(this,"_db");this._db=n}static open(){return new Promise((n,e)=>{const t=indexedDB.open(dl,fl);t.onupgradeneeded=()=>{const r=t.result;r.objectStoreNames.contains(qt)||r.createObjectStore(qt,{keyPath:"id"})},t.onsuccess=()=>n(new Qr(t.result)),t.onerror=()=>e(t.error??new Error("IndexedDB open failed"))})}list(){return this._withStore("readonly",n=>new Promise((e,t)=>{const r=n.getAll();r.onsuccess=()=>{const o=r.result??[];o.sort((i,a)=>a.lastPlayedAt-i.lastPlayedAt),e(o)},r.onerror=()=>t(r.error??new Error("IndexedDB list failed"))}))}load(n){return this._withStore("readonly",e=>new Promise((t,r)=>{const o=e.get(n);o.onsuccess=()=>t(o.result??null),o.onerror=()=>r(o.error??new Error("IndexedDB load failed"))}))}save(n){return this._withStore("readwrite",e=>new Promise((t,r)=>{const o=e.put(n);o.onsuccess=()=>t(),o.onerror=()=>r(o.error??new Error("IndexedDB save failed"))}))}delete(n){return this._withStore("readwrite",e=>new Promise((t,r)=>{const o=e.delete(n);o.onsuccess=()=>t(),o.onerror=()=>r(o.error??new Error("IndexedDB delete failed"))}))}_withStore(n,e){const r=this._db.transaction(qt,n).objectStore(qt);return e(r)}}function Ao(u,n){const e=Date.now();return{id:pl(),name:u,seed:n,createdAt:e,lastPlayedAt:e,edits:[],player:{x:64,y:80,z:64,yaw:0,pitch:0},sunAngle:Math.PI*.3,version:$t}}function pl(){return typeof crypto<"u"&&typeof crypto.randomUUID=="function"?crypto.randomUUID():`${Date.now().toString(36)}-${Math.random().toString(36).slice(2,10)}`}const hl=1,ml=20,_l=1e3/ml;class gl{constructor(){c(this,"_ws",null);c(this,"_callbacks",{});c(this,"_lastTransformSend",0);c(this,"_pendingTransform",null);c(this,"_connected",!1)}get connected(){return this._connected}setCallbacks(n){this._callbacks=n}connect(n,e){return new Promise((t,r)=>{let o=!1;const i=new WebSocket(n);this._ws=i,i.addEventListener("open",()=>{this._send({t:"hello",name:e,version:hl})}),i.addEventListener("message",a=>{let s;try{s=JSON.parse(typeof a.data=="string"?a.data:"")}catch{return}if(s.t==="welcome"&&!o){o=!0,this._connected=!0,t({playerId:s.playerId,seed:s.seed,edits:s.edits,players:s.players});return}this._dispatch(s)}),i.addEventListener("error",()=>{o||(o=!0,r(new Error("WebSocket error before welcome")))}),i.addEventListener("close",()=>{this._connected=!1,o||(o=!0,r(new Error("WebSocket closed before welcome")))})})}sendTransform(n,e,t,r,o){if(!this._connected)return;this._pendingTransform={x:n,y:e,z:t,yaw:r,pitch:o};const i=performance.now();if(i-this._lastTransformSend<_l)return;this._lastTransformSend=i;const a=this._pendingTransform;this._pendingTransform=null,this._send({t:"transform",x:a.x,y:a.y,z:a.z,yaw:a.yaw,pitch:a.pitch})}sendBlockPlace(n,e,t,r,o,i,a){this._connected&&this._send({t:"block_place",x:n,y:e,z:t,fx:r,fy:o,fz:i,blockType:a})}sendBlockBreak(n,e,t){this._connected&&this._send({t:"block_break",x:n,y:e,z:t})}_dispatch(n){var e,t,r,o,i,a,s,l;switch(n.t){case"player_join":(t=(e=this._callbacks).onPlayerJoin)==null||t.call(e,n.playerId,n.name);return;case"player_leave":(o=(r=this._callbacks).onPlayerLeave)==null||o.call(r,n.playerId);return;case"player_transform":(a=(i=this._callbacks).onPlayerTransform)==null||a.call(i,n.playerId,n.x,n.y,n.z,n.yaw,n.pitch);return;case"block_edit":(l=(s=this._callbacks).onBlockEdit)==null||l.call(s,n.edit);return;case"welcome":return}}_send(n){this._ws===null||this._ws.readyState!==WebSocket.OPEN||this._ws.send(JSON.stringify(n))}}const vl=""+new URL("crafty-CP0F5VYA.png",import.meta.url).href,Eo="crafty.playerName",Uo="crafty.lastSeed",Co="crafty.serverUrl",wr="ws://localhost:8787";async function bl(){let u=null,n=[];try{u=await Qr.open(),n=await u.list()}catch(e){console.warn("[crafty] world storage unavailable — local worlds will not persist",e)}return new Promise(e=>{const t=document.createElement("div");t.style.cssText=["position:fixed","inset:0","z-index:200",`background:linear-gradient(rgba(128,128,128,0.35),rgba(128,128,128,0.75)),url(${vl}) center/cover no-repeat #000`,"display:flex","align-items:center","justify-content:center","font-family:ui-monospace,monospace"].join(";"),document.body.appendChild(t);const r=document.createElement("div");r.style.cssText=["display:flex","flex-direction:column","align-items:stretch","gap:18px","padding:36px 44px","background:rgba(82, 82, 82, 1.0)","border:1px solid rgba(255,255,255,0.12)","border-radius:12px","min-width:480px","max-width:560px","box-shadow:0 0 55px rgba(255,255,255,0.8)"].join(";"),t.appendChild(r);const o=document.createElement("h1");o.textContent="CRAFTY",o.style.cssText=["margin:0 0 4px","text-align:center","font-size:44px","font-weight:900","color:#fff","letter-spacing:0.14em","text-shadow:0 0 32px rgba(100,200,255,0.4)"].join(";"),r.appendChild(o);const i=Yt("Player name",jt({value:localStorage.getItem(Eo)??"",placeholder:"Steve",maxLength:16}));r.appendChild(i.row);const a=document.createElement("div");a.style.cssText="display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,0.12)",r.appendChild(a);const s=ko("Local"),l=ko("Network");a.appendChild(s),a.appendChild(l);const d=No(),p=No();r.appendChild(d),r.appendChild(p),d.appendChild(Br("Saved worlds"));const f=document.createElement("div");f.style.cssText=["display:flex","flex-direction:column","gap:6px","max-height:240px","overflow-y:auto","padding:8px 4px 12px"].join(";"),d.appendChild(f);let h=n;function _(){if(f.replaceChildren(),h.length===0){const m=document.createElement("div");m.textContent=u===null?"Storage unavailable in this browser":"No saved worlds yet",m.style.cssText="color:rgba(255,255,255,0.85);font-size:12px;padding:8px 0",f.appendChild(m);return}for(const m of h)f.appendChild(yl(m,()=>g(m),()=>y(m)))}_();function g(m){k({mode:"local",world:m,storage:u,playerName:A()})}async function y(m){if(u!==null)try{await u.delete(m.id),h=h.filter(P=>P.id!==m.id),_()}catch(P){console.error("[crafty] delete failed",P)}}d.appendChild(Br("New world"));const w=jt({value:"",placeholder:`World ${n.length+1}`,maxLength:32});d.appendChild(Yt("Name",w).row);const x=jt({value:localStorage.getItem(Uo)??"13",placeholder:"random"});d.appendChild(Yt("Seed",x).row);const B=Ro("Create"),G=document.createElement("div");G.style.cssText="color:#f88;font-size:12px;min-height:16px;text-align:right",d.appendChild(Io(B,G)),p.appendChild(Br("Server"));const S=jt({value:localStorage.getItem(Co)??wr,placeholder:wr});p.appendChild(Yt("URL",S).row);const E=document.createElement("div");E.textContent="World selection (coming soon — server hosts a single world)",E.style.cssText="color:rgba(255,255,255,0.8);font-size:12px;padding:4px 0 8px",p.appendChild(E);const L=Ro("Connect"),M=document.createElement("div");M.style.cssText="color:#f88;font-size:12px;min-height:16px;text-align:right",p.appendChild(Io(L,M));function I(m){const P=m==="local";Lo(s,P),Lo(l,!P),d.style.display=P?"flex":"none",p.style.display=P?"none":"flex"}s.addEventListener("click",()=>I("local")),l.addEventListener("click",()=>I("network")),I("local");function A(){const m=(i.input.value??"").trim().slice(0,16);return m.length>0?m:`player${Math.floor(Math.random()*1e3)}`}function b(m){const P=m.trim();if(P.length===0)return Math.floor(Math.random()*2147483647);const v=Number(P);if(Number.isFinite(v))return Math.floor(v);let U=2166136261;for(let C=0;C<P.length;C++)U=Math.imul(U^P.charCodeAt(C),16777619)>>>0;return U&2147483647}function k(m){localStorage.setItem(Eo,A()),t.remove(),e(m)}B.addEventListener("click",async()=>{const m=b(x.value);x.value=String(m),localStorage.setItem(Uo,String(m));const P=w.value.trim(),v=P.length>0?P:`World ${h.length+1}`;if(u===null){k({mode:"local",world:Ao(v,m),storage:null,playerName:A()});return}B.disabled=!0,G.style.color="rgba(255,255,255,0.92)",G.textContent="creating…";try{const U=Ao(v,m);await u.save(U),k({mode:"local",world:U,storage:u,playerName:A()})}catch(U){G.style.color="#f88",G.textContent=`failed: ${U.message}`,B.disabled=!1}}),L.addEventListener("click",async()=>{const m=S.value.trim()||wr,P=A();M.textContent="",M.style.color="rgba(255,255,255,0.92)",M.textContent="connecting…",L.disabled=!0;const v=new gl;try{const U=await v.connect(m,P);localStorage.setItem(Co,m),k({mode:"network",playerName:P,serverUrl:m,network:v,welcome:U})}catch(U){M.style.color="#f88",M.textContent=`failed: ${U.message}`,L.disabled=!1}})})}function jt(u){const n=document.createElement("input");return n.type="text",u.value!==void 0&&(n.value=u.value),u.placeholder!==void 0&&(n.placeholder=u.placeholder),u.maxLength!==void 0&&(n.maxLength=u.maxLength),n.style.cssText=["flex:1","padding:8px 10px","background:rgba(0,0,0,0.55)","color:#fff","border:1px solid rgba(255,255,255,0.35)","border-radius:5px","font:13px ui-monospace,monospace","outline:none"].join(";"),n.addEventListener("focus",()=>{n.style.borderColor="#5f5"}),n.addEventListener("blur",()=>{n.style.borderColor="rgba(255,255,255,0.35)"}),n}function Yt(u,n){const e=document.createElement("div");e.style.cssText="display:flex;align-items:center;gap:12px";const t=document.createElement("label");return t.textContent=u,t.style.cssText="min-width:96px;color:rgba(255,255,255,0.92);font-size:12px;letter-spacing:0.06em",e.appendChild(t),e.appendChild(n),{row:e,input:n}}function ko(u){const n=document.createElement("button");return n.textContent=u,n.style.cssText=["padding:10px 20px","background:transparent","color:rgba(255,255,255,0.8)","border:none","border-bottom:2px solid transparent","font:13px ui-monospace,monospace","letter-spacing:0.08em","cursor:pointer"].join(";"),n}function Lo(u,n){u.style.color=n?"#9fff9f":"rgba(255,255,255,0.8)",u.style.borderBottomColor=n?"#9fff9f":"transparent"}function No(){const u=document.createElement("div");return u.style.cssText="display:flex;flex-direction:column;gap:10px;padding:12px 0",u}function Br(u){const n=document.createElement("div");return n.textContent=u,n.style.cssText="color:#fff;font-size:11px;letter-spacing:0.18em",n}function Ro(u){const n=document.createElement("button");return n.textContent=u,n.style.cssText=["padding:10px 32px","background:#1a3a1a","color:#5f5","border:1px solid #5f5","border-radius:6px","font:13px ui-monospace,monospace","letter-spacing:0.06em","cursor:pointer","transition:background 0.15s"].join(";"),n.addEventListener("mouseenter",()=>{n.disabled||(n.style.background="#243e24")}),n.addEventListener("mouseleave",()=>{n.style.background="#1a3a1a"}),n}function Io(...u){const n=document.createElement("div");n.style.cssText="display:flex;align-items:center;gap:12px;justify-content:flex-end;padding-top:8px";for(const e of u)n.appendChild(e);return n}function yl(u,n,e){const t=document.createElement("div");t.style.cssText=["display:flex","align-items:center","gap:10px","padding:6px 8px","border-radius:6px","background:rgba(0,0,0,0.35)","border:1px solid rgba(255,255,255,0.08)","cursor:pointer","transition:background 0.12s"].join(";"),t.addEventListener("mouseenter",()=>{t.style.background="rgba(255,255,255,0.08)"}),t.addEventListener("mouseleave",()=>{t.style.background="rgba(0,0,0,0.35)"}),t.addEventListener("click",d=>{d.target.dataset.role!=="delete"&&n()});const r=document.createElement("div");if(r.style.cssText=["width:64px","height:36px","flex-shrink:0","border-radius:4px","overflow:hidden","background:linear-gradient(135deg,#1f3a4a,#0a1622)"].join(";"),u.screenshot!==void 0){const d=document.createElement("img");d.src=URL.createObjectURL(u.screenshot),d.style.cssText="width:100%;height:100%;object-fit:cover;display:block",d.addEventListener("load",()=>URL.revokeObjectURL(d.src)),r.appendChild(d)}t.appendChild(r);const o=document.createElement("div");o.style.cssText="flex:1;display:flex;flex-direction:column;gap:2px;min-width:0";const i=document.createElement("div");i.textContent=u.name,i.style.cssText="color:#fff;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis";const a=document.createElement("div");a.textContent=xl(Date.now()-u.lastPlayedAt),a.style.cssText="color:rgba(255,255,255,0.55);font-size:11px",o.appendChild(i),o.appendChild(a),t.appendChild(o);const s=document.createElement("button");s.dataset.role="delete",s.textContent="×",s.title="Delete",s.style.cssText=["background:transparent","color:rgba(255,255,255,0.45)","border:1px solid rgba(255,255,255,0.18)","border-radius:4px","padding:2px 8px","font:13px ui-monospace,monospace","cursor:pointer"].join(";");let l=!1;return s.addEventListener("click",d=>{if(d.stopPropagation(),!l){l=!0,s.textContent="Delete?",s.style.color="#f88",s.style.borderColor="#f88";const p=()=>{l=!1,s.textContent="×",s.style.color="rgba(255,255,255,0.45)",s.style.borderColor="rgba(255,255,255,0.18)",document.removeEventListener("click",p,!0)};setTimeout(()=>document.addEventListener("click",p,!0),0);return}e()}),t.appendChild(s),t}function xl(u){if(u<0)return"just now";const n=Math.floor(u/1e3);if(n<60)return"just now";const e=Math.floor(n/60);if(e<60)return`${e} minute${e===1?"":"s"} ago`;const t=Math.floor(e/60);if(t<24)return`${t} hour${t===1?"":"s"} ago`;const r=Math.floor(t/24);if(r<30)return`${r} day${r===1?"":"s"} ago`;const o=Math.floor(r/30);return`${o} month${o===1?"":"s"} ago`}const wl={ssao:!0,ssgi:!1,shadows:!0,dof:!0,bloom:!0,godrays:!0,fog:!1,aces:!0,ao_dbg:!1,shd_dbg:!1,chunk_dbg:!1,hdr:!0,auto_exp:!1,rain:!0,clouds:!0},Bl="modulepreload",Sl=function(u,n){return new URL(u,n).href},Oo={},Pl=function(n,e,t){let r=Promise.resolve();if(e&&e.length>0){const i=document.getElementsByTagName("link"),a=document.querySelector("meta[property=csp-nonce]"),s=(a==null?void 0:a.nonce)||(a==null?void 0:a.getAttribute("nonce"));r=Promise.allSettled(e.map(l=>{if(l=Sl(l,t),l in Oo)return;Oo[l]=!0;const d=l.endsWith(".css"),p=d?'[rel="stylesheet"]':"";if(!!t)for(let _=i.length-1;_>=0;_--){const g=i[_];if(g.href===l&&(!d||g.rel==="stylesheet"))return}else if(document.querySelector(`link[href="${l}"]${p}`))return;const h=document.createElement("link");if(h.rel=d?"stylesheet":Bl,d||(h.as="script"),h.crossOrigin="",h.href=l,s&&h.setAttribute("nonce",s),document.head.appendChild(h),d)return new Promise((_,g)=>{h.addEventListener("load",_),h.addEventListener("error",()=>g(new Error(`Unable to preload CSS for ${l}`)))})}))}function o(i){const a=new Event("vite:preloadError",{cancelable:!0});if(a.payload=i,window.dispatchEvent(a),!a.defaultPrevented)throw i}return r.then(i=>{for(const a of i||[])a.status==="rejected"&&o(a.reason);return n().catch(o)})},Gl={emitter:{maxParticles:8e4,spawnRate:24e3,lifetime:[2,3.5],shape:{kind:"box",halfExtents:[35,.1,35]},initialSpeed:[0,0],initialColor:[.75,.88,1,.55],initialSize:[.005,.009],roughness:.1,metallic:0},modifiers:[{type:"gravity",strength:9},{type:"drag",coefficient:.05},{type:"color_over_lifetime",startColor:[.75,.88,1,.55],endColor:[.75,.88,1,0]},{type:"block_collision"}],renderer:{type:"sprites",blendMode:"alpha",billboard:"velocity",renderTarget:"hdr"}},Tl={emitter:{maxParticles:5e4,spawnRate:1500,lifetime:[30,45],shape:{kind:"box",halfExtents:[35,.1,35]},initialSpeed:[0,0],initialColor:[.92,.96,1,.85],initialSize:[.025,.055],roughness:.1,metallic:0},modifiers:[{type:"gravity",strength:1.5},{type:"drag",coefficient:.8},{type:"curl_noise",scale:1,strength:1,timeScale:1,octaves:1},{type:"block_collision"}],renderer:{type:"sprites",blendMode:"alpha",billboard:"camera",renderTarget:"hdr"}};async function Ml(u,n,e,t,r,o,i,a,s,l,d){let p,f,h,_;if(n.worldGeometryPass){const te=Zt.create(u);n.worldGeometryPass.updateGBuffer(te),p=te,f=n.worldGeometryPass,h=n.worldShadowPass,_=n.waterPass}else{p=Zt.create(u),f=Fr.create(u,p,t),h=Yr.create(u,n.shadowPass.shadowMapArrayViews,3,t);const te=u.device.createTexture({label:"WaterDummyHDR",size:{width:u.width,height:u.height},format:"rgba16float",usage:GPUTextureUsage.TEXTURE_BINDING|GPUTextureUsage.COPY_SRC}),pe=u.device.createTexture({label:"WaterDummyDepth",size:{width:u.width,height:u.height},format:"depth32float",usage:GPUTextureUsage.TEXTURE_BINDING}),he=te.createView(),re=pe.createView();_=nt.create(u,te,he,re,r,o,i);const ie=(q,$)=>{d.set(q,$),f.addChunk(q,$),h.addChunk(q,$),_.addChunk(q,$)},j=(q,$)=>{d.set(q,$),f.updateChunk(q,$),h.updateChunk(q,$),_.updateChunk(q,$)},K=q=>{d.delete(q),f.removeChunk(q),h.removeChunk(q),_.removeChunk(q)};l.onChunkAdded=ie,l.onChunkUpdated=j,l.onChunkRemoved=K;for(const[q,$]of d)_.addChunk(q,$)}const g=zr.create(u,p),y=Wr.create(u,p),w=e.clouds?Rr.create(u,s):null,x=Cr.create(u,p,n.shadowPass,y.aoView,w==null?void 0:w.shadowView,a),B=e.godrays?Vr.create(u,p,n.shadowPass,x.hdrView,x.cameraBuffer,x.lightBuffer):null,G=kr.create(u,x.hdrView),S=e.clouds?Nr.create(u,x.hdrView,p.depthView,s):null;u.pushInitErrorScope();const E=jr.create(u);await u.popInitErrorScope("PointSpotShadowPass");const L=Xr.create(u,p,E,x.hdrView),M=Ir.create(u,x,p),I=qr.create(u,p,M.historyView);x.updateSSGI(I.resultView),n.waterPass,_.updateRenderTargets(x.hdrTexture,x.hdrView,p.depthView,r);let A=null;const b=e.dof?(A=Hr.create(u,M.resolvedView,p.depthView),A.resultView):M.resolvedView;let k=null;const m=e.bloom?(k=Or.create(u,b),k.resultView):b,P=Lr.create(u,m,p.depthView),v=vt.create(u,x.hdrTexture);v.enabled=e.auto_exp;const U=Dr.create(u,m,y.aoView,p.depthView,x.cameraBuffer,x.lightBuffer,v.exposureBuffer);U.depthFogEnabled=e.fog;const C=n.currentWeatherEffect??lt.None;let z=null;if(e.rain&&C!==lt.None){const te=C===lt.Snow?Tl:Gl;z=$r.create(u,te,p,x.hdrView)}const{RenderGraph:H}=await Pl(async()=>{const{RenderGraph:te}=await import("./index-CUoRdvtU.js");return{RenderGraph:te}},[],import.meta.url),O=new H;return O.addPass(n.shadowPass),w&&O.addPass(w),O.addPass(h),O.addPass(E),O.addPass(g),O.addPass(f),O.addPass(y),O.addPass(I),S?O.addPass(S):O.addPass(G),O.addPass(x),O.addPass(L),O.addPass(_),B&&O.addPass(B),z&&O.addPass(z),O.addPass(M),A&&O.addPass(A),k&&O.addPass(k),O.addPass(P),O.addPass(v),O.addPass(U),{shadowPass:n.shadowPass,gbuffer:p,geometryPass:g,worldGeometryPass:f,worldShadowPass:h,waterPass:_,ssaoPass:y,ssgiPass:I,lightingPass:x,atmospherePass:G,pointSpotShadowPass:E,pointSpotLightPass:L,taaPass:M,dofPass:A,bloomPass:k,rainPass:z,godrayPass:B,cloudPass:S,cloudShadowPass:w,blockHighlightPass:P,autoExposurePass:v,compositePass:U,graph:O,prevViewProj:null,currentWeatherEffect:C}}function Vo(u,n){let e=0,t=1;for(;u>0;)t/=n,e+=t*(u%n),u=Math.floor(u/n);return e}function Al(u,n,e){const t=u.clone();for(let r=0;r<4;r++)t.data[r*4+0]+=n*t.data[r*4+3],t.data[r*4+1]+=e*t.data[r*4+3];return t}async function El(){const u=document.getElementById("canvas");if(!u)throw new Error("No canvas element");const n=await bl(),e=n.playerName,t=n.mode==="network"?n.network:null,r=n.mode==="network"?n.welcome:null,o=n.mode==="local"?n.world:null,i=n.mode==="local"?n.storage:null;if(r!==null)console.log(`[crafty] connected as player ${r.playerId} "${e}" (${r.players.length} other(s) online, ${r.edits.length} replay edits)`);else if(o!==null){if((o.version??0)<1){let D=0;for(const Q of o.edits)Q.kind==="place"&&(Q.x-=Q.fx??0,Q.y-=Q.fy??0,Q.z-=Q.fz??0,D++);o.version=$t,console.log(`[crafty] migrated saved world to v${$t} (${D} place edits rewritten)`)}console.log(`[crafty] starting local world "${o.name}" (seed=${o.seed}, ${o.edits.length} edits to replay)`)}const a=await Mr.create(u,{enableErrorHandling:!1}),{device:s}=a,l=await ms(s,ps(await(await fetch(hi)).arrayBuffer())),d=await ds(s,l.gpuTexture),p=ts(s),f=await Zr.load(s,cr,mi,_i,gi),h=await Le.fromUrl(s,vi),_=await Le.fromUrl(s,bi),g=await Le.fromUrl(s,yi,{resizeWidth:256,resizeHeight:256,usage:7}),y=Ps(cr),w=Es(),x=As(u,w.reticle),B=(r==null?void 0:r.seed)??(o==null?void 0:o.seed)??13,G=new Sr(B);Fs()&&(G.renderDistanceH=4,G.renderDistanceV=3);const S=new Map,E=new wi,L=new fe("Sun"),M=L.addComponent(new Fo(new V(.3,-1,.5),V.one(),6,3));E.add(L);const I=Us(u,E,G,a.width,a.height,g.gpuTexture,w.reticle,y.element),{cameraGO:A,camera:b,player:k,freeCamera:m}=I,P=Rs();Is(u,P,G,()=>y.getSelected(),E),zs(u,{player:k,camera:m,getActive:()=>I.isPlayerMode()?"player":"camera",world:G,scene:E,blockInteraction:P,getSelectedBlock:()=>y.getSelected(),onLookDoubleTap:()=>I.toggleController(),onMenu:()=>x.open()},()=>{k.usePointerLock=!1,m.usePointerLock=!1});const v={...wl},U=Ur.create(a,3);let C={shadowPass:U,currentWeatherEffect:lt.None};async function z(){C=await Ml(a,C,v,f,l,h,_,d,p,G,S),b.aspect=a.width/a.height}await z(),rl(G,E,{duckBody:mo(s),duckHead:_o(s),duckBill:go(s),ducklingBody:mo(s,.5),ducklingHead:_o(s,.5),ducklingBill:go(s,.5),pigBody:vo(s,1),pigHead:bo(s,1),pigSnout:yo(s,1),babyPigBody:vo(s,.55),babyPigHead:bo(s,.55),babyPigSnout:yo(s,.55)});const H=16,O=16,te=16,pe=(T,D,Q)=>`${Math.floor(T/H)},${Math.floor(D/O)},${Math.floor(Q/te)}`,he=new Map;function re(T){return T.kind==="place"?[T.x+(T.fx??0),T.y+(T.fy??0),T.z+(T.fz??0)]:[T.x,T.y,T.z]}function ie(T,D){return!(D.kind==="break"&&T.kind==="place")}function j(T){const[D,Q,Ge]=re(T),_e=pe(D,Q,Ge);let ve=he.get(_e);ve===void 0&&(ve=[],he.set(_e,ve));for(let Te=ve.length-1;Te>=0;Te--){const[Qe,Je,Pt]=re(ve[Te]);if(Qe===D&&Je===Q&&Pt===Ge){ie(T,ve[Te])&&ve.splice(Te,1);break}}ve.push(T)}if(r!==null)for(const T of r.edits)j(T);if(o!==null)for(const T of o.edits)j(T);const K=G.onChunkAdded;G.onChunkAdded=(T,D)=>{K==null||K(T,D);const Q=`${Math.floor(T.globalPosition.x/H)},${Math.floor(T.globalPosition.y/O)},${Math.floor(T.globalPosition.z/te)}`,Ge=he.get(Q);if(Ge!==void 0)for(const _e of Ge)wo(_e.kind==="place"?{kind:"place",x:_e.x,y:_e.y,z:_e.z,fx:_e.fx??0,fy:_e.fy??0,fz:_e.fz??0,blockType:_e.blockType}:{kind:"break",x:_e.x,y:_e.y,z:_e.z},G,E)};const q=new Map,$=il(s),ne=new ul(u.parentElement??document.body),be=new Map;function Pe(T,D){if(q.has(T))return;const Q=new sl(T,D,E,$);q.set(T,Q),ne.add(T,D),be.set(T,new V)}function ye(T){const D=q.get(T);D!==void 0&&(D.dispose(),q.delete(T)),ne.remove(T),be.delete(T)}if(r!==null)for(const T of r.players)Pe(T.playerId,T.name),q.get(T.playerId).setTargetTransform(T.x,T.y,T.z,T.yaw,T.pitch);t!==null?(t.setCallbacks({onPlayerJoin:(T,D)=>{console.log(`[crafty] +${D} (#${T})`),Pe(T,D)},onPlayerLeave:T=>{console.log(`[crafty] -#${T}`),ye(T)},onPlayerTransform:(T,D,Q,Ge,_e,ve)=>{const Te=q.get(T);Te!==void 0&&Te.setTargetTransform(D,Q,Ge,_e,ve)},onBlockEdit:T=>{j(T),wo(T.kind==="place"?{kind:"place",x:T.x,y:T.y,z:T.z,fx:T.fx??0,fy:T.fy??0,fz:T.fz??0,blockType:T.blockType}:{kind:"break",x:T.x,y:T.y,z:T.z},G,E)}}),P.onLocalEdit=T=>{T.kind==="place"?(j({kind:"place",x:T.x,y:T.y,z:T.z,blockType:T.blockType,fx:T.fx,fy:T.fy,fz:T.fz}),t.sendBlockPlace(T.x,T.y,T.z,T.fx,T.fy,T.fz,T.blockType)):(j({kind:"break",x:T.x,y:T.y,z:T.z,blockType:0}),t.sendBlockBreak(T.x,T.y,T.z))}):o!==null&&(P.onLocalEdit=T=>{const D=T.kind==="place"?{kind:"place",x:T.x,y:T.y,z:T.z,blockType:T.blockType,fx:T.fx,fy:T.fy,fz:T.fz}:{kind:"break",x:T.x,y:T.y,z:T.z,blockType:0},[Q,Ge,_e]=re(D);for(let ve=o.edits.length-1;ve>=0;ve--){const[Te,Qe,Je]=re(o.edits[ve]);if(Te===Q&&Qe===Ge&&Je===_e){ie(D,o.edits[ve])&&o.edits.splice(ve,1);break}}o.edits.push(D),j(D),oe=!0});let oe=!1;if(o!==null&&o.lastPlayedAt>o.createdAt){const T=o.player;A.position.set(T.x,T.y,T.z),k.yaw=T.yaw,k.pitch=T.pitch,k.velY=0;const D=G.chunksPerFrame;G.chunksPerFrame=200,G.update(new V(T.x,T.y,T.z),0),G.chunksPerFrame=D}else{const T=A.position.x,D=A.position.z,Q=G.chunksPerFrame;G.chunksPerFrame=200,G.update(new V(T,50,D),0),G.chunksPerFrame=Q;const Ge=G.getTopBlockY(T,D,200);Ge>0&&(A.position.y=Ge+1.62,k.velY=0)}const ue=document.createElement("div");ue.style.cssText="width:100%;height:1px;background:rgba(255,255,255,0.42)",x.card.appendChild(ue);const me=Ts(x.card,cr,y.slots,()=>y.refresh(),y.getSelectedSlot,y.setSelectedSlot),Ue=document.createElement("div");Ue.style.cssText="width:100%;height:1px;background:rgba(255,255,255,0.12)",x.card.appendChild(Ue);const ut=document.createElement("div");ut.textContent="EFFECTS",ut.style.cssText="color:rgba(255,255,255,0.35);font-size:11px;letter-spacing:0.18em;align-self:flex-start",x.card.appendChild(ut),Ms(v,async T=>{if(T!=="ssao"&&T!=="ssgi"&&T!=="shadows"&&T!=="aces"&&T!=="ao_dbg"&&T!=="shd_dbg"){if(T==="chunk_dbg"){C.worldGeometryPass.setDebugChunks(v.chunk_dbg);return}if(T!=="hdr"){if(T==="auto_exp"){C.autoExposurePass.enabled=v.auto_exp;return}if(T==="fog"){C.compositePass.depthFogEnabled=v.fog;return}if(T==="rain"){await z();return}if(T==="clouds"){await z();return}await z()}}},x.card),y.setOnSelectionChanged(me.refreshSlotHighlight);const dt=document.createElement("div");dt.textContent="ESC  ·  resume",dt.style.cssText="color:rgba(255,255,255,0.25);font-size:11px;letter-spacing:0.1em",x.card.appendChild(dt);const Ve=document.createElement("button");Ve.textContent="Save and Quit to Title",Ve.style.cssText=["padding:8px 28px","font-size:13px","font-family:ui-monospace,monospace","background: #3a1a1a","color:#f88","border:1px solid #f88","border-radius:6px","cursor:pointer","letter-spacing:0.06em","transition:background 0.15s"].join(";"),Ve.addEventListener("mouseenter",()=>{Ve.style.background="#4a2424"}),Ve.addEventListener("mouseleave",()=>{Ve.style.background="#3a1a1a"});const Jr=()=>{document.pointerLockElement===u&&document.exitPointerLock(),location.reload()};Ve.addEventListener("click",Jr),Ve.addEventListener("touchend",T=>{T.preventDefault(),Jr()},{passive:!1}),x.card.insertBefore(Ve,x.card.children[2]),new ResizeObserver(async()=>{const T=Math.max(1,Math.round(u.clientWidth*devicePixelRatio)),D=Math.max(1,Math.round(u.clientHeight*devicePixelRatio));T===u.width&&D===u.height||(u.width=T,u.height=D,await z())}).observe(u);let en=0,rr=0,tn=-1/0,Ke=(o==null?void 0:o.sunAngle)??Math.PI*.3,nr=0,rn=0,nn=0,on=0,wt=fo(G.getBiomeAt(A.position.x,A.position.y,A.position.z));const an=uo(G.getBiomeAt(A.position.x,A.position.y,A.position.z));let or=an.cloudBase,ir=an.cloudTop;const ar=new ol,Bt=new V(0,0,-1),St=new J([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]),Jo=5e3,ei=3e4,sn=.5,ti=.005;let ln=performance.now(),cn=-1/0,un=A.position.x,dn=A.position.y,fn=A.position.z,pn=Ke,sr=!1;async function ri(){try{const T=await createImageBitmap(u,{resizeWidth:160,resizeHeight:90,resizeQuality:"medium"}),D=new OffscreenCanvas(160,90),Q=D.getContext("2d");return Q===null?null:(Q.drawImage(T,0,0),await D.convertToBlob({type:"image/jpeg",quality:.7}))}catch(T){return console.warn("[crafty] screenshot capture failed",T),null}}function hn(T){if(o===null||i===null||sr)return;o.player.x=A.position.x,o.player.y=A.position.y,o.player.z=A.position.z,o.player.yaw=k.yaw,o.player.pitch=k.pitch,o.sunAngle=Ke,o.lastPlayedAt=Date.now(),o.version=$t,un=A.position.x,dn=A.position.y,fn=A.position.z,pn=Ke,oe=!1,sr=!0;const D=()=>{i.save(o).catch(Q=>{console.error("[crafty] save failed",Q)}).finally(()=>{sr=!1})};T?ri().then(Q=>{Q!==null&&(o.screenshot=Q),cn=performance.now(),D()}):D()}if(o!==null&&i!==null){const T=()=>{oe&&hn(!1)};window.addEventListener("beforeunload",T),window.addEventListener("pagehide",T),document.addEventListener("visibilitychange",()=>{document.visibilityState==="hidden"&&T()})}async function mn(T){var An,En;a.pushPassErrorScope("frame");const D=Math.min((T-en)/1e3,.1);en=T;const Q=T-tn>=1e3;Q&&(tn=T),D>0&&(rr+=(1/D-rr)*.1),Ke+=D*.01,nr+=D,nn+=D*1.5,on+=D*.5;const Ge=Math.sin(Ke),_e=.25,ve=-Ge,Te=Math.cos(Ke),Qe=Math.sqrt(_e*_e+ve*ve+Te*Te);M.direction.set(_e/Qe,ve/Qe,Te/Qe);const Je=Ge;M.intensity=Math.max(0,Je)*6;const Pt=Math.max(0,Je);M.color.set(1,.8+.2*Pt,.6+.4*Pt),I.isPlayerMode()?k.update(A,D):m.update(A,D),Cs(T/1e3),ks(T/1e3);const Y=b.position();ct.playerPos.x=Y.x,ct.playerPos.y=Y.y,ct.playerPos.z=Y.z,t!==null&&t.connected&&t.sendTransform(Y.x,Y.y,Y.z,k.yaw,k.pitch);for(const xe of q.values())xe.update(D);E.update(D),G.update(Y,D);const Gt=G.getBiomeAt(Y.x,Y.y,Y.z),_n=_s(Gt);_n!==C.currentWeatherEffect&&(C.currentWeatherEffect=_n,await z());const ni=fo(Gt);wt+=(ni-wt)*Math.min(1,.3*D);const gn=uo(Gt);if(or+=(gn.cloudBase-or)*Math.min(1,.3*D),ir+=(gn.cloudTop-ir)*Math.min(1,.3*D),Q){w.fps.textContent=`${rr.toFixed(0)} fps`;const xe=(C.worldGeometryPass.triangles/1e3).toFixed(1);w.stats.textContent=`${C.worldGeometryPass.drawCalls} draws  ${xe}k tris
+${G.chunkCount} chunks  ${G.pendingChunks} pending`,w.biome.textContent=`${Ae[Gt]}  coverage:${wt.toFixed(2)}`,w.pos.textContent=`X: ${Y.x.toFixed(1)}  Y: ${Y.y.toFixed(1)}  Z: ${Y.z.toFixed(1)}`}const vn=rn%16+1,oi=(Vo(vn,2)-.5)*(2/a.width),ii=(Vo(vn,3)-.5)*(2/a.height),Ne=b.viewProjectionMatrix(),bn=Al(Ne,oi,ii),Fe=b.viewMatrix(),De=b.projectionMatrix(),Re=Ne.invert(),yn=De.invert(),xn=M.computeCascadeMatrices(b,128),wn=E.collectMeshRenderers(),ai=wn.map(xe=>{const et=xe.gameObject.localToWorld();return{mesh:xe.mesh,modelMatrix:et,normalMatrix:et.normalMatrix(),material:xe.material}}),Bn=wn.filter(xe=>xe.castShadow).map(xe=>({mesh:xe.mesh,modelMatrix:xe.gameObject.localToWorld()}));U.setSceneSnapshot(Bn),U.updateScene(E,b,M,128),C.worldShadowPass.enabled=M.intensity>0,C.worldShadowPass.update(a,xn,Y.x,Y.z);const Tt=Math.max(0,Je),si=[.02+.38*Tt,.03+.52*Tt,.05+.65*Tt],Sn={cloudBase:or,cloudTop:ir,coverage:wt,density:4,windOffset:[nn,on],anisotropy:.85,extinction:.25,ambientColor:si,exposure:1};C.cloudShadowPass&&C.cloudShadowPass.update(a,Sn,[Y.x,Y.z],128),C.cloudPass&&(C.cloudPass.updateCamera(a,Re,Y,b.near,b.far),C.cloudPass.updateLight(a,M.direction,M.color,M.intensity),C.cloudPass.updateSettings(a,Sn));const Pn=E.getComponents(Tr),Gn=E.getComponents(Ho);C.pointSpotShadowPass.update(Pn,Gn,Bn),C.pointSpotLightPass.updateCamera(a,Fe,De,Ne,Re,Y,b.near,b.far),C.pointSpotLightPass.updateLights(a,Pn,Gn),C.atmospherePass.update(a,Re,Y,M.direction),C.geometryPass.setDrawItems(ai),C.geometryPass.updateCamera(a,Fe,De,bn,Re,Y,b.near,b.far),C.worldGeometryPass.updateCamera(a,Fe,De,bn,Re,Y,b.near,b.far),C.waterPass.updateCamera(a,Fe,De,Ne,Re,Y,b.near,b.far),C.waterPass.updateTime(a,nr,Math.max(.01,Tt)),C.lightingPass.updateCamera(a,Fe,De,Ne,Re,Y,b.near,b.far),C.lightingPass.updateLight(a,M.direction,M.color,M.intensity,xn,v.shadows,v.shd_dbg),C.lightingPass.updateCloudShadow(a,C.cloudShadowPass?Y.x:0,C.cloudShadowPass?Y.z:0,128),C.ssaoPass.updateCamera(a,Fe,De,yn),C.ssaoPass.updateParams(a,1,.005,v.ssao?2:0),C.ssgiPass.enabled=v.ssgi,C.ssgiPass.updateSettings({strength:v.ssgi?1:0}),v.ssgi&&C.ssgiPass.updateCamera(a,Fe,De,yn,Re,C.prevViewProj??Ne,Y);const Tn=Math.cos(k.pitch);Bt.x=-Math.sin(k.yaw)*Tn,Bt.y=-Math.sin(k.pitch),Bt.z=-Math.cos(k.yaw)*Tn;const Mt=G.getBlockByRay(Y,Bt,16),Mn=!!(Mt&&Mt.position.sub(Y).length()<=6);P.targetBlock=Mn?Mt.position:null,P.targetHit=Mn?Mt:null;const li=P.targetBlock&&!le(G.getBlockType(P.targetBlock.x,P.targetBlock.y,P.targetBlock.z))?P.targetBlock:null;if(C.blockHighlightPass.update(a,Ne,li),Os(T,u,P,G,()=>y.getSelected(),E),C.rainPass){ar.update(Y.x,Y.z,G),C.rainPass.updateHeightmap(a,ar.data,Y.x,Y.z,ar.extent);const xe=C.currentWeatherEffect===lt.Snow?20:8;St.data[12]=Y.x,St.data[13]=Y.y+xe,St.data[14]=Y.z,C.rainPass.update(a,D,Fe,De,Ne,Re,Y,b.near,b.far,St)}(An=C.dofPass)==null||An.updateParams(a,8,75,3,b.near,b.far),(En=C.godrayPass)==null||En.updateParams(a);const ci=le(G.getBlockType(Math.floor(Y.x),Math.floor(Y.y),Math.floor(Y.z))),ui={x:-M.direction.x,y:-M.direction.y,z:-M.direction.z};if(C.compositePass.updateParams(a,ci,nr,v.aces,v.ao_dbg,v.hdr),C.compositePass.updateStars(a,Re,Y,ui),C.autoExposurePass.update(a,D),C.taaPass.updateCamera(a,Re,C.prevViewProj??Ne),q.size>0){for(const[xe,et]of q){const ft=be.get(xe);ft!==void 0&&et.headWorldPosition(ft)}ne.update(Ne,Y,u.clientWidth,u.clientHeight,be)}if(C.prevViewProj=Ne,rn++,await C.graph.execute(a),await a.popPassErrorScope("frame"),o!==null&&i!==null){const xe=A.position.x-un,et=A.position.y-dn,ft=A.position.z-fn;xe*xe+et*et+ft*ft>sn*sn&&(oe=!0),Math.abs(Ke-pn)>ti&&(oe=!0);const lr=performance.now();if(oe&&lr-ln>=Jo){ln=lr;const di=lr-cn>=ei;hn(di)}}requestAnimationFrame(mn)}requestAnimationFrame(mn)}El().catch(u=>{document.body.innerHTML=`<pre style="color:red;padding:1rem">${u}</pre>`,console.error(u)});export{kr as A,Lr as B,Nr as C,Hr as D,Zt as G,Cr as L,$r as P,Mr as R,Wr as S,Ir as T,nt as W,vt as a,Or as b,Rr as c,Dr as d,zr as e,Vr as f,Xr as g,jr as h,ge as i,qr as j,Ur as k,Fr as l,Yr as m};

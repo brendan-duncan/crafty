@@ -22,7 +22,7 @@ export function createMenu(canvas: HTMLCanvasElement, reticle: HTMLDivElement): 
   menuCard.style.cssText = [
     'display:flex', 'flex-direction:column', 'align-items:center', 'gap:24px',
     'padding:48px 56px',
-    'background:rgba(255,255,255,0.04)',
+    'background:rgba(255,255,255,0.24)',
     'border:1px solid rgba(255,255,255,0.12)',
     'border-radius:12px',
     'max-width:860px', 'width:90%',
@@ -40,7 +40,7 @@ export function createMenu(canvas: HTMLCanvasElement, reticle: HTMLDivElement): 
   menuCard.appendChild(menuTitle);
 
   const resumeBtn = document.createElement('button');
-  resumeBtn.textContent = 'Play';
+  resumeBtn.textContent = 'Back to Game';
   resumeBtn.style.cssText = [
     'padding:10px 40px', 'font-size:15px', 'font-family:ui-monospace,monospace',
     'background:#1a3a1a', 'color:#5f5',

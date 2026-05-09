@@ -45,6 +45,7 @@ import { NetworkClient, type ConnectResult } from './game/network_client.js';
 import { RemotePlayer, createRemotePlayerMeshes } from './game/remote_player.js';
 import { NameLabelLayer } from './game/name_label.js';
 import type { BlockEdit } from '../shared/net_protocol.js';
+import { CURRENT_FORMAT_VERSION, type WorldStorage, type SavedWorld } from './game/world_storage.js';
 
 // UI imports (continued)
 import { showStartScreen } from './ui/start_screen.js';
@@ -70,10 +71,30 @@ async function main(): Promise<void> {
   const playerName = startChoice.playerName;
   const network: NetworkClient | null = startChoice.mode === 'network' ? startChoice.network : null;
   const welcome: ConnectResult | null = startChoice.mode === 'network' ? startChoice.welcome : null;
+  const savedWorld: SavedWorld | null = startChoice.mode === 'local' ? startChoice.world : null;
+  const worldStorage: WorldStorage | null = startChoice.mode === 'local' ? startChoice.storage : null;
   if (welcome !== null) {
     console.log(`[crafty] connected as player ${welcome.playerId} "${playerName}" (${welcome.players.length} other(s) online, ${welcome.edits.length} replay edits)`);
-  } else if (startChoice.mode === 'local') {
-    console.log(`[crafty] starting local world (seed=${startChoice.seed})`);
+  } else if (savedWorld !== null) {
+    // Migrate older saved worlds. Pre-v1 'place' edits stored x/y/z as the
+    // *placed* cell (hit + face) but kept the face vector — replay would
+    // then double-add the face. Subtract face once to recover the hit
+    // position, which is what the current applyRemoteBlockEdit expects.
+    const v = savedWorld.version ?? 0;
+    if (v < 1) {
+      let migrated = 0;
+      for (const e of savedWorld.edits) {
+        if (e.kind === 'place') {
+          e.x -= e.fx ?? 0;
+          e.y -= e.fy ?? 0;
+          e.z -= e.fz ?? 0;
+          migrated++;
+        }
+      }
+      savedWorld.version = CURRENT_FORMAT_VERSION;
+      console.log(`[crafty] migrated saved world to v${CURRENT_FORMAT_VERSION} (${migrated} place edits rewritten)`);
+    }
+    console.log(`[crafty] starting local world "${savedWorld.name}" (seed=${savedWorld.seed}, ${savedWorld.edits.length} edits to replay)`);
   }
 
   const ctx = await RenderContext.create(canvas, { enableErrorHandling: false });
@@ -98,7 +119,7 @@ async function main(): Promise<void> {
   const menu = createMenu(canvas, hud.reticle);
 
   // Create world and scene
-  const worldSeed = welcome?.seed ?? (startChoice.mode === 'local' ? startChoice.seed : 13);
+  const worldSeed = welcome?.seed ?? savedWorld?.seed ?? 13;
   const world = new World(worldSeed);
   if (isTouchDevice()) {
     world.renderDistanceH = 4;
@@ -184,18 +205,42 @@ async function main(): Promise<void> {
   const _chunkKey = (x: number, y: number, z: number): string =>
     `${Math.floor(x / CW)},${Math.floor(y / CH)},${Math.floor(z / CD)}`;
   const pendingEditsByChunk = new Map<string, BlockEdit[]>();
+  // For 'place', BlockEdit.x/y/z is the *hit* position (block placed against)
+  // and (fx,fy,fz) is the face normal — matches the network protocol. The
+  // actual block lands at (x+fx, y+fy, z+fz). Stash + dedup by that resolved
+  // cell so reload re-applies the right block to the right chunk.
+  function _placedCoords(edit: BlockEdit): [number, number, number] {
+    if (edit.kind === 'place') {
+      return [edit.x + (edit.fx ?? 0), edit.y + (edit.fy ?? 0), edit.z + (edit.fz ?? 0)];
+    }
+    return [edit.x, edit.y, edit.z];
+  }
+  /**
+   * True when `current` makes `prior` (at the same cell) redundant — i.e. we
+   * can drop `prior` from the log. The one case that does NOT supersede is
+   * `break → place`: the break is what clears the original terrain block, and
+   * without it, the replayed place fails because the cell is still occupied
+   * after seed-generated chunk regen.
+   */
+  function _supersedesPrior(current: BlockEdit, prior: BlockEdit): boolean {
+    return !(prior.kind === 'break' && current.kind === 'place');
+  }
   function _stashEdit(edit: BlockEdit): void {
-    const key = _chunkKey(edit.x, edit.y, edit.z);
+    const [px, py, pz] = _placedCoords(edit);
+    const key = _chunkKey(px, py, pz);
     let bucket = pendingEditsByChunk.get(key);
     if (bucket === undefined) {
       bucket = [];
       pendingEditsByChunk.set(key, bucket);
     }
-    // Replace any prior edit at the same coord (latest wins).
+    // Drop the most recent prior edit at this cell only when the new edit
+    // makes it redundant; otherwise both stay so replay order is preserved.
     for (let i = bucket.length - 1; i >= 0; i--) {
-      const e = bucket[i];
-      if (e.x === edit.x && e.y === edit.y && e.z === edit.z) {
-        bucket.splice(i, 1);
+      const [ex, ey, ez] = _placedCoords(bucket[i]);
+      if (ex === px && ey === py && ez === pz) {
+        if (_supersedesPrior(edit, bucket[i])) {
+          bucket.splice(i, 1);
+        }
         break;
       }
     }
@@ -203,6 +248,11 @@ async function main(): Promise<void> {
   }
   if (welcome !== null) {
     for (const e of welcome.edits) {
+      _stashEdit(e);
+    }
+  }
+  if (savedWorld !== null) {
+    for (const e of savedWorld.edits) {
       _stashEdit(e);
     }
   }
@@ -282,22 +332,68 @@ async function main(): Promise<void> {
       },
     });
 
-    // Forward local block edits to the server.
+    // Forward local block edits to the server. BlockEdit.x/y/z is the *hit*
+    // position (matches the network protocol so applyRemoteBlockEdit can call
+    // world.addBlock(hit, face, ...) directly).
     blockInteraction.onLocalEdit = (edit) => {
       if (edit.kind === 'place') {
-        _stashEdit({ kind: 'place', x: edit.x + edit.fx, y: edit.y + edit.fy, z: edit.z + edit.fz, blockType: edit.blockType, fx: edit.fx, fy: edit.fy, fz: edit.fz });
+        _stashEdit({ kind: 'place', x: edit.x, y: edit.y, z: edit.z, blockType: edit.blockType, fx: edit.fx, fy: edit.fy, fz: edit.fz });
         network.sendBlockPlace(edit.x, edit.y, edit.z, edit.fx, edit.fy, edit.fz, edit.blockType);
       } else {
         _stashEdit({ kind: 'break', x: edit.x, y: edit.y, z: edit.z, blockType: 0 });
         network.sendBlockBreak(edit.x, edit.y, edit.z);
       }
     };
+  } else if (savedWorld !== null) {
+    // Local mode: append every edit to the saved world's edit log so it
+    // survives a save tick, and mark the world dirty.
+    blockInteraction.onLocalEdit = (edit) => {
+      const wireEdit: BlockEdit = edit.kind === 'place'
+        ? { kind: 'place', x: edit.x, y: edit.y, z: edit.z, blockType: edit.blockType, fx: edit.fx, fy: edit.fy, fz: edit.fz }
+        : { kind: 'break', x: edit.x, y: edit.y, z: edit.z, blockType: 0 };
+      // Drop the most recent prior edit at the same resolved cell only when
+      // the new edit supersedes it; a 'place' that follows a 'break' must
+      // keep the break so replay clears the original terrain first.
+      const [px, py, pz] = _placedCoords(wireEdit);
+      for (let i = savedWorld.edits.length - 1; i >= 0; i--) {
+        const [ex, ey, ez] = _placedCoords(savedWorld.edits[i]);
+        if (ex === px && ey === py && ez === pz) {
+          if (_supersedesPrior(wireEdit, savedWorld.edits[i])) {
+            savedWorld.edits.splice(i, 1);
+          }
+          break;
+        }
+      }
+      savedWorld.edits.push(wireEdit);
+      _stashEdit(wireEdit);
+      saveDirty = true;
+    };
   }
 
-  // Spawn player at terrain surface
-  const spawnX = cameraGO.position.x;
-  const spawnZ = cameraGO.position.z;
-  {
+  // Local-mode dirty flag — set by the local block-edit handler above and by
+  // the per-frame movement/sun checks. The auto-save scaffolding (interval
+  // constants, flush helper, screenshot capture) lives further down with the
+  // other frame-loop state because it needs `sunAngle`.
+  let saveDirty = false;
+
+  // Spawn player. For a previously-played saved world, restore the player's
+  // last position and orientation; otherwise drop them on the terrain surface.
+  const isReturningPlayer = savedWorld !== null && savedWorld.lastPlayedAt > savedWorld.createdAt;
+  if (isReturningPlayer) {
+    const p = savedWorld!.player;
+    cameraGO.position.set(p.x, p.y, p.z);
+    player.yaw = p.yaw;
+    player.pitch = p.pitch;
+    player.velY = 0;
+    // Pre-warm chunks around the saved position so the player doesn't fall
+    // through air on the first frame.
+    const savedRate = world.chunksPerFrame;
+    world.chunksPerFrame = 200;
+    world.update(new Vec3(p.x, p.y, p.z), 0);
+    world.chunksPerFrame = savedRate;
+  } else {
+    const spawnX = cameraGO.position.x;
+    const spawnZ = cameraGO.position.z;
     const savedRate = world.chunksPerFrame;
     world.chunksPerFrame = 200;
     world.update(new Vec3(spawnX, 50, spawnZ), 0);
@@ -311,7 +407,7 @@ async function main(): Promise<void> {
 
   // Setup menu content
   const sep = document.createElement('div');
-  sep.style.cssText = 'width:100%;height:1px;background:rgba(255,255,255,0.12)';
+  sep.style.cssText = 'width:100%;height:1px;background:rgba(255,255,255,0.42)';
   menu.card.appendChild(sep);
 
   const blockManager = createBlockManager(menu.card, colorAtlasUrl, hotbar.slots, () => hotbar.refresh(), hotbar.getSelectedSlot, hotbar.setSelectedSlot);
@@ -380,10 +476,13 @@ async function main(): Promise<void> {
   // Exit to launcher. Reload is the cleanest way to fully tear down WebGPU,
   // the world, the WebSocket, etc. — main() re-runs and re-shows the launcher.
   const exitBtn = document.createElement('button');
-  exitBtn.textContent = 'Exit to launcher';
+  exitBtn.textContent = 'Save and Quit to Title';
   exitBtn.style.cssText = [
-    'padding:8px 28px', 'font-size:13px', 'font-family:ui-monospace,monospace',
-    'background:#3a1a1a', 'color:#f88',
+    'padding:8px 28px',
+    'font-size:13px',
+    'font-family:ui-monospace,monospace',
+    'background: #3a1a1a',
+    'color:#f88',
     'border:1px solid #f88', 'border-radius:6px',
     'cursor:pointer', 'letter-spacing:0.06em',
     'transition:background 0.15s',
@@ -398,7 +497,10 @@ async function main(): Promise<void> {
   };
   exitBtn.addEventListener('click', onExit);
   exitBtn.addEventListener('touchend', (e) => { e.preventDefault(); onExit(); }, { passive: false });
-  menu.card.appendChild(exitBtn);
+  // Place directly under the Play button (createMenu sets up the card as
+  // [title, Play, separator, …]; insert at index 2 to land between Play and
+  // the separator).
+  menu.card.insertBefore(exitBtn, menu.card.children[2]);
 
   // Resize observer
   const resizeObserver = new ResizeObserver(async () => {
@@ -417,7 +519,7 @@ async function main(): Promise<void> {
   let lastTime = 0;
   let smoothFps = 0;
   let lastHudUpdate = -Infinity;
-  let sunAngle = Math.PI * 0.3;
+  let sunAngle = savedWorld?.sunAngle ?? Math.PI * 0.3;
   let waterTime = 0;
   let frameIndex = 0;
   let cloudWindX = 0;
@@ -430,6 +532,96 @@ async function main(): Promise<void> {
   const heightmap = new HeightmapManager();
   const _forward = new Vec3(0, 0, -1);
   const _rainMat = new Mat4([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]);
+
+  // ── Auto-save scaffolding (local mode) ────────────────────────────────────
+  const SAVE_INTERVAL_MS = 5000;
+  const SCREENSHOT_INTERVAL_MS = 30000;
+  const SAVE_POS_THRESHOLD = 0.5;     // blocks
+  const SAVE_SUN_THRESHOLD = 0.005;   // radians (~0.3°)
+  let lastSavedAt = performance.now();
+  let lastScreenshotAt = -Infinity;   // force a screenshot on the first save
+  let lastSavedPosX = cameraGO.position.x;
+  let lastSavedPosY = cameraGO.position.y;
+  let lastSavedPosZ = cameraGO.position.z;
+  let lastSavedSun = sunAngle;
+  let saveInFlight = false;
+
+  async function _captureThumbnail(): Promise<Blob | null>
+  {
+    try {
+      const bmp = await createImageBitmap(canvas, {
+        resizeWidth: 160, resizeHeight: 90, resizeQuality: 'medium',
+      });
+      const off = new OffscreenCanvas(160, 90);
+      const c2d = off.getContext('2d');
+      if (c2d === null) {
+        return null;
+      }
+      c2d.drawImage(bmp, 0, 0);
+      return await off.convertToBlob({ type: 'image/jpeg', quality: 0.7 });
+    } catch (err) {
+      console.warn('[crafty] screenshot capture failed', err);
+      return null;
+    }
+  }
+
+  function _flushSave(captureScreenshot: boolean): void
+  {
+    if (savedWorld === null || worldStorage === null || saveInFlight) {
+      return;
+    }
+    savedWorld.player.x = cameraGO.position.x;
+    savedWorld.player.y = cameraGO.position.y;
+    savedWorld.player.z = cameraGO.position.z;
+    savedWorld.player.yaw = player.yaw;
+    savedWorld.player.pitch = player.pitch;
+    savedWorld.sunAngle = sunAngle;
+    savedWorld.lastPlayedAt = Date.now();
+    savedWorld.version = CURRENT_FORMAT_VERSION;
+    lastSavedPosX = cameraGO.position.x;
+    lastSavedPosY = cameraGO.position.y;
+    lastSavedPosZ = cameraGO.position.z;
+    lastSavedSun = sunAngle;
+    saveDirty = false;
+    saveInFlight = true;
+
+    const doSave = (): void => {
+      worldStorage.save(savedWorld).catch((err) => {
+        console.error('[crafty] save failed', err);
+      }).finally(() => {
+        saveInFlight = false;
+      });
+    };
+
+    if (captureScreenshot) {
+      void _captureThumbnail().then((blob) => {
+        if (blob !== null) {
+          savedWorld.screenshot = blob;
+        }
+        lastScreenshotAt = performance.now();
+        doSave();
+      });
+    } else {
+      doSave();
+    }
+  }
+
+  // Force a save when the tab is hidden or unloading. IDB put() is fire-and-
+  // forget; the browser typically completes it during the unload pause.
+  if (savedWorld !== null && worldStorage !== null) {
+    const flushOnExit = (): void => {
+      if (saveDirty) {
+        _flushSave(false);
+      }
+    };
+    window.addEventListener('beforeunload', flushOnExit);
+    window.addEventListener('pagehide', flushOnExit);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        flushOnExit();
+      }
+    });
+  }
 
   async function frame(time: number): Promise<void> {
     ctx.pushPassErrorScope('frame');
@@ -615,6 +807,28 @@ async function main(): Promise<void> {
 
     await passes.graph!.execute(ctx);
     await ctx.popPassErrorScope('frame');
+
+    // Auto-save tick (local mode only). Mark dirty if the player moved enough,
+    // the sun rotated enough, or a block was edited (set elsewhere). Throttled
+    // by SAVE_INTERVAL_MS; screenshots ride a longer SCREENSHOT_INTERVAL_MS.
+    if (savedWorld !== null && worldStorage !== null) {
+      const dx = cameraGO.position.x - lastSavedPosX;
+      const dy = cameraGO.position.y - lastSavedPosY;
+      const dz = cameraGO.position.z - lastSavedPosZ;
+      if (dx * dx + dy * dy + dz * dz > SAVE_POS_THRESHOLD * SAVE_POS_THRESHOLD) {
+        saveDirty = true;
+      }
+      if (Math.abs(sunAngle - lastSavedSun) > SAVE_SUN_THRESHOLD) {
+        saveDirty = true;
+      }
+      const now = performance.now();
+      if (saveDirty && now - lastSavedAt >= SAVE_INTERVAL_MS) {
+        lastSavedAt = now;
+        const wantShot = now - lastScreenshotAt >= SCREENSHOT_INTERVAL_MS;
+        _flushSave(wantShot);
+      }
+    }
+
     requestAnimationFrame(frame);
   }
 
