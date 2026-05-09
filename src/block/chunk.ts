@@ -232,6 +232,10 @@ export class Chunk {
       if (!isBlockWater(b1) && isBlockWater(b2)) {
         return false;
       }
+      // Don't hide opaque-block faces behind transparent blocks
+      if (!isBlockSemiTransparent(b1) && isBlockSemiTransparent(b2)) {
+        return false;
+      }
       return true;
     };
 
