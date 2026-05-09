@@ -46,6 +46,24 @@ npm run dev
 
 Open the launcher's **Network** tab, leave the URL at `ws://localhost:8787` (or change it), and click *Connect*. Open additional browser tabs to join the same world. See [`server/README.md`](server/README.md) for environment variables (`PORT`, `SEED`).
 
+### HTTPS Server
+
+To host a server from an HTTPS server, it needs to use a WSS connection.
+
+You can use Apache/nginx Let's Encrypt port 443. 
+
+For a bitnami server:
+
+**/opt/bitnami/apache/conf/bitnami/bitnami-ssl.conf** — inside the \<VirtualHost> block
+```
+RewriteEngine on
+RewriteCond %{HTTP:Upgrade} websocket [NC]
+RewriteCond %{HTTP:Connection} upgrade [NC]
+RewriteRule ^/ws/(.*) "ws://localhost:8787/$1" [P,L]
+```
+
+Then the server starts without SSL env vars (plain WS on localhost), and the client connects to wss://example.com/ws/. Port 8787 only listens on 127.0.0.1, never exposed.
+
 ### Production build
 
 ```sh
