@@ -376,20 +376,23 @@ async function main(): Promise<void> {
   // other frame-loop state because it needs `sunAngle`.
   let saveDirty = false;
 
-  // Spawn player. For a previously-played saved world, restore the player's
-  // last position and orientation; otherwise drop them on the terrain surface.
-  const isReturningPlayer = savedWorld !== null && savedWorld.lastPlayedAt > savedWorld.createdAt;
-  if (isReturningPlayer) {
-    const p = savedWorld!.player;
-    cameraGO.position.set(p.x, p.y, p.z);
-    player.yaw = p.yaw;
-    player.pitch = p.pitch;
+  // Spawn player. Three sources of truth, in priority order:
+  //   1. multiplayer welcome.lastPosition (server remembers per-playerKey)
+  //   2. local savedWorld.player (returning player on a saved local world)
+  //   3. terrain-surface drop (fresh world)
+  const restoredPos: { x: number; y: number; z: number; yaw: number; pitch: number } | null =
+    welcome?.lastPosition ??
+    (savedWorld !== null && savedWorld.lastPlayedAt > savedWorld.createdAt ? savedWorld.player : null);
+  if (restoredPos !== null) {
+    cameraGO.position.set(restoredPos.x, restoredPos.y, restoredPos.z);
+    player.yaw = restoredPos.yaw;
+    player.pitch = restoredPos.pitch;
     player.velY = 0;
     // Pre-warm chunks around the saved position so the player doesn't fall
     // through air on the first frame.
     const savedRate = world.chunksPerFrame;
     world.chunksPerFrame = 200;
-    world.update(new Vec3(p.x, p.y, p.z), 0);
+    world.update(new Vec3(restoredPos.x, restoredPos.y, restoredPos.z), 0);
     world.chunksPerFrame = savedRate;
   } else {
     const spawnX = cameraGO.position.x;
@@ -407,7 +410,7 @@ async function main(): Promise<void> {
 
   // Setup menu content
   const sep = document.createElement('div');
-  sep.style.cssText = 'width:100%;height:1px;background:rgba(255,255,255,0.42)';
+  sep.style.cssText = 'width:100%;height:1px;background:rgba(255,255,255,0.12)';
   menu.card.appendChild(sep);
 
   const blockManager = createBlockManager(menu.card, colorAtlasUrl, hotbar.slots, () => hotbar.refresh(), hotbar.getSelectedSlot, hotbar.setSelectedSlot);
@@ -519,7 +522,7 @@ async function main(): Promise<void> {
   let lastTime = 0;
   let smoothFps = 0;
   let lastHudUpdate = -Infinity;
-  let sunAngle = savedWorld?.sunAngle ?? Math.PI * 0.3;
+  let sunAngle = welcome?.sunAngle ?? savedWorld?.sunAngle ?? Math.PI * 0.3;
   let waterTime = 0;
   let frameIndex = 0;
   let cloudWindX = 0;

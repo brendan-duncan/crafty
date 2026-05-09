@@ -1,5 +1,6 @@
 import { NetworkClient, type ConnectResult } from '../game/network_client.js';
 import { WorldStorage, createSavedWorld, type SavedWorld } from '../game/world_storage.js';
+import type { WorldSummary } from '../../shared/net_protocol.js';
 import backgroundUrl from '../../assets/crafty.png?url';
 
 /**
@@ -20,12 +21,27 @@ export type StartChoice =
       serverUrl: string;
       network: NetworkClient;
       welcome: ConnectResult;
+      world: WorldSummary;
     };
 
-const LS_NAME = 'crafty.playerName';
-const LS_SEED = 'crafty.lastSeed';
-const LS_URL  = 'crafty.serverUrl';
-const DEFAULT_URL = 'ws://localhost:8787';
+const LS_NAME       = 'crafty.playerName';
+const LS_SEED       = 'crafty.lastSeed';
+const LS_URL        = 'crafty.serverUrl';
+const LS_PLAYER_KEY = 'crafty.playerKey';
+const DEFAULT_URL   = 'ws://localhost:8787';
+
+/** Stable per-browser identifier sent to servers; keyed for per-player persistence. */
+function _ensurePlayerKey(): string
+{
+  let key = localStorage.getItem(LS_PLAYER_KEY);
+  if (key === null || key.length === 0) {
+    key = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
+      ? crypto.randomUUID()
+      : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+    localStorage.setItem(LS_PLAYER_KEY, key);
+  }
+  return key;
+}
 
 /**
  * Renders the launcher overlay and resolves once the user picks either a local
@@ -175,22 +191,135 @@ export async function showStartScreen(): Promise<StartChoice>
     localPanel.appendChild(_buttonRow(localStartBtn, localStatus));
 
     // ── Network panel ────────────────────────────────────────────────────
-    networkPanel.appendChild(_sectionLabel('Server'));
+    // Two phases: (1) server URL + Connect; (2) once connected, server world
+    // list + New world form. Phase 2 is added inside `_enterServerLobby`.
+    const playerKey = _ensurePlayerKey();
+    let activeNetwork: NetworkClient | null = null;
+    let connectedUrl = '';
+    let serverWorlds: WorldSummary[] = [];
+
+    const netUrlSection = document.createElement('div');
+    netUrlSection.style.cssText = 'display:flex;flex-direction:column;gap:10px';
+    networkPanel.appendChild(netUrlSection);
+
+    const netLobbySection = document.createElement('div');
+    netLobbySection.style.cssText = 'display:none;flex-direction:column;gap:10px';
+    networkPanel.appendChild(netLobbySection);
+
+    netUrlSection.appendChild(_sectionLabel('Server'));
     const urlField = _input({
       value: localStorage.getItem(LS_URL) ?? DEFAULT_URL,
       placeholder: DEFAULT_URL,
     });
-    networkPanel.appendChild(_createField('URL', urlField).row);
-
-    const worldHint = document.createElement('div');
-    worldHint.textContent = 'World selection (coming soon — server hosts a single world)';
-    worldHint.style.cssText = 'color:rgba(255,255,255,0.8);font-size:12px;padding:4px 0 8px';
-    networkPanel.appendChild(worldHint);
-
+    netUrlSection.appendChild(_createField('URL', urlField).row);
     const netConnectBtn = _primaryButton('Connect');
     const netStatus = document.createElement('div');
     netStatus.style.cssText = 'color:#f88;font-size:12px;min-height:16px;text-align:right';
-    networkPanel.appendChild(_buttonRow(netConnectBtn, netStatus));
+    netUrlSection.appendChild(_buttonRow(netConnectBtn, netStatus));
+
+    // ── Phase 2: server lobby (built once on first connect) ──────────────
+    netLobbySection.appendChild(_sectionLabel('Server worlds'));
+    const serverHeader = document.createElement('div');
+    serverHeader.style.cssText = 'color:rgba(255,255,255,0.6);font-size:11px;padding:0 0 4px;display:flex;align-items:center;justify-content:space-between;gap:8px';
+    const serverHeaderText = document.createElement('span');
+    serverHeader.appendChild(serverHeaderText);
+    const disconnectBtn = document.createElement('button');
+    disconnectBtn.textContent = 'Disconnect';
+    disconnectBtn.style.cssText = [
+      'background:transparent', 'color:rgba(255,255,255,0.6)',
+      'border:1px solid rgba(255,255,255,0.25)', 'border-radius:4px',
+      'padding:2px 8px', 'font:11px ui-monospace,monospace',
+      'cursor:pointer',
+    ].join(';');
+    serverHeader.appendChild(disconnectBtn);
+    netLobbySection.appendChild(serverHeader);
+
+    const netListContainer = document.createElement('div');
+    netListContainer.style.cssText = [
+      'display:flex', 'flex-direction:column', 'gap:6px',
+      'max-height:200px', 'overflow-y:auto',
+      'padding:4px',
+    ].join(';');
+    netLobbySection.appendChild(netListContainer);
+
+    netLobbySection.appendChild(_sectionLabel('New world'));
+    const netWorldNameField = _input({ value: '', placeholder: 'World name', maxLength: 32 });
+    netLobbySection.appendChild(_createField('Name', netWorldNameField).row);
+    const netSeedField = _input({
+      value: localStorage.getItem(LS_SEED) ?? '13',
+      placeholder: 'random',
+    });
+    netLobbySection.appendChild(_createField('Seed', netSeedField).row);
+    const netCreateBtn = _primaryButton('Create');
+    const netCreateStatus = document.createElement('div');
+    netCreateStatus.style.cssText = 'color:#f88;font-size:12px;min-height:16px;text-align:right';
+    netLobbySection.appendChild(_buttonRow(netCreateBtn, netCreateStatus));
+
+    function _renderServerList(): void
+    {
+      netListContainer.replaceChildren();
+      if (serverWorlds.length === 0) {
+        const empty = document.createElement('div');
+        empty.textContent = 'No worlds on this server yet';
+        empty.style.cssText = 'color:rgba(255,255,255,0.85);font-size:12px;padding:8px 0';
+        netListContainer.appendChild(empty);
+        return;
+      }
+      for (const w of serverWorlds) {
+        netListContainer.appendChild(_serverWorldRow(w, () => _joinServerWorld(w)));
+      }
+    }
+
+    async function _joinServerWorld(world: WorldSummary): Promise<void>
+    {
+      if (activeNetwork === null) {
+        return;
+      }
+      netCreateStatus.style.color = 'rgba(255,255,255,0.92)';
+      netCreateStatus.textContent = `joining "${world.name}"…`;
+      try {
+        const welcome = await activeNetwork.joinWorld(world.id);
+        finish({ mode: 'network', playerName: getName(), serverUrl: connectedUrl, network: activeNetwork, welcome, world });
+      } catch (err) {
+        netCreateStatus.style.color = '#f88';
+        netCreateStatus.textContent = `join failed: ${(err as Error).message}`;
+      }
+    }
+
+    netCreateBtn.addEventListener('click', async () => {
+      if (activeNetwork === null) {
+        return;
+      }
+      const seed = parseSeed(netSeedField.value);
+      netSeedField.value = String(seed);
+      localStorage.setItem(LS_SEED, String(seed));
+      const rawName = netWorldNameField.value.trim();
+      const name = rawName.length > 0 ? rawName : `World ${serverWorlds.length + 1}`;
+      netCreateBtn.disabled = true;
+      netCreateStatus.style.color = 'rgba(255,255,255,0.92)';
+      netCreateStatus.textContent = 'creating…';
+      try {
+        const created = await activeNetwork.createWorld(name, seed);
+        const welcome = await activeNetwork.joinWorld(created.id);
+        finish({ mode: 'network', playerName: getName(), serverUrl: connectedUrl, network: activeNetwork, welcome, world: created });
+      } catch (err) {
+        netCreateStatus.style.color = '#f88';
+        netCreateStatus.textContent = `failed: ${(err as Error).message}`;
+        netCreateBtn.disabled = false;
+      }
+    });
+
+    disconnectBtn.addEventListener('click', () => {
+      // No clean disconnect API — drop references and re-show URL phase. The
+      // socket will be GC'd when its event listeners go out of scope.
+      activeNetwork = null;
+      serverWorlds = [];
+      connectedUrl = '';
+      netLobbySection.style.display = 'none';
+      netUrlSection.style.display = 'flex';
+      netConnectBtn.disabled = false;
+      netStatus.textContent = '';
+    });
 
     // ── Tab switching ────────────────────────────────────────────────────
     function selectTab(which: 'local' | 'network'): void
@@ -266,19 +395,32 @@ export async function showStartScreen(): Promise<StartChoice>
       }
     });
 
-    // ── Network connect ──────────────────────────────────────────────────
+    // ── Network connect (phase 1 → phase 2 transition) ───────────────────
     netConnectBtn.addEventListener('click', async () => {
       const url = urlField.value.trim() || DEFAULT_URL;
       const name = getName();
-      netStatus.textContent = '';
       netStatus.style.color = 'rgba(255,255,255,0.92)';
       netStatus.textContent = 'connecting…';
       netConnectBtn.disabled = true;
       const network = new NetworkClient();
       try {
-        const welcome = await network.connect(url, name);
+        const worlds = await network.connect(url, playerKey, name);
         localStorage.setItem(LS_URL, url);
-        finish({ mode: 'network', playerName: name, serverUrl: url, network, welcome });
+        activeNetwork = network;
+        connectedUrl = url;
+        serverWorlds = worlds;
+        // Stay subscribed for live world list updates while in the lobby.
+        network.setCallbacks({
+          onWorldList: (next) => {
+            serverWorlds = next;
+            _renderServerList();
+          },
+        });
+        serverHeaderText.textContent = url;
+        netUrlSection.style.display = 'none';
+        netLobbySection.style.display = 'flex';
+        netStatus.textContent = '';
+        _renderServerList();
       } catch (err) {
         netStatus.style.color = '#f88';
         netStatus.textContent = `failed: ${(err as Error).message}`;
@@ -477,6 +619,37 @@ function _savedWorldRow(world: SavedWorld, onLoad: () => void, onDelete: () => v
     onDelete();
   });
   row.appendChild(del);
+
+  return row;
+}
+
+/** Server-side world row: name + edit/player counts + relative timestamp. */
+function _serverWorldRow(world: WorldSummary, onJoin: () => void): HTMLDivElement
+{
+  const row = document.createElement('div');
+  row.style.cssText = [
+    'display:flex', 'align-items:center', 'gap:10px',
+    'padding:8px 10px', 'border-radius:6px',
+    'background:rgba(0,0,0,0.35)', 'border:1px solid rgba(255,255,255,0.08)',
+    'cursor:pointer',
+    'transition:background 0.12s',
+  ].join(';');
+  row.addEventListener('mouseenter', () => { row.style.background = 'rgba(255,255,255,0.08)'; });
+  row.addEventListener('mouseleave', () => { row.style.background = 'rgba(0,0,0,0.35)'; });
+  row.addEventListener('click', onJoin);
+
+  const text = document.createElement('div');
+  text.style.cssText = 'flex:1;display:flex;flex-direction:column;gap:2px;min-width:0';
+  const name = document.createElement('div');
+  name.textContent = world.name;
+  name.style.cssText = 'color:#fff;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+  const meta = document.createElement('div');
+  const playerStr = world.playerCount === 1 ? '1 player' : `${world.playerCount} players`;
+  meta.textContent = `${playerStr}  ·  ${world.editCount} edit${world.editCount === 1 ? '' : 's'}  ·  ${_relativeTime(Date.now() - world.lastModifiedAt)}`;
+  meta.style.cssText = 'color:rgba(255,255,255,0.55);font-size:11px';
+  text.appendChild(name);
+  text.appendChild(meta);
+  row.appendChild(text);
 
   return row;
 }
