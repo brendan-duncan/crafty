@@ -1,6 +1,6 @@
 # Chapter 18: Performance
 
-[Contents](../README.md) | [Previous](17-multiplayer-gameplay.md) | [Next](19-tools.md)
+[Contents](../README.md) | [17-Multiplayer Gameplay](17-multiplayer-gameplay.md) | [19-Tools](19-tools.md)
 
 This chapter covers the profiling, optimisation, and culling techniques used to keep Crafty running at 60+ FPS on mid-range hardware.
 
@@ -167,3 +167,6 @@ class TextureCache {
 - `src/renderer/passes/` — Per-pass buffer pre-allocation patterns
 - `src/block/chunk.ts` — Chunk culling
 - `crafty/main.ts` — Frame loop and performance tracking
+
+----
+[Contents](../README.md) | [17-Multiplayer Gameplay](17-multiplayer-gameplay.md) | [19-Tools](19-tools.md)

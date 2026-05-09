@@ -1,6 +1,6 @@
 # Chapter 6: Textures and Materials
 
-[Contents](../README.md) | [Previous](05-meshes.md) | [Next](07-lighting.md)
+[Contents](../README.md) | [05-Meshes](05-meshes.md) | [07-Lighting](07-lighting.md)
 
 Textures provide surface detail beyond what geometry alone can express. Materials bundle shaders, textures, and parameters into a unit the renderer can consume. This chapter shows how Crafty loads, manages, and binds textures and materials.
 
@@ -273,3 +273,6 @@ The material system decouples surface appearance from the renderer:
 - `src/shaders/geometry.wgsl` — G-buffer fill shader
 - `src/shaders/forward_pbr.wgsl` — Forward PBR shader (transparency)
 - `src/shaders/common.wgsl` — Shared struct definitions
+
+----
+[Contents](../README.md) | [05-Meshes](05-meshes.md) | [07-Lighting](07-lighting.md)

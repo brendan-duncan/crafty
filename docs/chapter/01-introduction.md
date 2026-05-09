@@ -1,6 +1,6 @@
 # Chapter 1: Introduction
 
-[Contents](../README.md) | [Next](02-mathematics.md)
+[Contents](../README.md) | [02-Mathematics](02-mathematics.md)
 
 ## 1.1 What is Crafty?
 
@@ -164,3 +164,6 @@ The library code in `src/` is self-contained and could be used independently fro
 5. **Advanced Topics** (Chapters 18–20): Performance, tools, and future directions.
 
 By the end, you will understand how every pixel on the screen got there — from the WGSL shader that computed it to the WebGPU pipeline that rasterized it to the game engine that placed the object in the world.
+
+----
+[Contents](../README.md) | [02-Mathematics](02-mathematics.md)

@@ -1,6 +1,6 @@
 # Chapter 20: The Road Ahead
 
-[Contents](../README.md) | [Previous](19-tools.md)
+[Contents](../README.md) | [19-Tools](19-tools.md)
 
 Crafty is a living project. This chapter outlines the planned features and directions for future development.
 
@@ -68,3 +68,6 @@ The source code at `https://github.com/brendan-duncan/crafty` will continue to e
 - WebGPU specification: <https://www.w3.org/TR/webgpu/>
 - WGSL specification: <https://www.w3.org/TR/WGSL/>
 - Physically Based Rendering (Pharr, Jakob, Humphreys): <https://pbr-book.org/>
+
+----
+[Contents](../README.md) | [19-Tools](19-tools.md)

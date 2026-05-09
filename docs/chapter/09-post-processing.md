@@ -1,6 +1,6 @@
 # Chapter 9: Post-Processing
 
-[Contents](../README.md) | [Previous](08-shadow-mapping.md) | [Next](10-sky-atmosphere.md)
+[Contents](../README.md) | [08-Shadow Mapping](08-shadow-mapping.md) | [10-Sky Atmosphere](10-sky-atmosphere.md)
 
 After the scene is rendered into the HDR target, a series of post-processing passes refines the image. This chapter covers tonemapping, bloom, temporal anti-aliasing, screen-space ambient occlusion, depth of field, and god rays.
 
@@ -282,3 +282,6 @@ Post-processing transforms the raw HDR render into the final image:
 - `src/renderer/passes/auto_exposure_pass.ts` — Auto-exposure
 - `src/renderer/passes/composite_pass.ts` — Final composition + tonemap
 - `src/shaders/composite.wgsl` — Composite shader
+
+----
+[Contents](../README.md) | [08-Shadow Mapping](08-shadow-mapping.md) | [10-Sky Atmosphere](10-sky-atmosphere.md)
