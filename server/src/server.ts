@@ -1,5 +1,7 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import https from 'node:https';
 import { WebSocketServer, WebSocket } from 'ws';
 import { WorldRepository } from './world_repository.ts';
 import { WorldRoom, type PlayerConn } from './world_room.ts';
@@ -42,8 +44,22 @@ const rooms = new Map<string, WorldRoom>();
 /** Every connection (lobby or in-game) so we can broadcast `world_list` updates. */
 const allConns = new Set<LobbyConn>();
 
-const wss = new WebSocketServer({ port });
-console.log(`[crafty-server] listening on ws://localhost:${port}  protocol v${PROTOCOL_VERSION}`);
+const sslCert = process.env.SSL_CERT;
+const sslKey = process.env.SSL_KEY;
+let wss: WebSocketServer;
+
+if (sslCert && sslKey) {
+  const server = https.createServer({
+    cert: fs.readFileSync(sslCert),
+    key: fs.readFileSync(sslKey),
+  });
+  wss = new WebSocketServer({ server });
+  server.listen(port);
+  console.log(`[crafty-server] listening on wss://localhost:${port}  protocol v${PROTOCOL_VERSION}`);
+} else {
+  wss = new WebSocketServer({ port });
+  console.log(`[crafty-server] listening on ws://localhost:${port}  protocol v${PROTOCOL_VERSION}`);
+}
 
 wss.on('connection', (ws) => {
   const conn: LobbyConn = { ws, playerKey: null, name: 'player', room: null, player: null };
