@@ -1,5 +1,5 @@
-import type { BlockEdit, SavedPosition, WorldSummary } from '../../shared/net_protocol.ts';
-import { BLOCK_TYPE_MAX } from '../../shared/net_protocol.ts';
+import type { BlockEdit, SavedPosition, WorldSummary } from '../../shared/net_protocol.js';
+import { BLOCK_TYPE_MAX } from '../../shared/net_protocol.js';
 
 export const SERVER_FORMAT_VERSION = 1;
 
