@@ -6,6 +6,9 @@ import type { Mat4 } from '../../math/mat4.js';
 import type { Vec3 } from '../../math/vec3.js';
 import { Material, MaterialPassType } from '../../engine/material.js';
 import type { IblTextures } from '../../assets/ibl.js';
+import type { SpotLight } from '../spot_light.js';
+import type { DirectionalLight } from '../directional_light.js';
+import type { PointLight } from '../point_light.js';
 
 const CAMERA_UNIFORM_SIZE = 64 * 4 + 16 + 16;
 const MODEL_UNIFORM_SIZE = 128;
@@ -35,53 +38,7 @@ export interface ForwardDrawItem {
   material: Material;
 }
 
-/**
- * The single directional ("sun") light evaluated in the forward shader.
- *
- * `lightViewProj` and a populated cascade-zero shadow-map slice are required
- * when `castShadows` is true; otherwise shadow sampling is skipped.
- */
-export interface DirectionalLightData {
-  direction: Vec3;
-  intensity: number;
-  color: Vec3;
-  castShadows: boolean;
-  lightViewProj?: Mat4;
-  shadowMap?: GPUTextureView;
-}
 
-/**
- * Point light parameters uploaded as one element of the point-light storage buffer.
- *
- * `range` is the light's effective influence radius; `castShadows` enables a
- * cube-shadow lookup for this light using its slot in the shared cube array.
- */
-export interface PointLightData {
-  position: Vec3;
-  range: number;
-  color: Vec3;
-  intensity: number;
-  castShadows?: boolean;
-}
-
-/**
- * Spot light parameters uploaded as one element of the spot-light storage buffer.
- *
- * `innerAngle`/`outerAngle` describe the cosine-falloff cone; `lightViewProj` and
- * a slice of the shared 2D shadow array are consumed when `castShadows` is true.
- */
-export interface SpotLightData {
-  position: Vec3;
-  range: number;
-  direction: Vec3;
-  innerAngle: number;
-  color: Vec3;
-  outerAngle: number;
-  intensity: number;
-  castShadows?: boolean;
-  lightViewProj?: Mat4;
-  shadowMap?: GPUTextureView;
-}
 
 /**
  * Forward+ pass that shades meshes in a single render pass with one directional
@@ -478,6 +435,15 @@ export class ForwardPass extends RenderPass {
   }
 
   /**
+   * Ensures a spot light's `lightViewProj` is computed from its position,
+   * direction, outerAngle, and range. Safe to call multiple times — recomputed
+   * each call so field changes are reflected.
+   */
+  updateLight(light: SpotLight): void {
+    light.computeLightViewProj();
+  }
+
+  /**
    * Upload all light data for the next frame: counts uniform, the single
    * directional light, then truncated point and spot light arrays.
    *
@@ -492,9 +458,9 @@ export class ForwardPass extends RenderPass {
    */
   updateLights(
     ctx: RenderContext,
-    directionalLight: DirectionalLightData,
-    pointLights: PointLightData[],
-    spotLights: SpotLightData[],
+    directionalLight: DirectionalLight,
+    pointLights: PointLight[],
+    spotLights: SpotLight[],
   ): void {
     // Update lighting counts
     const lightingData = this._lightingScratch;
@@ -563,6 +529,7 @@ export class ForwardPass extends RenderPass {
 
       for (let i = 0; i < Math.min(spotLights.length, MAX_SPOT_LIGHTS); i++) {
         const light = spotLights[i];
+        this.updateLight(light);
         const offset = i * 32;
         spotData[offset + 0] = light.position.x;
         spotData[offset + 1] = light.position.y;
@@ -581,9 +548,7 @@ export class ForwardPass extends RenderPass {
         spotDataU32[offset + 14] = light.castShadows ? (i + 1) : 0; // u32 shadowMapIndex: directional=0, spot lights start at 1
         // offset + 15 is padding
         // Write view-projection matrix starting at offset 16
-        if (light.lightViewProj) {
-          spotData.set(light.lightViewProj.data, offset + 16);
-        }
+        spotData.set(light.lightViewProj.data, offset + 16);
       }
       ctx.device.queue.writeBuffer(this._spotLightsBuffer, 0, buffer);
     }

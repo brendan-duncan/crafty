@@ -1,6 +1,9 @@
 import { Mat4 } from '../../src/math/mat4.js';
 import { Vec3 } from '../../src/math/vec3.js';
-import { ForwardPass, type DirectionalLightData, type PointLightData, type SpotLightData } from '../../src/renderer/passes/forward_pass.js';
+import { ForwardPass } from '../../src/renderer/passes/forward_pass.js';
+import { SpotLight } from '../../src/renderer/spot_light.js';
+import type { DirectionalLight } from '../../src/renderer/directional_light.js';
+import type { PointLight } from '../../src/renderer/point_light.js';
 import { DirectionalShadowPass } from '../../src/renderer/passes/directional_shadow_pass.js';
 import { SpotShadowPass } from '../../src/renderer/passes/spot_shadow_pass.js';
 import { PointShadowPass } from '../../src/renderer/passes/point_shadow_pass.js';
@@ -398,16 +401,16 @@ async function main() {
     const lightProj = Mat4.orthographic(-10, 10, -10, 10, 1, 40);
     const lightViewProj = lightProj.multiply(lightView);
 
-    const directionalLight: DirectionalLightData = {
+    const directionalLight: DirectionalLight = {
       direction: lightDir,
       intensity: 1.5,
       color: new Vec3(1.0, 0.95, 0.9),
       castShadows: true,
-      lightViewProj: lightViewProj,
+      lightViewProj,
       shadowMap: dirShadowMapView,
     };
 
-    const pointLights: PointLightData[] = [
+    const pointLights: PointLight[] = [
       {
         position: new Vec3(Math.sin(time) * 3, 2, Math.cos(time) * 3),
         range: 8,
@@ -417,35 +420,18 @@ async function main() {
       }
     ];
 
-    // Compute spot light view-projection matrix
-    const spotPosition = new Vec3(0, 5, 0);
-    const spotDirection = new Vec3(0, -1, 0);
-    const spotOuterAngle = 30;
-    const spotRange = 10;
-
-    const spotTarget = spotPosition.add(spotDirection);
-    const viewDir = spotDirection.normalize();
-    let spotUp = new Vec3(0, 1, 0);
-    if (Math.abs(viewDir.dot(spotUp)) > 0.99) {
-      spotUp = new Vec3(0, 0, 1);
-    }
-    const spotView = Mat4.lookAt(spotPosition, spotTarget, spotUp);
-    const spotProj = Mat4.perspective(spotOuterAngle * 2 * Math.PI / 180, 1.0, 0.1, spotRange);
-    const spotViewProj = spotProj.multiply(spotView);
-
-    const spotLights: SpotLightData[] = [
-      {
-        position: spotPosition,
-        range: spotRange,
-        direction: spotDirection,
+    const spotLights: SpotLight[] = [
+      new SpotLight({
+        position: new Vec3(0, 5, 0),
+        range: 10,
+        direction: new Vec3(0, -1, 0),
         innerAngle: 20,
         color: new Vec3(1.0, 1.0, 0.5),
-        outerAngle: spotOuterAngle,
+        outerAngle: 30,
         intensity: 20,
         castShadows: true,
-        lightViewProj: spotViewProj,
         shadowMap: spotShadowMapView,
-      },
+      }),
     ];
 
     // Create draw items
@@ -494,9 +480,8 @@ async function main() {
     spotShadowPass.enabled = spotShadowEnabled;
     if (spotShadowEnabled) {
       const spot = spotLights[0];
-      // Use the same view-projection matrix as the light data
       spotShadowPass.setDrawItems(shadowDrawItems);
-      spotShadowPass.updateCamera(renderContext, spot.lightViewProj!);
+      spotShadowPass.updateLight(renderContext, spot);
     }
 
     // Point light shadow passes
@@ -539,7 +524,7 @@ async function main() {
     }
 
     // Apply light toggles
-    const activeDirectionalLight: DirectionalLightData = directionalLightEnabled
+    const activeDirectionalLight: DirectionalLight = directionalLightEnabled
       ? directionalLight
       : { ...directionalLight, intensity: 0, castShadows: false };
     const activePointLights = pointLightsEnabled ? pointLights : [];

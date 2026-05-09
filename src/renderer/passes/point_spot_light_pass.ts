@@ -2,8 +2,9 @@ import { RenderPass } from '../render_pass.js';
 import type { RenderContext } from '../render_context.js';
 import type { GBuffer } from '../gbuffer.js';
 import type { Mat4 } from '../../math/mat4.js';
-import type { PointLight } from '../../engine/components/point_light.js';
-import type { SpotLight } from '../../engine/components/spot_light.js';
+import type { PointLight as EnginePointLight } from '../../engine/components/point_light.js';
+import type { SpotLight as EngineSpotLight } from '../../engine/components/spot_light.js';
+import type { SpotLight } from '../spot_light.js';
 import type { PointSpotShadowPass } from './point_spot_shadow_pass.js';
 import { MAX_POINT_LIGHTS, MAX_SPOT_LIGHTS, MAX_SHADOW_POINT_LIGHTS, MAX_SHADOW_SPOT_LIGHTS } from './point_spot_shadow_pass.js';
 import { HDR_FORMAT } from './lighting_pass.js';
@@ -240,7 +241,7 @@ export class PointSpotLightPass extends RenderPass {
    * / {@link MAX_SPOT_LIGHTS}; shadow-casting lights are assigned VSM array slot indices
    * up to {@link MAX_SHADOW_POINT_LIGHTS} / {@link MAX_SHADOW_SPOT_LIGHTS}.
    */
-  updateLights(ctx: RenderContext, pointLights: PointLight[], spotLights: SpotLight[]): void {
+  updateLights(ctx: RenderContext, pointLights: EnginePointLight[], spotLights: EngineSpotLight[]): void {
     // Light counts
     const counts = this._lightCountsArr;
     counts[0] = Math.min(pointLights.length, MAX_POINT_LIGHTS);
@@ -295,6 +296,18 @@ export class PointSpotLightPass extends RenderPass {
       sf32.set(vp.data, b + 16);
     }
     ctx.queue.writeBuffer(this._spotBuffer, 0, this._spotBuf);
+  }
+
+  /**
+   * Computes the view-projection matrix for a single {@link SpotLightData} in
+   * place (via {@link SpotLightData.computeLightViewProj}), leaving the caller
+   * responsible for uploading it through the normal {@link updateLights} flow.
+   *
+   * Useful when updating a light's transform between frames without rebuilding
+   * the entire light array.
+   */
+  updateLight(light: SpotLight): void {
+    light.computeLightViewProj();
   }
 
   /**

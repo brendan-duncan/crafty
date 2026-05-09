@@ -3,6 +3,7 @@ import type { RenderContext } from '../render_context.js';
 import { VERTEX_ATTRIBUTES, VERTEX_STRIDE } from '../../assets/mesh.js';
 import type { Mesh } from '../../assets/mesh.js';
 import type { Mat4 } from '../../math/mat4.js';
+import type { SpotLight } from '../spot_light.js';
 import shadowWgsl from '../../shaders/shadow.wgsl?raw';
 
 const CAMERA_UNIFORM_SIZE = 64; // 1 mat4
@@ -140,15 +141,17 @@ export class SpotShadowPass extends RenderPass {
   }
 
   /**
-   * Upload the spot light's view-projection matrix to the camera uniform and
-   * lazily create the camera bind group.
+   * Computes the view-projection matrix from the spot light data and uploads it
+   * to the camera uniform, lazily creating the camera bind group.
    *
    * @param ctx Render context providing the GPU queue and device.
-   * @param lightViewProj Combined view-projection matrix in the light's perspective space.
+   * @param light Spot light data whose position/direction/outerAngle/range are
+   *              used to derive the view-projection.
    */
-  updateCamera(ctx: RenderContext, lightViewProj: Mat4): void {
+  updateLight(ctx: RenderContext, light: SpotLight): void {
+    const vp = light.computeLightViewProj();
     const data = new Float32Array(16);
-    data.set(lightViewProj.data, 0);
+    data.set(vp.data, 0);
     ctx.queue.writeBuffer(this._cameraBuffer, 0, data);
 
     if (!this._cameraBindGroup) {
