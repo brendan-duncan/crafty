@@ -181,10 +181,19 @@ async function main() {
 
     // Animate sun
     sunAngle += dt * 0.05; // Faster than main demo for testing
-    const sinA = Math.sin(sunAngle);
+
+    // Skew so day lasts ~⅔ of the cycle, night ~⅓.
+    const _dayFraction = 0.65;
+    const _norm = ((sunAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+    const _dayPortion = _dayFraction * 2 * Math.PI;
+    const _skewed = _norm < _dayPortion
+      ? (_norm / _dayPortion) * Math.PI
+      : Math.PI + ((_norm - _dayPortion) / (2 * Math.PI - _dayPortion)) * Math.PI;
+
+    const sinA = Math.sin(_skewed);
     const rawDirX = 0.3;
     const rawDirY = -sinA;
-    const rawDirZ = Math.cos(sunAngle) * 0.5;
+    const rawDirZ = Math.cos(_skewed) * 0.5;
     const dLen = Math.sqrt(rawDirX * rawDirX + rawDirY * rawDirY + rawDirZ * rawDirZ);
     sun.direction.set(rawDirX / dLen, rawDirY / dLen, rawDirZ / dLen);
 

@@ -643,10 +643,19 @@ async function main(): Promise<void> {
     cloudWindX += dt * 1.5;
     cloudWindZ += dt * 0.5;
 
-    const sinA = Math.sin(sunAngle);
+    // Skew the linear angle so the sun spends ~3/5 of the cycle above the
+    // horizon and only ~2/5 below (night).
+    const _dayFraction = 0.65;
+    const _norm = ((sunAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+    const _dayPortion = _dayFraction * 2 * Math.PI;
+    const _skewed = _norm < _dayPortion
+      ? (_norm / _dayPortion) * Math.PI
+      : Math.PI + ((_norm - _dayPortion) / (2 * Math.PI - _dayPortion)) * Math.PI;
+
+    const sinA = Math.sin(_skewed);
     const rawDirX = 0.25;
     const rawDirY = -sinA;
-    const rawDirZ = Math.cos(sunAngle);
+    const rawDirZ = Math.cos(_skewed);
     const dLen = Math.sqrt(rawDirX * rawDirX + rawDirY * rawDirY + rawDirZ * rawDirZ);
     sun.direction.set(rawDirX / dLen, rawDirY / dLen, rawDirZ / dLen);
 
