@@ -80,4 +80,4 @@ npm run test:run   # one-shot, suitable for CI
 
 ---
 
-## [Architecture](ARCHITECTURE.md)
+## [Architecture Design](book/README.md)
