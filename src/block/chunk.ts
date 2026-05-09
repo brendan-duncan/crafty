@@ -527,6 +527,17 @@ export class Chunk {
     let waterBuffer: Float32Array | null = null;
     let waterVertCount = 0;
     if (hasWater) {
+      // Which face-adjacent neighbor chunks actually exist (have a blocks array).
+      // The padded array is initialised to NONE, and when a neighbor IS provided
+      // we copy its blocks (possibly including NONE = air).  At a chunk edge we
+      // can't tell "neighbor has air" from "no neighbor at all" just from the
+      // block value, so we use these flags to only suppress faces when the
+      // neighbor chunk is truly absent.
+      const _hasNegX = neighbors?.negX !== undefined;
+      const _hasPosX = neighbors?.posX !== undefined;
+      const _hasNegZ = neighbors?.negZ !== undefined;
+      const _hasPosZ = neighbors?.posZ !== undefined;
+
       // Allocate enough space for all possible faces (top + 5 sides = 6 faces per water block)
       waterBuffer = new Float32Array(waterBlocks.length * 6 * 6 * 3);
       let wi = 0;
@@ -546,12 +557,12 @@ export class Chunk {
           waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wy + 1; waterBuffer[wi++] = wz + 1;
         }
 
-        // Check each side and render if neighbor is not water
-        // Skip side faces at chunk boundaries if neighbor chunk is missing (BlockType.NONE)
+        // Check each side and render if neighbor is not water.
+        // At chunk edges, only suppress the face when the neighbor chunk is
+        // truly absent (no blocks array) — not when it merely has air.
         // Front face (+Z)
         const frontBlock = padded[bx + (by) * PW + (bz + 1) * PWPH];
-        const atFrontEdge = wz === D - 1;
-        if (!isBlockWater(frontBlock) && !(atFrontEdge && frontBlock === BlockType.NONE)) {
+        if (!isBlockWater(frontBlock) && (!_hasPosZ || frontBlock !== BlockType.NONE)) {
           waterBuffer[wi++] = wx;     waterBuffer[wi++] = wy;     waterBuffer[wi++] = wz + 1;
           waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wy;     waterBuffer[wi++] = wz + 1;
           waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wy + 1; waterBuffer[wi++] = wz + 1;
@@ -562,8 +573,7 @@ export class Chunk {
 
         // Back face (-Z)
         const backBlock = padded[bx + (by) * PW + (bz - 1) * PWPH];
-        const atBackEdge = wz === 0;
-        if (!isBlockWater(backBlock) && !(atBackEdge && backBlock === BlockType.NONE)) {
+        if (!isBlockWater(backBlock) && (!_hasNegZ || backBlock !== BlockType.NONE)) {
           waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wy;     waterBuffer[wi++] = wz;
           waterBuffer[wi++] = wx;     waterBuffer[wi++] = wy;     waterBuffer[wi++] = wz;
           waterBuffer[wi++] = wx;     waterBuffer[wi++] = wy + 1; waterBuffer[wi++] = wz;
@@ -574,8 +584,7 @@ export class Chunk {
 
         // Right face (+X)
         const rightBlock = padded[(bx + 1) + (by) * PW + bz * PWPH];
-        const atRightEdge = wx === W - 1;
-        if (!isBlockWater(rightBlock) && !(atRightEdge && rightBlock === BlockType.NONE)) {
+        if (!isBlockWater(rightBlock) && (!_hasPosX || rightBlock !== BlockType.NONE)) {
           waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wy;     waterBuffer[wi++] = wz;
           waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wy + 1; waterBuffer[wi++] = wz;
           waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wy + 1; waterBuffer[wi++] = wz + 1;
@@ -586,8 +595,7 @@ export class Chunk {
 
         // Left face (-X)
         const leftBlock = padded[(bx - 1) + (by) * PW + bz * PWPH];
-        const atLeftEdge = wx === 0;
-        if (!isBlockWater(leftBlock) && !(atLeftEdge && leftBlock === BlockType.NONE)) {
+        if (!isBlockWater(leftBlock) && (!_hasNegX || leftBlock !== BlockType.NONE)) {
           waterBuffer[wi++] = wx;     waterBuffer[wi++] = wy;     waterBuffer[wi++] = wz + 1;
           waterBuffer[wi++] = wx;     waterBuffer[wi++] = wy + 1; waterBuffer[wi++] = wz + 1;
           waterBuffer[wi++] = wx;     waterBuffer[wi++] = wy + 1; waterBuffer[wi++] = wz;
