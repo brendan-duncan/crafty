@@ -319,6 +319,7 @@ export async function showStartScreen(): Promise<StartChoice>
       netUrlSection.style.display = 'flex';
       netConnectBtn.disabled = false;
       netStatus.textContent = '';
+      nameRow.input.disabled = false;
     });
 
     // ── Tab switching ────────────────────────────────────────────────────
@@ -409,6 +410,9 @@ export async function showStartScreen(): Promise<StartChoice>
         activeNetwork = network;
         connectedUrl = url;
         serverWorlds = worlds;
+        // Lock the name field — server already has the name from the hello
+        // message; subsequent changes would be invisible to other players.
+        nameRow.input.disabled = true;
         // Stay subscribed for live world list updates while in the lobby.
         network.setCallbacks({
           onWorldList: (next) => {

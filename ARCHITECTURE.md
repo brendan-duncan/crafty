@@ -757,8 +757,6 @@ The column-major matrix layout is consistent throughout: `Mat4` stores data in c
 
 **Volumetric fog via 3D LUT.** Replace the depth-exponential fog in CompositePass with a full voxel-based volumetric fog using a froxel (frustum-aligned voxel) grid. This enables light-scattering fog shafts, local fog density variation (caves, swamps), and realistic night-time depth haze.
 
-**Path tracing mode.** WebGPU's compute pipeline supports full path tracing via acceleration structure extensions (proposed). A denoised 1 spp/frame path tracer with ReSTIR reservoir sampling would give near-photorealistic GI without the screen-space limitations of SSGI.
-
 **Indirect draw calls.** Move draw call construction entirely to the GPU using `drawIndirect` and a compute cull pass. The CPU would only submit a single indirect draw call per material type, and the GPU would perform per-chunk frustum and occlusion culling. This eliminates the JavaScript frustum loop and scales to much higher chunk counts.
 
 **Ray-traced shadows.** Replace PCF shadow maps with ray-traced area light shadows via a compute shader. Soft shadow penumbra would be physically accurate at any distance.
@@ -771,25 +769,13 @@ The column-major matrix layout is consistent throughout: `Mat4` stores data in c
 
 **Spline-based height curves.** Replace the linear amplitude modulation with Perlin → spline → height curves, as used by Minecraft 1.18+. Splines allow authoring exact terrain shapes (plains at exactly Y=64, cliffs at specific amplitude thresholds) with smooth transitions.
 
-**Erosion simulation.** Hydraulic erosion run on the heightmap post-generation carves realistic river valleys and talus slopes. Run as a CPU pass on initial chunk generation or precomputed offline.
-
 **Structure generation.** Villages, ruins, dungeons — multi-chunk structures that span chunk boundaries. Requires a two-phase generation: place structure anchors during chunk generation, then populate surrounding chunks with structure data on first load.
-
-**Cave systems.** 3D Perlin worm caves (carver algorithm) or Voronoi-based open cave chambers. Currently the 3D height noise creates some overhangs; dedicated cave carvers would create true hollow interiors.
 
 **River generation.** Trace rivers from high-elevation noise peaks downhill using gradient descent. Mark river cells as water; carve a channel 2–4 blocks wide and 1–2 blocks deep.
 
 ### Gameplay Systems
 
 **Crafting.** Inventory items with stack counts, a 3×3 crafting grid, and a recipe database. The block placement already supports item removal from the hotbar — the missing piece is the recipe resolution and inventory persistence.
-
-**Mob AI.** Simple state machine AI (idle → wander → aggro → flee) driven by `World.getBlockByRay()` for line-of-sight and `World.getTopBlockY()` for pathfinding height queries. NavMesh is not needed at voxel granularity — A* on the block grid suffices for small areas.
-
-**Save and load.** Serialize `Chunk.blocks` as a run-length encoded binary blob per chunk, keyed by chunk coordinate. A `WorldStorage` layer wraps IndexedDB (browser) or a local file (desktop) with chunk cache eviction.
-
-**Multiplayer.** WebSocket-based delta sync: send only changed blocks (position + type) from server to clients. A server-authoritative world with client-side prediction for player movement would require a small Node.js game server with the same `World` class running headlessly.
-
-**Day/night cycle.** Animate the sun direction over a configurable period (e.g., 20 minutes per in-game day). Drive `water.sky_intensity`, cloud coverage, directional light color (warm at sunset, cold blue at dawn), and star visibility from the sun elevation angle. The night sky pass could render a static star field from a pre-baked cubemap.
 
 ### Engine Infrastructure
 

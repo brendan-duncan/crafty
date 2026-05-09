@@ -479,7 +479,7 @@ async function main(): Promise<void> {
   // Exit to launcher. Reload is the cleanest way to fully tear down WebGPU,
   // the world, the WebSocket, etc. — main() re-runs and re-shows the launcher.
   const exitBtn = document.createElement('button');
-  exitBtn.textContent = 'Save and Quit to Title';
+  exitBtn.textContent = 'Quit to Title';
   exitBtn.style.cssText = [
     'padding:8px 28px',
     'font-size:13px',
