@@ -562,7 +562,8 @@ export class Chunk {
         // truly absent (no blocks array) — not when it merely has air.
         // Front face (+Z)
         const frontBlock = padded[bx + (by) * PW + (bz + 1) * PWPH];
-        if (!isBlockWater(frontBlock) && (!_hasPosZ || frontBlock !== BlockType.NONE)) {
+        const atFrontEdge = wz === D - 1;
+        if (!isBlockWater(frontBlock) && !(atFrontEdge && frontBlock === BlockType.NONE && !_hasPosZ)) {
           waterBuffer[wi++] = wx;     waterBuffer[wi++] = wy;     waterBuffer[wi++] = wz + 1;
           waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wy;     waterBuffer[wi++] = wz + 1;
           waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wy + 1; waterBuffer[wi++] = wz + 1;
@@ -573,7 +574,8 @@ export class Chunk {
 
         // Back face (-Z)
         const backBlock = padded[bx + (by) * PW + (bz - 1) * PWPH];
-        if (!isBlockWater(backBlock) && (!_hasNegZ || backBlock !== BlockType.NONE)) {
+        const atBackEdge = wz === 0;
+        if (!isBlockWater(backBlock) && !(atBackEdge && backBlock === BlockType.NONE && !_hasNegZ)) {
           waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wy;     waterBuffer[wi++] = wz;
           waterBuffer[wi++] = wx;     waterBuffer[wi++] = wy;     waterBuffer[wi++] = wz;
           waterBuffer[wi++] = wx;     waterBuffer[wi++] = wy + 1; waterBuffer[wi++] = wz;
@@ -584,7 +586,8 @@ export class Chunk {
 
         // Right face (+X)
         const rightBlock = padded[(bx + 1) + (by) * PW + bz * PWPH];
-        if (!isBlockWater(rightBlock) && (!_hasPosX || rightBlock !== BlockType.NONE)) {
+        const atRightEdge = wx === W - 1;
+        if (!isBlockWater(rightBlock) && !(atRightEdge && rightBlock === BlockType.NONE && !_hasPosX)) {
           waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wy;     waterBuffer[wi++] = wz;
           waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wy + 1; waterBuffer[wi++] = wz;
           waterBuffer[wi++] = wx + 1; waterBuffer[wi++] = wy + 1; waterBuffer[wi++] = wz + 1;
@@ -595,7 +598,8 @@ export class Chunk {
 
         // Left face (-X)
         const leftBlock = padded[(bx - 1) + (by) * PW + bz * PWPH];
-        if (!isBlockWater(leftBlock) && (!_hasNegX || leftBlock !== BlockType.NONE)) {
+        const atLeftEdge = wx === 0;
+        if (!isBlockWater(leftBlock) && !(atLeftEdge && leftBlock === BlockType.NONE && !_hasNegX)) {
           waterBuffer[wi++] = wx;     waterBuffer[wi++] = wy;     waterBuffer[wi++] = wz + 1;
           waterBuffer[wi++] = wx;     waterBuffer[wi++] = wy + 1; waterBuffer[wi++] = wz + 1;
           waterBuffer[wi++] = wx;     waterBuffer[wi++] = wy + 1; waterBuffer[wi++] = wz;

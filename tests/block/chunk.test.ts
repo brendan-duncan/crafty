@@ -405,6 +405,232 @@ describe('Chunk.generateVertices', () => {
       // Shared top/bottom face culled: 72 - 12 = 60
       expect(mesh.waterCount).toBe(60);
     });
+
+    describe('cross-chunk water boundary', () => {
+      const Y = 5, Z = 5;
+
+      it('should render a water side face at +X boundary when neighbor chunk has air', () => {
+        const chunk = new Chunk(0, 0, 0);
+        chunk.setBlock(W - 1, Y, Z, BlockType.WATER);
+
+        // Neighbor chunk exists with air (NONE) at the boundary
+        const nb = new Uint8Array(W * H * D);
+        nb[0 + Y * W + Z * W * H] = BlockType.NONE;
+
+        const mesh = chunk.generateVertices({ posX: nb });
+        expect(mesh.waterCount).toBeGreaterThan(0);
+      });
+
+      it('should suppress a water side face at +X boundary when NO neighbor chunk exists', () => {
+        const chunk = new Chunk(0, 0, 0);
+        chunk.setBlock(W - 1, Y, Z, BlockType.WATER);
+
+        // No posX neighbor — right face suppressed, other 5 faces visible
+        const mesh = chunk.generateVertices();
+        expect(mesh.waterCount).toBe(30);
+      });
+
+      it('should cull a water side face at +X boundary when neighbor chunk has water', () => {
+        const chunk = new Chunk(0, 0, 0);
+        chunk.setBlock(W - 1, Y, Z, BlockType.WATER);
+
+        const nb = new Uint8Array(W * H * D);
+        nb[0 + Y * W + Z * W * H] = BlockType.WATER;
+
+        // Right face culled by water neighbor, other 5 faces visible
+        const mesh = chunk.generateVertices({ posX: nb });
+        expect(mesh.waterCount).toBe(30);
+      });
+
+      it('should render all 6 faces when neighbor chunk has air at +X', () => {
+        const chunk = new Chunk(0, 0, 0);
+        chunk.setBlock(W - 1, Y, Z, BlockType.WATER);
+
+        const nb = new Uint8Array(W * H * D);
+        nb[0 + Y * W + Z * W * H] = BlockType.NONE;
+
+        // Right face rendered (neighbor has air, not absent)
+        const mesh = chunk.generateVertices({ posX: nb });
+        expect(mesh.waterCount).toBe(36);
+      });
+
+      it('should render all 6 faces when neighbor chunk has stone at +X', () => {
+        const chunk = new Chunk(0, 0, 0);
+        chunk.setBlock(W - 1, Y, Z, BlockType.WATER);
+
+        const nb = new Uint8Array(W * H * D);
+        nb[0 + Y * W + Z * W * H] = BlockType.STONE;
+
+        const mesh = chunk.generateVertices({ posX: nb });
+        expect(mesh.waterCount).toBe(36);
+      });
+
+      it('should render a water side face at -X boundary when neighbor chunk has air', () => {
+        const chunk = new Chunk(W, 0, 0);
+        chunk.setBlock(0, Y, Z, BlockType.WATER);
+
+        const nb = new Uint8Array(W * H * D);
+        nb[(W - 1) + Y * W + Z * W * H] = BlockType.NONE;
+
+        const mesh = chunk.generateVertices({ negX: nb });
+        expect(mesh.waterCount).toBe(36);
+      });
+
+      it('should suppress a water side face at -X boundary when NO neighbor chunk exists', () => {
+        const chunk = new Chunk(W, 0, 0);
+        chunk.setBlock(0, Y, Z, BlockType.WATER);
+
+        const mesh = chunk.generateVertices();
+        expect(mesh.waterCount).toBe(30);
+      });
+
+      it('should cull a water side face at -X boundary when neighbor chunk has water', () => {
+        const chunk = new Chunk(W, 0, 0);
+        chunk.setBlock(0, Y, Z, BlockType.WATER);
+
+        const nb = new Uint8Array(W * H * D);
+        nb[(W - 1) + Y * W + Z * W * H] = BlockType.WATER;
+
+        const mesh = chunk.generateVertices({ negX: nb });
+        expect(mesh.waterCount).toBe(30);
+      });
+
+      it('should render a water side face at -X boundary when neighbor chunk has stone', () => {
+        const chunk = new Chunk(W, 0, 0);
+        chunk.setBlock(0, Y, Z, BlockType.WATER);
+
+        const nb = new Uint8Array(W * H * D);
+        nb[(W - 1) + Y * W + Z * W * H] = BlockType.STONE;
+
+        const mesh = chunk.generateVertices({ negX: nb });
+        expect(mesh.waterCount).toBe(36);
+      });
+
+      it('should render a water side face at +Z boundary when neighbor chunk has air', () => {
+        const chunk = new Chunk(0, 0, 0);
+        chunk.setBlock(5, Y, D - 1, BlockType.WATER);
+
+        const nb = new Uint8Array(W * H * D);
+        nb[5 + Y * W + 0 * W * H] = BlockType.NONE;
+
+        const mesh = chunk.generateVertices({ posZ: nb });
+        expect(mesh.waterCount).toBe(36);
+      });
+
+      it('should suppress a water side face at +Z boundary when NO neighbor chunk exists', () => {
+        const chunk = new Chunk(0, 0, 0);
+        chunk.setBlock(5, Y, D - 1, BlockType.WATER);
+
+        const mesh = chunk.generateVertices();
+        expect(mesh.waterCount).toBe(30);
+      });
+
+      it('should cull a water side face at +Z boundary when neighbor chunk has water', () => {
+        const chunk = new Chunk(0, 0, 0);
+        chunk.setBlock(5, Y, D - 1, BlockType.WATER);
+
+        const nb = new Uint8Array(W * H * D);
+        nb[5 + Y * W + 0 * W * H] = BlockType.WATER;
+
+        const mesh = chunk.generateVertices({ posZ: nb });
+        expect(mesh.waterCount).toBe(30);
+      });
+
+      it('should render a water side face at -Z boundary when neighbor chunk has air', () => {
+        const chunk = new Chunk(0, 0, D);
+        chunk.setBlock(5, Y, 0, BlockType.WATER);
+
+        const nb = new Uint8Array(W * H * D);
+        nb[5 + Y * W + (D - 1) * W * H] = BlockType.NONE;
+
+        const mesh = chunk.generateVertices({ negZ: nb });
+        expect(mesh.waterCount).toBe(36);
+      });
+
+      it('should suppress a water side face at -Z boundary when NO neighbor chunk exists', () => {
+        const chunk = new Chunk(0, 0, D);
+        chunk.setBlock(5, Y, 0, BlockType.WATER);
+
+        const mesh = chunk.generateVertices();
+        expect(mesh.waterCount).toBe(30);
+      });
+
+      it('should cull a water side face at -Z boundary when neighbor chunk has water', () => {
+        const chunk = new Chunk(0, 0, D);
+        chunk.setBlock(5, Y, 0, BlockType.WATER);
+
+        const nb = new Uint8Array(W * H * D);
+        nb[5 + Y * W + (D - 1) * W * H] = BlockType.WATER;
+
+        const mesh = chunk.generateVertices({ negZ: nb });
+        expect(mesh.waterCount).toBe(30);
+      });
+
+      it('should render the top face when water is at +Y boundary and neighbor has air', () => {
+        const chunk = new Chunk(0, 0, 0);
+        chunk.setBlock(5, H - 1, 5, BlockType.WATER);
+
+        // Neighbor at +Y has air above
+        const nb = new Uint8Array(W * H * D);
+        nb[5 + 0 * W + 5 * W * H] = BlockType.NONE;
+
+        const mesh = chunk.generateVertices({ posY: nb });
+        expect(mesh.waterCount).toBeGreaterThan(0);
+      });
+
+      it('should cull the top face when water is at +Y boundary and neighbor has water above', () => {
+        const chunk = new Chunk(0, 0, 0);
+        chunk.setBlock(5, H - 1, 5, BlockType.WATER);
+
+        const nb = new Uint8Array(W * H * D);
+        nb[5 + 0 * W + 5 * W * H] = BlockType.WATER;
+
+        const mesh = chunk.generateVertices({ posY: nb });
+        // Top face culled, but still has visible sides and bottom
+        expect(mesh.waterCount).toBe(30);
+      });
+
+      it('should handle water at a corner (+X,+Z) with both neighbors present', () => {
+        const chunk = new Chunk(0, 0, 0);
+        chunk.setBlock(W - 1, Y, D - 1, BlockType.WATER);
+
+        const posXnb = new Uint8Array(W * H * D);
+        posXnb[0 + Y * W + (D - 1) * W * H] = BlockType.NONE;
+
+        const posZnb = new Uint8Array(W * H * D);
+        posZnb[(W - 1) + Y * W + 0 * W * H] = BlockType.NONE;
+
+        // Both neighbors exist with air → both side faces rendered
+        const mesh = chunk.generateVertices({ posX: posXnb, posZ: posZnb });
+        expect(mesh.waterCount).toBe(36);
+      });
+
+      it('should cull two sides when water at corner has both neighbors with water', () => {
+        const chunk = new Chunk(0, 0, 0);
+        chunk.setBlock(W - 1, Y, D - 1, BlockType.WATER);
+
+        const nb = new Uint8Array(W * H * D);
+        nb.fill(BlockType.WATER);
+
+        // Both the +X and +Z side faces culled by water neighbors
+        // Visible: top, back(-Z), left(-X), bottom = 4 faces × 6 = 24
+        const mesh = chunk.generateVertices({ posX: nb, posZ: nb });
+        expect(mesh.waterCount).toBe(24);
+      });
+
+      it('should cull the right face when neighbor chunk has air but left face is visible', () => {
+        // Water at x=0 (left edge) with negX neighbor having air
+        const chunk = new Chunk(W, 0, 0);
+        chunk.setBlock(0, Y, Z, BlockType.WATER);
+
+        const nb = new Uint8Array(W * H * D);
+        nb[(W - 1) + Y * W + Z * W * H] = BlockType.NONE;
+
+        const mesh = chunk.generateVertices({ negX: nb });
+        // All 6 faces visible (neighbor exists with air at boundary)
+        expect(mesh.waterCount).toBe(36);
+      });
+    });
   });
 
   describe('mixed chunk', () => {
