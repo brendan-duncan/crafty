@@ -132,7 +132,7 @@ export async function buildRenderTargets(
 
   const cloudShadowPass = effects.clouds ? CloudShadowPass.create(ctx, cloudNoises) : null;
   const lightingPass = LightingPass.create(ctx, gbuffer, passes.shadowPass!, ssaoPass.aoView, cloudShadowPass?.shadowView, iblTextures);
-  const godrayPass = effects.godrays ? GodrayPass.create(ctx, gbuffer, passes.shadowPass!, lightingPass.hdrView, lightingPass.cameraBuffer, lightingPass.lightBuffer) : null;
+  const godrayPass = effects.godrays ? GodrayPass.create(ctx, gbuffer, passes.shadowPass!, lightingPass.hdrView, lightingPass.cameraBuffer, lightingPass.lightBuffer, cloudNoises) : null;
   const atmospherePass = AtmospherePass.create(ctx, lightingPass.hdrView);
   const cloudPass = effects.clouds ? CloudPass.create(ctx, lightingPass.hdrView, gbuffer.depthView, cloudNoises) : null;
 

@@ -743,6 +743,7 @@ async function main(): Promise<void> {
     if (passes.cloudShadowPass) {
       passes.cloudShadowPass.update(ctx, cloudSettings, [camPos.x, camPos.z], 128);
     }
+    passes.godrayPass?.updateCloudDensity(ctx, cloudSettings);
     if (passes.cloudPass) {
       passes.cloudPass.updateCamera(ctx, invVP, camPos, camera.near, camera.far);
       passes.cloudPass.updateLight(ctx, sun.direction, sun.color, sun.intensity);

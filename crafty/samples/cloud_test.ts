@@ -162,6 +162,7 @@ async function main() {
   const godrayPass = GodrayPass.create(
     renderContext, gbuffer, shadowPass, lightingPass.hdrView,
     lightingPass.cameraBuffer, lightingPass.lightBuffer,
+    cloudNoises,
   );
 
   const compositePass = CompositePass.create(
@@ -299,6 +300,7 @@ async function main() {
       cloudSettings.windOffset[1] += windSpeed * windDir[1] * dt;
 
       cloudShadowPass.update(renderContext, cloudSettings, [0, 0], 100);
+      godrayPass.updateCloudDensity(renderContext, cloudSettings);
       cloudPass.updateCamera(renderContext, invVP, camPos, camera.near, camera.far);
       cloudPass.updateLight(renderContext, sun.direction, sun.color, sun.intensity);
       cloudPass.updateSettings(renderContext, cloudSettings);
