@@ -43,6 +43,7 @@ export class CameraControls {
   private readonly _onKeyDown  : (e: KeyboardEvent) => void;
   private readonly _onKeyUp    : (e: KeyboardEvent) => void;
   private readonly _onClick    : () => void;
+  private readonly _onBlur     : () => void;
 
   /**
    * @param yaw - Initial yaw in radians.
@@ -73,6 +74,7 @@ export class CameraControls {
         this._canvas?.requestPointerLock();
       }
     };
+    this._onBlur    = () => this._keys.clear();
   }
 
   /** Set false to suppress pointer-lock acquisition on canvas click (touch devices). */
@@ -89,6 +91,7 @@ export class CameraControls {
     document.addEventListener('mousemove', this._onMouseMove);
     document.addEventListener('keydown',   this._onKeyDown);
     document.addEventListener('keyup',     this._onKeyUp);
+    window.addEventListener('blur',        this._onBlur);
   }
 
   /**
@@ -127,6 +130,7 @@ export class CameraControls {
     document.removeEventListener('mousemove', this._onMouseMove);
     document.removeEventListener('keydown',   this._onKeyDown);
     document.removeEventListener('keyup',     this._onKeyUp);
+    window.removeEventListener('blur',        this._onBlur);
     this._canvas = null;
   }
 
