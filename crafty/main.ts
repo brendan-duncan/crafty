@@ -151,7 +151,7 @@ async function main(): Promise<void> {
 
   // Audio
   const audio = new AudioManager();
-  const _upVec = new Vec3(0, 1, 0);
+  const _upVec = Vec3.UP;
 
   // Block interaction
   const blockInteraction = createBlockInteractionState();

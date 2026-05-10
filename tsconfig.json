@@ -13,5 +13,5 @@
     "outDir": "dist",
     "rootDir": "."
   },
-  "include": ["src/**/*", "tests/**/*", "game/**/*", "samples/forward_pass_sample.ts"]
+  "include": ["src/**/*", "tests/**/*", "game/**/*", "samples/forward_pass_sample.ts", "crafty/samples/cloud_test.ts", "crafty/samples/forward_test.ts"]
 }

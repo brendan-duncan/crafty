@@ -66,14 +66,35 @@ export class Vec3 {
 
   /** Returns (0, 0, 0). */
   static zero(): Vec3 { return new Vec3(0, 0, 0); }
+  static readonly ZERO = new Vec3(0, 0, 0);
+
   /** Returns (1, 1, 1). */
   static one(): Vec3 { return new Vec3(1, 1, 1); }
+  static readonly ONE = new Vec3(1, 1, 1);
+
   /** Returns the world up direction (0, 1, 0). */
   static up(): Vec3 { return new Vec3(0, 1, 0); }
+  static readonly UP = new Vec3(0, 1, 0);
+
+  /** Returns the world down direction (0, -1, 0). */
+  static down(): Vec3 { return new Vec3(0, -1, 0); }
+  static readonly DOWN = new Vec3(0, -1, 0);
+
   /** Returns the world forward direction (0, 0, -1) for a right-handed -Z-forward coordinate system. */
   static forward(): Vec3 { return new Vec3(0, 0, -1); }
+  static readonly FORWARD = new Vec3(0, 0, -1);
+
+  /** Returns the world backward direction (0, 0, 1) for a right-handed -Z-forward coordinate system. */
+  static backward(): Vec3 { return new Vec3(0, 0, 1); }
+  static readonly BACKWARD = new Vec3(0, 0, 1);
+
   /** Returns the world right direction (1, 0, 0). */
   static right(): Vec3 { return new Vec3(1, 0, 0); }
+  static readonly RIGHT = new Vec3(1, 0, 0);
+
+  /** Returns the world left direction (-1, 0, 0). */
+  static left(): Vec3 { return new Vec3(-1, 0, 0); }
+  static readonly LEFT = new Vec3(-1, 0, 0);
 
   /** Reads three consecutive components from a numeric array starting at offset. */
   static fromArray(a: ArrayLike<number>, offset = 0): Vec3 {

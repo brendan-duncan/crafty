@@ -11,153 +11,7 @@ import { RenderContext } from '../../src/renderer/render_context.js';
 import { RenderGraph } from '../../src/renderer/render_graph.js';
 import { CameraControls } from '../../src/engine/camera_controls.js';
 import { PbrMaterial } from '../../src/engine/materials/pbr_material.js';
-import type { Mesh } from '../../src/assets/mesh.js';
-
-// Simple mesh builder
-function createCubeMesh(device: GPUDevice): Mesh {
-  const positions = new Float32Array([
-    // Front
-    -0.5, -0.5,  0.5,  0.5, -0.5,  0.5,  0.5,  0.5,  0.5, -0.5,  0.5,  0.5,
-    // Back
-    -0.5, -0.5, -0.5, -0.5,  0.5, -0.5,  0.5,  0.5, -0.5,  0.5, -0.5, -0.5,
-    // Top
-    -0.5,  0.5, -0.5, -0.5,  0.5,  0.5,  0.5,  0.5,  0.5,  0.5,  0.5, -0.5,
-    // Bottom
-    -0.5, -0.5, -0.5,  0.5, -0.5, -0.5,  0.5, -0.5,  0.5, -0.5, -0.5,  0.5,
-    // Right
-     0.5, -0.5, -0.5,  0.5,  0.5, -0.5,  0.5,  0.5,  0.5,  0.5, -0.5,  0.5,
-    // Left
-    -0.5, -0.5, -0.5, -0.5, -0.5,  0.5, -0.5,  0.5,  0.5, -0.5,  0.5, -0.5,
-  ]);
-
-  const normals = new Float32Array([
-    // Front
-    0, 0, 1,  0, 0, 1,  0, 0, 1,  0, 0, 1,
-    // Back
-    0, 0, -1,  0, 0, -1,  0, 0, -1,  0, 0, -1,
-    // Top
-    0, 1, 0,  0, 1, 0,  0, 1, 0,  0, 1, 0,
-    // Bottom
-    0, -1, 0,  0, -1, 0,  0, -1, 0,  0, -1, 0,
-    // Right
-    1, 0, 0,  1, 0, 0,  1, 0, 0,  1, 0, 0,
-    // Left
-    -1, 0, 0,  -1, 0, 0,  -1, 0, 0,  -1, 0, 0,
-  ]);
-
-  const uvs = new Float32Array([
-    0, 1,  1, 1,  1, 0,  0, 0,
-    0, 1,  1, 1,  1, 0,  0, 0,
-    0, 1,  1, 1,  1, 0,  0, 0,
-    0, 1,  1, 1,  1, 0,  0, 0,
-    0, 1,  1, 1,  1, 0,  0, 0,
-    0, 1,  1, 1,  1, 0,  0, 0,
-  ]);
-
-  const tangents = new Float32Array([
-    1, 0, 0, 1,  1, 0, 0, 1,  1, 0, 0, 1,  1, 0, 0, 1,
-    -1, 0, 0, 1,  -1, 0, 0, 1,  -1, 0, 0, 1,  -1, 0, 0, 1,
-    1, 0, 0, 1,  1, 0, 0, 1,  1, 0, 0, 1,  1, 0, 0, 1,
-    1, 0, 0, 1,  1, 0, 0, 1,  1, 0, 0, 1,  1, 0, 0, 1,
-    0, 0, -1, 1,  0, 0, -1, 1,  0, 0, -1, 1,  0, 0, -1, 1,
-    0, 0, 1, 1,  0, 0, 1, 1,  0, 0, 1, 1,  0, 0, 1, 1,
-  ]);
-
-  const indices = new Uint32Array([
-    0, 1, 2,  0, 2, 3,
-    4, 5, 6,  4, 6, 7,
-    8, 9, 10,  8, 10, 11,
-    12, 13, 14,  12, 14, 15,
-    16, 17, 18,  16, 18, 19,
-    20, 21, 22,  20, 22, 23,
-  ]);
-
-  const vertexCount = positions.length / 3;
-  const vertexData = new Float32Array(vertexCount * 12);
-  for (let i = 0; i < vertexCount; i++) {
-    vertexData[i * 12 + 0] = positions[i * 3 + 0];
-    vertexData[i * 12 + 1] = positions[i * 3 + 1];
-    vertexData[i * 12 + 2] = positions[i * 3 + 2];
-    vertexData[i * 12 + 3] = normals[i * 3 + 0];
-    vertexData[i * 12 + 4] = normals[i * 3 + 1];
-    vertexData[i * 12 + 5] = normals[i * 3 + 2];
-    vertexData[i * 12 + 6] = uvs[i * 2 + 0];
-    vertexData[i * 12 + 7] = uvs[i * 2 + 1];
-    vertexData[i * 12 + 8] = tangents[i * 4 + 0];
-    vertexData[i * 12 + 9] = tangents[i * 4 + 1];
-    vertexData[i * 12 + 10] = tangents[i * 4 + 2];
-    vertexData[i * 12 + 11] = tangents[i * 4 + 3];
-  }
-
-  const vertexBuffer = device.createBuffer({
-    label: 'CubeVertexBuffer',
-    size: vertexData.byteLength,
-    usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-  });
-  device.queue.writeBuffer(vertexBuffer, 0, vertexData);
-
-  const indexBuffer = device.createBuffer({
-    label: 'CubeIndexBuffer',
-    size: indices.byteLength,
-    usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
-  });
-  device.queue.writeBuffer(indexBuffer, 0, indices);
-
-  return {
-    vertexBuffer,
-    indexBuffer,
-    indexCount: indices.length,
-  };
-}
-
-function createPlaneMesh(device: GPUDevice): Mesh {
-  const size = 20;
-  const vertexData = new Float32Array([
-    // position            normal           uv       tangent
-    -size, 0, -size,  0, 1, 0,  0, 0,  1, 0, 0, 1,
-     size, 0, -size,  0, 1, 0,  size, 0,  1, 0, 0, 1,
-     size, 0,  size,  0, 1, 0,  size, size,  1, 0, 0, 1,
-    -size, 0,  size,  0, 1, 0,  0, size,  1, 0, 0, 1,
-  ]);
-
-  // Reverse winding order for correct front face when viewed from above
-  const indices = new Uint32Array([0, 2, 1, 0, 3, 2]);
-
-  const vertexBuffer = device.createBuffer({
-    label: 'PlaneVertexBuffer',
-    size: vertexData.byteLength,
-    usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-  });
-  device.queue.writeBuffer(vertexBuffer, 0, vertexData);
-
-  const indexBuffer = device.createBuffer({
-    label: 'PlaneIndexBuffer',
-    size: indices.byteLength,
-    usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
-  });
-  device.queue.writeBuffer(indexBuffer, 0, indices);
-
-  return {
-    vertexBuffer,
-    indexBuffer,
-    indexCount: indices.length,
-  };
-}
-
-function createFallbackTexture(device: GPUDevice, r: number, g: number, b: number, a: number): GPUTextureView {
-  const texture = device.createTexture({
-    size: { width: 1, height: 1 },
-    format: 'rgba8unorm',
-    usage: 0x04 | 0x02, // TEXTURE_BINDING | COPY_DST
-  });
-  device.queue.writeTexture(
-    { texture },
-    new Uint8Array([r, g, b, a]),
-    { bytesPerRow: 4 },
-    { width: 1, height: 1 }
-  );
-  return texture.createView();
-}
+import { Mesh } from '../../src/assets/mesh.js';
 
 function createFallbackCubemap(device: GPUDevice): GPUTexture {
   const texture = device.createTexture({
@@ -180,15 +34,6 @@ function createFallbackCubemap(device: GPUDevice): GPUTexture {
   return texture;
 }
 
-function createDepthTexture(device: GPUDevice, width: number, height: number): GPUTextureView {
-  const texture = device.createTexture({
-    size: { width, height },
-    format: 'depth32float',
-    usage: 0x10 | 0x04, // RENDER_ATTACHMENT | TEXTURE_BINDING
-  });
-  return texture.createView();
-}
-
 async function main() {
   const canvas = document.getElementById('canvas') as HTMLCanvasElement;
   const fpsElement = document.getElementById('fps')!;
@@ -204,13 +49,10 @@ async function main() {
   });
 
   // Create meshes
-  const cubeMesh = createCubeMesh(device);
-  const planeMesh = createPlaneMesh(device);
+  const cubeMesh = Mesh.createCube(device);
+  const planeMesh = Mesh.createPlane(device, 20, 20);
 
   // Create fallback textures
-  const whiteView = createFallbackTexture(device, 255, 255, 255, 255);
-  const flatNormalView = createFallbackTexture(device, 128, 128, 255, 255);
-  const merView = createFallbackTexture(device, 0, 0, 255, 255);
   const irradianceTex = createFallbackCubemap(device);
   const prefilterTex = createFallbackCubemap(device);
   const brdfTex = device.createTexture({

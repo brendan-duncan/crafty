@@ -11,17 +11,17 @@ import { Component } from '../component.js';
  */
 export class SpotLight extends Component {
   /** Linear RGB colour multiplier. */
-  color            : Vec3    = Vec3.one();
+  color: Vec3 = Vec3.one();
   /** Scalar intensity multiplier. */
-  intensity        : number  = 1.0;
+  intensity: number = 1.0;
   /** Maximum range in world units. */
-  range            : number  = 20.0;
+  range: number = 20.0;
   /** Half-angle of the full-bright cone, in degrees. */
-  innerAngle       : number  = 15;
+  innerAngle: number = 15;
   /** Half-angle of the fade-to-zero cone, in degrees. */
-  outerAngle       : number  = 30;
+  outerAngle: number = 30;
   /** Whether this light renders a shadow map. */
-  castShadow       : boolean = false;
+  castShadow: boolean = false;
   /** Optional cookie/projector texture sampled with the light's view-proj. */
   projectionTexture: GPUTexture | null = null;
 
@@ -29,14 +29,14 @@ export class SpotLight extends Component {
    * World-space position of the light, taken from the GameObject's transform.
    */
   worldPosition(): Vec3 {
-    return this.gameObject.localToWorld().transformPoint(Vec3.zero());
+    return this.gameObject.localToWorld().transformPoint(Vec3.ZERO);
   }
 
   /**
    * World-space forward direction of the light (GameObject local -Z, normalised).
    */
   worldDirection(): Vec3 {
-    return this.gameObject.localToWorld().transformDirection(new Vec3(0, 0, -1)).normalize();
+    return this.gameObject.localToWorld().transformDirection(Vec3.FORWARD).normalize();
   }
 
   /**
@@ -47,7 +47,7 @@ export class SpotLight extends Component {
   lightViewProj(near = 0.1): Mat4 {
     const pos  = this.worldPosition();
     const dir  = this.worldDirection();
-    const up   = Math.abs(dir.y) > 0.99 ? new Vec3(1, 0, 0) : new Vec3(0, 1, 0);
+    const up   = Math.abs(dir.y) > 0.99 ? Vec3.RIGHT : Vec3.UP;
     const view = Mat4.lookAt(pos, pos.add(dir), up);
     const proj = Mat4.perspective(this.outerAngle * 2 * Math.PI / 180, 1.0, near, this.range);
     return proj.multiply(view);

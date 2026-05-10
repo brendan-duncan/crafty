@@ -22,11 +22,11 @@ const FACE_UPS: readonly Vec3[] = [
  */
 export class PointLight extends Component {
   /** Linear RGB colour multiplier. */
-  color     : Vec3    = Vec3.one();
+  color: Vec3 = Vec3.one();
   /** Scalar intensity multiplier. */
-  intensity : number  = 1.0;
+  intensity: number = 1.0;
   /** Attenuation radius in world units; light contributes nothing past this distance. */
-  radius    : number  = 10.0;
+  radius: number = 10.0;
   /** Whether this light renders shadow maps. */
   castShadow: boolean = false;
 
@@ -34,7 +34,7 @@ export class PointLight extends Component {
    * World-space position of the light, taken from the GameObject's transform.
    */
   worldPosition(): Vec3 {
-    return this.gameObject.localToWorld().transformPoint(Vec3.zero());
+    return this.gameObject.localToWorld().transformPoint(Vec3.ZERO);
   }
 
   /**

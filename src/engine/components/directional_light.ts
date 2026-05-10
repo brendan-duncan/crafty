@@ -8,11 +8,11 @@ import type { Camera } from './camera.js';
  */
 export interface CascadeData {
   /** Combined light projection × view matrix used both to render and sample the cascade. */
-  lightViewProj : Mat4;
+  lightViewProj: Mat4;
   /** Far plane (in view space) where this cascade ends. */
-  splitFar      : number;
+  splitFar: number;
   /** Light-space Z depth (maxZ − minZ after padding). */
-  depthRange    : number;
+  depthRange: number;
   /** World-space size of one shadow-map texel (2 × radius / mapSize). */
   texelWorldSize: number;
 }
@@ -70,10 +70,10 @@ export class DirectionalLight extends Component {
       const farSplit = splits[i];
 
       const corners = this._frustumCornersForSplit(camera, nearSplit, farSplit);
-      const center = corners.reduce((a, b) => a.add(b), Vec3.zero()).scale(1 / 8);
+      const center = corners.reduce((a, b) => a.add(b), Vec3.ZERO).scale(1 / 8);
 
       const lightDir = this.direction.normalize();
-      const lightView = Mat4.lookAt(center.sub(lightDir), center, new Vec3(0, 1, 0));
+      const lightView = Mat4.lookAt(center.sub(lightDir), center, Vec3.UP);
 
       // Sphere-fit: the bounding sphere radius is constant regardless of camera
       // rotation, so the cascade frustum size never changes → no shadow swimming.
