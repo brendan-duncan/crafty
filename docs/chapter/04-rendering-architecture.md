@@ -1,6 +1,6 @@
 # Chapter 4: Rendering Architecture
 
-[Contents](../README.md) | [03-Webgpu Fundamentals](03-webgpu-fundamentals.md) | [05-Meshes](05-meshes.md)
+[Contents](../crafty.md) | [03-Webgpu Fundamentals](03-webgpu-fundamentals.md) | [05-Meshes](05-meshes.md)
 
 This chapter presents the architectural backbone of Crafty's renderer — the **render graph**, its **passes**, and how they compose to produce every frame.
 
@@ -297,4 +297,4 @@ The render graph architecture is deliberately minimal. There is no automatic dep
 This simplicity makes the rendering pipeline easy to debug — each pass is an independent unit that can be enabled, disabled, or reordered in isolation.
 
 ----
-[Contents](../README.md) | [03-Webgpu Fundamentals](03-webgpu-fundamentals.md) | [05-Meshes](05-meshes.md)
+[Contents](../crafty.md) | [03-Webgpu Fundamentals](03-webgpu-fundamentals.md) | [05-Meshes](05-meshes.md)

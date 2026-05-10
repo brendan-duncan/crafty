@@ -1,6 +1,6 @@
 # Chapter 8: Shadow Mapping
 
-[Contents](../README.md) | [07-Lighting](07-lighting.md) | [09-Post Processing](09-post-processing.md)
+[Contents](../crafty.md) | [07-Lighting](07-lighting.md) | [09-Post Processing](09-post-processing.md)
 
 Shadows are essential for spatial perception. Crafty implements three shadow techniques: **cascaded shadow maps** (CSM) for the directional sun light, **variance shadow maps** (VSM) for point and spot lights, and basic depth-only shadow maps for individual shadow-casting lights.
 
@@ -298,4 +298,4 @@ shadow = mix(shadowCascade, shadowNextCascade, blend);
 - `src/shaders/point_spot_shadow.wgsl` — VSM shadow shader
 
 ----
-[Contents](../README.md) | [07-Lighting](07-lighting.md) | [09-Post Processing](09-post-processing.md)
+[Contents](../crafty.md) | [07-Lighting](07-lighting.md) | [09-Post Processing](09-post-processing.md)

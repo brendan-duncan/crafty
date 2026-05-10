@@ -1,6 +1,6 @@
 # Appendix B: WebGPU API Reference
 
-[Contents](../README.md) | [Previous](wgsl-ref.md) | [Next](math-ref.md)
+[Contents](../crafty.md) | [Previous](wgsl-ref.md) | [Next](math-ref.md)
 
 ## Initialisation
 

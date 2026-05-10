@@ -1,6 +1,6 @@
 # Chapter 19: Tools and Workflow
 
-[Contents](../README.md) | [18-Performance](18-performance.md) | [20-Road Ahead](20-road-ahead.md)
+[Contents](../crafty.md) | [18-Performance](18-performance.md) | [20-Road Ahead](20-road-ahead.md)
 
 Crafty includes several tools and conventions for development, testing, and debugging.
 
@@ -147,4 +147,4 @@ The CI pipeline does not run visual tests (no WebGPU in CI environments). Visual
 - `crafty/samples/` — Self-contained demos
 
 ----
-[Contents](../README.md) | [18-Performance](18-performance.md) | [20-Road Ahead](20-road-ahead.md)
+[Contents](../crafty.md) | [18-Performance](18-performance.md) | [20-Road Ahead](20-road-ahead.md)

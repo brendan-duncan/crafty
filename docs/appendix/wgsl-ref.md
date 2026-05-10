@@ -1,6 +1,6 @@
 # Appendix A: WGSL Quick Reference
 
-[Contents](../README.md) | [Next](webgpu-ref.md)
+[Contents](../crafty.md) | [Next](webgpu-ref.md)
 
 ## Comments
 

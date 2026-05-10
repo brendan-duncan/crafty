@@ -1,6 +1,6 @@
 # Chapter 12: Game Engine Design
 
-[Contents](../README.md) | [11-Terrain](11-terrain.md) | [13-Physics](13-physics.md)
+[Contents](../crafty.md) | [11-Terrain](11-terrain.md) | [13-Physics](13-physics.md)
 
 The game engine provides the structure for placing objects in the world, updating them each frame, and responding to user input.
 
@@ -183,4 +183,4 @@ class PlayerController extends Component {
 - `crafty/ui/` — Start screen, HUD
 
 ----
-[Contents](../README.md) | [11-Terrain](11-terrain.md) | [13-Physics](13-physics.md)
+[Contents](../crafty.md) | [11-Terrain](11-terrain.md) | [13-Physics](13-physics.md)

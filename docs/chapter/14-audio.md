@@ -1,6 +1,6 @@
 # Chapter 14: Audio
 
-[Contents](../README.md) | [13-Physics](13-physics.md) | [15-User Interface](15-user-interface.md)
+[Contents](../crafty.md) | [13-Physics](13-physics.md) | [15-User Interface](15-user-interface.md)
 
 Audio in Crafty uses the Web Audio API for spatialised sound effects and background music. Audio playback is triggered by game events and positioned in 3D space relative to the listener (the player's camera).
 
@@ -115,4 +115,4 @@ Ambient sounds (wind, birds, water near rivers) use spatial audio sources positi
 - `src/engine/components/audio_source.ts` — Spatial audio component
 
 ----
-[Contents](../README.md) | [13-Physics](13-physics.md) | [15-User Interface](15-user-interface.md)
+[Contents](../crafty.md) | [13-Physics](13-physics.md) | [15-User Interface](15-user-interface.md)

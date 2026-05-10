@@ -1,6 +1,6 @@
 # Chapter 3: WebGPU Fundamentals
 
-[Contents](../README.md) | [02-Mathematics](02-mathematics.md) | [04-Rendering Architecture](04-rendering-architecture.md)
+[Contents](../crafty.md) | [02-Mathematics](02-mathematics.md) | [04-Rendering Architecture](04-rendering-architecture.md)
 
 This chapter introduces the WebGPU API from the ground up. We cover every resource type and pipeline stage that Crafty uses, building toward the `RenderContext` abstraction that the rest of the engine is built on.
 
@@ -677,4 +677,4 @@ In this chapter we covered every major WebGPU resource type and saw how Crafty u
 In the next chapter, we see how these pieces come together in Crafty's render graph architecture — the system that orchestrates all these resources into a complete frame.
 
 ----
-[Contents](../README.md) | [02-Mathematics](02-mathematics.md) | [04-Rendering Architecture](04-rendering-architecture.md)
+[Contents](../crafty.md) | [02-Mathematics](02-mathematics.md) | [04-Rendering Architecture](04-rendering-architecture.md)

@@ -1,6 +1,6 @@
 # Appendix D: Glossary
 
-[Contents](../README.md) | [Previous](math-ref.md)
+[Contents](../crafty.md) | [Previous](math-ref.md)
 
 **ACES** — Academy Color Encoding System. A standardised colour space and tone mapping curve used for filmic HDR rendering.
 

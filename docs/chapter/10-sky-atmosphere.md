@@ -1,6 +1,6 @@
 # Chapter 10: Sky and Atmosphere
 
-[Contents](../README.md) | [09-Post Processing](09-post-processing.md) | [11-Terrain](11-terrain.md)
+[Contents](../crafty.md) | [09-Post Processing](09-post-processing.md) | [11-Terrain](11-terrain.md)
 
 The sky is the largest object in any outdoor scene. Crafty supports multiple sky rendering techniques: HDR environment maps, procedural atmospheric sky, and volumetric clouds.
 
@@ -96,4 +96,4 @@ The `CloudShadowPass` renders a top-down cloud shadow map — a 2D texture stori
 - `src/shaders/clouds.wgsl` — Cloud raymarching shader
 
 ----
-[Contents](../README.md) | [09-Post Processing](09-post-processing.md) | [11-Terrain](11-terrain.md)
+[Contents](../crafty.md) | [09-Post Processing](09-post-processing.md) | [11-Terrain](11-terrain.md)

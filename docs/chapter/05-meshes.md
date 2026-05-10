@@ -1,6 +1,6 @@
 # Chapter 5: Meshes and Geometry
 
-[Contents](../README.md) | [04-Rendering Architecture](04-rendering-architecture.md) | [06-Textures / Materials](06-textures-materials.md)
+[Contents](../crafty.md) | [04-Rendering Architecture](04-rendering-architecture.md) | [06-Textures / Materials](06-textures-materials.md)
 
 Every visible object in Crafty is represented by a **mesh** — a collection of vertices and indices that define its shape. This chapter covers how meshes are defined, uploaded to the GPU, and rendered.
 
@@ -244,4 +244,4 @@ Meshes are drawn by render passes that iterate `DrawItem` lists — each item pa
 - `src/renderer/passes/skinned_geometry_pass.ts` — Draws skinned meshes into the G-buffer
 
 ----
-[Contents](../README.md) | [04-Rendering Architecture](04-rendering-architecture.md) | [06-Textures / Materials](06-textures-materials.md)
+[Contents](../crafty.md) | [04-Rendering Architecture](04-rendering-architecture.md) | [06-Textures / Materials](06-textures-materials.md)

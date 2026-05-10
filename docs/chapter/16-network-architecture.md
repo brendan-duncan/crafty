@@ -1,6 +1,6 @@
 # Chapter 16: Network Architecture
 
-[Contents](../README.md) | [15-User Interface](15-user-interface.md) | [17-Multiplayer Gameplay](17-multiplayer-gameplay.md)
+[Contents](../crafty.md) | [15-User Interface](15-user-interface.md) | [17-Multiplayer Gameplay](17-multiplayer-gameplay.md)
 
 Crafty supports multiplayer through a WebSocket-based server written in Node.js. The protocol is minimal and message-oriented.
 
@@ -127,4 +127,4 @@ Auto-save runs every 30 seconds, writing only the chunks that have been modified
 - `crafty/game/network_client.ts` — Client-side networking
 
 ----
-[Contents](../README.md) | [15-User Interface](15-user-interface.md) | [17-Multiplayer Gameplay](17-multiplayer-gameplay.md)
+[Contents](../crafty.md) | [15-User Interface](15-user-interface.md) | [17-Multiplayer Gameplay](17-multiplayer-gameplay.md)

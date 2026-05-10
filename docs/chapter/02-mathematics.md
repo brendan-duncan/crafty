@@ -1,6 +1,6 @@
 # Chapter 2: 3D Mathematics
 
-[Contents](../README.md) | [01-Introduction](01-introduction.md) | [03-WebGPU Fundamentals](03-webgpu-fundamentals.md)
+[Contents](../crafty.md) | [01-Introduction](01-introduction.md) | [03-WebGPU Fundamentals](03-webgpu-fundamentals.md)
 
 Before we can render anything, we need a solid foundation in 3D mathematics. This chapter presents the vector, matrix, and quaternion types that every system in Crafty depends on.
 
@@ -543,4 +543,4 @@ The math library provides the foundation for everything that follows. Every vert
 - `src/math/noise.ts` — Perlin noise family
 
 ----
-[Contents](../README.md) | [01-Introduction](01-introduction.md) | [03-WebGPU Fundamentals](03-webgpu-fundamentals.md)
+[Contents](../crafty.md) | [01-Introduction](01-introduction.md) | [03-WebGPU Fundamentals](03-webgpu-fundamentals.md)

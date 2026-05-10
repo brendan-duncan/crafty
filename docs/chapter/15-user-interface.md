@@ -1,6 +1,6 @@
 # Chapter 15: User Interface
 
-[Contents](../README.md) | [14-Audio](14-audio.md) | [16-Network Architecture](16-network-architecture.md)
+[Contents](../crafty.md) | [14-Audio](14-audio.md) | [16-Network Architecture](16-network-architecture.md)
 
 Crafty uses a hybrid UI approach: HTML/DOM for the menus and HUD, in-game overlays for crosshair and block interactions.
 
@@ -102,4 +102,4 @@ In creative mode, all block types are available. In survival mode, only blocks t
 - `crafty/ui/block_manager.ts` — Block selection grid
 
 ----
-[Contents](../README.md) | [14-Audio](14-audio.md) | [16-Network Architecture](16-network-architecture.md)
+[Contents](../crafty.md) | [14-Audio](14-audio.md) | [16-Network Architecture](16-network-architecture.md)

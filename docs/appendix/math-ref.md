@@ -1,6 +1,6 @@
 # Appendix C: Mathematics Reference
 
-[Contents](../README.md) | [Previous](webgpu-ref.md) | [Next](glossary.md)
+[Contents](../crafty.md) | [Previous](webgpu-ref.md) | [Next](glossary.md)
 
 ## Coordinate System
 

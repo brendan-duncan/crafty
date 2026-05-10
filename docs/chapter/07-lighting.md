@@ -1,6 +1,6 @@
 # Chapter 7: Lighting
 
-[Contents](../README.md) | [06-Textures / Materials](06-textures-materials.md) | [08-Shadow Mapping](08-shadow-mapping.md)
+[Contents](../crafty.md) | [06-Textures / Materials](06-textures-materials.md) | [08-Shadow Mapping](08-shadow-mapping.md)
 
 Lighting is the heart of any renderer. Crafty implements a full physically-based shading pipeline supporting directional (sun), point, and spot lights, plus image-based lighting from environment maps.
 
@@ -340,4 +340,4 @@ All paths share the same PBR BRDF functions, ensuring consistent appearance rega
 - `src/renderer/passes/point_spot_light_pass.ts` — Additive point/spot pass
 
 ----
-[Contents](../README.md) | [06-Textures / Materials](06-textures-materials.md) | [08-Shadow Mapping](08-shadow-mapping.md)
+[Contents](../crafty.md) | [06-Textures / Materials](06-textures-materials.md) | [08-Shadow Mapping](08-shadow-mapping.md)

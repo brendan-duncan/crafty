@@ -1,6 +1,6 @@
 # Chapter 18: Performance
 
-[Contents](../README.md) | [17-Multiplayer Gameplay](17-multiplayer-gameplay.md) | [19-Tools](19-tools.md)
+[Contents](../crafty.md) | [17-Multiplayer Gameplay](17-multiplayer-gameplay.md) | [19-Tools](19-tools.md)
 
 This chapter covers the profiling, optimisation, and culling techniques used to keep Crafty running at 60+ FPS on mid-range hardware.
 
@@ -169,4 +169,4 @@ class TextureCache {
 - `crafty/main.ts` — Frame loop and performance tracking
 
 ----
-[Contents](../README.md) | [17-Multiplayer Gameplay](17-multiplayer-gameplay.md) | [19-Tools](19-tools.md)
+[Contents](../crafty.md) | [17-Multiplayer Gameplay](17-multiplayer-gameplay.md) | [19-Tools](19-tools.md)

@@ -1,6 +1,6 @@
 # Chapter 13: Physics and Interaction
 
-[Contents](../README.md) | [12-Game Engine](12-game-engine.md) | [14-Audio](14-audio.md)
+[Contents](../crafty.md) | [12-Game Engine](12-game-engine.md) | [14-Audio](14-audio.md)
 
 Crafty implements a minimal physics system focused on player movement and block interaction. There is no general-purpose physics engine — only what the gameplay requires.
 
@@ -131,4 +131,4 @@ Animations are simple — ducks and pigs use a few frames of vertex animation (w
 - `src/block/` — World modification and ray casting
 
 ----
-[Contents](../README.md) | [12-Game Engine](12-game-engine.md) | [14-Audio](14-audio.md)
+[Contents](../crafty.md) | [12-Game Engine](12-game-engine.md) | [14-Audio](14-audio.md)

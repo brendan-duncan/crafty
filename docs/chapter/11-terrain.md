@@ -1,6 +1,6 @@
 # Chapter 11: Terrain and Voxel World
 
-[Contents](../README.md) | [10-Sky / Atmosphere](10-sky-atmosphere.md) | [12-Game Engine](12-game-engine.md)
+[Contents](../crafty.md) | [10-Sky / Atmosphere](10-sky-atmosphere.md) | [12-Game Engine](12-game-engine.md)
 
 The voxel world is what distinguishes Crafty from a generic rendering demo. This chapter covers the data structures, generation, and rendering of a block-based terrain.
 
@@ -184,4 +184,4 @@ The water surface combines:
 - `src/shaders/chunk_geometry.wgsl` — Chunk G-buffer shader
 
 ----
-[Contents](../README.md) | [10-Sky / Atmosphere](10-sky-atmosphere.md) | [12-Game Engine](12-game-engine.md)
+[Contents](../crafty.md) | [10-Sky / Atmosphere](10-sky-atmosphere.md) | [12-Game Engine](12-game-engine.md)

@@ -1,6 +1,6 @@
 # Chapter 17: Multiplayer Gameplay
 
-[Contents](../README.md) | [16-Network Architecture](16-network-architecture.md) | [18-Performance](18-performance.md)
+[Contents](../crafty.md) | [16-Network Architecture](16-network-architecture.md) | [18-Performance](18-performance.md)
 
 Multiplayer gameplay adds state synchronisation, remote player rendering, and latency compensation.
 
@@ -155,4 +155,4 @@ This approach is sufficient for a creative-mode voxel game where precise frame-p
 - `server/src/world_room.ts` — Server-side broadcast
 
 ----
-[Contents](../README.md) | [16-Network Architecture](16-network-architecture.md) | [18-Performance](18-performance.md)
+[Contents](../crafty.md) | [16-Network Architecture](16-network-architecture.md) | [18-Performance](18-performance.md)
