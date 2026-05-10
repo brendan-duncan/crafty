@@ -17,7 +17,6 @@ export { BlockHighlightPass } from './passes/block_highlight_pass.js';
 export { CloudPass } from './passes/cloud_pass.js';
 export { CloudShadowPass } from './passes/cloud_shadow_pass.js';
 export type { CloudSettings } from './passes/cloud_pass.js';
-export type { CloudShadowSettings } from './passes/cloud_shadow_pass.js';
 export { TAAPass } from './passes/taa_pass.js';
 export { BloomPass } from './passes/bloom_pass.js';
 export { GodrayPass } from './passes/godray_pass.js';

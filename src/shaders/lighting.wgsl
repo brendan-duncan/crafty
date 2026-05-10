@@ -445,15 +445,14 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
   // Cloud shadow — sample top-down transmittance map; default 1.0 when extent is zero
   let cloud_ext = max(light.cloudShadowExtent, 0.001);
-  let cloud_uv  = clamp(
-    (world_pos.xz - light.cloudShadowOrigin) / (cloud_ext * 2.0) + 0.5,
-    vec2<f32>(0.0), vec2<f32>(1.0),
-  );
-  let cloud_shadow = select(
-    textureSampleLevel(cloudShadowTex, gbufferSampler, cloud_uv, 0.0).r,
-    1.0,
-    light.cloudShadowExtent <= 0.0,
-  );
+  let cloud_uv  = (world_pos.xz - light.cloudShadowOrigin) / (cloud_ext * 2.0) + 0.5;
+  // Fade cloud shadow to 1.0 (no shadow) in the outer 10% of the map to hide the
+  // hard edge where the shadow map repeats its border.
+  var cloud_edge = min(cloud_uv.x, 1.0 - cloud_uv.x);
+  cloud_edge = min(cloud_edge, min(cloud_uv.y, 1.0 - cloud_uv.y));
+  let cloud_fade = saturate(cloud_edge * 10.0);
+  let cloud_raw  = textureSampleLevel(cloudShadowTex, gbufferSampler, clamp(cloud_uv, vec2<f32>(0.0), vec2<f32>(1.0)), 0.0).r;
+  let cloud_shadow = select(mix(1.0, cloud_raw, cloud_fade), 1.0, light.cloudShadowExtent <= 0.0);
 
   let direct = (diffuse_brdf + specular_brdf) * light.color * light.intensity * NdotL * shad * cloud_shadow * horizon_fade;
 

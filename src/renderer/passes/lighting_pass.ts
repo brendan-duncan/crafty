@@ -48,6 +48,8 @@ export class LightingPass extends RenderPass {
   private _iblBindGroup: GPUBindGroup;   // group 3: irradiance cube, prefilter cube, BRDF LUT
   private _defaultCloudShadow: GPUTexture | null;
   private _defaultSsgi: GPUTexture | null;
+  private _defaultIblCube: GPUTexture | null;
+  private _defaultBrdfLut: GPUTexture | null;
 
   // Retained for updateSSGI() bind group recreation
   private _device: GPUDevice;
@@ -75,6 +77,8 @@ export class LightingPass extends RenderPass {
     lightBuffer: GPUBuffer,
     defaultCloudShadow: GPUTexture | null,
     defaultSsgi: GPUTexture | null,
+    defaultIblCube: GPUTexture | null,
+    defaultBrdfLut: GPUTexture | null,
     device: GPUDevice,
     aoBGL: GPUBindGroupLayout,
     aoView: GPUTextureView,
@@ -93,6 +97,8 @@ export class LightingPass extends RenderPass {
     this.lightBuffer  = lightBuffer;
     this._defaultCloudShadow = defaultCloudShadow;
     this._defaultSsgi = defaultSsgi;
+    this._defaultIblCube = defaultIblCube;
+    this._defaultBrdfLut = defaultBrdfLut;
     this._device = device;
     this._aoBGL = aoBGL;
     this._aoView = aoView;
@@ -236,9 +242,6 @@ export class LightingPass extends RenderPass {
         { binding: 3, resource: iblSampler },
       ],
     });
-    defaultIblCube.destroy();
-    defaultBrdfLut.destroy();
-
     const sceneBindGroup = device.createBindGroup({
       layout: sceneBGL,
       entries: [
@@ -288,7 +291,10 @@ export class LightingPass extends RenderPass {
       sceneBindGroup, gbufferBindGroup, aoBindGroup, iblBindGroup,
       cameraBuffer, lightBuffer,
       cloudShadowView ? null : defaultCloudShadow,
-      defaultSsgi, device, aoBGL, aoView, aoSampler, ssgiSampler,
+      defaultSsgi,
+      iblTextures ? null : defaultIblCube,
+      iblTextures ? null : defaultBrdfLut,
+      device, aoBGL, aoView, aoSampler, ssgiSampler,
     );
   }
 
@@ -440,5 +446,7 @@ export class LightingPass extends RenderPass {
     this.lightBuffer.destroy();
     this._defaultCloudShadow?.destroy();
     this._defaultSsgi?.destroy();
+    this._defaultIblCube?.destroy();
+    this._defaultBrdfLut?.destroy();
   }
 }

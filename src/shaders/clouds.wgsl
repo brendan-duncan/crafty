@@ -149,6 +149,14 @@ fn vs_main(@builtin(vertex_index) vid: u32) -> VertexOutput {
 
 // ---- Cloud helpers -----------------------------------------------------------
 
+// Rotate XZ around Y by ~37° so the Perlin noise grid doesn't align with world
+// axes, which would otherwise produce visible hard edges along X=0 and Z=0.
+const ROT_C: f32 = 0.79863551;
+const ROT_S: f32 = 0.60181502;
+fn rotate_xz(p: vec3<f32>) -> vec3<f32> {
+  return vec3<f32>(p.x * ROT_C - p.z * ROT_S, p.y, p.x * ROT_S + p.z * ROT_C);
+}
+
 fn remap(v: f32, lo: f32, hi: f32, a: f32, b: f32) -> f32 {
   return a + saturate((v - lo) / max(hi - lo, 0.0001)) * (b - a);
 }
@@ -177,17 +185,18 @@ fn sample_pw(samp_uv: vec3<f32>) -> f32 {
 
 fn sample_density(p: vec3<f32>) -> f32 {
   let wind = vec3<f32>(cloud.windOffset.x, 0.0, cloud.windOffset.y);
+  let pr = rotate_xz(rotate_xz(p));
   // Large-scale pass (3× coarser) — creates some very big cloud masses.
   // Drifts at half wind speed for natural differential parallax with smaller clouds.
-  let pw_large = sample_pw((p + wind * 0.5) * 0.012);
+  let pw_large = sample_pw((pr + wind * 0.5) * 0.012);
   // Medium-scale pass — smaller individual clouds.
-  let pw_med = sample_pw((p + wind) * 0.04);
+  let pw_med = sample_pw((pr + wind) * 0.04);
   // Blend: large scale dominates shape; medium adds smaller clouds in sparser areas.
   let pw = pw_large * 0.6 + pw_med * 0.4;
   let hg = height_gradient(p.y);
   let cov = saturate(remap(pw, 1.0 - cloud.coverage, 1.0, 0.0, 1.0)) * hg;
   if (cov < 0.001) { return 0.0; }
-  let detail_uv = p * 0.12 + wind * 0.1;
+  let detail_uv = pr * 0.12 + wind * 0.1;
   let det = textureSampleLevel(detail_noise, noise_samp, detail_uv, 0.0);
   let detail = det.r * 0.5 + det.g * 0.25 + det.b * 0.125;
   return max(0.0, cov - (1.0 - cov) * detail * 0.3) * cloud.density;
@@ -195,8 +204,9 @@ fn sample_density(p: vec3<f32>) -> f32 {
 
 fn sample_density_coarse(p: vec3<f32>) -> f32 {
   let wind     = vec3<f32>(cloud.windOffset.x, 0.0, cloud.windOffset.y);
-  let pw_large = sample_pw((p + wind * 0.5) * 0.012);
-  let pw_med   = sample_pw((p + wind) * 0.04);
+  let pr       = rotate_xz(p);
+  let pw_large = sample_pw((pr + wind * 0.5) * 0.012);
+  let pw_med   = sample_pw((pr + wind) * 0.04);
   let pw       = pw_large * 0.6 + pw_med * 0.4;
   let hg       = height_gradient(p.y);
   return saturate(remap(pw, 1.0 - cloud.coverage, 1.0, 0.0, 1.0)) * hg * cloud.density;

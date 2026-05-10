@@ -110,9 +110,11 @@ fn fs_march(in: VertexOutput) -> @location(0) vec4<f32> {
   let coord      = clamp(vec2<i32>(in.uv * vec2<f32>(depth_size)),
                          vec2<i32>(0), depth_size - vec2<i32>(1));
   let depth = textureLoad(depth_tex, coord, 0u);
-  if (depth >= 1.0) { return vec4<f32>(0.0); } // sky pixel — skip
 
-  let world_pos = reconstruct_world_pos(in.uv, depth);
+  // For sky pixels (depth == 1.0) we still march to the far plane so that
+  // volumetric shafts are visible against the sky/clouds, not just on geometry.
+  let hit_depth = select(depth, 1.0, depth >= 1.0);
+  let world_pos = reconstruct_world_pos(in.uv, hit_depth);
   let ray_vec   = world_pos - camera.position;
   let ray_len   = length(ray_vec);
   let ray_dir   = ray_vec / max(ray_len, 0.001);

@@ -97,7 +97,15 @@ fn fs_blur(in: VertexOutput) -> @location(0) vec4<f32> {
 @fragment
 fn fs_composite(in: VertexOutput) -> @location(0) vec4<f32> {
   let depth0 = depth_load(in.uv);
-  if (depth0 >= 1.0) { return vec4<f32>(0.0); } // sky — no godray contribution
+
+  // Sky pixels: sample fog directly without depth-aware neighbor logic.
+  if (depth0 >= 1.0) {
+    var fog = textureSampleLevel(fog_tex, samp, in.uv, 0.0).r;
+    fog = pow(max(fog, 0.0), params.fog_curve);
+    let horizon_fade = smoothstep(-0.05, 0.05, -light.direction.y);
+    let fog_color = light.color * light.intensity * fog * horizon_fade;
+    return vec4<f32>(fog_color, 0.0);
+  }
 
   // Depth-aware upsampling: among the four half-res neighbours, pick the one
   // whose depth is closest to this full-res pixel to avoid bleeding across edges.

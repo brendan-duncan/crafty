@@ -156,7 +156,7 @@ export class CloudPass extends RenderPass {
     const noiseSampler = device.createSampler({
       label: 'CloudNoiseSampler',
       magFilter: 'linear', minFilter: 'linear', mipmapFilter: 'linear',
-      addressModeU: 'repeat', addressModeV: 'repeat', addressModeW: 'repeat',
+      addressModeU: 'mirror-repeat', addressModeV: 'mirror-repeat', addressModeW: 'mirror-repeat',
     });
     const depthSampler = device.createSampler({ label: 'CloudDepthSampler' });
 

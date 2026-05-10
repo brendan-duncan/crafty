@@ -4,6 +4,12 @@
 
 const PI: f32 = 3.14159265358979323846;
 
+const ROT_C: f32 = 0.79863551;
+const ROT_S: f32 = 0.60181502;
+fn rotate_xz(p: vec3<f32>) -> vec3<f32> {
+  return vec3<f32>(p.x * ROT_C - p.z * ROT_S, p.y, p.x * ROT_S + p.z * ROT_C);
+}
+
 struct CloudShadowUniforms {
   cloudBase    : f32,
   cloudTop     : f32,
@@ -50,8 +56,9 @@ fn height_gradient(y: f32) -> f32 {
 }
 
 fn sample_density(world_pos: vec3<f32>) -> f32 {
+  let pr = rotate_xz(world_pos);
   let scale = 0.04;
-  let base_uv = (world_pos + vec3<f32>(params.windOffset.x, 0.0, params.windOffset.y)) * scale;
+  let base_uv = (pr + vec3<f32>(params.windOffset.x, 0.0, params.windOffset.y)) * scale;
   let base = textureSampleLevel(base_noise, noise_samp, base_uv, 0.0);
 
   // Perlin-Worley blend
@@ -61,7 +68,7 @@ fn sample_density(world_pos: vec3<f32>) -> f32 {
   if (cov < 0.001) { return 0.0; }
 
   let detail_scale = 0.12;
-  let detail_uv = world_pos * detail_scale + vec3<f32>(params.windOffset.x, 0.0, params.windOffset.y) * 0.1;
+  let detail_uv = pr * detail_scale + vec3<f32>(params.windOffset.x, 0.0, params.windOffset.y) * 0.1;
   let det = textureSampleLevel(detail_noise, noise_samp, detail_uv, 0.0);
   let detail = det.r * 0.5 + det.g * 0.25 + det.b * 0.125;
 

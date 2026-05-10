@@ -1,6 +1,7 @@
 import { RenderPass } from '../render_pass.js';
 import type { RenderContext } from '../render_context.js';
 import type { CloudNoiseTextures } from '../../assets/cloud_noise.js';
+import type { CloudSettings } from './cloud_pass.js';
 import cloudShadowWgsl from '../../shaders/cloud_shadow.wgsl?raw';
 
 const SHADOW_SIZE = 1024;
@@ -9,25 +10,6 @@ const SHADOW_FORMAT: GPUTextureFormat = 'r8unorm';
 // 12 floats × 4 bytes = 48 bytes
 // Layout mirrors CloudShadowUniforms in cloud_shadow.wgsl
 const UNIFORM_SIZE = 48;
-
-/**
- * Tunable parameters describing the volumetric cloud layer used to project
- * shadows from the directional sun light onto the world below.
- */
-export interface CloudShadowSettings {
-  /** World-space altitude of the bottom of the cloud layer. */
-  cloudBase: number;
-  /** World-space altitude of the top of the cloud layer. */
-  cloudTop: number;
-  /** Cloud coverage in [0, 1]; higher values produce denser overcast. */
-  coverage: number;
-  /** Density multiplier applied when accumulating extinction through the layer. */
-  density: number;
-  /** Per-frame XZ wind translation applied to the noise sample position. */
-  windOffset: [number, number];
-  /** Beer-law extinction coefficient controlling shadow darkness. */
-  extinction: number;
-}
 
 /**
  * Renders a top-down cloud shadow map by ray-marching the sampled cloud
@@ -88,7 +70,7 @@ export class CloudShadowPass extends RenderPass {
       label: 'CloudShadowTexture',
       size: { width: SHADOW_SIZE, height: SHADOW_SIZE },
       format: SHADOW_FORMAT,
-      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC,
     });
     const shadowView = shadowTexture.createView();
 
@@ -108,7 +90,7 @@ export class CloudShadowPass extends RenderPass {
     const noiseSampler = device.createSampler({
       label: 'CloudNoiseSampler',
       magFilter: 'linear', minFilter: 'linear', mipmapFilter: 'linear',
-      addressModeU: 'repeat', addressModeV: 'repeat', addressModeW: 'repeat',
+      addressModeU: 'mirror-repeat', addressModeV: 'mirror-repeat', addressModeW: 'mirror-repeat',
     });
 
     const noiseBGL = device.createBindGroupLayout({
@@ -149,34 +131,35 @@ export class CloudShadowPass extends RenderPass {
     return new CloudShadowPass(shadowTexture, shadowView, pipeline, uniformBuffer, uniformBG, noiseBG);
   }
 
+  // Avoid reallocating a Float32Array every frame by reusing the same for all frames
+  private _data = new Float32Array(UNIFORM_SIZE / 4);
   /**
    * Uploads the per-frame cloud parameters and shadow projection extents to
    * the GPU uniform buffer.
    *
    * @param ctx - Active render context providing the GPU queue.
-   * @param settings - Cloud layer description and animation state.
+   * @param settings - Cloud layer description and animation state (uses cloudBase, cloudTop, coverage, density, windOffset, extinction; other fields are ignored).
    * @param worldOrigin - World-space XZ origin that the shadow map is centered on.
    * @param worldExtent - Half-extent (in world units) covered by the shadow map.
    */
   update(
     ctx: RenderContext,
-    settings: CloudShadowSettings,
+    settings: CloudSettings,
     worldOrigin: [number, number],
     worldExtent: number,
   ): void {
-    const data = new Float32Array(UNIFORM_SIZE / 4);
-    data[0]  = settings.cloudBase;
-    data[1]  = settings.cloudTop;
-    data[2]  = settings.coverage;
-    data[3]  = settings.density;
-    data[4]  = settings.windOffset[0];
-    data[5]  = settings.windOffset[1];
-    data[6]  = worldOrigin[0];
-    data[7]  = worldOrigin[1];
-    data[8]  = worldExtent;
-    data[9]  = settings.extinction;
+    this._data[0]  = settings.cloudBase;
+    this._data[1]  = settings.cloudTop;
+    this._data[2]  = settings.coverage;
+    this._data[3]  = settings.density;
+    this._data[4]  = settings.windOffset[0];
+    this._data[5]  = settings.windOffset[1];
+    this._data[6]  = worldOrigin[0];
+    this._data[7]  = worldOrigin[1];
+    this._data[8]  = worldExtent;
+    this._data[9]  = settings.extinction;
     // data[10] and data[11] = 0 (padding)
-    ctx.queue.writeBuffer(this._uniformBuffer, 0, data.buffer as ArrayBuffer);
+    ctx.queue.writeBuffer(this._uniformBuffer, 0, this._data.buffer as ArrayBuffer);
   }
 
   /**
