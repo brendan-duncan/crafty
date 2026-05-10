@@ -2,6 +2,8 @@ import { Quaternion, Vec3 } from '../math/index.js';
 import type { GameObject } from './game_object.js';
 import type { World } from '../block/world.js';
 import { BlockType, isBlockWater, isBlockProp } from '../block/block_type.js';
+import { blockTypeToSurface } from './audio_surface.js';
+import type { SurfaceGroup } from './audio_surface.js';
 
 const AXIS_Y = new Vec3(0, 1, 0);
 const AXIS_X = new Vec3(1, 0, 0);
@@ -46,7 +48,20 @@ export class PlayerController {
   /** Held-sprint flag (OR-ed with ControlLeft / AltLeft). */
   inputSprint  = false;
 
-  private _velY         = 0;
+  /**
+   * Called when the player takes a footstep while on the ground.
+   * `surface` is the block type underfoot mapped to an audio surface group.
+   */
+  onStep?: (surface: SurfaceGroup) => void;
+
+  /**
+   * Called when the player lands after falling (transition from airborne to
+   * grounded). `fallSpeed` is the downward velocity magnitude before landing.
+   */
+  onLand?: (surface: SurfaceGroup, fallSpeed: number) => void;
+
+  private _velY           = 0;
+  private _stepDistance   = 0;
   /** Sets vertical velocity (used to inject jumps/launches from external code). */
   set velY(v: number) { this._velY = v; }
   private _onGround     = false;
@@ -212,16 +227,42 @@ export class PlayerController {
       this._velY = Math.max(this._velY + GRAVITY * dt, -50);
     }
 
+    // Step distance accumulator (only when on ground and moving).
+    const wasOnGround = this._onGround;
+    const hSpeed = Math.sqrt(mx * mx + mz * mz);
+
     // Per-axis move + collide.
     fx = this._slideX(fx + mx * dt, fy, fz, mx);
     fz = this._slideZ(fx, fy, fz + mz * dt, mz);
     const [newFY, landed, headBump] = this._slideY(fx, fy + this._velY * dt, fz);
+    const prevVelY = this._velY;
     if (landed || headBump) {
       this._velY = 0;
     }
     fy = newFY;
     this._onGround   = landed;
     this._prevInWater = inWater;
+
+    // Footstep sound.
+    const footFx = Math.floor(fx);
+    const footFy = Math.floor(fy - 0.01);
+    const footFz = Math.floor(fz);
+    const surface = blockTypeToSurface(this._world.getBlockType(footFx, footFy, footFz));
+
+    if (landed && !wasOnGround) {
+      this.onLand?.(surface, Math.abs(prevVelY));
+    }
+
+    if (landed && hSpeed > 0.5) {
+      this._stepDistance += hSpeed * dt;
+      const stepInterval = hSpeed > 5.5 ? 0.55 : hSpeed > 2.0 ? 0.45 : 0.3;
+      if (this._stepDistance >= stepInterval) {
+        this._stepDistance -= stepInterval;
+        this.onStep?.(surface);
+      }
+    } else {
+      this._stepDistance = 0;
+    }
 
     // Coyote timer: refreshed on landing, counts down only while airborne and
     // not in water (so pool-floor contact persists through the swim to the exit).

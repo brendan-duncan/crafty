@@ -38,6 +38,7 @@ import { createHud } from './ui/hud.js';
 import { setupPlayer } from './game/player_setup.js';
 import { createBlockInteractionState, setupBlockInteractionHandlers, updateBlockInteraction, applyRemoteBlockEdit } from './game/block_interaction.js';
 import { setupTouchControlsLazy, isTouchDevice } from './game/touch_controls.js';
+import { AudioManager } from './game/audio_manager.js';
 import { updateTorchFlicker, updateMagmaFlicker } from './game/lights.js';
 import { setupAnimalSpawning } from './game/animal_spawner.js';
 import { HeightmapManager } from './game/heightmap.js';
@@ -137,9 +138,34 @@ async function main(): Promise<void> {
   const playerSetup = setupPlayer(canvas, scene, world, ctx.width, ctx.height, flashlightTexture.gpuTexture, hud.reticle, hotbar.element);
   const { cameraGO, camera, player, freeCamera, flashlight } = playerSetup;
 
+  // Wire audio to player footsteps / landing.
+  player.onStep = (surface) => {
+    const pos = cameraGO.position;
+    audio.playStep(surface, pos, 0.5);
+  };
+  player.onLand = (surface, fallSpeed) => {
+    const pos = cameraGO.position;
+    pos.y -= 1.62; // shift to feet position
+    audio.playLand(surface, pos, fallSpeed);
+  };
+
+  // Audio
+  const audio = new AudioManager();
+  const _upVec = new Vec3(0, 1, 0);
+
   // Block interaction
   const blockInteraction = createBlockInteractionState();
   setupBlockInteractionHandlers(canvas, blockInteraction, world, () => hotbar.getSelected(), scene);
+
+  // Initialise audio context from the first click / touch interaction
+  // (required by browser autoplay policy).
+  const _initAudio = (): void => {
+    void audio.init();
+    canvas.removeEventListener('click', _initAudio);
+    canvas.removeEventListener('touchend', _initAudio);
+  };
+  canvas.addEventListener('click', _initAudio);
+  canvas.addEventListener('touchend', _initAudio);
 
   // Mobile / touch controls — initialised on the first real `touchstart` event,
   // which is more reliable than capability detection on some browsers / webviews.
@@ -673,6 +699,17 @@ async function main(): Promise<void> {
     updateMagmaFlicker(time / 1000);
 
     const camPos = camera.position();
+
+    // Audio listener: sync 3D position / orientation to the camera.
+    {
+      const yaw   = playerSetup.isPlayerMode() ? player.yaw   : freeCamera.yaw;
+      const pitch = playerSetup.isPlayerMode() ? player.pitch : freeCamera.pitch;
+      const cp = Math.cos(pitch);
+      _forward.x = -Math.sin(yaw) * cp;
+      _forward.y = -Math.sin(pitch);
+      _forward.z = -Math.cos(yaw) * cp;
+      audio.updateListener(camPos, _forward, _upVec);
+    }
     DuckAI.playerPos.x = camPos.x;
     DuckAI.playerPos.y = camPos.y;
     DuckAI.playerPos.z = camPos.z;
