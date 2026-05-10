@@ -1,127 +1,121 @@
-<svg width="100%" viewBox="0 0 680 560" role="img" xmlns="http://www.w3.org/2000/svg">
-  <title>Crafty favicon — night sky</title>
-  <desc>Photoreal Crafty favicon with night sky background, stars, teal/blue PBR cube with strong contrast faces for legibility at small sizes.</desc>
+<svg viewBox="0 0 260 260" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>Crafty favicon — light background</title>
 
   <defs>
-    <clipPath id="n-clip">
-      <rect x="210" y="50" width="260" height="260" rx="58"/>
+    <clipPath id="l-clip">
+      <rect x="0" y="0" width="260" height="260" rx="58"/>
     </clipPath>
 
-    <linearGradient id="n-sky" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%"   stop-color="#06091a"/>
-      <stop offset="60%"  stop-color="#0d1535"/>
-      <stop offset="100%" stop-color="#1a3a5c"/>
+    <linearGradient id="l-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#dbeafe"/>
+      <stop offset="55%"  stop-color="#bfdbfe"/>
+      <stop offset="100%" stop-color="#93c5fd"/>
     </linearGradient>
 
-    <radialGradient id="n-moon" cx="72%" cy="22%" r="18%">
-      <stop offset="0%"   stop-color="#e0f0ff" stop-opacity="0.35"/>
-      <stop offset="100%" stop-color="#1a3a5c"  stop-opacity="0"/>
+    <radialGradient id="l-cloud" cx="30%" cy="35%" r="45%">
+      <stop offset="0%"   stop-color="#ffffff" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
     </radialGradient>
 
-    <linearGradient id="n-top" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%"   stop-color="#b8ffdc"/>
-      <stop offset="45%"  stop-color="#43D4A0"/>
-      <stop offset="100%" stop-color="#1a7a55"/>
+    <linearGradient id="l-top" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#a3f0c8"/>
+      <stop offset="40%"  stop-color="#34d399"/>
+      <stop offset="100%" stop-color="#059669"/>
     </linearGradient>
 
-    <linearGradient id="n-right" x1="0" y1="0" x2="0.2" y2="1">
-      <stop offset="0%"   stop-color="#0a2a1a"/>
-      <stop offset="100%" stop-color="#040e08"/>
+    <linearGradient id="l-right" x1="0" y1="0" x2="0.2" y2="1">
+      <stop offset="0%"   stop-color="#064e3b"/>
+      <stop offset="100%" stop-color="#022c22"/>
     </linearGradient>
 
-    <linearGradient id="n-left" x1="1" y1="0" x2="0" y2="1">
-      <stop offset="0%"   stop-color="#1a6080"/>
-      <stop offset="100%" stop-color="#0a2030"/>
+    <linearGradient id="l-left" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#2563a8"/>
+      <stop offset="100%" stop-color="#0f3060"/>
     </linearGradient>
 
-    <linearGradient id="n-dirtR" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%"   stop-color="#1a1008"/>
-      <stop offset="100%" stop-color="#070402"/>
+    <linearGradient id="l-dirtR" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#3b1a08"/>
+      <stop offset="100%" stop-color="#1c0d04"/>
     </linearGradient>
 
-    <linearGradient id="n-dirtL" x1="1" y1="0" x2="0" y2="1">
-      <stop offset="0%"   stop-color="#3a2810"/>
-      <stop offset="100%" stop-color="#150e06"/>
+    <linearGradient id="l-dirtL" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#7c4a1e"/>
+      <stop offset="100%" stop-color="#3d2410"/>
     </linearGradient>
 
-    <radialGradient id="n-spec" cx="30%" cy="25%" r="50%">
-      <stop offset="0%"   stop-color="#e8f8ff" stop-opacity="0.55"/>
-      <stop offset="55%"  stop-color="#a0d8ef" stop-opacity="0.12"/>
-      <stop offset="100%" stop-color="#38bdf8"  stop-opacity="0"/>
+    <radialGradient id="l-spec" cx="25%" cy="22%" r="52%">
+      <stop offset="0%"   stop-color="#ffffff" stop-opacity="0.65"/>
+      <stop offset="50%"  stop-color="#ffffff" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
     </radialGradient>
 
-    <radialGradient id="n-ao" cx="50%" cy="50%" r="50%">
-      <stop offset="0%"   stop-color="#000000" stop-opacity="0.55"/>
+    <radialGradient id="l-ao" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="#000000" stop-opacity="0.3"/>
       <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
     </radialGradient>
 
-    <linearGradient id="n-ground" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%"   stop-color="#0a1f10"/>
-      <stop offset="100%" stop-color="#03080a"/>
+    <linearGradient id="l-ground" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#6ee7a0"/>
+      <stop offset="100%" stop-color="#34d399"/>
     </linearGradient>
 
-    <pattern id="n-stone" x="0" y="0" width="18" height="18" patternUnits="userSpaceOnUse">
+    <pattern id="l-stone" x="0" y="0" width="18" height="18" patternUnits="userSpaceOnUse">
       <rect width="18" height="18" fill="none"/>
-      <rect x="1" y="1" width="7" height="7" fill="#ffffff" opacity="0.018"/>
-      <rect x="10" y="10" width="6" height="6" fill="#ffffff" opacity="0.014"/>
-      <rect x="1" y="10" width="5" height="5" fill="#000000" opacity="0.035"/>
+      <rect x="1" y="1" width="7" height="7" fill="#ffffff" opacity="0.025"/>
+      <rect x="10" y="10" width="6" height="6" fill="#ffffff" opacity="0.02"/>
+      <rect x="1" y="10" width="5" height="5" fill="#000000" opacity="0.04"/>
     </pattern>
   </defs>
 
-  <rect x="210" y="50" width="260" height="260" rx="58" fill="url(#n-sky)"/>
-  <rect x="210" y="50" width="260" height="260" rx="58" fill="url(#n-moon)"/>
+  <!-- Background -->
+  <rect x="0" y="0" width="260" height="260" rx="58" fill="url(#l-sky)"/>
+  <rect x="0" y="0" width="260" height="260" rx="58" fill="url(#l-cloud)"/>
 
-  <g clip-path="url(#n-clip)">
-    <circle cx="248" cy="68"  r="1.4" fill="#ffffff" opacity="0.95"/>
-    <circle cx="310" cy="61"  r="1.0" fill="#ffffff" opacity="0.85"/>
-    <circle cx="272" cy="80"  r="0.8" fill="#ffffff" opacity="0.7"/>
-    <circle cx="395" cy="64"  r="1.2" fill="#ffffff" opacity="0.9"/>
-    <circle cx="430" cy="72"  r="0.9" fill="#ffffff" opacity="0.75"/>
-    <circle cx="352" cy="58"  r="0.7" fill="#ffffff" opacity="0.65"/>
-    <circle cx="453" cy="83"  r="1.1" fill="#ffffff" opacity="0.8"/>
-    <circle cx="232" cy="90"  r="0.7" fill="#ffffff" opacity="0.6"/>
-    <circle cx="418" cy="90"  r="0.8" fill="#ffffff" opacity="0.65"/>
-    <circle cx="286" cy="96"  r="1.0" fill="#ffffff" opacity="0.7"/>
-    <circle cx="442" cy="58"  r="0.6" fill="#ffffff" opacity="0.55"/>
-    <circle cx="326" cy="88"  r="0.6" fill="#ffffff" opacity="0.5"/>
-    <circle cx="260" cy="106" r="0.6" fill="#c8d8ff" opacity="0.4"/>
-    <circle cx="378" cy="100" r="0.5" fill="#c8d8ff" opacity="0.35"/>
-    <circle cx="462" cy="100" r="0.6" fill="#c8d8ff" opacity="0.35"/>
-    <line x1="248" y1="65.5" x2="248" y2="70.5" stroke="#ffffff" stroke-width="0.5" opacity="0.5"/>
-    <line x1="245.5" y1="68" x2="250.5" y2="68" stroke="#ffffff" stroke-width="0.5" opacity="0.5"/>
-    <line x1="395" y1="61.5" x2="395" y2="66.5" stroke="#ffffff" stroke-width="0.5" opacity="0.45"/>
-    <line x1="392.5" y1="64" x2="397.5" y2="64" stroke="#ffffff" stroke-width="0.5" opacity="0.45"/>
+  <g clip-path="url(#l-clip)">
+    <!-- Ground -->
+    <rect x="0" y="218" width="260" height="42" fill="url(#l-ground)"/>
 
-    <rect x="210" y="268" width="260" height="42" fill="url(#n-ground)"/>
-    <ellipse cx="340" cy="298" rx="108" ry="13" fill="url(#n-ao)"/>
+    <!-- AO -->
+    <ellipse cx="130" cy="248" rx="108" ry="12" fill="url(#l-ao)"/>
 
-    <polygon points="416,162 416,278 340,320 340,204" fill="url(#n-right)"/>
-    <polygon points="416,162 416,278 340,320 340,204" fill="url(#n-stone)" opacity="0.4"/>
-    <polygon points="264,162 340,204 340,320 264,278" fill="url(#n-left)"/>
-    <polygon points="264,162 340,204 340,320 264,278" fill="url(#n-stone)" opacity="0.35"/>
+    <!-- RIGHT FACE -->
+    <polygon points="206,112 206,228 130,270 130,154" fill="url(#l-right)"/>
+    <polygon points="206,112 206,228 130,270 130,154" fill="url(#l-stone)" opacity="0.5"/>
 
-    <polygon points="416,218 416,250 340,292 340,260" fill="url(#n-dirtR)"/>
-    <polygon points="264,218 340,260 340,292 264,250" fill="url(#n-dirtL)"/>
-    <polyline points="264,218 340,260 416,218" fill="none" stroke="#0a0804" stroke-width="1.2" opacity="0.7"/>
+    <!-- LEFT FACE -->
+    <polygon points="54,112 130,154 130,270 54,228" fill="url(#l-left)"/>
+    <polygon points="54,112 130,154 130,270 54,228" fill="url(#l-stone)" opacity="0.4"/>
 
-    <polygon points="340,104 416,146 340,188 264,146" fill="url(#n-top)"/>
-    <line x1="308" y1="124" x2="314" y2="150" stroke="#0d5c38" stroke-width="1"   opacity="0.35"/>
-    <line x1="324" y1="117" x2="330" y2="143" stroke="#0d5c38" stroke-width="1"   opacity="0.3"/>
-    <line x1="340" y1="113" x2="346" y2="139" stroke="#0d5c38" stroke-width="1"   opacity="0.3"/>
-    <line x1="356" y1="117" x2="362" y2="143" stroke="#0d5c38" stroke-width="1"   opacity="0.3"/>
-    <line x1="372" y1="124" x2="378" y2="150" stroke="#0d5c38" stroke-width="1"   opacity="0.35"/>
-    <polygon points="340,104 416,146 340,188 264,146" fill="url(#n-spec)"/>
+    <!-- Dirt bands -->
+    <polygon points="206,168 206,200 130,242 130,210" fill="url(#l-dirtR)"/>
+    <polygon points="54,168 130,210 130,242 54,200" fill="url(#l-dirtL)"/>
+    <polyline points="54,168 130,210 206,168" fill="none" stroke="#1a0a02" stroke-width="1.2" opacity="0.6"/>
 
-    <line x1="264" y1="146" x2="340" y2="104" stroke="#e8f8ff" stroke-width="1.5" opacity="0.5"/>
-    <polygon points="340,188 416,146 416,162 340,204" fill="#7fefbd" opacity="0.08"/>
+    <!-- TOP FACE -->
+    <polygon points="130,54 206,96 130,138 54,96" fill="url(#l-top)"/>
+    <!-- Grass blades -->
+    <line x1="98"  y1="74"  x2="104" y2="100" stroke="#065f46" stroke-width="1" opacity="0.4"/>
+    <line x1="114" y1="67"  x2="120" y2="93"  stroke="#065f46" stroke-width="1" opacity="0.35"/>
+    <line x1="130" y1="63"  x2="136" y2="89"  stroke="#065f46" stroke-width="1" opacity="0.35"/>
+    <line x1="146" y1="67"  x2="152" y2="93"  stroke="#065f46" stroke-width="1" opacity="0.35"/>
+    <line x1="162" y1="74"  x2="168" y2="100" stroke="#065f46" stroke-width="1" opacity="0.4"/>
+    <!-- Specular -->
+    <polygon points="130,54 206,96 130,138 54,96" fill="url(#l-spec)"/>
 
-    <polyline points="340,104 416,146 416,278 340,320 264,278 264,146 340,104"
-      fill="none" stroke="#040e08" stroke-width="1.8" stroke-linejoin="round" opacity="0.95"/>
-    <line x1="340" y1="188" x2="340" y2="320" stroke="#040e08" stroke-width="1.2" opacity="0.7"/>
-    <line x1="340" y1="188" x2="416" y2="146" stroke="#040e08" stroke-width="1"   opacity="0.45"/>
-    <line x1="340" y1="188" x2="264" y2="146" stroke="#040e08" stroke-width="1"   opacity="0.5"/>
+    <!-- Sun rim highlight -->
+    <line x1="54" y1="96" x2="130" y2="54" stroke="#ffffff" stroke-width="2" opacity="0.6"/>
+    <!-- SSS rim -->
+    <polygon points="130,138 54,96 54,112 130,154" fill="#a3f0c8" opacity="0.15"/>
+
+    <!-- Edges -->
+    <polyline points="130,54 206,96 206,228 130,270 54,228 54,96 130,54"
+      fill="none" stroke="#012515" stroke-width="1.8" stroke-linejoin="round" opacity="0.85"/>
+    <line x1="130" y1="138" x2="130" y2="270" stroke="#012515" stroke-width="1.2" opacity="0.6"/>
+    <line x1="130" y1="138" x2="206" y2="96"  stroke="#012515" stroke-width="1"   opacity="0.4"/>
+    <line x1="130" y1="138" x2="54"  y2="96"  stroke="#012515" stroke-width="1"   opacity="0.5"/>
   </g>
 
-  <rect x="210" y="50" width="260" height="260" rx="58" fill="none" stroke="#38bdf8" stroke-width="1.5" opacity="0.3"/>
-  <rect x="210" y="50" width="260" height="260" rx="58" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.08"/>
+  <!-- Icon rim -->
+  <rect x="0" y="0" width="260" height="260" rx="58" fill="none" stroke="#93c5fd" stroke-width="1.5" opacity="0.5"/>
+  <rect x="0" y="0" width="260" height="260" rx="58" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.4"/>
 </svg>
