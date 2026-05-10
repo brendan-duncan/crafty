@@ -23,6 +23,7 @@ export class SkyTexturePass extends RenderPass {
   private _uniformBG: GPUBindGroup;
   private _textureBG: GPUBindGroup;
   private _hdrView: GPUTextureView;
+  private readonly _scratch = new Float32Array(SKY_UNIFORM_SIZE / 4);
 
   private constructor(
     pipeline: GPURenderPipeline,
@@ -106,7 +107,7 @@ export class SkyTexturePass extends RenderPass {
    * camera position, and an exposure multiplier into the sky uniform buffer.
    */
   updateCamera(ctx: RenderContext, invViewProj: Mat4, cameraPos: { x: number; y: number; z: number }, exposure = 0.2): void {
-    const data = new Float32Array(SKY_UNIFORM_SIZE / 4);
+    const data = this._scratch;
     data.set(invViewProj.data, 0);
     data[16] = cameraPos.x;
     data[17] = cameraPos.y;

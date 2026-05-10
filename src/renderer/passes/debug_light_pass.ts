@@ -31,6 +31,7 @@ export class DebugLightPass extends RenderPass {
   private _hdrView: GPUTextureView;
   private _depthView: GPUTextureView;
   private _mesh: Mesh | null = null;
+  private readonly _scratch = new Float32Array(UNIFORM_SIZE / 4);
 
   private constructor(
     pipeline: GPURenderPipeline,
@@ -128,7 +129,7 @@ export class DebugLightPass extends RenderPass {
    */
   update(ctx: RenderContext, viewProj: Mat4, model: Mat4, color: [number, number, number, number]): void {
     const mvp = viewProj.multiply(model);
-    const data = new Float32Array(UNIFORM_SIZE / 4);
+    const data = this._scratch;
     data.set(mvp.data, 0);
     data[16] = color[0]; data[17] = color[1]; data[18] = color[2]; data[19] = color[3];
     ctx.queue.writeBuffer(this._uniformBuffer, 0, data.buffer as ArrayBuffer);

@@ -62,6 +62,8 @@ export class SSAOPass extends RenderPass {
 
   private _uniformBuffer: GPUBuffer;
   private _noiseTex     : GPUTexture;
+  private readonly _cameraScratch = new Float32Array(48);
+  private readonly _paramsScratch = new Float32Array(4);
 
   private _ssaoBG0: GPUBindGroup;
   private _ssaoBG1: GPUBindGroup;
@@ -229,7 +231,7 @@ export class SSAOPass extends RenderPass {
    */
   // Call each frame before execute(). view and proj are the camera matrices; invProj is proj.invert().
   updateCamera(ctx: RenderContext, view: Mat4, proj: Mat4, invProj: Mat4): void {
-    const data = new Float32Array(48); // 3 × mat4 = 48 floats
+    const data = this._cameraScratch;
     data.set(view.data,     0);
     data.set(proj.data,    16);
     data.set(invProj.data, 32);
@@ -248,8 +250,11 @@ export class SSAOPass extends RenderPass {
   // bias     : depth bias to avoid self-occlusion (default 0.005)
   // strength : AO intensity multiplier (default 2.0)
   updateParams(ctx: RenderContext, radius = 1.0, bias = 0.005, strength = 2.0): void {
-    ctx.device.queue.writeBuffer(this._uniformBuffer, 192,
-      new Float32Array([radius, bias, strength, 0]).buffer as ArrayBuffer);
+    this._paramsScratch[0] = radius;
+    this._paramsScratch[1] = bias;
+    this._paramsScratch[2] = strength;
+    this._paramsScratch[3] = 0;
+    ctx.device.queue.writeBuffer(this._uniformBuffer, 192, this._paramsScratch.buffer as ArrayBuffer);
   }
 
   /**

@@ -133,10 +133,11 @@ export class AutoExposurePass extends RenderPass {
   }
 
   enabled = true;
+  private readonly _resetScratch = new Float32Array([1.0, 0, 0, 0]);
 
   update(ctx: RenderContext, dt: number, settings: AutoExposureSettings = DEFAULT_AUTO_EXPOSURE): void {
     if (!this.enabled) {
-      ctx.device.queue.writeBuffer(this.exposureBuffer, 0, new Float32Array([1.0, 0, 0, 0]));
+      ctx.device.queue.writeBuffer(this.exposureBuffer, 0, this._resetScratch);
       return;
     }
     AutoExposurePass._writeParams(ctx.device, this._paramsBuffer, dt, settings);
@@ -169,14 +170,23 @@ export class AutoExposurePass extends RenderPass {
     this.exposureBuffer.destroy();
   }
 
+  private static _paramsScratch = new Float32Array(8);
+
   private static _writeParams(
     device  : GPUDevice,
     buf     : GPUBuffer,
     dt      : number,
     s       : AutoExposureSettings,
   ): void {
-    device.queue.writeBuffer(buf, 0, new Float32Array([
-      dt, s.adaptSpeed, s.minExposure, s.maxExposure, s.lowPct, s.highPct, 0, 0,
-    ]));
+    const d = AutoExposurePass._paramsScratch;
+    d[0] = dt;
+    d[1] = s.adaptSpeed;
+    d[2] = s.minExposure;
+    d[3] = s.maxExposure;
+    d[4] = s.lowPct;
+    d[5] = s.highPct;
+    d[6] = 0;
+    d[7] = 0;
+    device.queue.writeBuffer(buf, 0, d);
   }
 }

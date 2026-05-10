@@ -40,7 +40,8 @@ export class PointShadowPass extends RenderPass {
   private _drawItems: PointShadowDrawItem[] = [];
   private _shadowCubeFaceViews: GPUTextureView[] = [];
 
-  private readonly _modelData = new Float32Array(16);
+  private readonly _modelData     = new Float32Array(16);
+  private readonly _cameraScratch = new Float32Array(CAMERA_UNIFORM_SIZE / 4);
 
   private constructor(
     pipeline: GPURenderPipeline,
@@ -168,7 +169,7 @@ export class PointShadowPass extends RenderPass {
    * @param viewProjections - Length-6 array of cube-face view-projection matrices.
    */
   updateCamera(ctx: RenderContext, lightPosition: Vec3, viewProjections: Mat4[], farPlane: number): void {
-    const data = new Float32Array(CAMERA_UNIFORM_SIZE / 4);
+    const data = this._cameraScratch;
     for (let face = 0; face < 6; face++) {
       data.set(viewProjections[face].data, 0);
       data[16] = lightPosition.x;

@@ -39,6 +39,7 @@ export class BloomPass extends RenderPass {
   private _compositePipeline : GPURenderPipeline;
 
   private _uniformBuffer: GPUBuffer;
+  private readonly _scratch = new Float32Array(4);
 
   private _prefilterBG : GPUBindGroup; // reads hdrView
   private _blurHBG     : GPUBindGroup; // reads half1
@@ -201,7 +202,11 @@ export class BloomPass extends RenderPass {
    * @param strength  Multiplier for the blurred bloom added during composite.
    */
   updateParams(ctx: RenderContext, threshold = 1.0, knee = 0.5, strength = 0.3): void {
-    ctx.queue.writeBuffer(this._uniformBuffer, 0, new Float32Array([threshold, knee, strength, 0]).buffer as ArrayBuffer);
+    this._scratch[0] = threshold;
+    this._scratch[1] = knee;
+    this._scratch[2] = strength;
+    this._scratch[3] = 0;
+    ctx.queue.writeBuffer(this._uniformBuffer, 0, this._scratch.buffer as ArrayBuffer);
   }
 
   /**

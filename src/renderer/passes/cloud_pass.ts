@@ -65,6 +65,9 @@ export class CloudPass extends RenderPass {
   private _lightBG        : GPUBindGroup;  // group 1: light
   private _depthBG        : GPUBindGroup;  // group 2: depth texture
   private _noiseSkyBG     : GPUBindGroup;  // group 3: noises
+  private readonly _cameraScratch   = new Float32Array(CLOUD_CAMERA_UNIFORM_SIZE / 4);
+  private readonly _lightScratch    = new Float32Array(CLOUD_LIGHT_UNIFORM_SIZE / 4);
+  private readonly _settingsScratch = new Float32Array(CLOUD_UNIFORM_SIZE / 4);
 
   private constructor(
     pipeline    : GPURenderPipeline,
@@ -217,7 +220,7 @@ export class CloudPass extends RenderPass {
     near       : number,
     far        : number,
   ): void {
-    const data = new Float32Array(CLOUD_CAMERA_UNIFORM_SIZE / 4);
+    const data = this._cameraScratch;
     data.set(invViewProj.data, 0);
     data[16] = camPos.x; data[17] = camPos.y; data[18] = camPos.z;
     data[19] = near;
@@ -240,7 +243,7 @@ export class CloudPass extends RenderPass {
     color    : { x: number; y: number; z: number },
     intensity: number,
   ): void {
-    const data = new Float32Array(CLOUD_LIGHT_UNIFORM_SIZE / 4);
+    const data = this._lightScratch;
     data[0] = dir.x;   data[1] = dir.y;   data[2] = dir.z;   data[3] = intensity;
     data[4] = color.x; data[5] = color.y; data[6] = color.z; // data[7] = pad
     ctx.queue.writeBuffer(this._lightBuffer, 0, data.buffer as ArrayBuffer);
@@ -253,7 +256,7 @@ export class CloudPass extends RenderPass {
    * @param s   Cloud parameters for this frame.
    */
   updateSettings(ctx: RenderContext, s: CloudSettings): void {
-    const data = new Float32Array(CLOUD_UNIFORM_SIZE / 4);
+    const data = this._settingsScratch;
     data[0]  = s.cloudBase;
     data[1]  = s.cloudTop;
     data[2]  = s.coverage;

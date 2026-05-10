@@ -21,6 +21,7 @@ export class AtmospherePass extends RenderPass {
   private _uniformBuf: GPUBuffer;
   private _bg: GPUBindGroup;
   private _hdrView: GPUTextureView;
+  private readonly _scratch = new Float32Array(UNIFORM_SIZE / 4);
 
   private constructor(
     pipeline: GPURenderPipeline,
@@ -92,7 +93,7 @@ export class AtmospherePass extends RenderPass {
     camPos: { x: number; y: number; z: number },
     lightDir: { x: number; y: number; z: number },
   ): void {
-    const data = new Float32Array(UNIFORM_SIZE / 4);
+    const data = this._scratch;
     data.set(invViewProj.data, 0);
     data[16] = camPos.x;
     data[17] = camPos.y;

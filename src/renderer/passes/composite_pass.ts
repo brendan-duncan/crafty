@@ -74,6 +74,10 @@ export class CompositePass extends RenderPass {
   private _bg2       : GPUBindGroup;  // params + stars + exposure
   private _paramsBuf : GPUBuffer;
   private _starBuf   : GPUBuffer;
+  private readonly _paramsAB = new ArrayBuffer(PARAMS_SIZE);
+  private readonly _paramsF  = new Float32Array(this._paramsAB);
+  private readonly _paramsU  = new Uint32Array(this._paramsAB);
+  private readonly _starScratch = new Float32Array(STAR_UNI_SIZE / 4);
 
   private constructor(
     pipeline : GPURenderPipeline,
@@ -206,9 +210,8 @@ export class CompositePass extends RenderPass {
     debugAO     : boolean,
     hdrCanvas   : boolean,
   ): void {
-    const buf = new ArrayBuffer(PARAMS_SIZE);
-    const f   = new Float32Array(buf);
-    const u   = new Uint32Array(buf);
+    const f = this._paramsF;
+    const u = this._paramsU;
 
     let fogFlags = 0;
     if (this.depthFogEnabled) {
@@ -246,7 +249,7 @@ export class CompositePass extends RenderPass {
     u[14] = tonemapFlags;
     f[15] = 0;
 
-    ctx.queue.writeBuffer(this._paramsBuf, 0, buf);
+    ctx.queue.writeBuffer(this._paramsBuf, 0, this._paramsAB);
   }
 
   /**
@@ -264,7 +267,7 @@ export class CompositePass extends RenderPass {
     camPos     : { x: number; y: number; z: number },
     sunDir     : { x: number; y: number; z: number },
   ): void {
-    const data = new Float32Array(STAR_UNI_SIZE / 4);
+    const data = this._starScratch;
     data.set(invViewProj.data, 0);
     data[16] = camPos.x; data[17] = camPos.y; data[18] = camPos.z; data[19] = 0;
     data[20] = sunDir.x;  data[21] = sunDir.y;  data[22] = sunDir.z;  data[23] = 0;

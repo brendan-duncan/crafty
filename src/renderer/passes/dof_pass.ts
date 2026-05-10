@@ -36,6 +36,7 @@ export class DofPass extends RenderPass {
   private _compositePipeline   : GPURenderPipeline;
 
   private _uniformBuffer: GPUBuffer;
+  private readonly _scratch = new Float32Array(8);
 
   private _prefilterBG : GPUBindGroup;  // group 0: uniforms + hdr + depth + sampler
   private _compBG0     : GPUBindGroup;  // group 0 for composite: uniforms + hdr + sampler (no depth)
@@ -201,8 +202,15 @@ export class DofPass extends RenderPass {
     far  = 1000.0,
     blurScale = 1.0,
   ): void {
-    ctx.device.queue.writeBuffer(this._uniformBuffer, 0,
-      new Float32Array([focusDistance, focusRange, bokehRadius, near, far, blurScale, 0, 0]).buffer as ArrayBuffer);
+    this._scratch[0] = focusDistance;
+    this._scratch[1] = focusRange;
+    this._scratch[2] = bokehRadius;
+    this._scratch[3] = near;
+    this._scratch[4] = far;
+    this._scratch[5] = blurScale;
+    this._scratch[6] = 0;
+    this._scratch[7] = 0;
+    ctx.device.queue.writeBuffer(this._uniformBuffer, 0, this._scratch.buffer as ArrayBuffer);
   }
 
   /**

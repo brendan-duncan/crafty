@@ -56,6 +56,8 @@ export class WaterPass extends RenderPass {
   private _gradientTexture : Texture;
   private _chunks          = new Map<Chunk, ChunkWaterGpu>();
   private _frustumPlanes   = new Float32Array(24);
+  private readonly _cameraScratch = new Float32Array(CAMERA_UNIFORM_SIZE / 4);
+  private readonly _waterScratch  = new Float32Array(4);
 
   private constructor(
     device          : GPUDevice,
@@ -228,7 +230,7 @@ export class WaterPass extends RenderPass {
     camPos: { x: number; y: number; z: number },
     near: number, far: number,
   ): void {
-    const data = new Float32Array(CAMERA_UNIFORM_SIZE / 4);
+    const data = this._cameraScratch;
     data.set(view.data,         0);
     data.set(proj.data,        16);
     data.set(viewProj.data,    32);
@@ -270,7 +272,11 @@ export class WaterPass extends RenderPass {
    * @param skyIntensity Multiplier for the HDR sky reflection (0 at night, 1 at noon). Defaults to 1.
    */
   updateTime(ctx: RenderContext, time: number, skyIntensity: number = 1.0): void {
-    ctx.queue.writeBuffer(this._waterBuffer, 0, new Float32Array([time, skyIntensity, 0, 0]).buffer as ArrayBuffer);
+    this._waterScratch[0] = time;
+    this._waterScratch[1] = skyIntensity;
+    this._waterScratch[2] = 0;
+    this._waterScratch[3] = 0;
+    ctx.queue.writeBuffer(this._waterBuffer, 0, this._waterScratch.buffer as ArrayBuffer);
   }
 
   /**

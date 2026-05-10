@@ -25,6 +25,7 @@ export class BlockHighlightPass extends RenderPass {
   private _hdrView: GPUTextureView;
   private _depthView: GPUTextureView;
   private _active = false;
+  private readonly _scratch = new Float32Array(UNIFORM_SIZE / 4);
 
   private constructor(
     facePipeline: GPURenderPipeline,
@@ -122,7 +123,7 @@ export class BlockHighlightPass extends RenderPass {
   update(ctx: RenderContext, viewProj: { data: Float32Array }, blockPos: Vec3 | null): void {
     if (!blockPos) { this._active = false; return; }
     this._active = true;
-    const data = new Float32Array(UNIFORM_SIZE / 4);
+    const data = this._scratch;
     data.set(viewProj.data, 0);
     data[16] = blockPos.x;
     data[17] = blockPos.y;

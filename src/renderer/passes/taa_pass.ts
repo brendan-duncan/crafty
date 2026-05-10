@@ -34,6 +34,7 @@ export class TAAPass extends RenderPass {
 
   private readonly _width: number;
   private readonly _height: number;
+  private readonly _scratch = new Float32Array(TAA_UNIFORM_SIZE / 4);
 
   /** View of the history texture, useful for debugging or external consumers. */
   get historyView(): GPUTextureView { return this._historyView; }
@@ -161,7 +162,7 @@ export class TAAPass extends RenderPass {
    * @param prevViewProj Previous frame's view*proj used for reprojection.
    */
   updateCamera(ctx: RenderContext, invViewProj: Mat4, prevViewProj: Mat4): void {
-    const data = new Float32Array(TAA_UNIFORM_SIZE / 4);
+    const data = this._scratch;
     data.set(invViewProj.data,  0);
     data.set(prevViewProj.data, 16);
     ctx.queue.writeBuffer(this._uniformBuffer, 0, data.buffer as ArrayBuffer);

@@ -48,7 +48,8 @@ export class DirectionalShadowPass extends RenderPass {
   private _drawItems: DirectionalShadowDrawItem[] = [];
   private _shadowMapView: GPUTextureView;
 
-  private readonly _modelData = new Float32Array(16);
+  private readonly _modelData     = new Float32Array(16);
+  private readonly _cameraScratch = new Float32Array(16);
 
   private constructor(
     pipeline: GPURenderPipeline,
@@ -157,7 +158,7 @@ export class DirectionalShadowPass extends RenderPass {
    * @param lightViewProj - Combined view-projection matrix from the sun's frustum.
    */
   updateCamera(ctx: RenderContext, lightViewProj: Mat4): void {
-    const data = new Float32Array(16);
+    const data = this._cameraScratch;
     data.set(lightViewProj.data, 0);
     ctx.queue.writeBuffer(this._cameraBuffer, 0, data);
 

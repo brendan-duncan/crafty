@@ -63,6 +63,9 @@ export class WorldGeometryPass extends RenderPass {
   /** Triangle count submitted during the most recent `execute`. */
   triangles  = 0;
   private readonly _cameraData = new Float32Array(CAMERA_UNIFORM_SIZE / 4);
+  private readonly _chunkUniformAB = new ArrayBuffer(32);
+  private readonly _chunkUniformF  = new Float32Array(this._chunkUniformAB);
+  private readonly _chunkUniformU  = new Uint32Array(this._chunkUniformAB);
   private _debugChunks = false;
 
   private constructor(
@@ -473,10 +476,9 @@ export class WorldGeometryPass extends RenderPass {
     const g = (((hash >> 8) & 0xFF) / 255.0) * 0.6 + 0.4;
     const b = (((hash >> 16) & 0xFF) / 255.0) * 0.6 + 0.4;
 
-    const buf = new ArrayBuffer(32);
-    const f = new Float32Array(buf);
-    const u = new Uint32Array(buf);
-
+    const buf = this._chunkUniformAB;
+    const f = this._chunkUniformF;
+    const u = this._chunkUniformU;
     f[0] = cx;
     f[1] = cy;
     f[2] = cz;

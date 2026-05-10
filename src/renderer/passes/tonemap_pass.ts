@@ -24,6 +24,9 @@ export class TonemapPass extends RenderPass {
   private _bg0: GPUBindGroup;
   private _bg1: GPUBindGroup;
   private _paramsBuf: GPUBuffer;
+  private readonly _paramsAB = new ArrayBuffer(PARAMS_SIZE);
+  private readonly _paramsF  = new Float32Array(this._paramsAB);
+  private readonly _paramsU  = new Uint32Array(this._paramsAB);
 
   private constructor(
     pipeline: GPURenderPipeline,
@@ -137,9 +140,8 @@ export class TonemapPass extends RenderPass {
   // useAces   — enable ACES filmic tone mapping
   // hdrCanvas — skip gamma correction for HDR canvas output
   updateParams(ctx: RenderContext, exposure: number, useAces: boolean, hdrCanvas: boolean): void {
-    const buf = new ArrayBuffer(PARAMS_SIZE);
-    const f = new Float32Array(buf);
-    const u = new Uint32Array(buf);
+    const f = this._paramsF;
+    const u = this._paramsU;
 
     let flags = 0;
     if (useAces) {
@@ -154,7 +156,7 @@ export class TonemapPass extends RenderPass {
     f[2] = 0;
     f[3] = 0;
 
-    ctx.queue.writeBuffer(this._paramsBuf, 0, buf);
+    ctx.queue.writeBuffer(this._paramsBuf, 0, this._paramsAB);
   }
 
   /**

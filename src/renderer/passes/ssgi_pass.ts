@@ -73,6 +73,8 @@ export class SSGIPass extends RenderPass {
 
   private _settings  : SSGISettings;
   private _frameIndex: number = 0;
+  private readonly _scratch   = new Float32Array(UNIFORM_SIZE / 4);
+  private readonly _scratchU32 = new Uint32Array(this._scratch.buffer);
 
   private readonly _width : number;
   private readonly _height: number;
@@ -279,7 +281,7 @@ export class SSGIPass extends RenderPass {
     view: Mat4, proj: Mat4, invProj: Mat4, invViewProj: Mat4, prevViewProj: Mat4,
     camPos: { x: number; y: number; z: number },
   ): void {
-    const data = new Float32Array(UNIFORM_SIZE / 4);
+    const data = this._scratch;
     data.set(view.data,         0);
     data.set(proj.data,        16);
     data.set(invProj.data,     32);
@@ -287,7 +289,7 @@ export class SSGIPass extends RenderPass {
     data.set(prevViewProj.data, 64);
     data[80] = camPos.x; data[81] = camPos.y; data[82] = camPos.z;
 
-    const u32 = new Uint32Array(data.buffer);
+    const u32 = this._scratchU32;
     u32[83] = this._settings.numRays;
     u32[84] = this._settings.numSteps;
     data[85] = this._settings.radius;

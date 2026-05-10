@@ -41,6 +41,9 @@ export class GodrayPass extends RenderPass {
   private _blurVParamsBuf: GPUBuffer;
   private _compParamsBuf : GPUBuffer;
   private _cloudDensityBuf: GPUBuffer;
+  private readonly _marchScratch   = new Float32Array(4);
+  private readonly _compScratch    = new Float32Array(4);
+  private readonly _densityScratch = new Float32Array(8);
 
   private constructor(
     fogA: GPUTexture, fogAView: GPUTextureView,
@@ -253,23 +256,28 @@ export class GodrayPass extends RenderPass {
   }
 
   updateParams(ctx: RenderContext): void {
-    ctx.queue.writeBuffer(this._marchParamsBuf, 0,
-      new Float32Array([this.scattering, this.maxSteps, 0.0, 0.0]).buffer as ArrayBuffer);
-    ctx.queue.writeBuffer(this._compParamsBuf, 0,
-      new Float32Array([0.0, 0.0, this.fogCurve, 0.0]).buffer as ArrayBuffer);
+    this._marchScratch[0] = this.scattering;
+    this._marchScratch[1] = this.maxSteps;
+    this._marchScratch[2] = 0;
+    this._marchScratch[3] = 0;
+    ctx.queue.writeBuffer(this._marchParamsBuf, 0, this._marchScratch.buffer as ArrayBuffer);
+    this._compScratch[0] = 0;
+    this._compScratch[1] = 0;
+    this._compScratch[2] = this.fogCurve;
+    this._compScratch[3] = 0;
+    ctx.queue.writeBuffer(this._compParamsBuf, 0, this._compScratch.buffer as ArrayBuffer);
   }
 
   updateCloudDensity(ctx: RenderContext, settings: CloudSettings): void {
-    const data = new Float32Array([
-      settings.cloudBase,
-      settings.cloudTop,
-      settings.coverage,
-      settings.density,
-      settings.windOffset[0],
-      settings.windOffset[1],
-      settings.extinction,
-      0,
-    ]);
+    const data = this._densityScratch;
+    data[0] = settings.cloudBase;
+    data[1] = settings.cloudTop;
+    data[2] = settings.coverage;
+    data[3] = settings.density;
+    data[4] = settings.windOffset[0];
+    data[5] = settings.windOffset[1];
+    data[6] = settings.extinction;
+    data[7] = 0;
     ctx.queue.writeBuffer(this._cloudDensityBuf, 0, data.buffer as ArrayBuffer);
   }
 

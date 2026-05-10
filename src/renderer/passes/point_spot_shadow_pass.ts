@@ -75,6 +75,7 @@ export class PointSpotShadowPass extends RenderPass {
   private _modelBufs: GPUBuffer[] = [];
   private _modelBGs : GPUBindGroup[] = [];
   private _modelBGL : GPUBindGroupLayout;
+  private readonly _shadowScratch = new Float32Array(SHADOW_UNIFORM_SIZE / 4);
 
   private _snapshot : DrawItem[] = [];
   private _pointLights: PointLight[] = [];
@@ -312,7 +313,7 @@ export class PointSpotShadowPass extends RenderPass {
 
       const pos       = pl.worldPosition();
       const faceVPs   = pl.cubeFaceViewProjs();
-      const uniform   = new Float32Array(SHADOW_UNIFORM_SIZE / 4);
+      const uniform   = this._shadowScratch;
       uniform[16] = pos.x; uniform[17] = pos.y; uniform[18] = pos.z;
       uniform[19] = pl.radius;
 
@@ -351,7 +352,7 @@ export class PointSpotShadowPass extends RenderPass {
 
       const vp      = sl.lightViewProj();
       const pos     = sl.worldPosition();
-      const uniform = new Float32Array(SHADOW_UNIFORM_SIZE / 4);
+      const uniform = this._shadowScratch;
       uniform.set(vp.data, 0);
       uniform[16] = pos.x; uniform[17] = pos.y; uniform[18] = pos.z;
       uniform[19] = sl.range;
