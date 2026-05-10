@@ -77,12 +77,15 @@ export async function showStartScreen(): Promise<StartChoice>
 
     const card = document.createElement('div');
     card.style.cssText = [
-      'display:flex', 'flex-direction:column', 'align-items:stretch', 'gap:18px',
-      'padding:36px 44px',
+      'display:flex', 'flex-direction:column', 'align-items:stretch', 'gap:clamp(10px,2vh,18px)',
+      'padding:clamp(16px,4vh,36px) clamp(12px,4vw,44px)',
       'background:rgba(82, 82, 82, 1.0)',
       'border:1px solid rgba(255,255,255,0.12)',
       'border-radius:12px',
-      'min-width:480px', 'max-width:560px',
+      'width:min(520px,calc(100vw - 24px))',
+      'box-sizing:border-box',
+      'max-height:min(600px,calc(100vh - 24px))',
+      'overflow-y:auto',
       'box-shadow:0 0 55px rgba(255,255,255,0.8)',
     ].join(';');
     overlay.appendChild(card);
@@ -92,7 +95,7 @@ export async function showStartScreen(): Promise<StartChoice>
     title.textContent = 'CRAFTY';
     title.style.cssText = [
       'margin:0 0 4px', 'text-align:center',
-      'font-size:44px', 'font-weight:900',
+      'font-size:clamp(28px,7vw,44px)', 'font-weight:900',
       'color:#fff', 'letter-spacing:0.14em',
       'text-shadow:0 0 32px rgba(100,200,255,0.4)',
     ].join(';');
@@ -128,7 +131,7 @@ export async function showStartScreen(): Promise<StartChoice>
     const savedListContainer = document.createElement('div');
     savedListContainer.style.cssText = [
       'display:flex', 'flex-direction:column', 'gap:6px',
-      'max-height:240px', 'overflow-y:auto',
+      'max-height:clamp(120px,30vh,240px)', 'overflow-y:auto',
       'padding:8px 4px 12px',
     ].join(';');
     localPanel.appendChild(savedListContainer);

@@ -20,19 +20,22 @@ export function createMenu(canvas: HTMLCanvasElement, reticle: HTMLDivElement): 
 
   const menuCard = document.createElement('div');
   menuCard.style.cssText = [
-    'display:flex', 'flex-direction:column', 'align-items:center', 'gap:24px',
-    'padding:48px 56px',
+    'display:flex', 'flex-direction:column', 'align-items:center', 'gap:clamp(12px,3vh,24px)',
+    'padding:clamp(20px,5vh,48px) clamp(16px,5vw,56px)',
     'background:rgba(255,255,255,0.24)',
     'border:1px solid rgba(255,255,255,0.12)',
     'border-radius:12px',
-    'max-width:860px', 'width:90%',
+    'width:min(860px,calc(100vw - 24px))',
+    'box-sizing:border-box',
+    'max-height:min(700px,calc(100vh - 24px))',
+    'overflow-y:auto',
   ].join(';');
   menuOverlay.appendChild(menuCard);
 
   const menuTitle = document.createElement('h1');
   menuTitle.textContent = 'CRAFTY';
   menuTitle.style.cssText = [
-    'margin:0', 'font-size:52px', 'font-weight:900',
+    'margin:0', 'font-size:clamp(28px,7vw,52px)', 'font-weight:900',
     'color:#fff', 'letter-spacing:0.12em',
     'text-shadow:0 0 48px rgba(100,200,255,0.45)',
     'font-family:ui-monospace,monospace',
