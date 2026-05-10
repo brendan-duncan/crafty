@@ -5,9 +5,9 @@
 // Corner index encoding: bit 0 = x, bit 1 = y, bit 2 = z (0=min, 1=max side).
 
 struct Uniforms {
-  viewProj : mat4x4<f32>,
-  blockPos : vec3<f32>,
-  _pad     : f32,
+  viewProj   : mat4x4<f32>,
+  blockPos   : vec3<f32>,
+  crackStage : f32,
 }
 
 @group(0) @binding(0) var<uniform> u: Uniforms;
@@ -77,20 +77,54 @@ fn bias_clip(clip: vec4<f32>) -> vec4<f32> {
   return vec4<f32>(clip.x, clip.y, clip.z - Z_BIAS * clip.w, clip.w);
 }
 
+struct FaceOutput {
+  @builtin(position) clip_pos : vec4<f32>,
+  @location(0)       world_pos : vec3<f32>,
+}
+
 @vertex
-fn vs_face(@builtin(vertex_index) vid: u32) -> @builtin(position) vec4<f32> {
+fn vs_face(@builtin(vertex_index) vid: u32) -> FaceOutput {
   let ci  = FACE_CI[vid];
   let pos = u.blockPos + vec3<f32>(
     mix(-0.001, 1.001, f32((ci >> 0u) & 1u)),
     mix(-0.001, 1.001, f32((ci >> 1u) & 1u)),
     mix(-0.001, 1.001, f32((ci >> 2u) & 1u)),
   );
-  return bias_clip(u.viewProj * vec4<f32>(pos, 1.0));
+  var out: FaceOutput;
+  out.clip_pos  = bias_clip(u.viewProj * vec4<f32>(pos, 1.0));
+  out.world_pos = pos;
+  return out;
+}
+
+// Procedural crack overlay — hash-based cell pattern
+fn hash2(p: vec2<f32>) -> f32 {
+  return fract(sin(dot(p, vec2<f32>(127.1, 311.7))) * 43758.5453);
+}
+
+fn crack_alpha(local: vec3<f32>, stage: f32) -> f32 {
+  if (stage < 0.5) { return 0.0; }
+
+  // Use the two dominant face axes for UV
+  let ax = abs(local.x - 0.5);
+  let ay = abs(local.y - 0.5);
+  let az = abs(local.z - 0.5);
+  var u = local.x;
+  var v = local.z;
+  if (ax <= ay && ax <= az) { u = local.y; v = local.z; }
+  else if (az <= ax && az <= ay) { u = local.x; v = local.y; }
+
+  // 8x8 hash grid on the block face — each cell cracks independently
+  let cell = floor(vec2<f32>(u, v) * 8.0);
+  let h = hash2(cell);
+  let percent = stage / 10.0;
+  return 1.0 - smoothstep(percent - 0.08, percent + 0.08, h);
 }
 
 @fragment
-fn fs_face() -> @location(0) vec4<f32> {
-  return vec4<f32>(0.0, 0.0, 0.0, 0.35);
+fn fs_face(in: FaceOutput) -> @location(0) vec4<f32> {
+  let crack = crack_alpha(in.world_pos - u.blockPos, u.crackStage);
+  let alpha = min(0.35 + crack * 0.5, 0.9);
+  return vec4<f32>(0.0, 0.0, 0.0, alpha);
 }
 
 // ── Vertex shader for edge quads ─────────────────────────────────────────────

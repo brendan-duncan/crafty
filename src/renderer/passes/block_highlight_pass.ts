@@ -8,7 +8,8 @@ import blockHighlightWgsl from '../../shaders/block_highlight.wgsl?raw';
 const UNIFORM_SIZE = 80;
 
 /**
- * Draws a selection outline around the currently-targeted block. Reads the
+ * Draws a selection outline around the currently-targeted block, plus a
+ * progressive crack overlay when the block is being broken. Reads the
  * existing depth buffer (load-only) and blends a dark face overlay plus thick
  * edge quads into the HDR color target.
  *
@@ -25,6 +26,7 @@ export class BlockHighlightPass extends RenderPass {
   private _hdrView: GPUTextureView;
   private _depthView: GPUTextureView;
   private _active = false;
+  private _crackStage = 0;
   private readonly _scratch = new Float32Array(UNIFORM_SIZE / 4);
 
   private constructor(
@@ -64,7 +66,7 @@ export class BlockHighlightPass extends RenderPass {
 
     const bgl = device.createBindGroupLayout({
       label  : 'BlockHighlightBGL',
-      entries: [{ binding: 0, visibility: GPUShaderStage.VERTEX, buffer: { type: 'uniform' } }],
+      entries: [{ binding: 0, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, buffer: { type: 'uniform' } }],
     });
 
     const bg = device.createBindGroup({
@@ -112,6 +114,14 @@ export class BlockHighlightPass extends RenderPass {
   }
 
   /**
+   * Sets the crack overlay stage (0-9) for the currently highlighted block.
+   * Pass 0 or -1 to disable cracks.
+   */
+  setCrackStage(stage: number): void {
+    this._crackStage = Math.max(0, Math.min(9, Math.floor(stage)));
+  }
+
+  /**
    * Updates the per-frame uniforms. Pass `null` for `blockPos` to disable the
    * highlight for this frame.
    *
@@ -128,6 +138,7 @@ export class BlockHighlightPass extends RenderPass {
     data[16] = blockPos.x;
     data[17] = blockPos.y;
     data[18] = blockPos.z;
+    data[19] = this._crackStage;
     ctx.queue.writeBuffer(this._uniformBuf, 0, data.buffer as ArrayBuffer);
   }
 

@@ -341,6 +341,40 @@ export class BlockLightData {
   }
 }
 
+/**
+ * Hardness multiplier per block type. Used for progressive block breaking:
+ *   breakTime (ms) = hardness * 1500
+ * A hardness of 0 means the block breaks instantly (no crack animation).
+ * Order matches `BlockType` enum.
+ */
+export const blockHardness: number[] = [
+  0,    // NONE
+  0.6,  // GRASS
+  0.5,  // SAND
+  1.5,  // STONE
+  0.5,  // DIRT
+  2.0,  // TRUNK
+  0.2,  // TREELEAVES
+  0,    // WATER
+  0.3,  // GLASS
+  0,    // FLOWER (prop)
+  0.3,  // GLOWSTONE
+  0.3,  // MAGMA
+  10.0, // OBSIDIAN
+  3.0,  // DIAMOND
+  3.0,  // IRON
+  1.5,  // SPECULAR
+  0.4,  // CACTUS
+  0.1,  // SNOW
+  0.6,  // GRASS_SNOW
+  2.0,  // SPRUCE_PLANKS
+  0,    // GRASS_PROP (prop)
+  0,    // TORCH (prop)
+  0,    // DEAD_BUSH (prop)
+  0.2,  // SNOWYLEAVES
+  1.5,  // AMETHYST
+];
+
 /** Light parameters for every light-emitting block. Order is unrelated to `BlockType` index. */
 export const blockLightData: BlockLightData[] = [
   //GLOWSTONE

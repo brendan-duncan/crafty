@@ -69,7 +69,7 @@ export async function showStartScreen(): Promise<StartChoice>
     overlay.style.cssText = [
       'position:fixed', 'inset:0', 'z-index:200',
       // Layer a dark scrim over the splash image so the card stays readable.
-      `background:linear-gradient(rgba(128,128,128,0.35),rgba(128,128,128,0.75)),url(${backgroundUrl}) center/cover no-repeat #000`,
+      `background:linear-gradient(rgba(128,128,128,0.05),rgba(128,128,128,0.35)),url(${backgroundUrl}) center/cover no-repeat #000`,
       'display:flex', 'align-items:center', 'justify-content:center',
       'font-family:ui-monospace,monospace',
     ].join(';');

@@ -821,9 +821,10 @@ async function main(): Promise<void> {
     blockInteraction.targetHit = inReach ? hit : null;
 
     const highlightBlock = blockInteraction.targetBlock && !isBlockWater(world.getBlockType(blockInteraction.targetBlock.x, blockInteraction.targetBlock.y, blockInteraction.targetBlock.z)) ? blockInteraction.targetBlock : null;
+    passes.blockHighlightPass!.setCrackStage(blockInteraction.crackStage);
     passes.blockHighlightPass!.update(ctx, vp, highlightBlock);
 
-    updateBlockInteraction(time, canvas, blockInteraction, world, () => hotbar.getSelected(), scene);
+    updateBlockInteraction(dt, time, canvas, blockInteraction, world, () => hotbar.getSelected(), scene);
 
     if (passes.rainPass) {
       heightmap.update(camPos.x, camPos.z, world);

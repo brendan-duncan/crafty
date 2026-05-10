@@ -68,9 +68,13 @@ class ProceduralMaterial extends Material {
     return this._bindGroup!;
   }
 
+  private readonly _data = new Float32Array(ALIGNMENT / 4);
+
   update(queue: GPUQueue): void {
-    if (!this._dirty || !this._buffer) { return; }
-    const data = new Float32Array(ALIGNMENT / 4);
+    if (!this._dirty || !this._buffer) {
+      return;
+    }
+    const data = this._data;
     data.set(this.baseColor, 0);
     data.set(this.accentColor, 4);
     data[8] = this.patternScale;
