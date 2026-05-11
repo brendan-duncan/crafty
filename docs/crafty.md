@@ -1,8 +1,4 @@
-# Crafty: A Literate Guide to WebGPU Graphics Programming
-
-*Building a voxel game engine from first principles*
-
----
+# Crafty: Building a WebGPU Voxel Game Engine
 
 This book explores real-time graphics programming through the lens of **Crafty**,
 an open-source WebGPU voxel game engine written in TypeScript.
