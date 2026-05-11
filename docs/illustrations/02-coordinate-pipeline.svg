@@ -1,0 +1,130 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 280" font-family="system-ui, -apple-system, sans-serif" font-size="12">
+  <rect width="880" height="280" fill="#ffffff"/>
+  <text x="440" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">The Vertex Transformation Pipeline</text>
+
+  <defs>
+    <marker id="pipeArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+    </marker>
+  </defs>
+
+  <!-- Six stages, each ~120px wide, gap 18px, starting at x=20 -->
+  <!-- Stage box: 120 x 90, centered y=130 -->
+
+  <g font-family="system-ui, sans-serif" font-size="11" text-anchor="middle">
+
+    <!-- 1. Local space -->
+    <g transform="translate(20, 90)">
+      <rect width="120" height="90" fill="#fef3c7" stroke="#92400e" stroke-width="1.2" rx="6"/>
+      <text x="60" y="22" font-weight="700" fill="#92400e">Local space</text>
+      <!-- Tiny cube icon -->
+      <g transform="translate(60, 56)">
+        <polygon points="-14,-10 14,-10 22,-18 -6,-18" fill="#fde68a" stroke="#92400e"/>
+        <polygon points="-14,-10 14,-10 14,10 -14,10" fill="#fcd34d" stroke="#92400e"/>
+        <polygon points="14,-10 22,-18 22,2 14,10" fill="#fbbf24" stroke="#92400e"/>
+      </g>
+      <text x="60" y="84" fill="#6b7280" font-style="italic">model coordinates</text>
+    </g>
+
+    <!-- arrow + matrix label -->
+    <g transform="translate(140, 135)">
+      <line x1="0" y1="0" x2="22" y2="0" stroke="#374151" stroke-width="1.5" marker-end="url(#pipeArr)"/>
+      <text x="11" y="-8" font-family="ui-monospace, Consolas, monospace" fill="#dc2626" font-weight="600">M</text>
+    </g>
+
+    <!-- 2. World -->
+    <g transform="translate(162, 90)">
+      <rect width="120" height="90" fill="#dcfce7" stroke="#166534" stroke-width="1.2" rx="6"/>
+      <text x="60" y="22" font-weight="700" fill="#166534">World space</text>
+      <g transform="translate(60, 56) rotate(-15)">
+        <polygon points="-14,-10 14,-10 22,-18 -6,-18" fill="#bbf7d0" stroke="#166534"/>
+        <polygon points="-14,-10 14,-10 14,10 -14,10" fill="#86efac" stroke="#166534"/>
+        <polygon points="14,-10 22,-18 22,2 14,10" fill="#4ade80" stroke="#166534"/>
+      </g>
+      <text x="60" y="84" fill="#6b7280" font-style="italic">scene coordinates</text>
+    </g>
+
+    <g transform="translate(282, 135)">
+      <line x1="0" y1="0" x2="22" y2="0" stroke="#374151" stroke-width="1.5" marker-end="url(#pipeArr)"/>
+      <text x="11" y="-8" font-family="ui-monospace, Consolas, monospace" fill="#dc2626" font-weight="600">V</text>
+    </g>
+
+    <!-- 3. View -->
+    <g transform="translate(304, 90)">
+      <rect width="120" height="90" fill="#dbeafe" stroke="#1e40af" stroke-width="1.2" rx="6"/>
+      <text x="60" y="22" font-weight="700" fill="#1e40af">View space</text>
+      <g transform="translate(60, 56) rotate(-15)">
+        <polygon points="-14,-10 14,-10 22,-18 -6,-18" fill="#bfdbfe" stroke="#1e40af"/>
+        <polygon points="-14,-10 14,-10 14,10 -14,10" fill="#93c5fd" stroke="#1e40af"/>
+        <polygon points="14,-10 22,-18 22,2 14,10" fill="#60a5fa" stroke="#1e40af"/>
+      </g>
+      <text x="60" y="84" fill="#6b7280" font-style="italic">camera at origin</text>
+    </g>
+
+    <g transform="translate(424, 135)">
+      <line x1="0" y1="0" x2="22" y2="0" stroke="#374151" stroke-width="1.5" marker-end="url(#pipeArr)"/>
+      <text x="11" y="-8" font-family="ui-monospace, Consolas, monospace" fill="#dc2626" font-weight="600">P</text>
+    </g>
+
+    <!-- 4. Clip -->
+    <g transform="translate(446, 90)">
+      <rect width="120" height="90" fill="#ede9fe" stroke="#5b21b6" stroke-width="1.2" rx="6"/>
+      <text x="60" y="22" font-weight="700" fill="#5b21b6">Clip space</text>
+      <!-- Frustum-shaped icon -->
+      <g transform="translate(60, 56)">
+        <polygon points="-18,-12 18,-12 22,12 -22,12" fill="#ddd6fe" stroke="#5b21b6"/>
+      </g>
+      <text x="60" y="84" fill="#6b7280" font-style="italic">homogeneous (x,y,z,w)</text>
+    </g>
+
+    <g transform="translate(566, 135)">
+      <line x1="0" y1="0" x2="22" y2="0" stroke="#374151" stroke-width="1.5" marker-end="url(#pipeArr)"/>
+      <text x="11" y="-12" font-family="ui-monospace, Consolas, monospace" fill="#dc2626" font-weight="600" font-size="10">÷w</text>
+    </g>
+
+    <!-- 5. NDC -->
+    <g transform="translate(588, 90)">
+      <rect width="120" height="90" fill="#fce7f3" stroke="#9d174d" stroke-width="1.2" rx="6"/>
+      <text x="60" y="22" font-weight="700" fill="#9d174d">NDC</text>
+      <!-- Cube icon -->
+      <g transform="translate(60, 56)">
+        <polygon points="-14,-10 14,-10 14,10 -14,10" fill="#fbcfe8" stroke="#9d174d"/>
+        <polygon points="-14,-10 14,-10 18,-14 -10,-14" fill="#f9a8d4" stroke="#9d174d"/>
+        <polygon points="14,-10 18,-14 18,6 14,10" fill="#f472b6" stroke="#9d174d"/>
+      </g>
+      <text x="60" y="84" fill="#6b7280" font-style="italic">x,y∈[−1,1]; z∈[0,1]</text>
+    </g>
+
+    <g transform="translate(708, 135)">
+      <line x1="0" y1="0" x2="22" y2="0" stroke="#374151" stroke-width="1.5" marker-end="url(#pipeArr)"/>
+      <text x="11" y="-8" font-family="ui-monospace, Consolas, monospace" fill="#dc2626" font-weight="600" font-size="10">vp</text>
+    </g>
+
+    <!-- 6. Screen -->
+    <g transform="translate(730, 90)">
+      <rect width="120" height="90" fill="#fee2e2" stroke="#991b1b" stroke-width="1.2" rx="6"/>
+      <text x="60" y="22" font-weight="700" fill="#991b1b">Screen space</text>
+      <!-- Pixel grid icon -->
+      <g transform="translate(60, 56)">
+        <rect x="-16" y="-12" width="32" height="24" fill="#fecaca" stroke="#991b1b"/>
+        <line x1="-8" y1="-12" x2="-8" y2="12" stroke="#991b1b" stroke-width="0.5"/>
+        <line x1="0" y1="-12" x2="0" y2="12" stroke="#991b1b" stroke-width="0.5"/>
+        <line x1="8" y1="-12" x2="8" y2="12" stroke="#991b1b" stroke-width="0.5"/>
+        <line x1="-16" y1="-4" x2="16" y2="-4" stroke="#991b1b" stroke-width="0.5"/>
+        <line x1="-16" y1="4" x2="16" y2="4" stroke="#991b1b" stroke-width="0.5"/>
+      </g>
+      <text x="60" y="84" fill="#6b7280" font-style="italic">pixel coordinates</text>
+    </g>
+  </g>
+
+  <!-- Legend for matrix names -->
+  <g transform="translate(20, 220)" font-size="12">
+    <text x="0" y="0" fill="#111827" font-weight="600">Transforms:</text>
+    <text x="80" y="0" font-family="ui-monospace, Consolas, monospace"><tspan fill="#dc2626" font-weight="700">M</tspan><tspan fill="#374151"> = model</tspan></text>
+    <text x="180" y="0" font-family="ui-monospace, Consolas, monospace"><tspan fill="#dc2626" font-weight="700">V</tspan><tspan fill="#374151"> = view</tspan></text>
+    <text x="270" y="0" font-family="ui-monospace, Consolas, monospace"><tspan fill="#dc2626" font-weight="700">P</tspan><tspan fill="#374151"> = projection</tspan></text>
+    <text x="390" y="0" font-family="ui-monospace, Consolas, monospace"><tspan fill="#dc2626" font-weight="700">÷w</tspan><tspan fill="#374151"> = perspective divide</tspan></text>
+    <text x="580" y="0" font-family="ui-monospace, Consolas, monospace"><tspan fill="#dc2626" font-weight="700">vp</tspan><tspan fill="#374151"> = viewport transform</tspan></text>
+  </g>
+  <text x="440" y="252" text-anchor="middle" font-size="12" fill="#6b7280" font-style="italic">A vertex's journey from model file to pixel.</text>
+</svg>

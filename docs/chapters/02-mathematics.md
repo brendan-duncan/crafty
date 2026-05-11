@@ -8,6 +8,8 @@ Before we can render anything, we need a solid foundation in 3D mathematics. Thi
 
 Crafty uses a **right-handed, Y-up, -Z-forward** coordinate system. This is the same convention used by OpenGL, Maya, and many game engines. WebGPU's native coordinate system is also right-handed with a [0, 1] depth range (unlike OpenGL's [-1, 1]).
 
+![Right-handed Y-up coordinate system](../illustrations/02-coordinate-system.svg)
+
 | Convention | Crafty choice |
 |------------|--------------|
 | Handedness | Right-handed |
@@ -48,6 +50,10 @@ cross(v: Vec3): Vec3 {
 ```
 
 The cross product formula above is the standard right-handed cross product. You can verify: `Vec3.up().cross(Vec3.forward()) = Vec3.right()`.
+
+![Cross product and the right-hand rule](../illustrations/02-cross-product.svg)
+
+The cross product `a × b` produces a vector perpendicular to both inputs, with magnitude equal to the area of the parallelogram they span. The right-hand rule fixes the direction.
 
 ## 2.2 Vectors
 
@@ -153,6 +159,9 @@ The `Mat4` class (`src/math/mat4.ts`) is the most mathematically important type 
 
 Column-major means that element at column `c`, row `r` is at index `c * 4 + r` in the flat array:
 
+![Column-major storage layout](../illustrations/02-column-major-storage.svg)
+
+
 ```
 Column 0:  data[0]  data[1]  data[2]  data[3]    (first column)
 Column 1:  data[4]  data[5]  data[6]  data[7]    (second column)
@@ -191,7 +200,10 @@ localToWorld(): Mat4 {
 
 ### View and Projection Matrices
 
-The `lookAt` view matrix constructs a right-handed view transformation:
+The `lookAt` view matrix constructs a right-handed view transformation. It builds an orthonormal camera basis by combining the eye-to-target direction with a world up reference:
+
+![lookAt camera basis vectors](../illustrations/02-lookat-basis.svg)
+
 
 ```typescript
 // from src/math/mat4.ts
@@ -209,7 +221,10 @@ static lookAt(eye: Vec3, target: Vec3, up: Vec3): Mat4 {
 }
 ```
 
-The `perspective` projection builds a right-handed frustum with WebGPU's [0, 1] depth range:
+The `perspective` projection builds a right-handed frustum with WebGPU's [0, 1] depth range. The frustum's contents get warped into a unit cube — clip space — by this matrix and the subsequent perspective divide:
+
+![Perspective frustum mapping to NDC cube](../illustrations/02-view-frustum.svg)
+
 
 ```typescript
 // from src/math/mat4.ts
@@ -284,6 +299,12 @@ This is used in the G-buffer fill shaders when transforming normals from local s
 ## 2.4 Quaternions
 
 Quaternions (`src/math/quaternion.ts`) represent 3D rotations without the gimbal lock and interpolation problems of Euler angles. A quaternion has four components: a scalar `w` and a vector `(x, y, z)`, representing `w + xi + yj + zk`.
+
+Geometrically, a unit quaternion encodes a rotation by angle θ around an axis n̂. The vector part stores `n̂ · sin(θ/2)` and the scalar part stores `cos(θ/2)`:
+
+![Quaternion as axis-angle rotation](../illustrations/02-quaternion-axis-angle.svg)
+
+The half-angles in the encoding are why two quaternions `q` and `−q` represent the same rotation, and why SLERP needs to take the shorter arc.
 
 ### Construction and Defaults
 
@@ -361,7 +382,10 @@ This avoids constructing and multiplying a full 4×4 rotation matrix when only a
 
 ### Spherical Linear Interpolation (SLERP)
 
-SLERP interpolates between two quaternions with constant angular velocity, making it ideal for smooth camera and animation blending:
+SLERP interpolates between two quaternions with constant angular velocity, making it ideal for smooth camera and animation blending. The intuition is that unit quaternions live on the surface of a 4D unit sphere — SLERP follows a great-circle arc on that sphere, while a naive LERP cuts a straight chord through the interior:
+
+![SLERP great-circle arc vs LERP chord](../illustrations/02-slerp-vs-lerp.svg)
+
 
 ```typescript
 slerp(b: Quaternion, t: number): Quaternion {
@@ -398,7 +422,10 @@ slerp(b: Quaternion, t: number): Quaternion {
 
 ## 2.5 Transform Composition (TRS)
 
-Every `GameObject` in the scene graph has a **local transform** built from its position (translation), rotation (quaternion), and scale:
+Every `GameObject` in the scene graph has a **local transform** built from its position (translation), rotation (quaternion), and scale. The order matters: scale is applied first (in local space), then rotation around the origin, then translation to the final position:
+
+![TRS composition: scale, rotate, translate](../illustrations/02-trs-composition.svg)
+
 
 ```typescript
 // Composition order: T * R * S
@@ -442,7 +469,11 @@ viewProjectionMatrix(): Mat4 {
 
 ## 2.6 Coordinate Space Transformations
 
-The rendering pipeline moves data through several coordinate spaces. Here is the full chain:
+The rendering pipeline moves data through several coordinate spaces. Each stage is a single matrix multiply (or a perspective divide) applied in the vertex shader:
+
+![Vertex transformation pipeline](../illustrations/02-coordinate-pipeline.svg)
+
+The full chain in text form:
 
 ```
 Local space (model)
@@ -513,7 +544,10 @@ rng.seed = 42;  // Same seed = same terrain
 
 ### Perlin Noise (`noise.ts`)
 
-Crafty ports **stb_perlin.h v0.5** by Sean Barrett to TypeScript. Six functions provide gradient noise for procedural generation:
+Crafty ports **stb_perlin.h v0.5** by Sean Barrett to TypeScript. Six functions provide gradient noise for procedural generation. Each one produces a characteristically different look:
+
+![Perlin noise gallery](../illustrations/02-perlin-gallery.svg)
+
 
 | Function | Use case |
 |----------|----------|
@@ -524,7 +558,11 @@ Crafty ports **stb_perlin.h v0.5** by Sean Barrett to TypeScript. Six functions 
 | `perlinNoise3Seed(x, y, z, ...seed)` | Decorrelated noise for different features |
 | `perlinNoise3WrapNonpow2(x, y, z, ...wrap)` | Arbitrary-size tiling |
 
-Terrain generation combines multiple octaves of `perlinFbmNoise3` with elevation-dependent biome blending. The noise functions operate on 3D coordinates, which allows overhangs and caves — a key advantage over 2D heightmap-based approaches.
+Terrain generation combines multiple octaves of `perlinFbmNoise3` with elevation-dependent biome blending. Each octave doubles the frequency (lacunarity ≈ 2) and halves the amplitude (gain ≈ 0.5), so coarse landforms come from the low octaves and fine surface detail from the high ones:
+
+![FBM = sum of noise octaves](../illustrations/02-fbm-octaves.svg)
+
+The noise functions operate on 3D coordinates, which allows overhangs and caves — a key advantage over 2D heightmap-based approaches.
 
 ### Summary
 

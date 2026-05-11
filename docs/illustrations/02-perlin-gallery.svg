@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 440" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="720" height="440" fill="#ffffff"/>
+  <text x="360" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Perlin Noise Family (visual reference)</text>
+
+  <defs>
+    <!-- Convert noise alpha → grayscale opaque -->
+    <filter id="perlinBase">
+      <feTurbulence type="fractalNoise" baseFrequency="0.025" numOctaves="1" seed="3"/>
+      <feColorMatrix values="0 0 0 1 0   0 0 0 1 0   0 0 0 1 0   0 0 0 0 1"/>
+    </filter>
+    <filter id="perlinFbm">
+      <feTurbulence type="fractalNoise" baseFrequency="0.018" numOctaves="5" seed="7"/>
+      <feColorMatrix values="0 0 0 1 0   0 0 0 1 0   0 0 0 1 0   0 0 0 0 1"/>
+    </filter>
+    <filter id="perlinTurb">
+      <feTurbulence type="turbulence" baseFrequency="0.022" numOctaves="5" seed="11"/>
+      <feColorMatrix values="0 0 0 1 0   0 0 0 1 0   0 0 0 1 0   0 0 0 0 1"/>
+    </filter>
+    <filter id="perlinRidge">
+      <feTurbulence type="turbulence" baseFrequency="0.020" numOctaves="4" seed="17"/>
+      <!-- alpha → grayscale, then invert to emphasize ridges -->
+      <feColorMatrix values="0 0 0 1 0   0 0 0 1 0   0 0 0 1 0   0 0 0 0 1"/>
+      <feComponentTransfer>
+        <feFuncR type="table" tableValues="1 0 1"/>
+        <feFuncG type="table" tableValues="1 0 1"/>
+        <feFuncB type="table" tableValues="1 0 1"/>
+      </feComponentTransfer>
+    </filter>
+    <filter id="perlinSeed">
+      <feTurbulence type="fractalNoise" baseFrequency="0.025" numOctaves="1" seed="42"/>
+      <feColorMatrix values="0 0 0 1 0   0 0 0 1 0   0 0 0 1 0   0 0 0 0 1"/>
+    </filter>
+    <filter id="perlinWrap">
+      <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3" seed="5" stitchTiles="stitch"/>
+      <feColorMatrix values="0 0 0 1 0   0 0 0 1 0   0 0 0 1 0   0 0 0 0 1"/>
+    </filter>
+  </defs>
+
+  <!-- 2 rows × 3 columns of 200×130 tiles -->
+
+  <!-- Row 1 -->
+  <g transform="translate(30, 60)">
+    <rect width="200" height="130" filter="url(#perlinBase)"/>
+    <rect width="200" height="130" fill="none" stroke="#374151" stroke-width="1.2"/>
+    <text x="100" y="150" text-anchor="middle" font-weight="600" fill="#111827">perlinNoise3</text>
+    <text x="100" y="166" text-anchor="middle" font-size="11" fill="#6b7280" font-style="italic">smooth gradient noise</text>
+  </g>
+
+  <g transform="translate(250, 60)">
+    <rect width="200" height="130" filter="url(#perlinFbm)"/>
+    <rect width="200" height="130" fill="none" stroke="#374151" stroke-width="1.2"/>
+    <text x="100" y="150" text-anchor="middle" font-weight="600" fill="#111827">perlinFbmNoise3</text>
+    <text x="100" y="166" text-anchor="middle" font-size="11" fill="#6b7280" font-style="italic">FBM — terrain heights</text>
+  </g>
+
+  <g transform="translate(470, 60)">
+    <rect width="200" height="130" filter="url(#perlinTurb)"/>
+    <rect width="200" height="130" fill="none" stroke="#374151" stroke-width="1.2"/>
+    <text x="100" y="150" text-anchor="middle" font-weight="600" fill="#111827">perlinTurbulenceNoise3</text>
+    <text x="100" y="166" text-anchor="middle" font-size="11" fill="#6b7280" font-style="italic">turbulence — clouds</text>
+  </g>
+
+  <!-- Row 2 -->
+  <g transform="translate(30, 250)">
+    <rect width="200" height="130" filter="url(#perlinRidge)"/>
+    <rect width="200" height="130" fill="none" stroke="#374151" stroke-width="1.2"/>
+    <text x="100" y="150" text-anchor="middle" font-weight="600" fill="#111827">perlinRidgeNoise3</text>
+    <text x="100" y="166" text-anchor="middle" font-size="11" fill="#6b7280" font-style="italic">ridged — mountain ridges</text>
+  </g>
+
+  <g transform="translate(250, 250)">
+    <rect width="200" height="130" filter="url(#perlinSeed)"/>
+    <rect width="200" height="130" fill="none" stroke="#374151" stroke-width="1.2"/>
+    <text x="100" y="150" text-anchor="middle" font-weight="600" fill="#111827">perlinNoise3Seed</text>
+    <text x="100" y="166" text-anchor="middle" font-size="11" fill="#6b7280" font-style="italic">decorrelated (different seed)</text>
+  </g>
+
+  <g transform="translate(470, 250)">
+    <rect width="200" height="130" filter="url(#perlinWrap)"/>
+    <rect width="200" height="130" fill="none" stroke="#374151" stroke-width="1.2"/>
+    <text x="100" y="150" text-anchor="middle" font-weight="600" fill="#111827">perlinNoise3WrapNonpow2</text>
+    <text x="100" y="166" text-anchor="middle" font-size="11" fill="#6b7280" font-style="italic">tileable / seamless</text>
+  </g>
+</svg>

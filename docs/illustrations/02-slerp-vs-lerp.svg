@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 380" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="560" height="380" fill="#ffffff"/>
+  <text x="280" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">SLERP vs LERP on the Unit Sphere</text>
+
+  <g transform="translate(200, 200)">
+    <!-- Sphere -->
+    <circle cx="0" cy="0" r="120" fill="#f3f4f6" stroke="#374151" stroke-width="1.5"/>
+    <!-- Equator (perspective) -->
+    <ellipse cx="0" cy="0" rx="120" ry="36" fill="none" stroke="#9ca3af" stroke-width="1" stroke-dasharray="3,3"/>
+    <!-- Meridian -->
+    <ellipse cx="0" cy="0" rx="36" ry="120" fill="none" stroke="#9ca3af" stroke-width="1" stroke-dasharray="3,3"/>
+
+    <!-- Two quaternions q0, q1 as points on the sphere -->
+    <!-- Place q0 at angle 200° from center, q1 at angle 340° (both on visible front face) -->
+    <!-- Use coords: q0 = (-110, -48), q1 = (108, -52) -->
+    <g>
+      <!-- LERP (chord) -->
+      <line x1="-100" y1="-66" x2="100" y2="-66" stroke="#dc2626" stroke-width="2.5" stroke-dasharray="6,4"/>
+      <text x="0" y="-78" text-anchor="middle" fill="#dc2626" font-weight="700">LERP (chord)</text>
+      <text x="0" y="-92" text-anchor="middle" fill="#dc2626" font-size="11" font-style="italic">non-uniform speed; result not on sphere</text>
+
+      <!-- SLERP (great-circle arc) - draw an arc that bows downward across the front -->
+      <path d="M -100,-66 A 130,130 0 0 0 100,-66" fill="none" stroke="#16a34a" stroke-width="3"/>
+      <text x="0" y="44" text-anchor="middle" fill="#16a34a" font-weight="700">SLERP (great-circle arc)</text>
+      <text x="0" y="60" text-anchor="middle" fill="#16a34a" font-size="11" font-style="italic">constant angular velocity; stays on sphere</text>
+
+      <!-- Endpoints -->
+      <circle cx="-100" cy="-66" r="5" fill="#111827"/>
+      <text x="-108" y="-72" text-anchor="end" fill="#111827" font-weight="600">q₀</text>
+
+      <circle cx="100" cy="-66" r="5" fill="#111827"/>
+      <text x="108" y="-72" fill="#111827" font-weight="600">q₁</text>
+
+      <!-- Sample midpoint along each (t = 0.5) -->
+      <circle cx="0" cy="-66" r="4" fill="#dc2626"/>
+      <circle cx="0" cy="0" r="4" fill="#16a34a"/>
+
+      <!-- Connector showing LERP point off-sphere -->
+      <line x1="0" y1="-66" x2="0" y2="0" stroke="#9ca3af" stroke-width="1" stroke-dasharray="2,3"/>
+    </g>
+
+    <!-- Sphere center -->
+    <circle cx="0" cy="0" r="2.5" fill="#374151"/>
+  </g>
+
+  <!-- Right-side legend -->
+  <g transform="translate(380, 110)">
+    <rect x="0" y="0" width="170" height="180" fill="#f9fafb" stroke="#9ca3af" rx="4"/>
+    <text x="85" y="22" text-anchor="middle" font-weight="600" fill="#111827">Why SLERP?</text>
+
+    <text x="14" y="50" fill="#374151">Quaternion rotations</text>
+    <text x="14" y="68" fill="#374151">live on the unit</text>
+    <text x="14" y="86" fill="#374151">3-sphere ‖q‖ = 1.</text>
+
+    <text x="14" y="116" fill="#374151">LERP cuts a chord —</text>
+    <text x="14" y="134" fill="#374151">midpoint drifts inside</text>
+    <text x="14" y="152" fill="#374151">and rotation speed</text>
+    <text x="14" y="170" fill="#374151">isn't constant.</text>
+  </g>
+</svg>

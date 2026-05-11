@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 460" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="720" height="460" fill="#ffffff"/>
+  <text x="360" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">FBM = Sum of Noise Octaves (lacunarity ≈ 2, gain ≈ 0.5)</text>
+
+  <!-- Each octave row: label on left, curve in a 560-wide panel -->
+  <!-- Use sine-like noise approximations at successive frequencies & amplitudes -->
+
+  <!-- Helper: each row 80 high, baseline at row_y -->
+
+  <!-- Row 1: octave 1 (low freq, high amp) -->
+  <g transform="translate(40, 60)">
+    <rect x="100" y="0" width="560" height="80" fill="#f9fafb" stroke="#d1d5db"/>
+    <line x1="100" y1="40" x2="660" y2="40" stroke="#9ca3af" stroke-width="0.5" stroke-dasharray="3,3"/>
+    <text x="0" y="22" font-weight="600" fill="#111827">Octave 1</text>
+    <text x="0" y="40" font-size="11" fill="#6b7280">freq = 1</text>
+    <text x="0" y="56" font-size="11" fill="#6b7280">amp = 1.0</text>
+    <!-- Smooth low-freq curve (one peak across the panel) -->
+    <path d="M 100,40 Q 240,-32 380,40 T 660,40" fill="none" stroke="#1e40af" stroke-width="2.2"/>
+  </g>
+
+  <!-- "+" -->
+  <text x="360" y="155" text-anchor="middle" font-size="22" font-weight="700" fill="#374151">+</text>
+
+  <!-- Row 2: octave 2 -->
+  <g transform="translate(40, 170)">
+    <rect x="100" y="0" width="560" height="80" fill="#f9fafb" stroke="#d1d5db"/>
+    <line x1="100" y1="40" x2="660" y2="40" stroke="#9ca3af" stroke-width="0.5" stroke-dasharray="3,3"/>
+    <text x="0" y="22" font-weight="600" fill="#111827">Octave 2</text>
+    <text x="0" y="40" font-size="11" fill="#6b7280">freq = 2</text>
+    <text x="0" y="56" font-size="11" fill="#6b7280">amp = 0.5</text>
+    <!-- 2x freq, half amp -->
+    <path d="M 100,40 Q 170,16 240,40 T 380,40 T 520,40 T 660,40" fill="none" stroke="#16a34a" stroke-width="2"/>
+  </g>
+
+  <!-- "+" -->
+  <text x="360" y="265" text-anchor="middle" font-size="22" font-weight="700" fill="#374151">+</text>
+
+  <!-- Row 3: octave 3 -->
+  <g transform="translate(40, 280)">
+    <rect x="100" y="0" width="560" height="80" fill="#f9fafb" stroke="#d1d5db"/>
+    <line x1="100" y1="40" x2="660" y2="40" stroke="#9ca3af" stroke-width="0.5" stroke-dasharray="3,3"/>
+    <text x="0" y="22" font-weight="600" fill="#111827">Octave 3</text>
+    <text x="0" y="40" font-size="11" fill="#6b7280">freq = 4</text>
+    <text x="0" y="56" font-size="11" fill="#6b7280">amp = 0.25</text>
+    <!-- 4x freq, quarter amp - high frequency wiggle -->
+    <path d="M 100,40 Q 135,28 170,40 T 240,40 T 310,40 T 380,40 T 450,40 T 520,40 T 590,40 T 660,40" fill="none" stroke="#dc2626" stroke-width="1.8"/>
+  </g>
+
+  <!-- "=" -->
+  <text x="360" y="375" text-anchor="middle" font-size="22" font-weight="700" fill="#374151">=</text>
+
+  <!-- Row 4: combined FBM (sum) -->
+  <g transform="translate(40, 390)">
+    <rect x="100" y="0" width="560" height="60" fill="#fef3c7" stroke="#92400e" stroke-width="1.4"/>
+    <line x1="100" y1="30" x2="660" y2="30" stroke="#9ca3af" stroke-width="0.5" stroke-dasharray="3,3"/>
+    <text x="0" y="20" font-weight="700" fill="#92400e">FBM</text>
+    <text x="0" y="38" font-size="11" fill="#92400e">sum of</text>
+    <text x="0" y="52" font-size="11" fill="#92400e">octaves</text>
+    <!-- Combined: low-freq curve with mid + high freq detail superimposed -->
+    <path d="M 100,30
+             C 130,28 150,18 170,22
+             C 190,26 210,4 240,8
+             C 270,12 290,-6 320,2
+             C 350,10 380,-4 410,8
+             C 440,20 470,18 500,30
+             C 530,42 560,52 590,46
+             C 620,40 645,42 660,30"
+          fill="none" stroke="#92400e" stroke-width="2.5"/>
+  </g>
+</svg>

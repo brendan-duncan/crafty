@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 360" font-family="system-ui, -apple-system, sans-serif" font-size="14">
+  <rect width="480" height="360" fill="#ffffff"/>
+  <text x="240" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Right-Handed, Y-Up, −Z-Forward</text>
+
+  <defs>
+    <marker id="arrR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/>
+    </marker>
+    <marker id="arrG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/>
+    </marker>
+    <marker id="arrB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2563eb"/>
+    </marker>
+  </defs>
+
+  <g transform="translate(240, 220)">
+    <!-- +Z toward viewer (down-left) -->
+    <line x1="0" y1="0" x2="-100" y2="62" stroke="#2563eb" stroke-width="2.5" marker-end="url(#arrB)"/>
+    <text x="-118" y="80" fill="#2563eb" font-weight="600">+Z</text>
+
+    <!-- -Z forward (into scene, up-right), dashed -->
+    <line x1="0" y1="0" x2="100" y2="-62" stroke="#2563eb" stroke-width="2.5" stroke-dasharray="5,4" marker-end="url(#arrB)"/>
+    <text x="105" y="-68" fill="#2563eb" font-weight="600">−Z (forward)</text>
+
+    <!-- +X right -->
+    <line x1="0" y1="0" x2="140" y2="0" stroke="#dc2626" stroke-width="2.5" marker-end="url(#arrR)"/>
+    <text x="148" y="6" fill="#dc2626" font-weight="600">+X (right)</text>
+
+    <!-- +Y up -->
+    <line x1="0" y1="0" x2="0" y2="-140" stroke="#16a34a" stroke-width="2.5" marker-end="url(#arrG)"/>
+    <text x="8" y="-146" fill="#16a34a" font-weight="600">+Y (up)</text>
+
+    <circle cx="0" cy="0" r="3.5" fill="#111827"/>
+  </g>
+
+  <!-- Cross product identity box -->
+  <g transform="translate(20, 296)">
+    <rect x="0" y="0" width="270" height="48" fill="#f3f4f6" stroke="#9ca3af" rx="4"/>
+    <text x="14" y="22" fill="#111827" font-weight="600">Right-hand rule:</text>
+    <text x="14" y="40" fill="#374151" font-family="ui-monospace, Consolas, monospace">up × forward = right</text>
+  </g>
+
+  <!-- Convention note -->
+  <g transform="translate(310, 296)">
+    <rect x="0" y="0" width="150" height="48" fill="#f3f4f6" stroke="#9ca3af" rx="4"/>
+    <text x="75" y="22" text-anchor="middle" fill="#111827" font-weight="600">Same as</text>
+    <text x="75" y="40" text-anchor="middle" fill="#374151">OpenGL · Maya · glTF</text>
+  </g>
+</svg>

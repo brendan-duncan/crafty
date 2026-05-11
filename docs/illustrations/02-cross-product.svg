@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 340" font-family="system-ui, -apple-system, sans-serif" font-size="14">
+  <rect width="520" height="340" fill="#ffffff"/>
+  <text x="260" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Cross Product (right-hand rule)</text>
+
+  <defs>
+    <marker id="cpA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/>
+    </marker>
+    <marker id="cpB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2563eb"/>
+    </marker>
+    <marker id="cpC" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/>
+    </marker>
+  </defs>
+
+  <g transform="translate(190, 220)">
+    <!-- Parallelogram showing |a × b| = area -->
+    <polygon points="0,0 140,32 110,84 -30,52" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.2" opacity="0.75"/>
+
+    <!-- Vector a -->
+    <line x1="0" y1="0" x2="140" y2="32" stroke="#dc2626" stroke-width="2.5" marker-end="url(#cpA)"/>
+    <text x="150" y="42" fill="#dc2626" font-weight="700">a</text>
+
+    <!-- Vector b -->
+    <line x1="0" y1="0" x2="-30" y2="52" stroke="#2563eb" stroke-width="2.5" marker-end="url(#cpB)"/>
+    <text x="-46" y="64" fill="#2563eb" font-weight="700">b</text>
+
+    <!-- a × b: perpendicular to plane, pointing up -->
+    <line x1="0" y1="0" x2="0" y2="-140" stroke="#16a34a" stroke-width="2.8" marker-end="url(#cpC)"/>
+    <text x="10" y="-144" fill="#16a34a" font-weight="700">a × b</text>
+
+    <!-- Right-angle indicator at origin -->
+    <path d="M 0,-14 L 14,-14 L 14,0" fill="none" stroke="#16a34a" stroke-width="1" opacity="0.7"/>
+
+    <circle cx="0" cy="0" r="3.5" fill="#111827"/>
+
+    <text x="55" y="56" font-size="11" fill="#92400e" text-anchor="middle" font-style="italic">|a × b| = area</text>
+  </g>
+
+  <!-- Right-hand rule explanation -->
+  <g transform="translate(360, 110)">
+    <rect x="0" y="0" width="150" height="170" fill="#f9fafb" stroke="#9ca3af" rx="4"/>
+    <text x="75" y="24" text-anchor="middle" font-weight="600" fill="#111827">Right-hand rule</text>
+
+    <text x="14" y="50" fill="#374151">Curl fingers from</text>
+    <text x="14" y="68"><tspan fill="#dc2626" font-weight="700">a</tspan><tspan fill="#374151"> toward </tspan><tspan fill="#2563eb" font-weight="700">b</tspan><tspan fill="#374151">.</tspan></text>
+
+    <text x="14" y="100" fill="#374151">Thumb points along</text>
+    <text x="14" y="118" fill="#16a34a" font-weight="700">a × b</text>
+
+    <text x="14" y="148" fill="#374151" font-style="italic" font-size="12">(perpendicular to</text>
+    <text x="14" y="162" fill="#374151" font-style="italic" font-size="12">the a–b plane)</text>
+  </g>
+</svg>
