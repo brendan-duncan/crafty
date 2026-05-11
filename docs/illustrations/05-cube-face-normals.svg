@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 460" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="880" height="460" fill="#ffffff"/>
+  <text x="440" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Cube Normals: Why Each Face Needs Its Own Vertices</text>
+
+  <defs>
+    <marker id="cnArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/>
+    </marker>
+    <marker id="cnArrR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/>
+    </marker>
+
+    <linearGradient id="smoothTop" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#fde68a"/>
+      <stop offset="100%" stop-color="#facc15"/>
+    </linearGradient>
+    <linearGradient id="smoothFront" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#facc15"/>
+      <stop offset="100%" stop-color="#a16207"/>
+    </linearGradient>
+    <linearGradient id="smoothRight" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fde68a"/>
+      <stop offset="100%" stop-color="#854d0e"/>
+    </linearGradient>
+  </defs>
+
+  <!-- ===== LEFT: shared vertices (8 total) — wrong ===== -->
+
+  <g transform="translate(40, 60)">
+    <text x="170" y="0" text-anchor="middle" font-weight="700" fill="#dc2626">Shared vertices (8 total)</text>
+    <text x="170" y="18" text-anchor="middle" font-size="11" font-style="italic" fill="#dc2626">normals averaged across faces — soft, blurry shading</text>
+
+    <!-- Cube — shifted down so the diagonal normal arrow doesn't poke into the subtitle above -->
+    <g transform="translate(40, 100)">
+      <!-- Top face -->
+      <polygon points="40,20 200,20 240,-20 80,-20" fill="url(#smoothTop)" stroke="#374151" stroke-width="1.2"/>
+      <!-- Front face -->
+      <polygon points="40,20 200,20 200,180 40,180" fill="url(#smoothFront)" stroke="#374151" stroke-width="1.2"/>
+      <!-- Right face -->
+      <polygon points="200,20 240,-20 240,140 200,180" fill="url(#smoothRight)" stroke="#374151" stroke-width="1.2"/>
+
+      <!-- 8 corner vertices -->
+      <g fill="#dc2626">
+        <circle cx="40"  cy="180" r="4"/>
+        <circle cx="200" cy="180" r="4"/>
+        <circle cx="200" cy="20"  r="4"/>
+        <circle cx="40"  cy="20"  r="4"/>
+        <circle cx="80"  cy="-20" r="4"/>
+        <circle cx="240" cy="-20" r="4"/>
+        <circle cx="240" cy="140" r="4"/>
+      </g>
+
+      <!-- One corner's averaged normal — shortened to clear the subtitle area -->
+      <line x1="200" y1="20" x2="232" y2="-10" stroke="#dc2626" stroke-width="2.2" marker-end="url(#cnArrR)"/>
+      <text x="240" y="-10" font-size="11" fill="#dc2626" font-weight="700">avg n̂</text>
+      <text x="240" y="3"  font-size="10" fill="#dc2626" font-style="italic">(diagonal — wrong)</text>
+    </g>
+
+    <text x="170" y="306" text-anchor="middle" font-size="11" fill="#6b7280" font-style="italic">A vertex at a corner has 1 normal,</text>
+    <text x="170" y="322" text-anchor="middle" font-size="11" fill="#6b7280" font-style="italic">but borders 3 perpendicular faces.</text>
+  </g>
+
+  <!-- Divider -->
+  <line x1="440" y1="60" x2="440" y2="400" stroke="#d1d5db" stroke-width="1" stroke-dasharray="4,3"/>
+
+  <!-- ===== RIGHT: per-face vertices (24 total) — correct ===== -->
+
+  <g transform="translate(460, 60)">
+    <text x="170" y="0" text-anchor="middle" font-weight="700" fill="#16a34a">Per-face vertices (24 total)</text>
+    <text x="170" y="18" text-anchor="middle" font-size="11" font-style="italic" fill="#16a34a">each face has its own normal — sharp edges, flat shading per face</text>
+
+    <!-- Cube — shifted down so the top normal arrow doesn't poke into the subtitle above -->
+    <g transform="translate(40, 100)">
+      <!-- Top face -->
+      <polygon points="40,20 200,20 240,-20 80,-20" fill="#fde68a" stroke="#374151" stroke-width="1.2"/>
+      <!-- Front face -->
+      <polygon points="40,20 200,20 200,180 40,180" fill="#facc15" stroke="#374151" stroke-width="1.2"/>
+      <!-- Right face -->
+      <polygon points="200,20 240,-20 240,140 200,180" fill="#a16207" stroke="#374151" stroke-width="1.2"/>
+
+      <!-- Top normal — shortened from 50 → 32 to clear the subtitle above -->
+      <line x1="140" y1="0" x2="140" y2="-32" stroke="#16a34a" stroke-width="2.2" marker-end="url(#cnArr)"/>
+      <text x="148" y="-26" font-size="11" fill="#16a34a" font-weight="700">n̂ top</text>
+
+      <!-- Front normal -->
+      <line x1="120" y1="100" x2="80" y2="148" stroke="#16a34a" stroke-width="2.2" marker-end="url(#cnArr)"/>
+      <text x="62" y="166" font-size="11" fill="#16a34a" font-weight="700">n̂ front</text>
+
+      <!-- Right normal -->
+      <line x1="220" y1="80" x2="276" y2="60" stroke="#16a34a" stroke-width="2.2" marker-end="url(#cnArr)"/>
+      <text x="282" y="64" font-size="11" fill="#16a34a" font-weight="700">n̂ right</text>
+
+      <!-- Top-front-right corner: 3 coincident vertices -->
+      <circle cx="200" cy="20" r="4" fill="#16a34a"/>
+      <circle cx="206" cy="14" r="4" fill="#16a34a"/>
+      <circle cx="194" cy="14" r="4" fill="#16a34a"/>
+    </g>
+
+    <text x="170" y="306" text-anchor="middle" font-size="11" fill="#6b7280" font-style="italic">Each corner has 3 coincident vertices —</text>
+    <text x="170" y="322" text-anchor="middle" font-size="11" fill="#6b7280" font-style="italic">one per face, with that face's normal.</text>
+  </g>
+
+  <!-- Bottom note -->
+  <g transform="translate(40, 396)">
+    <rect width="800" height="56" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+    <text x="14" y="22" font-weight="600" fill="#111827">Storage cost vs. correctness</text>
+    <text x="14" y="40" font-size="12" fill="#374151">8 shared vertices is more compact, but only correct for smoothly curved surfaces. A cube has hard edges, so</text>
+    <text x="14" y="52" font-size="12" fill="#374151">it needs <tspan font-weight="700">6 faces × 4 vertices = 24 vertices</tspan>. Crafty's <tspan font-family="ui-monospace, Consolas, monospace">createCube()</tspan> generates per-face vertices for this reason.</text>
+  </g>
+</svg>

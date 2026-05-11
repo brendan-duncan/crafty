@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 360" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="880" height="360" fill="#ffffff"/>
+  <text x="440" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Vertex Layout: 48 Bytes Interleaved</text>
+
+  <!-- Byte ruler -->
+  <g transform="translate(40, 60)" font-family="ui-monospace, Consolas, monospace" font-size="10" fill="#6b7280">
+    <text x="0"   y="0">byte 0</text>
+    <text x="200" y="0">byte 12</text>
+    <text x="400" y="0">byte 24</text>
+    <text x="533" y="0">byte 32</text>
+    <text x="800" y="0" text-anchor="end">byte 48</text>
+  </g>
+
+  <!-- Stride bar: total 800px wide → 48 bytes → 16.67 px/byte -->
+  <g transform="translate(40, 76)">
+    <!-- Position: 12 bytes (0-12) → 0..200 -->
+    <rect x="0"   y="0" width="200" height="56" fill="#dbeafe" stroke="#1e40af" stroke-width="1.5"/>
+    <text x="100" y="22" text-anchor="middle" font-weight="700" fill="#1e40af">Position</text>
+    <text x="100" y="40" text-anchor="middle" font-size="11" fill="#1e40af" font-family="ui-monospace, Consolas, monospace">float32x3</text>
+    <text x="100" y="52" text-anchor="middle" font-size="10" fill="#1e40af" font-style="italic">12 bytes</text>
+
+    <!-- Normal: 12 bytes (12-24) → 200..400 -->
+    <rect x="200" y="0" width="200" height="56" fill="#dcfce7" stroke="#166534" stroke-width="1.5"/>
+    <text x="300" y="22" text-anchor="middle" font-weight="700" fill="#166534">Normal</text>
+    <text x="300" y="40" text-anchor="middle" font-size="11" fill="#166534" font-family="ui-monospace, Consolas, monospace">float32x3</text>
+    <text x="300" y="52" text-anchor="middle" font-size="10" fill="#166534" font-style="italic">12 bytes</text>
+
+    <!-- UV: 8 bytes (24-32) → 400..533 -->
+    <rect x="400" y="0" width="133" height="56" fill="#fef3c7" stroke="#92400e" stroke-width="1.5"/>
+    <text x="466" y="22" text-anchor="middle" font-weight="700" fill="#92400e">UV</text>
+    <text x="466" y="40" text-anchor="middle" font-size="11" fill="#92400e" font-family="ui-monospace, Consolas, monospace">float32x2</text>
+    <text x="466" y="52" text-anchor="middle" font-size="10" fill="#92400e" font-style="italic">8 bytes</text>
+
+    <!-- Tangent: 16 bytes (32-48) → 533..800 -->
+    <rect x="533" y="0" width="267" height="56" fill="#fce7f3" stroke="#9d174d" stroke-width="1.5"/>
+    <text x="666" y="22" text-anchor="middle" font-weight="700" fill="#9d174d">Tangent</text>
+    <text x="666" y="40" text-anchor="middle" font-size="11" fill="#9d174d" font-family="ui-monospace, Consolas, monospace">float32x4</text>
+    <text x="666" y="52" text-anchor="middle" font-size="10" fill="#9d174d" font-style="italic">16 bytes (xyz + bitangent sign)</text>
+  </g>
+
+  <!-- @location labels below the bar -->
+  <g transform="translate(40, 144)" font-size="11" fill="#374151" font-family="ui-monospace, Consolas, monospace" text-anchor="middle">
+    <text x="100" y="0">@location(0)</text>
+    <text x="300" y="0">@location(1)</text>
+    <text x="466" y="0">@location(2)</text>
+    <text x="666" y="0">@location(3)</text>
+  </g>
+
+  <!-- Repeat indicator -->
+  <g transform="translate(40, 180)">
+    <text x="400" y="0" text-anchor="middle" font-size="12" fill="#6b7280" font-style="italic">…repeats every 48 bytes (arrayStride)…</text>
+  </g>
+
+  <!-- Vertex N+1 chunk preview (faded) -->
+  <g transform="translate(40, 200)" opacity="0.5">
+    <rect x="0"   y="0" width="200" height="32" fill="#dbeafe" stroke="#1e40af" stroke-width="1"/>
+    <rect x="200" y="0" width="200" height="32" fill="#dcfce7" stroke="#166534" stroke-width="1"/>
+    <rect x="400" y="0" width="133" height="32" fill="#fef3c7" stroke="#92400e" stroke-width="1"/>
+    <rect x="533" y="0" width="267" height="32" fill="#fce7f3" stroke="#9d174d" stroke-width="1"/>
+    <text x="400" y="22" text-anchor="middle" font-size="11" fill="#374151" font-family="ui-monospace, Consolas, monospace">vertex N + 1</text>
+  </g>
+
+  <!-- Bottom panel: matching WGSL struct -->
+  <g transform="translate(40, 260)">
+    <rect width="800" height="84" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+    <text x="14" y="22" font-weight="700" fill="#111827">Matching WGSL vertex input</text>
+
+    <g font-family="ui-monospace, Consolas, monospace" font-size="12" fill="#374151" transform="translate(14, 0)">
+      <text x="0" y="44">struct VertexInput {</text>
+      <text x="20" y="58"><tspan fill="#1e40af">@location(0) position</tspan>: vec3&lt;f32&gt;,</text>
+      <text x="280" y="58"><tspan fill="#166534">@location(1) normal</tspan>: vec3&lt;f32&gt;,</text>
+      <text x="20" y="72"><tspan fill="#92400e">@location(2) uv</tspan>: vec2&lt;f32&gt;,</text>
+      <text x="280" y="72"><tspan fill="#9d174d">@location(3) tangent</tspan>: vec4&lt;f32&gt;,</text>
+    </g>
+  </g>
+</svg>

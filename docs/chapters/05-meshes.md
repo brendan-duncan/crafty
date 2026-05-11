@@ -20,7 +20,10 @@ export class Mesh {
 
 ### Vertex Layout
 
-Each vertex is 48 bytes — 12 consecutive 32-bit floats:
+Each vertex is 48 bytes — 12 consecutive 32-bit floats. The four attributes are packed back-to-back, with their byte offsets matching the `@location(N)` slots that the WGSL vertex shader reads:
+
+![Interleaved vertex layout: 48-byte stride](../illustrations/05-vertex-layout.svg)
+
 
 | Offset | Size | Attribute | Location |
 |--------|------|-----------|----------|
@@ -169,11 +172,17 @@ top    (0,1,0)  (1,0,0,1)     (-h,h,h)-(h,h,h)-(h,h,-h)-(-h,h,-h)
 bottom (0,-1,0) (1,0,0,-1)    (-h,-h,-h)-(h,-h,-h)-(h,-h,h)-(-h,-h,h)
 ```
 
-This is important for correct lighting — without explicit per-face normals, a cube with hard edges would appear softly shaded at the corners.
+This is important for correct lighting — without explicit per-face normals, a cube with hard edges would appear softly shaded at the corners:
+
+![Cube normals: shared (averaged) vs per-face vertices](../illustrations/05-cube-face-normals.svg)
+
 
 ### UV Sphere
 
-`Mesh.createSphere(device, radius, latSegments, lonSegments)` generates a **UV sphere** — a sphere built from latitude and longitude rings:
+`Mesh.createSphere(device, radius, latSegments, lonSegments)` generates a **UV sphere** — a sphere built from latitude and longitude rings. Each pair of adjacent rings forms a band of quads, and each quad is split into two triangles:
+
+![UV sphere construction: rings + quad indexing](../illustrations/05-uv-sphere-construction.svg)
+
 
 ```typescript
 static createSphere(device: GPUDevice, radius = 0.5,
@@ -305,7 +314,10 @@ static createCone(device: GPUDevice, radius = 0.5,
 }
 ```
 
-The cone is built from three parts: the **apex** (a single vertex at the tip), the **side** (a triangle fan from the apex to the base ring), and the **base cap** (a triangle fan from the centre of the base to the ring).
+The cone is built from three parts: the **apex** (a single vertex at the tip), the **side** (a triangle fan from the apex to the base ring), and the **base cap** (a triangle fan from the centre of the base to the ring). Side normals come from the cone's slope — perpendicular to the slanted surface in cross-section:
+
+![Cone construction and side-normal derivation](../illustrations/05-cone-construction.svg)
+
 
 **Side normals** are computed from the slope of the cone. For a cone with radius `r` and height `h`, the outward normal on the side has a horizontal component proportional to `h / sqrt(h² + r²)` and a vertical component proportional to `r / sqrt(h² + r²)`:
 
@@ -327,7 +339,10 @@ The cone is useful for rendering volumetric light cones (spot lights), particle 
 
 ## 5.5 Skinned Meshes and Skeletons
 
-Skinned meshes extend the basic mesh with **joint influences** — each vertex is bound to up to four bones with corresponding weights:
+Skinned meshes extend the basic mesh with **joint influences** — each vertex is bound to up to four bones with corresponding weights. The actual deformation happens entirely on the GPU: every vertex carries 4 joint indices and 4 weights, and the vertex shader looks up the matching joint matrices in a storage buffer to produce the final position:
+
+![GPU skinning: vertex blends 4 joint matrices](../illustrations/05-gpu-skinning.svg)
+
 
 ```typescript
 // Additional vertex attributes for skinned geometry

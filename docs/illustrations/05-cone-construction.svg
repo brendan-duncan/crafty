@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 440" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="880" height="440" fill="#ffffff"/>
+  <text x="440" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Cone: Apex + Side Triangles + Base Cap</text>
+
+  <defs>
+    <marker id="coArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/>
+    </marker>
+  </defs>
+
+  <!-- ===== LEFT: 3D-ish view of the cone ===== -->
+  <g transform="translate(80, 70)">
+    <text x="160" y="0" text-anchor="middle" font-weight="700" fill="#111827">Three parts, separate vertices</text>
+
+    <!-- Apex at (160, 60) -->
+    <!-- Base center at (160, 280) — base is an ellipse there -->
+
+    <!-- Base ellipse (back half lighter — drawn first) -->
+    <ellipse cx="160" cy="280" rx="120" ry="36" fill="#fde68a" stroke="#92400e" stroke-width="1.4" opacity="0.6"/>
+
+    <!-- Side surface as a triangle from apex to two base extremes (front-facing) -->
+    <polygon points="160,60 40,280 280,280" fill="#facc15" fill-opacity="0.55" stroke="#92400e" stroke-width="1.4"/>
+
+    <!-- A few sample side triangles (showing the fan) -->
+    <g stroke="#92400e" stroke-width="0.8" opacity="0.7" fill="none">
+      <line x1="160" y1="60" x2="76" y2="266"/>
+      <line x1="160" y1="60" x2="120" y2="290"/>
+      <line x1="160" y1="60" x2="200" y2="290"/>
+      <line x1="160" y1="60" x2="244" y2="266"/>
+    </g>
+
+    <!-- Base cap front edge (darker) -->
+    <path d="M 40,280 A 120,36 0 0 0 280,280" fill="none" stroke="#92400e" stroke-width="1.6"/>
+
+    <!-- Apex point -->
+    <circle cx="160" cy="60" r="5" fill="#dc2626"/>
+    <text x="170" y="56" font-size="12" font-weight="700" fill="#dc2626">apex</text>
+
+    <!-- Base center point -->
+    <circle cx="160" cy="280" r="5" fill="#dc2626"/>
+    <text x="170" y="298" font-size="12" font-weight="700" fill="#dc2626">base center</text>
+
+    <!-- Ring vertices (a few visible) -->
+    <g fill="#7c3aed">
+      <circle cx="40"  cy="280" r="4"/>
+      <circle cx="76"  cy="266" r="4"/>
+      <circle cx="120" cy="290" r="4"/>
+      <circle cx="200" cy="290" r="4"/>
+      <circle cx="244" cy="266" r="4"/>
+      <circle cx="280" cy="280" r="4"/>
+    </g>
+    <text x="38" y="262" font-size="11" fill="#7c3aed" text-anchor="end" font-weight="600">ring</text>
+
+    <!-- Note: ring is duplicated for side and base -->
+    <text x="160" y="370" text-anchor="middle" font-size="11" font-style="italic" fill="#6b7280">side ring + base ring are separate vertex copies</text>
+    <text x="160" y="384" text-anchor="middle" font-size="11" font-style="italic" fill="#6b7280">at the same positions, but with different normals</text>
+  </g>
+
+  <!-- Divider -->
+  <line x1="440" y1="60" x2="440" y2="400" stroke="#d1d5db" stroke-width="1" stroke-dasharray="4,3"/>
+
+  <!-- ===== RIGHT: side normal calculation ===== -->
+  <g transform="translate(480, 70)">
+    <text x="180" y="0" text-anchor="middle" font-weight="700" fill="#111827">Side normal from cone slope</text>
+
+    <!-- 2D cross-section: cone profile -->
+    <!-- Place: apex at (180, 60), base corner at (300, 240), base center at (180, 240) -->
+    <!-- height h = 240-60 = 180px,  radius r = 300-180 = 120px -->
+
+    <g transform="translate(0, 60)">
+      <!-- Profile triangle (right-side cross section) -->
+      <polygon points="180,0 300,180 180,180" fill="#fef3c7" stroke="#92400e" stroke-width="1.5"/>
+
+      <!-- Labels for h, r, slope -->
+      <!-- h: vertical side -->
+      <line x1="170" y1="0" x2="170" y2="180" stroke="#374151" stroke-width="0.8" stroke-dasharray="3,2"/>
+      <text x="158" y="94" text-anchor="end" font-size="13" fill="#374151" font-weight="700">h</text>
+      <text x="158" y="110" text-anchor="end" font-size="11" fill="#6b7280" font-style="italic">height</text>
+
+      <!-- r: horizontal base -->
+      <line x1="180" y1="200" x2="300" y2="200" stroke="#374151" stroke-width="0.8" stroke-dasharray="3,2"/>
+      <text x="240" y="220" text-anchor="middle" font-size="13" fill="#374151" font-weight="700">r</text>
+      <text x="240" y="234" text-anchor="middle" font-size="11" fill="#6b7280" font-style="italic">radius</text>
+
+      <!-- Slope label along the hypotenuse -->
+      <text x="252" y="86" font-size="13" fill="#374151" font-weight="700" transform="rotate(56, 252, 86)">slope = √(h² + r²)</text>
+
+      <!-- Outward normal at midpoint of slope -->
+      <!-- Midpoint of slope is at (240, 90). Outward normal direction: rotate slope vector (120, 180) by 90° CW -> (180, -120). Normalize and scale to length 60. len = sqrt(180²+120²) = 216.3. dir = (0.832, -0.555). Scaled by 60: (50, -33) -->
+      <line x1="240" y1="90" x2="290" y2="57" stroke="#16a34a" stroke-width="2.5" marker-end="url(#coArr)"/>
+      <text x="296" y="56" font-size="13" font-weight="700" fill="#16a34a">n̂</text>
+
+      <!-- Right-angle indicator at midpoint between slope and normal -->
+      <path d="M 240,90 L 252,82 L 244,70 z" fill="none" stroke="#16a34a" stroke-width="0.8" opacity="0.6"/>
+    </g>
+
+    <!-- Formula box -->
+    <g transform="translate(0, 296)">
+      <rect width="380" height="98" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="4"/>
+      <text x="14" y="22" font-weight="700" fill="#111827">Outward normal at angle t around the ring:</text>
+      <g font-family="ui-monospace, Consolas, monospace" font-size="12" fill="#374151">
+        <text x="14" y="46">  sn = h / slope        // horizontal component scale</text>
+        <text x="14" y="62">  cn = r / slope        // vertical (Y) component</text>
+        <text x="14" y="84">  n̂ = (cos(t)·sn,  cn,  sin(t)·sn)</text>
+      </g>
+    </g>
+  </g>
+</svg>
