@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 460" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="460" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">NPC State Machines: Two Variants on Idle ↔ Wander</text>
+
+  <defs>
+    <marker id="smArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+    </marker>
+  </defs>
+
+  <!-- ===== LEFT: Three-state (Duck) ===== -->
+  <g transform="translate(40, 60)">
+    <text x="220" y="0" text-anchor="middle" font-weight="700" fill="#111827">Three-state — Ducks (idle ↔ wander ↔ flee)</text>
+
+    <rect x="0" y="14" width="440" height="320" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+
+    <!-- Three states arranged in a triangle:
+         idle at (110, 80), wander at (330, 80), flee at (220, 240) -->
+
+    <!-- idle node -->
+    <g transform="translate(60, 50)">
+      <rect width="100" height="60" fill="#dbeafe" stroke="#2563eb" stroke-width="1.6" rx="6"/>
+      <text x="50" y="26" text-anchor="middle" font-weight="700" fill="#1e3a8a">idle</text>
+      <text x="50" y="44" text-anchor="middle" font-size="10" fill="#1e3a8a">stand + bob</text>
+    </g>
+
+    <!-- wander node -->
+    <g transform="translate(280, 50)">
+      <rect width="100" height="60" fill="#dcfce7" stroke="#15803d" stroke-width="1.6" rx="6"/>
+      <text x="50" y="26" text-anchor="middle" font-weight="700" fill="#14532d">wander</text>
+      <text x="50" y="44" text-anchor="middle" font-size="10" fill="#14532d">walk to target</text>
+    </g>
+
+    <!-- flee node -->
+    <g transform="translate(170, 220)">
+      <rect width="100" height="60" fill="#fee2e2" stroke="#dc2626" stroke-width="1.6" rx="6"/>
+      <text x="50" y="26" text-anchor="middle" font-weight="700" fill="#7f1d1d">flee</text>
+      <text x="50" y="44" text-anchor="middle" font-size="10" fill="#7f1d1d">run from player</text>
+    </g>
+
+    <!-- Arrows -->
+    <!-- idle → wander -->
+    <line x1="160" y1="74" x2="280" y2="74" stroke="#374151" stroke-width="1.4" marker-end="url(#smArr)"/>
+    <text x="220" y="62" text-anchor="middle" font-size="10" fill="#374151">timer ≤ 0</text>
+
+    <!-- wander → idle -->
+    <line x1="280" y1="86" x2="160" y2="86" stroke="#374151" stroke-width="1.4" marker-end="url(#smArr)"/>
+    <text x="220" y="104" text-anchor="middle" font-size="10" fill="#374151">arrived OR timer ≤ 0</text>
+
+    <!-- idle → flee -->
+    <line x1="120" y1="110" x2="190" y2="220" stroke="#dc2626" stroke-width="1.4" marker-end="url(#smArr)"/>
+    <text x="120" y="160" text-anchor="end" font-size="10" font-weight="700" fill="#dc2626">player &lt; 6 blocks</text>
+
+    <!-- wander → flee -->
+    <line x1="320" y1="110" x2="250" y2="220" stroke="#dc2626" stroke-width="1.4" marker-end="url(#smArr)"/>
+    <text x="324" y="160" font-size="10" font-weight="700" fill="#dc2626">player &lt; 6 blocks</text>
+
+    <!-- flee → idle -->
+    <line x1="170" y1="240" x2="110" y2="110" stroke="#16a34a" stroke-width="1.4" marker-end="url(#smArr)"/>
+    <text x="118" y="200" text-anchor="end" font-size="10" font-weight="700" fill="#16a34a">player &gt; 14 blocks</text>
+
+    <!-- Footer note -->
+    <text x="220" y="306" text-anchor="middle" font-size="11" font-style="italic" fill="#6b7280">flee is preempting — fires from any state when player gets close</text>
+  </g>
+
+  <!-- ===== RIGHT: Two-state (Pig) ===== -->
+  <g transform="translate(500, 60)">
+    <text x="200" y="0" text-anchor="middle" font-weight="700" fill="#111827">Two-state — Pigs (idle ↔ wander)</text>
+
+    <rect x="0" y="14" width="400" height="320" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+
+    <!-- idle node -->
+    <g transform="translate(40, 130)">
+      <rect width="100" height="60" fill="#dbeafe" stroke="#2563eb" stroke-width="1.6" rx="6"/>
+      <text x="50" y="26" text-anchor="middle" font-weight="700" fill="#1e3a8a">idle</text>
+      <text x="50" y="44" text-anchor="middle" font-size="10" fill="#1e3a8a">stand + bob</text>
+    </g>
+
+    <!-- wander node -->
+    <g transform="translate(260, 130)">
+      <rect width="100" height="60" fill="#dcfce7" stroke="#15803d" stroke-width="1.6" rx="6"/>
+      <text x="50" y="26" text-anchor="middle" font-weight="700" fill="#14532d">wander</text>
+      <text x="50" y="44" text-anchor="middle" font-size="10" fill="#14532d">walk to target</text>
+    </g>
+
+    <!-- Arrows -->
+    <line x1="140" y1="154" x2="260" y2="154" stroke="#374151" stroke-width="1.4" marker-end="url(#smArr)"/>
+    <text x="200" y="142" text-anchor="middle" font-size="10" fill="#374151">timer ≤ 0</text>
+
+    <line x1="260" y1="166" x2="140" y2="166" stroke="#374151" stroke-width="1.4" marker-end="url(#smArr)"/>
+    <text x="200" y="184" text-anchor="middle" font-size="10" fill="#374151">arrived OR timer ≤ 0</text>
+
+    <text x="200" y="240" text-anchor="middle" font-size="11" font-style="italic" fill="#6b7280">pigs are docile — no flee state</text>
+    <text x="200" y="256" text-anchor="middle" font-size="11" font-style="italic" fill="#6b7280">player can walk right up</text>
+  </g>
+
+  <!-- ===== Bottom note ===== -->
+  <g transform="translate(40, 408)">
+    <rect width="840" height="40" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+    <text x="14" y="26" font-size="11" fill="#374151">
+      <tspan font-weight="700" fill="#111827">Ducklings are different:</tspan>
+      no state machine — just a follow-the-parent behaviour, so they inherit the parent's flee transitively.
+    </text>
+  </g>
+</svg>

@@ -1,0 +1,189 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 460" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="460" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">AnimatedModel.update(): Clip → TRS Arrays → Joint Matrices → GPU</text>
+
+  <defs>
+    <marker id="saArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+    </marker>
+  </defs>
+
+  <!-- ===== 3 stage boxes side by side ===== -->
+
+  <!-- Stage 1: Animation clip + time -->
+  <g transform="translate(20, 60)">
+    <rect x="0" y="0" width="270" height="240" fill="#eff6ff" stroke="#2563eb" stroke-width="1.4" rx="6"/>
+    <rect x="0" y="0" width="270" height="28" fill="#dbeafe"/>
+    <text x="135" y="20" text-anchor="middle" font-weight="700" fill="#1e3a8a">1 · Animation clip</text>
+
+    <!-- Timeline -->
+    <text x="14" y="56" font-size="11" font-weight="700" fill="#1e3a8a">"Walk" · 1.5 s loop</text>
+
+    <line x1="20" y1="86" x2="250" y2="86" stroke="#1e3a8a" stroke-width="1.4"/>
+
+    <!-- Keyframe ticks -->
+    <g stroke="#1e3a8a" stroke-width="1.2">
+      <line x1="20"  y1="80" x2="20"  y2="92"/>
+      <line x1="66"  y1="80" x2="66"  y2="92"/>
+      <line x1="112" y1="80" x2="112" y2="92"/>
+      <line x1="158" y1="80" x2="158" y2="92"/>
+      <line x1="204" y1="80" x2="204" y2="92"/>
+      <line x1="250" y1="80" x2="250" y2="92"/>
+    </g>
+    <text x="20"  y="108" text-anchor="middle" font-size="9" font-family="ui-monospace, Consolas, monospace" fill="#1e3a8a">0.0</text>
+    <text x="250" y="108" text-anchor="middle" font-size="9" font-family="ui-monospace, Consolas, monospace" fill="#1e3a8a">1.5</text>
+
+    <!-- Current time marker -->
+    <line x1="148" y1="68" x2="148" y2="104" stroke="#dc2626" stroke-width="2"/>
+    <circle cx="148" cy="86" r="4" fill="#dc2626"/>
+    <text x="148" y="64" text-anchor="middle" font-size="10" font-weight="700" fill="#dc2626">t = 0.92 s</text>
+
+    <!-- Track list -->
+    <g font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#1e3a8a" transform="translate(14, 134)">
+      <text x="0" y="0">tracks per joint:</text>
+      <text x="0" y="18">  · translation (vec3)</text>
+      <text x="0" y="36">  · rotation    (quat)</text>
+      <text x="0" y="54">  · scale       (vec3)</text>
+    </g>
+
+    <text x="135" y="226" text-anchor="middle" font-size="10" font-style="italic" fill="#1e3a8a">advance: time += dt · speed</text>
+  </g>
+
+  <line x1="290" y1="180" x2="320" y2="180" stroke="#374151" stroke-width="1.6" marker-end="url(#saArr)"/>
+  <text x="305" y="170" text-anchor="middle" font-size="10" fill="#374151">sample</text>
+
+  <!-- Stage 2: TRS arrays -->
+  <g transform="translate(320, 60)">
+    <rect x="0" y="0" width="270" height="240" fill="#fef3c7" stroke="#a16207" stroke-width="1.4" rx="6"/>
+    <rect x="0" y="0" width="270" height="28" fill="#fde68a"/>
+    <text x="135" y="20" text-anchor="middle" font-weight="700" fill="#713f12">2 · TRS arrays per joint</text>
+
+    <text x="14" y="56" font-size="11" font-weight="700" fill="#713f12">_translations · _rotations · _scales</text>
+
+    <!-- Three rows of 6 little cells -->
+    <g font-size="9" font-family="ui-monospace, Consolas, monospace" text-anchor="middle">
+      <!-- T row -->
+      <text x="14" y="92" text-anchor="start" font-weight="700" fill="#713f12">T</text>
+      <g fill="#fff7ed" stroke="#a16207" stroke-width="0.8">
+        <rect x="34"  y="78" width="36" height="20"/>
+        <rect x="74"  y="78" width="36" height="20"/>
+        <rect x="114" y="78" width="36" height="20"/>
+        <rect x="154" y="78" width="36" height="20"/>
+        <rect x="194" y="78" width="36" height="20"/>
+        <rect x="234" y="78" width="22" height="20"/>
+      </g>
+      <text x="245" y="92" text-anchor="middle" fill="#713f12">…</text>
+
+      <!-- R row -->
+      <text x="14" y="124" text-anchor="start" font-weight="700" fill="#713f12">R</text>
+      <g fill="#fff7ed" stroke="#a16207" stroke-width="0.8">
+        <rect x="34"  y="110" width="36" height="20"/>
+        <rect x="74"  y="110" width="36" height="20"/>
+        <rect x="114" y="110" width="36" height="20"/>
+        <rect x="154" y="110" width="36" height="20"/>
+        <rect x="194" y="110" width="36" height="20"/>
+        <rect x="234" y="110" width="22" height="20"/>
+      </g>
+      <text x="245" y="124" text-anchor="middle" fill="#713f12">…</text>
+
+      <!-- S row -->
+      <text x="14" y="156" text-anchor="start" font-weight="700" fill="#713f12">S</text>
+      <g fill="#fff7ed" stroke="#a16207" stroke-width="0.8">
+        <rect x="34"  y="142" width="36" height="20"/>
+        <rect x="74"  y="142" width="36" height="20"/>
+        <rect x="114" y="142" width="36" height="20"/>
+        <rect x="154" y="142" width="36" height="20"/>
+        <rect x="194" y="142" width="36" height="20"/>
+        <rect x="234" y="142" width="22" height="20"/>
+      </g>
+      <text x="245" y="156" text-anchor="middle" fill="#713f12">…</text>
+
+      <!-- joint index labels -->
+      <text x="52"  y="178" fill="#713f12">j0</text>
+      <text x="92"  y="178" fill="#713f12">j1</text>
+      <text x="132" y="178" fill="#713f12">j2</text>
+      <text x="172" y="178" fill="#713f12">j3</text>
+      <text x="212" y="178" fill="#713f12">j4</text>
+    </g>
+
+    <text x="135" y="208" text-anchor="middle" font-size="10" font-style="italic" fill="#713f12">interpolated between two keyframes</text>
+    <text x="135" y="226" text-anchor="middle" font-size="10" font-style="italic" fill="#713f12">that bracket time t</text>
+  </g>
+
+  <line x1="590" y1="180" x2="620" y2="180" stroke="#374151" stroke-width="1.6" marker-end="url(#saArr)"/>
+  <text x="605" y="170" text-anchor="middle" font-size="10" fill="#374151">×parent</text>
+
+  <!-- Stage 3: Joint matrices -->
+  <g transform="translate(620, 60)">
+    <rect x="0" y="0" width="270" height="240" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.4" rx="6"/>
+    <rect x="0" y="0" width="270" height="28" fill="#ddd6fe"/>
+    <text x="135" y="20" text-anchor="middle" font-weight="700" fill="#4c1d95">3 · Joint matrices</text>
+
+    <text x="14" y="56" font-size="11" font-weight="700" fill="#4c1d95">jointMatrices · Float32Array</text>
+
+    <!-- Visual: array of 5 × 16 cells -->
+    <g font-size="9" font-family="ui-monospace, Consolas, monospace" text-anchor="middle" fill="#4c1d95">
+      <!-- Each joint = 4×4 matrix shown as a 4×4 grid -->
+      <g transform="translate(14, 80)">
+        <text x="20" y="-2" font-weight="700">j0</text>
+        <g stroke="#7c3aed" stroke-width="0.6" fill="#fff">
+          <rect x="0"  y="0" width="10" height="10"/><rect x="10" y="0" width="10" height="10"/><rect x="20" y="0" width="10" height="10"/><rect x="30" y="0" width="10" height="10"/>
+          <rect x="0" y="10" width="10" height="10"/><rect x="10" y="10" width="10" height="10"/><rect x="20" y="10" width="10" height="10"/><rect x="30" y="10" width="10" height="10"/>
+          <rect x="0" y="20" width="10" height="10"/><rect x="10" y="20" width="10" height="10"/><rect x="20" y="20" width="10" height="10"/><rect x="30" y="20" width="10" height="10"/>
+          <rect x="0" y="30" width="10" height="10"/><rect x="10" y="30" width="10" height="10"/><rect x="20" y="30" width="10" height="10"/><rect x="30" y="30" width="10" height="10"/>
+        </g>
+      </g>
+
+      <g transform="translate(64, 80)">
+        <text x="20" y="-2" font-weight="700">j1</text>
+        <g stroke="#7c3aed" stroke-width="0.6" fill="#fff">
+          <rect x="0"  y="0" width="10" height="10"/><rect x="10" y="0" width="10" height="10"/><rect x="20" y="0" width="10" height="10"/><rect x="30" y="0" width="10" height="10"/>
+          <rect x="0" y="10" width="10" height="10"/><rect x="10" y="10" width="10" height="10"/><rect x="20" y="10" width="10" height="10"/><rect x="30" y="10" width="10" height="10"/>
+          <rect x="0" y="20" width="10" height="10"/><rect x="10" y="20" width="10" height="10"/><rect x="20" y="20" width="10" height="10"/><rect x="30" y="20" width="10" height="10"/>
+          <rect x="0" y="30" width="10" height="10"/><rect x="10" y="30" width="10" height="10"/><rect x="20" y="30" width="10" height="10"/><rect x="30" y="30" width="10" height="10"/>
+        </g>
+      </g>
+
+      <g transform="translate(114, 80)">
+        <text x="20" y="-2" font-weight="700">j2</text>
+        <g stroke="#7c3aed" stroke-width="0.6" fill="#fff">
+          <rect x="0"  y="0" width="10" height="10"/><rect x="10" y="0" width="10" height="10"/><rect x="20" y="0" width="10" height="10"/><rect x="30" y="0" width="10" height="10"/>
+          <rect x="0" y="10" width="10" height="10"/><rect x="10" y="10" width="10" height="10"/><rect x="20" y="10" width="10" height="10"/><rect x="30" y="10" width="10" height="10"/>
+          <rect x="0" y="20" width="10" height="10"/><rect x="10" y="20" width="10" height="10"/><rect x="20" y="20" width="10" height="10"/><rect x="30" y="20" width="10" height="10"/>
+          <rect x="0" y="30" width="10" height="10"/><rect x="10" y="30" width="10" height="10"/><rect x="20" y="30" width="10" height="10"/><rect x="30" y="30" width="10" height="10"/>
+        </g>
+      </g>
+
+      <g transform="translate(164, 80)">
+        <text x="20" y="-2" font-weight="700">j3</text>
+        <g stroke="#7c3aed" stroke-width="0.6" fill="#fff">
+          <rect x="0"  y="0" width="10" height="10"/><rect x="10" y="0" width="10" height="10"/><rect x="20" y="0" width="10" height="10"/><rect x="30" y="0" width="10" height="10"/>
+          <rect x="0" y="10" width="10" height="10"/><rect x="10" y="10" width="10" height="10"/><rect x="20" y="10" width="10" height="10"/><rect x="30" y="10" width="10" height="10"/>
+          <rect x="0" y="20" width="10" height="10"/><rect x="10" y="20" width="10" height="10"/><rect x="20" y="20" width="10" height="10"/><rect x="30" y="20" width="10" height="10"/>
+          <rect x="0" y="30" width="10" height="10"/><rect x="10" y="30" width="10" height="10"/><rect x="20" y="30" width="10" height="10"/><rect x="30" y="30" width="10" height="10"/>
+        </g>
+      </g>
+
+      <text x="240" y="100" font-size="13" fill="#4c1d95">…</text>
+    </g>
+
+    <text x="135" y="156" text-anchor="middle" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#4c1d95">N joints × 16 floats</text>
+
+    <text x="135" y="190" text-anchor="middle" font-size="10" font-style="italic" fill="#4c1d95">each joint = T·R·S × parent matrix,</text>
+    <text x="135" y="206" text-anchor="middle" font-size="10" font-style="italic" fill="#4c1d95">walked depth-first from the root</text>
+    <text x="135" y="226" text-anchor="middle" font-size="10" font-weight="700" fill="#dc2626">→ uploaded to GPU as uniform buffer</text>
+  </g>
+
+  <!-- ===== Bottom: skinning recipe ===== -->
+  <g transform="translate(40, 326)">
+    <rect width="840" height="120" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+    <text x="14" y="22" font-weight="700" fill="#111827">In the skinned vertex shader</text>
+
+    <g font-family="ui-monospace, Consolas, monospace" font-size="12" fill="#374151" transform="translate(14, 0)">
+      <text x="0" y="46">// each vertex carries up to 4 joint indices + 4 weights summing to 1</text>
+      <text x="0" y="64">let M = w.x * jointMat[j.x] + w.y * jointMat[j.y]</text>
+      <text x="0" y="82">      + w.z * jointMat[j.z] + w.w * jointMat[j.w];</text>
+      <text x="0" y="100">let skinned_pos = (M * vec4(position, 1.0)).xyz;</text>
+    </g>
+  </g>
+</svg>

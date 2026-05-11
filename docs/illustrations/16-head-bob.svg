@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 460" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="460" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Head Bob: Sine Wave with Amplitude and Frequency per NPC × State</text>
+
+  <!-- 3 columns × 2 rows. Cell 280 × 150, gap 20. Grid origin x=20. -->
+  <!-- Columns x = 20, 320, 620. Rows y = 60, 230. -->
+
+  <!-- Helpers: each plot has X axis (time, ~2 s), centered Y baseline; sine wave with amp scaled. Plot inner width 240, height 100. Inset (24, 14) inside cell. -->
+
+  <!-- Row 1: IDLE -->
+
+  <!-- Duck idle: amp 0.008 (small), freq 2 Hz -->
+  <g transform="translate(20, 60)">
+    <rect x="0" y="0" width="280" height="150" fill="#fef3c7" stroke="#a16207" stroke-width="1.2" rx="6"/>
+    <text x="140" y="20" text-anchor="middle" font-weight="700" fill="#7c2d12">Duck · idle</text>
+    <line x1="24" y1="84" x2="264" y2="84" stroke="#9ca3af" stroke-width="0.6"/>
+    <!-- amp 0.008 → 8 px peak. 2 Hz over 2s → 4 cycles (period 60 px). -->
+    <path d="M 24 84
+             Q 39 76, 54 84  Q 69 92, 84 84  Q 99 76, 114 84  Q 129 92, 144 84
+             Q 159 76, 174 84  Q 189 92, 204 84  Q 219 76, 234 84  Q 249 92, 264 84"
+          fill="none" stroke="#a16207" stroke-width="2"/>
+    <text x="140" y="116" text-anchor="middle" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#7c2d12">amp 0.008 · 2 Hz</text>
+    <text x="140" y="134" text-anchor="middle" font-size="10" font-style="italic" fill="#a16207">subtle bob</text>
+  </g>
+
+  <!-- Duckling idle: amp 0.004 (smaller), 2 Hz -->
+  <g transform="translate(320, 60)">
+    <rect x="0" y="0" width="280" height="150" fill="#fef3c7" stroke="#a16207" stroke-width="1.2" rx="6"/>
+    <text x="140" y="20" text-anchor="middle" font-weight="700" fill="#7c2d12">Duckling · idle</text>
+    <line x1="24" y1="84" x2="264" y2="84" stroke="#9ca3af" stroke-width="0.6"/>
+    <!-- amp 0.004 → 4 px peak. 2 Hz over 2s → 4 cycles. -->
+    <path d="M 24 84
+             Q 39 80, 54 84  Q 69 88, 84 84  Q 99 80, 114 84  Q 129 88, 144 84
+             Q 159 80, 174 84  Q 189 88, 204 84  Q 219 80, 234 84  Q 249 88, 264 84"
+          fill="none" stroke="#a16207" stroke-width="2"/>
+    <text x="140" y="116" text-anchor="middle" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#7c2d12">amp 0.004 · 2 Hz</text>
+    <text x="140" y="134" text-anchor="middle" font-size="10" font-style="italic" fill="#a16207">tiny bob (small head)</text>
+  </g>
+
+  <!-- Pig idle: amp 0.005, 1.5 Hz -->
+  <g transform="translate(620, 60)">
+    <rect x="0" y="0" width="280" height="150" fill="#fce7f3" stroke="#be185d" stroke-width="1.2" rx="6"/>
+    <text x="140" y="20" text-anchor="middle" font-weight="700" fill="#831843">Pig · idle</text>
+    <line x1="24" y1="84" x2="264" y2="84" stroke="#9ca3af" stroke-width="0.6"/>
+    <!-- amp 0.005 → 5 px. 1.5 Hz over 2s → 3 cycles (period 80 px). -->
+    <path d="M 24 84
+             Q 44 79, 64 84  Q 84 89, 104 84  Q 124 79, 144 84
+             Q 164 89, 184 84  Q 204 79, 224 84  Q 244 89, 264 84"
+          fill="none" stroke="#be185d" stroke-width="2"/>
+    <text x="140" y="116" text-anchor="middle" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#831843">amp 0.005 · 1.5 Hz</text>
+    <text x="140" y="134" text-anchor="middle" font-size="10" font-style="italic" fill="#be185d">slow, sluggish</text>
+  </g>
+
+  <!-- Row 2: WANDER -->
+
+  <!-- Duck wander: amp 0.018, 6 Hz -->
+  <g transform="translate(20, 230)">
+    <rect x="0" y="0" width="280" height="150" fill="#fef3c7" stroke="#a16207" stroke-width="1.6" rx="6"/>
+    <text x="140" y="20" text-anchor="middle" font-weight="700" fill="#7c2d12">Duck · wander</text>
+    <line x1="24" y1="84" x2="264" y2="84" stroke="#9ca3af" stroke-width="0.6"/>
+    <!-- amp 0.018 → 18 px peak. 6 Hz over 2s → 12 cycles (period 20 px). -->
+    <path d="M 24 84
+             Q 29 66, 34 84  Q 39 102, 44 84  Q 49 66, 54 84  Q 59 102, 64 84
+             Q 69 66, 74 84  Q 79 102, 84 84  Q 89 66, 94 84  Q 99 102, 104 84
+             Q 109 66, 114 84  Q 119 102, 124 84  Q 129 66, 134 84  Q 139 102, 144 84
+             Q 149 66, 154 84  Q 159 102, 164 84  Q 169 66, 174 84  Q 179 102, 184 84
+             Q 189 66, 194 84  Q 199 102, 204 84  Q 209 66, 214 84  Q 219 102, 224 84
+             Q 229 66, 234 84  Q 239 102, 244 84  Q 249 66, 254 84  Q 259 102, 264 84"
+          fill="none" stroke="#a16207" stroke-width="2"/>
+    <text x="140" y="116" text-anchor="middle" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#7c2d12">amp 0.018 · 6 Hz</text>
+    <text x="140" y="134" text-anchor="middle" font-size="10" font-style="italic" fill="#a16207">brisk waddle</text>
+  </g>
+
+  <!-- Duckling wander: amp 0.012, 7 Hz -->
+  <g transform="translate(320, 230)">
+    <rect x="0" y="0" width="280" height="150" fill="#fef3c7" stroke="#a16207" stroke-width="1.6" rx="6"/>
+    <text x="140" y="20" text-anchor="middle" font-weight="700" fill="#7c2d12">Duckling · wander</text>
+    <line x1="24" y1="84" x2="264" y2="84" stroke="#9ca3af" stroke-width="0.6"/>
+    <!-- amp 0.012 → 12 px peak. 7 Hz over 2s → 14 cycles (period ~17 px). -->
+    <path d="M 24 84
+             Q 28 72, 32 84  Q 36 96, 40 84  Q 44 72, 48 84  Q 52 96, 56 84
+             Q 60 72, 64 84  Q 68 96, 72 84  Q 76 72, 80 84  Q 84 96, 88 84
+             Q 92 72, 96 84  Q 100 96, 104 84  Q 108 72, 112 84  Q 116 96, 120 84
+             Q 124 72, 128 84  Q 132 96, 136 84  Q 140 72, 144 84  Q 148 96, 152 84
+             Q 156 72, 160 84  Q 164 96, 168 84  Q 172 72, 176 84  Q 180 96, 184 84
+             Q 188 72, 192 84  Q 196 96, 200 84  Q 204 72, 208 84  Q 212 96, 216 84
+             Q 220 72, 224 84  Q 228 96, 232 84  Q 236 72, 240 84  Q 244 96, 248 84
+             Q 252 72, 256 84  Q 260 96, 264 84"
+          fill="none" stroke="#a16207" stroke-width="2"/>
+    <text x="140" y="116" text-anchor="middle" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#7c2d12">amp 0.012 · 7 Hz</text>
+    <text x="140" y="134" text-anchor="middle" font-size="10" font-style="italic" fill="#a16207">fastest cadence (catching up)</text>
+  </g>
+
+  <!-- Pig wander: amp 0.014, 4 Hz -->
+  <g transform="translate(620, 230)">
+    <rect x="0" y="0" width="280" height="150" fill="#fce7f3" stroke="#be185d" stroke-width="1.6" rx="6"/>
+    <text x="140" y="20" text-anchor="middle" font-weight="700" fill="#831843">Pig · wander</text>
+    <line x1="24" y1="84" x2="264" y2="84" stroke="#9ca3af" stroke-width="0.6"/>
+    <!-- amp 0.014 → 14 px peak. 4 Hz over 2s → 8 cycles (period 30 px). -->
+    <path d="M 24 84
+             Q 31 70, 39 84  Q 46 98, 54 84  Q 61 70, 69 84  Q 76 98, 84 84
+             Q 91 70, 99 84  Q 106 98, 114 84  Q 121 70, 129 84  Q 136 98, 144 84
+             Q 151 70, 159 84  Q 166 98, 174 84  Q 181 70, 189 84  Q 196 98, 204 84
+             Q 211 70, 219 84  Q 226 98, 234 84  Q 241 70, 249 84  Q 256 98, 264 84"
+          fill="none" stroke="#be185d" stroke-width="2"/>
+    <text x="140" y="116" text-anchor="middle" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#831843">amp 0.014 · 4 Hz</text>
+    <text x="140" y="134" text-anchor="middle" font-size="10" font-style="italic" fill="#be185d">heavy trot</text>
+  </g>
+
+  <!-- ===== Bottom note ===== -->
+  <g transform="translate(40, 408)">
+    <rect width="840" height="40" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+    <text x="14" y="26" font-size="11" fill="#374151">
+      <tspan font-weight="700" fill="#111827">Implementation:</tspan>
+      <tspan font-family="ui-monospace, Consolas, monospace">  bobPhase += dt * freq;  head.y = baseY + sin(bobPhase) * amp;</tspan>
+    </text>
+  </g>
+</svg>

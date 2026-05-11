@@ -28,6 +28,8 @@ All NPC components share common infrastructure:
 
 ## 16.2 The AI State Machine
 
+![Two state-machine variants: ducks have idle/wander/flee with player-distance preemption; pigs have just idle/wander](../illustrations/16-state-machine.svg)
+
 The three NPC types implement one of two state-machine patterns:
 
 | Pattern | States | Used by |
@@ -103,6 +105,8 @@ Pigs are docile — they never flee and remain in the two-state cycle indefinite
 
 ## 16.3 Duck AI
 
+![Concentric flee zones around the player (6-block trigger inside, 14-block safe ring outside) — the gap creates hysteresis so the duck doesn't flicker between flee and idle](../illustrations/16-duck-flee.svg)
+
 `DuckAI` (`src/engine/components/duck_ai.ts`) implements the full three-state machine. Ducks are amphibious — they walk on land and float on water:
 
 ```typescript
@@ -127,6 +131,8 @@ this._headGO.position.y = this._headBaseY + Math.sin(this._bobPhase) * bobAmp;
 Player position is fed to ducks via a static field `DuckAI.playerPos`, written once per frame by the game loop. This avoids coupling the AI to a specific player component.
 
 ## 16.4 Duckling AI
+
+![Each duckling steers toward parent + polar offset; offsetAngle drifts at 0.25 rad/s so the brood gently swirls around the parent](../illustrations/16-duckling-follow.svg)
 
 `DucklingAI` (`src/engine/components/duckling_ai.ts`) implements a **follow** behaviour rather than the idle/wander/flee pattern. Each duckling tracks its parent duck's world position and maintains a personalised polar offset so the brood spreads naturally:
 
@@ -198,6 +204,8 @@ Ducks extend this with a water check — if the block directly below is `BlockTy
 
 ## 16.7 Head Bob Animation
 
+![Six waveforms: each NPC has its own amplitude/frequency in idle and wander, giving each a distinct gait without skeletal animation](../illustrations/16-head-bob.svg)
+
 Each NPC model has a child `GameObject` for the head (e.g., `Duck.Head`, `Pig.Head`, `Duckling.Head`). The AI component finds this child in `onAttach()` and animates its local Y offset each frame:
 
 ```typescript
@@ -215,6 +223,8 @@ onAttach(): void {
 The bob is a simple sine wave whose frequency and amplitude vary by state — faster and larger when the NPC is moving, slower and subtler when idle. This gives each NPC a distinctive gait without requiring skeletal animation.
 
 ## 16.8 Animated Models and Skeletal Animation
+
+![AnimatedModel pipeline: sample clip at time t into per-joint TRS arrays, walk the skeleton to compute joint matrices, upload to GPU for skinned vertex transformation](../illustrations/16-skeletal-animation.svg)
 
 Beyond the simple head-bob NPCs, Crafty supports full skeletal animation via the `AnimatedModel` component (`src/engine/components/animated_model.ts`). This component plays GLTF animation clips on skinned meshes:
 
