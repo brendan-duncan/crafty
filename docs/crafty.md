@@ -171,77 +171,86 @@ This book is a work in progress.  Chapters are added as the engine evolves.
   - 11.7 Erosion simulation
   - 11.8 Water rendering
 
+- [Chapter 12: Weather System](chapter/12-weather-system.md)
+  - 12.1 Weather types
+  - 12.2 Biome weather tables
+  - 12.3 Dynamic weather transitions
+  - 12.4 Cloud coverage mapping
+  - 12.5 Precipitation control
+  - 12.6 Integration in the frame loop
+  - 12.7 Debug overlay display
+
 ## III — Game Engine
 
-- [Chapter 12: Game Engine Design](chapter/12-game-engine.md)
-  - 12.1 The component/entity system
-  - 12.2 GameObject and Component
-  - 12.3 The Scene graph
-  - 12.4 The game loop
-  - 12.5 Input handling (keyboard, mouse, touch)
-  - 12.6 Camera controls
-  - 12.7 The player controller
-  - 12.8 Touch Controls (Mobile)
+- [Chapter 13: Game Engine Design](chapter/13-game-engine.md)
+  - 13.1 The component/entity system
+  - 13.2 GameObject and Component
+  - 13.3 The Scene graph
+  - 13.4 The game loop
+  - 13.5 Input handling (keyboard, mouse, touch)
+  - 13.6 Camera controls
+  - 13.7 The player controller
+  - 13.8 Touch Controls (Mobile)
 
-- [Chapter 13: Physics and Interaction](chapter/13-physics.md)
-  - 13.1 Collision detection (AABB)
-  - 13.2 Player movement and gravity
-  - 13.3 Block ray casting
-  - 13.4 Block interaction (placement, breaking)
-  - 13.5 Animal AI (ducks, pigs)
+- [Chapter 14: Physics and Interaction](chapter/14-physics.md)
+  - 14.1 Collision detection (AABB)
+  - 14.2 Player movement and gravity
+  - 14.3 Block ray casting
+  - 14.4 Block interaction (placement, breaking)
+  - 14.5 Animal AI (ducks, pigs)
 
-- [Chapter 14: Audio](chapter/14-audio.md)
-  - 14.1 Web Audio API fundamentals
-  - 14.2 Spatial audio
-  - 14.3 Sound effect triggers
-  - 14.4 Ambient and music
+- [Chapter 15: Audio](chapter/15-audio.md)
+  - 15.1 Web Audio API fundamentals
+  - 15.2 Spatial audio
+  - 15.3 Sound effect triggers
+  - 15.4 Ambient and music
 
-- [Chapter 15: User Interface](chapter/15-user-interface.md)
-  - 15.1 DOM-based UI vs. in-game UI
-  - 15.2 The HUD (crosshair, hotbar, stats)
-  - 15.3 The start screen (local, network, world management)
-  - 15.4 The settings panel
-  - 15.5 The block manager
+- [Chapter 16: User Interface](chapter/16-user-interface.md)
+  - 16.1 DOM-based UI vs. in-game UI
+  - 16.2 The HUD (crosshair, hotbar, stats)
+  - 16.3 The start screen (local, network, world management)
+  - 16.4 The settings panel
+  - 16.5 The block manager
 
 ## IV — Multiplayer
 
-- [Chapter 16: Network Architecture](chapter/16-network-architecture.md)
-  - 16.1 WebSocket fundamentals
-  - 16.2 Message protocol design (C2S / S2C)
-  - 16.3 Connection lifecycle (lobby, join, in-game)
-  - 16.4 The server architecture
-  - 16.5 World state persistence
+- [Chapter 17: Network Architecture](chapter/17-network-architecture.md)
+  - 17.1 WebSocket fundamentals
+  - 17.2 Message protocol design (C2S / S2C)
+  - 17.3 Connection lifecycle (lobby, join, in-game)
+  - 17.4 The server architecture
+  - 17.5 World state persistence
 
-- [Chapter 17: Multiplayer Gameplay](chapter/17-multiplayer-gameplay.md)
-  - 17.1 Player state synchronisation
-  - 17.2 Snapshot interpolation
-  - 17.3 Remote player rendering
-  - 17.4 Name labels
-  - 17.5 Block edit replication
-  - 17.6 Latency compensation
+- [Chapter 18: Multiplayer Gameplay](chapter/18-multiplayer-gameplay.md)
+  - 18.1 Player state synchronisation
+  - 18.2 Snapshot interpolation
+  - 18.3 Remote player rendering
+  - 18.4 Name labels
+  - 18.5 Block edit replication
+  - 18.6 Latency compensation
 
 ## V — Advanced Topics
 
-- [Chapter 18: Performance](chapter/18-performance.md)
-  - 18.1 GPU timestamps and profiling
-  - 18.2 Async shader compilation
-  - 18.3 Frustum culling
-  - 18.4 Occlusion culling
-  - 18.5 Draw call batching
-  - 18.6 Memory management
+- [Chapter 19: Performance](chapter/19-performance.md)
+  - 19.1 GPU timestamps and profiling
+  - 19.2 Async shader compilation
+  - 19.3 Frustum culling
+  - 19.4 Occlusion culling
+  - 19.5 Draw call batching
+  - 19.6 Memory management
 
-- [Chapter 19: Tools and Workflow](chapter/19-tools.md)
-  - 19.1 The sample framework
-  - 19.2 Testing strategy (unit, integration, visual)
-  - 19.3 Debugging WebGPU
-  - 19.4 Asset pipeline
-  - 19.5 Continuous integration
+- [Chapter 20: Tools and Workflow](chapter/20-tools.md)
+  - 20.1 The sample framework
+  - 20.2 Testing strategy (unit, integration, visual)
+  - 20.3 Debugging WebGPU
+  - 20.4 Asset pipeline
+  - 20.5 Continuous integration
 
-- [Chapter 20: The Road Ahead](chapter/20-road-ahead.md)
-  - 20.1 Ray tracing with WebGPU
-  - 20.2 Compute shader post-processing
-  - 20.3 Procedural generation at scale
-  - 20.4 WebXR
+- [Chapter 21: The Road Ahead](chapter/21-road-ahead.md)
+  - 21.1 Ray tracing with WebGPU
+  - 21.2 Compute shader post-processing
+  - 21.3 Procedural generation at scale
+  - 21.4 WebXR
 
 ## Appendices
 

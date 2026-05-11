@@ -1,10 +1,10 @@
-# Chapter 12: Game Engine Design
+# Chapter 13: Game Engine Design
 
-[Contents](../crafty.md) | [11-Terrain](11-terrain.md) | [13-Physics](13-physics.md)
+[Contents](../crafty.md) | [11-Terrain](11-terrain.md) | [14-Physics](14-physics.md)
 
 The game engine provides the structure for placing objects in the world, updating them each frame, and responding to user input.
 
-## 12.1 The Component/Entity System
+## 13.1 The Component/Entity System
 
 Crafty uses a **component/entity** pattern, though it is simplified compared to pure ECS architectures. A `GameObject` is a container for components, each component adding a specific capability.
 
@@ -20,7 +20,7 @@ GameObject
 └── AudioSource      — spatial audio emitter
 ```
 
-## 12.2 GameObject and Component
+## 13.2 GameObject and Component
 
 ```typescript
 class GameObject {
@@ -51,7 +51,7 @@ abstract class Component {
 }
 ```
 
-## 12.3 The Scene Graph
+## 13.3 The Scene Graph
 
 The `Scene` class manages the hierarchy of GameObjects:
 
@@ -71,7 +71,7 @@ class Scene {
 
 The scene graph is a tree. Each `GameObject` has a local transform relative to its parent. The `localToWorld()` method walks up the tree to compute the absolute transform.
 
-## 12.4 The Game Loop
+## 13.4 The Game Loop
 
 The main game loop (`crafty/main.ts`) follows the standard pattern:
 
@@ -106,7 +106,7 @@ function frame(time: number) {
 
 The frame rate is uncapped (tied to display refresh via `requestAnimationFrame`). `dt` is capped to prevent physics explosion on tab-switch.
 
-## 12.5 Input Handling
+## 13.5 Input Handling
 
 Input is managed by the `Input` class, which aggregates keyboard, mouse, and touch events:
 
@@ -122,7 +122,7 @@ class Input {
 
 The pointer lock API is used for first-person controls — the mouse cursor is hidden and mouse movement is reported as deltas.
 
-## 12.6 Camera Controls
+## 13.6 Camera Controls
 
 The `CameraControls` component interprets input to move and rotate the camera. Yaw (horizontal) and pitch (vertical) are accumulated from mouse deltas:
 
@@ -143,7 +143,7 @@ class CameraControls extends Component {
 }
 ```
 
-## 12.7 The Player Controller
+## 13.7 The Player Controller
 
 The `PlayerController` extends camera controls with WASD movement, jumping, gravity, and collision:
 
@@ -176,7 +176,7 @@ class PlayerController extends Component {
 }
 ```
 
-## 12.8 Touch Controls (Mobile)
+## 13.8 Touch Controls (Mobile)
 
 Mobile devices get a completely separate input overlay (`crafty/game/touch_controls.ts`). Desktop pointer-lock and keyboard don't work on a touchscreen, so a DOM-based overlay provides virtual controls:
 
@@ -259,4 +259,4 @@ The action buttons are positioned with a `HOTBAR_CLEARANCE` of 70px from the bot
 - `crafty/main.ts` — Touch control initialisation and audio context bootstrap
 
 ----
-[Contents](../crafty.md) | [11-Terrain](11-terrain.md) | [13-Physics](13-physics.md)
+[Contents](../crafty.md) | [11-Terrain](11-terrain.md) | [14-Physics](14-physics.md)

@@ -1,5 +1,3 @@
-import hotbarUrl from '../../assets/ui/hotbar.png?url';
-
 export interface Menu {
   overlay: HTMLDivElement;
   card: HTMLDivElement;

@@ -1,10 +1,10 @@
-# Chapter 16: Network Architecture
+# Chapter 17: Network Architecture
 
-[Contents](../crafty.md) | [15-User Interface](15-user-interface.md) | [17-Multiplayer Gameplay](17-multiplayer-gameplay.md)
+[Contents](../crafty.md) | [16-User Interface](16-user-interface.md) | [18-Multiplayer Gameplay](18-multiplayer-gameplay.md)
 
 Crafty supports multiplayer through a WebSocket-based server written in Node.js. The protocol is minimal and message-oriented.
 
-## 16.1 WebSocket Fundamentals
+## 17.1 WebSocket Fundamentals
 
 WebSocket provides a persistent, full-duplex connection between the browser and the server. Crafty's client (`crafty/game/network_client.ts`) establishes the connection:
 
@@ -26,7 +26,7 @@ class NetworkClient {
 }
 ```
 
-## 16.2 Message Protocol Design
+## 17.2 Message Protocol Design
 
 Messages are JSON objects with a `type` field and type-specific payload. All messages are one of:
 
@@ -41,7 +41,7 @@ Messages are JSON objects with a `type` field and type-specific payload. All mes
 | C2S | `chat` | `{ message }` | Send chat message |
 | S2C | `chat` | `{ from, message }` | Broadcast chat message |
 
-## 16.3 Connection Lifecycle
+## 17.3 Connection Lifecycle
 
 ```
 Client                    Server
@@ -56,7 +56,7 @@ Client                    Server
   │◄───── block_update ───│  Broadcast to all clients
 ```
 
-## 16.4 The Server Architecture
+## 17.4 The Server Architecture
 
 The server (`server/src/server.ts`) manages multiple world rooms:
 
@@ -103,7 +103,7 @@ class WorldRoom {
 
 Block edits are validated on the server to prevent cheating. The server checks that the block being broken is within the player's reach distance and that the block being placed is adjacent to an existing block and within reach.
 
-## 16.5 World State Persistence
+## 17.5 World State Persistence
 
 Local worlds are saved to IndexedDB in the browser. Server-side worlds are persisted to disk as JSON or a simple binary format:
 
@@ -127,4 +127,4 @@ Auto-save runs every 30 seconds, writing only the chunks that have been modified
 - `crafty/game/network_client.ts` — Client-side networking
 
 ----
-[Contents](../crafty.md) | [15-User Interface](15-user-interface.md) | [17-Multiplayer Gameplay](17-multiplayer-gameplay.md)
+[Contents](../crafty.md) | [16-User Interface](16-user-interface.md) | [18-Multiplayer Gameplay](18-multiplayer-gameplay.md)

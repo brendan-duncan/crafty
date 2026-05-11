@@ -1,10 +1,10 @@
-# Chapter 19: Tools and Workflow
+# Chapter 20: Tools and Workflow
 
-[Contents](../crafty.md) | [18-Performance](18-performance.md) | [20-Road Ahead](20-road-ahead.md)
+[Contents](../crafty.md) | [19-Performance](19-performance.md) | [21-Road Ahead](21-road-ahead.md)
 
 Crafty includes several tools and conventions for development, testing, and debugging.
 
-## 19.1 The Sample Framework
+## 20.1 The Sample Framework
 
 Self-contained samples in `crafty/samples/` demonstrate individual features in isolation. Each sample has an HTML file and a TypeScript entry point:
 
@@ -35,7 +35,7 @@ async function main() {
 main();
 ```
 
-## 19.2 Testing Strategy
+## 20.2 Testing Strategy
 
 Crafty uses **Vitest** for unit testing. Tests live in `tests/` and cover mathematical correctness, data structure invariants, and component behaviour:
 
@@ -65,7 +65,7 @@ Tests are run with:
 
 WebGPU-dependent features cannot be tested in Node.js. Those are tested via sample pages and visual inspection.
 
-## 19.3 Debugging WebGPU
+## 20.3 Debugging WebGPU
 
 ### Validation Errors
 
@@ -102,7 +102,7 @@ The [**WebGPU Inspector**](https://chromewebstore.google.com/detail/webgpu-inspe
 - GPU command traces.
 - Validation error messages with backtraces.
 
-## 19.4 Asset Pipeline
+## 20.4 Asset Pipeline
 
 ### Texture Atlas Building
 
@@ -128,7 +128,7 @@ HDR environment maps are processed offline to generate the IBL textures:
 
 These are pre-computed once and loaded at runtime, rather than computing them on the GPU each session.
 
-## 19.5 Continuous Integration
+## 20.5 Continuous Integration
 
 The project uses GitHub Actions for CI. The workflow:
 
@@ -147,4 +147,4 @@ The CI pipeline does not run visual tests (no WebGPU in CI environments). Visual
 - `crafty/samples/` — Self-contained demos
 
 ----
-[Contents](../crafty.md) | [18-Performance](18-performance.md) | [20-Road Ahead](20-road-ahead.md)
+[Contents](../crafty.md) | [19-Performance](19-performance.md) | [21-Road Ahead](21-road-ahead.md)

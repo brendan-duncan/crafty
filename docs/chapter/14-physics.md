@@ -1,10 +1,10 @@
-# Chapter 13: Physics and Interaction
+# Chapter 14: Physics and Interaction
 
-[Contents](../crafty.md) | [12-Game Engine](12-game-engine.md) | [14-Audio](14-audio.md)
+[Contents](../crafty.md) | [13-Game Engine](13-game-engine.md) | [15-Audio](15-audio.md)
 
 Crafty implements a minimal physics system focused on player movement and block interaction. There is no general-purpose physics engine — only what the gameplay requires.
 
-## 13.1 Collision Detection (AABB)
+## 14.1 Collision Detection (AABB)
 
 The player's collision volume is an axis-aligned bounding box (AABB). Collision detection tests the player's AABB against solid blocks in the world:
 
@@ -20,7 +20,7 @@ class AABB {
 
 The **sweep test** moves the AABB along the velocity vector and finds the first collision. This allows the player to slide along walls — if the velocity has an X component that causes collision, the X component is zeroed and the remaining Y/Z sweep continues.
 
-## 13.2 Player Movement and Gravity
+## 14.2 Player Movement and Gravity
 
 The player controller implements a simplified **collide-and-slide** algorithm:
 
@@ -32,7 +32,7 @@ The player controller implements a simplified **collide-and-slide** algorithm:
 
 Gravity is constant at `-20 m/s²` (slightly higher than Earth's `-9.8` for a more responsive feel). Ground friction slows horizontal movement when the player is standing on a block.
 
-## 13.3 Block Ray Casting
+## 14.3 Block Ray Casting
 
 To determine which block the player is looking at, a ray is cast from the camera through the crosshair. The DDA (Digital Differential Analyzer) algorithm traverses the voxel grid efficiently:
 
@@ -60,7 +60,7 @@ function raycastVoxels(origin: Vec3, dir: Vec3, world: World, maxDist: number): 
 
 The return value includes the block position and the face normal (which side was hit), used for placing new blocks adjacent to the hit face.
 
-## 13.4 Block Interaction
+## 14.4 Block Interaction
 
 Block breaking uses a **progressive crack animation** — holding the mouse button on a block gradually breaks it:
 
@@ -94,7 +94,7 @@ function placeBlock(hit: BlockHit, blockType: BlockType) {
 }
 ```
 
-## 13.5 Animal AI
+## 14.5 Animal AI
 
 Ducks and pigs implement simple behaviour: wandering, following, and fleeing. Each animal has a state machine with idle, walk, and flee states:
 
@@ -131,4 +131,4 @@ Animations are simple — ducks and pigs use a few frames of vertex animation (w
 - `src/block/` — World modification and ray casting
 
 ----
-[Contents](../crafty.md) | [12-Game Engine](12-game-engine.md) | [14-Audio](14-audio.md)
+[Contents](../crafty.md) | [13-Game Engine](13-game-engine.md) | [15-Audio](15-audio.md)
