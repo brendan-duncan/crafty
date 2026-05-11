@@ -10,6 +10,14 @@ Crafty is a Minecraft-style voxel game engine written in TypeScript with a WebGP
 
 ---
 
+## Companion Book
+
+I have been writing Crafty as a learning opportunity, and I have been writing a companion book to both document my learning, and hopefully to help teach others about realtime rendering and game engine design:
+
+### [Crafty: Building a WebGPU Voxel Game Engine](docs/crafty.md)
+
+---
+
 ## Build & Run
 
 ### Prerequisites
@@ -77,7 +85,3 @@ npm run preview    # serves the built bundle locally
 npm test           # vitest in watch mode
 npm run test:run   # one-shot, suitable for CI
 ```
-
----
-
-## [Architecture Design](docs/crafty.md)
