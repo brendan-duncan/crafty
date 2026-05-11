@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 440" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="440" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Game Loop: Six Phases per requestAnimationFrame Tick</text>
+
+  <defs>
+    <marker id="glArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+    </marker>
+  </defs>
+
+  <!-- ===== 6 phase boxes in a row ===== -->
+  <!-- Box 130 wide × 130 tall, gap 12. Total: 6*130 + 5*12 = 840. x = 40, 182, 324, 466, 608, 750 -->
+
+  <g font-size="11">
+    <!-- 1 INPUT -->
+    <g transform="translate(40, 70)">
+      <rect width="130" height="130" fill="#eff6ff" stroke="#2563eb" stroke-width="1.4" rx="6"/>
+      <circle cx="65" cy="22" r="14" fill="#2563eb"/>
+      <text x="65" y="27" text-anchor="middle" font-weight="700" fill="#fff">1</text>
+      <text x="65" y="58" text-anchor="middle" font-weight="700" fill="#1e3a8a">input</text>
+      <text x="65" y="80" text-anchor="middle" font-size="10" fill="#1e3a8a">read keys, mouse</text>
+      <text x="65" y="94" text-anchor="middle" font-size="10" fill="#1e3a8a">deltas, touches</text>
+      <text x="65" y="118" text-anchor="middle" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#374151">input.update()</text>
+    </g>
+
+    <!-- 2 SCENE -->
+    <g transform="translate(182, 70)">
+      <rect width="130" height="130" fill="#f0fdf4" stroke="#15803d" stroke-width="1.4" rx="6"/>
+      <circle cx="65" cy="22" r="14" fill="#15803d"/>
+      <text x="65" y="27" text-anchor="middle" font-weight="700" fill="#fff">2</text>
+      <text x="65" y="58" text-anchor="middle" font-weight="700" fill="#14532d">scene</text>
+      <text x="65" y="80" text-anchor="middle" font-size="10" fill="#14532d">update() on every</text>
+      <text x="65" y="94" text-anchor="middle" font-size="10" fill="#14532d">active component</text>
+      <text x="65" y="118" text-anchor="middle" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#374151">scene.update(dt)</text>
+    </g>
+
+    <!-- 3 WORLD -->
+    <g transform="translate(324, 70)">
+      <rect width="130" height="130" fill="#fef9c3" stroke="#ca8a04" stroke-width="1.4" rx="6"/>
+      <circle cx="65" cy="22" r="14" fill="#ca8a04"/>
+      <text x="65" y="27" text-anchor="middle" font-weight="700" fill="#fff">3</text>
+      <text x="65" y="58" text-anchor="middle" font-weight="700" fill="#713f12">world</text>
+      <text x="65" y="80" text-anchor="middle" font-size="10" fill="#713f12">stream chunks,</text>
+      <text x="65" y="94" text-anchor="middle" font-size="10" fill="#713f12">generate new</text>
+      <text x="65" y="118" text-anchor="middle" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#374151">world.update(pos)</text>
+    </g>
+
+    <!-- 4 FEED PASSES -->
+    <g transform="translate(466, 70)">
+      <rect width="130" height="130" fill="#fef3c7" stroke="#a16207" stroke-width="1.4" rx="6"/>
+      <circle cx="65" cy="22" r="14" fill="#a16207"/>
+      <text x="65" y="27" text-anchor="middle" font-weight="700" fill="#fff">4</text>
+      <text x="65" y="58" text-anchor="middle" font-weight="700" fill="#713f12">feed passes</text>
+      <text x="65" y="80" text-anchor="middle" font-size="10" fill="#713f12">collect renderers,</text>
+      <text x="65" y="94" text-anchor="middle" font-size="10" fill="#713f12">upload uniforms</text>
+      <text x="65" y="118" text-anchor="middle" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#374151">pass.update*()</text>
+    </g>
+
+    <!-- 5 RENDER -->
+    <g transform="translate(608, 70)">
+      <rect width="130" height="130" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.4" rx="6"/>
+      <circle cx="65" cy="22" r="14" fill="#7c3aed"/>
+      <text x="65" y="27" text-anchor="middle" font-weight="700" fill="#fff">5</text>
+      <text x="65" y="58" text-anchor="middle" font-weight="700" fill="#4c1d95">render</text>
+      <text x="65" y="80" text-anchor="middle" font-size="10" fill="#4c1d95">execute the render</text>
+      <text x="65" y="94" text-anchor="middle" font-size="10" fill="#4c1d95">graph, submit GPU</text>
+      <text x="65" y="118" text-anchor="middle" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#374151">renderGraph.execute</text>
+    </g>
+
+    <!-- 6 NEXT FRAME -->
+    <g transform="translate(750, 70)">
+      <rect width="130" height="130" fill="#f3f4f6" stroke="#374151" stroke-width="1.4" rx="6"/>
+      <circle cx="65" cy="22" r="14" fill="#374151"/>
+      <text x="65" y="27" text-anchor="middle" font-weight="700" fill="#fff">6</text>
+      <text x="65" y="58" text-anchor="middle" font-weight="700" fill="#111827">schedule</text>
+      <text x="65" y="80" text-anchor="middle" font-size="10" fill="#111827">hand control to</text>
+      <text x="65" y="94" text-anchor="middle" font-size="10" fill="#111827">browser vsync</text>
+      <text x="65" y="118" text-anchor="middle" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#374151">rAF(frame)</text>
+    </g>
+  </g>
+
+  <!-- Arrows between boxes -->
+  <g stroke="#374151" stroke-width="1.4">
+    <line x1="170" y1="135" x2="182" y2="135" marker-end="url(#glArr)"/>
+    <line x1="312" y1="135" x2="324" y2="135" marker-end="url(#glArr)"/>
+    <line x1="454" y1="135" x2="466" y2="135" marker-end="url(#glArr)"/>
+    <line x1="596" y1="135" x2="608" y2="135" marker-end="url(#glArr)"/>
+    <line x1="738" y1="135" x2="750" y2="135" marker-end="url(#glArr)"/>
+  </g>
+
+  <!-- Loop-back arrow under all boxes -->
+  <path d="M 815 200 L 815 240 L 105 240 L 105 200" fill="none" stroke="#374151" stroke-width="1.4" marker-end="url(#glArr)"/>
+  <text x="460" y="258" text-anchor="middle" font-size="11" font-style="italic" fill="#374151">↻ next vsync fires the same callback again with a new timestamp</text>
+
+  <!-- ===== Bottom: dt note ===== -->
+  <g transform="translate(40, 286)">
+    <rect width="840" height="60" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+    <text x="14" y="22" font-weight="700" fill="#111827">dt = clamp((time − lastTime) / 1000, 0, 0.05)</text>
+    <text x="14" y="40" font-size="11" fill="#374151">Frame rate is uncapped (tied to display refresh). dt is capped at 50 ms so a tab-switch can't crash physics</text>
+    <text x="14" y="54" font-size="11" fill="#374151">with a giant integration step.</text>
+  </g>
+
+  <!-- ===== Bottom-bottom: parallelism note ===== -->
+  <g transform="translate(40, 360)">
+    <rect width="840" height="60" fill="#eff6ff" stroke="#2563eb" stroke-width="1" rx="6"/>
+    <text x="14" y="22" font-weight="700" fill="#1e3a8a">Phases 1–4 build CPU-side state · phase 5 records GPU work · phase 6 yields to vsync</text>
+    <text x="14" y="40" font-size="11" fill="#1e3a8a">No frame is "in flight" between calls — JS is single-threaded, the GPU runs in parallel after the submit.</text>
+  </g>
+</svg>

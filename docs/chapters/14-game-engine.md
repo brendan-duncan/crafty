@@ -6,6 +6,8 @@ The game engine provides the structure for placing objects in the world, updatin
 
 ## 14.1 The Component/Entity System
 
+![GameObject as a transform-plus-components container, with three example objects (Player, Sun, Torch) showing different attached components](../illustrations/14-component-entity.svg)
+
 Crafty uses a **component/entity** pattern, though it is simplified compared to pure ECS architectures. A `GameObject` is a container for components, each component adding a specific capability.
 
 ```
@@ -53,6 +55,8 @@ abstract class Component {
 
 ## 14.3 The Scene Graph
 
+![Hierarchy of GameObjects with parent-child links, plus a worked-out localToWorld() matrix multiplication walking from HeldTorch up through Player to root](../illustrations/14-scene-graph.svg)
+
 The `Scene` class manages the hierarchy of GameObjects:
 
 ```typescript
@@ -72,6 +76,8 @@ class Scene {
 The scene graph is a tree. Each `GameObject` has a local transform relative to its parent. The `localToWorld()` method walks up the tree to compute the absolute transform.
 
 ## 14.4 The Game Loop
+
+![Six phases per requestAnimationFrame tick: input → scene → world → feed passes → render → schedule next frame](../illustrations/14-game-loop.svg)
 
 The main game loop (`crafty/main.ts`) follows the standard pattern:
 
@@ -145,6 +151,8 @@ class CameraControls extends Component {
 
 ## 14.7 The Player Controller
 
+![Three input sources (keyboard, mouse, touch) feed the PlayerController, which integrates velocity with gravity and collide-and-slide before writing back to the GameObject transform](../illustrations/14-player-controller.svg)
+
 The `PlayerController` extends camera controls with WASD movement, jumping, gravity, and collision:
 
 ```typescript
@@ -178,27 +186,9 @@ class PlayerController extends Component {
 
 ## 14.8 Touch Controls (Mobile)
 
-Mobile devices get a completely separate input overlay (`crafty/game/touch_controls.ts`). Desktop pointer-lock and keyboard don't work on a touchscreen, so a DOM-based overlay provides virtual controls:
+![Phone mockup of the touch overlay: joystick (bottom-left), 3×2 action button grid (bottom-right), menu button (top-right), and look-drag area (right half) above the hotbar](../illustrations/14-touch-overlay.svg)
 
-```
-┌───────────────────────────────┐
-│                       ┌────┐  │
-│                       │ ☰ │  │  Menu button (top-right)
-│                       └────┘  │
-│     Camera look               │
-│     (right-half drag)         │
-│                               │
-│  ┌────┐ ┌────┐ ┌────┐        │
-│  │ ⛏  │ │ ▣  │ │ 💡 │        │  Top row: Mine | Place | Flashlight
-│  └────┘ └────┘ └────┘        │
-│  ┌────┐ ┌────┐ ┌────┐        │
-│  │ ⤓  │ │ >> │ │ ⤒  │        │  Bottom row: Sneak | Run | Jump
-│  └────┘ └────┘ └────┘        │
-│  ┌──────┐                    │
-│  │ ○←→  │  Joystick          │  Virtual joystick (bottom-left)
-│  └──────┘                    │
-└───────────────────────────────┘
-```
+Mobile devices get a completely separate input overlay (`crafty/game/touch_controls.ts`). Desktop pointer-lock and keyboard don't work on a touchscreen, so a DOM-based overlay provides virtual controls:
 
 ### Lazy Initialization
 
@@ -243,8 +233,6 @@ private _bindHoldButton(el, onDown, onUp): void {
   el.addEventListener('touchend',   (e) => { e.preventDefault(); onUp(); });
 }
 ```
-
-The mine button bypasses the progressive break system (which requires holding the button across multiple frames via `updateBlockInteraction`). On touch, `touchstart` immediately calls `completeBreak` — the block is mined in one tap. This avoids the unreliability of touch events (finger slip, system gestures) racing with the render loop.
 
 Toggle-type buttons use `_bindToggleButton`. The Run button (`>>`) toggles `player.inputSprint`, visually switching between a dim and bright green background to indicate the active state. The Flashlight button (`💡`) calls the `onFlashlightToggle` callback, with the button's background/border brightening when active.
 

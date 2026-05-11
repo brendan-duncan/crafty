@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 460" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="460" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Scene Graph: Tree of GameObjects · localToWorld Walks Up to the Root</text>
+
+  <defs>
+    <marker id="sgArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/>
+    </marker>
+  </defs>
+
+  <!-- ===== LEFT: Tree ===== -->
+  <g transform="translate(20, 60)">
+    <text x="220" y="0" text-anchor="middle" font-weight="700" fill="#111827">Hierarchy</text>
+
+    <!-- Tree edges (drawn first so nodes overlay them) -->
+    <g stroke="#9ca3af" stroke-width="1.4" fill="none">
+      <!-- root → Sun, Player, Tree -->
+      <path d="M 220 50 L 220 80 L 60  80 L 60  104"/>
+      <path d="M 220 80 L 220 104"/>
+      <path d="M 220 80 L 380 80 L 380 104"/>
+      <!-- Player → HeldTorch -->
+      <path d="M 220 156 L 220 184"/>
+      <!-- Tree → Trunk, Leaves -->
+      <path d="M 380 156 L 380 184 L 320 184 L 320 204"/>
+      <path d="M 380 184 L 440 184 L 440 204"/>
+    </g>
+
+    <!-- root -->
+    <g transform="translate(180, 24)">
+      <rect width="80" height="28" fill="#f3f4f6" stroke="#374151" stroke-width="1.2" rx="3"/>
+      <text x="40" y="18" text-anchor="middle" font-weight="700" fill="#111827">root</text>
+    </g>
+
+    <!-- Sun -->
+    <g transform="translate(20, 104)">
+      <rect width="80" height="52" fill="#fef9c3" stroke="#ca8a04" stroke-width="1.2" rx="3"/>
+      <text x="40" y="18" text-anchor="middle" font-weight="700" fill="#713f12">Sun</text>
+      <text x="40" y="34" text-anchor="middle" font-size="9" fill="#713f12">Directional</text>
+      <text x="40" y="46" text-anchor="middle" font-size="9" fill="#713f12">Light</text>
+    </g>
+
+    <!-- Player -->
+    <g transform="translate(180, 104)">
+      <rect width="80" height="52" fill="#dcfce7" stroke="#15803d" stroke-width="1.2" rx="3"/>
+      <text x="40" y="18" text-anchor="middle" font-weight="700" fill="#14532d">Player</text>
+      <text x="40" y="34" text-anchor="middle" font-size="9" fill="#14532d">Camera</text>
+      <text x="40" y="46" text-anchor="middle" font-size="9" fill="#14532d">Controller</text>
+    </g>
+
+    <!-- Tree -->
+    <g transform="translate(340, 104)">
+      <rect width="80" height="52" fill="#fed7aa" stroke="#c2410c" stroke-width="1.2" rx="3"/>
+      <text x="40" y="18" text-anchor="middle" font-weight="700" fill="#7c2d12">Tree</text>
+      <text x="40" y="34" text-anchor="middle" font-size="9" fill="#7c2d12">(no</text>
+      <text x="40" y="46" text-anchor="middle" font-size="9" fill="#7c2d12">components)</text>
+    </g>
+
+    <!-- HeldTorch (under Player) -->
+    <g transform="translate(180, 184)">
+      <rect width="80" height="52" fill="#fed7aa" stroke="#c2410c" stroke-width="1.6" rx="3"/>
+      <text x="40" y="18" text-anchor="middle" font-weight="700" fill="#7c2d12">HeldTorch</text>
+      <text x="40" y="34" text-anchor="middle" font-size="9" fill="#7c2d12">Mesh +</text>
+      <text x="40" y="46" text-anchor="middle" font-size="9" fill="#7c2d12">PointLight</text>
+    </g>
+
+    <!-- Trunk (under Tree) -->
+    <g transform="translate(280, 204)">
+      <rect width="80" height="36" fill="#fed7aa" stroke="#c2410c" stroke-width="1.2" rx="3"/>
+      <text x="40" y="18" text-anchor="middle" font-weight="700" fill="#7c2d12">Trunk</text>
+      <text x="40" y="30" text-anchor="middle" font-size="9" fill="#7c2d12">Mesh</text>
+    </g>
+
+    <!-- Leaves (under Tree) -->
+    <g transform="translate(400, 204)">
+      <rect width="80" height="36" fill="#fed7aa" stroke="#c2410c" stroke-width="1.2" rx="3"/>
+      <text x="40" y="18" text-anchor="middle" font-weight="700" fill="#7c2d12">Leaves</text>
+      <text x="40" y="30" text-anchor="middle" font-size="9" fill="#7c2d12">Mesh</text>
+    </g>
+
+    <!-- localToWorld highlight: walk from HeldTorch up through Player to root -->
+    <g stroke="#7c3aed" stroke-width="2" fill="none" opacity="0.85">
+      <line x1="220" y1="184" x2="220" y2="156" marker-end="url(#sgArr)"/>
+      <line x1="220" y1="104" x2="220" y2="52"  marker-end="url(#sgArr)"/>
+    </g>
+    <text x="234" y="172" font-size="10" font-weight="700" fill="#7c3aed">localToWorld()</text>
+    <text x="234" y="180" font-size="10" font-style="italic" fill="#7c3aed">walks parent</text>
+    <text x="234" y="74"  font-size="10" font-style="italic" fill="#7c3aed">up to root</text>
+  </g>
+
+  <!-- ===== RIGHT: matrix multiplication ===== -->
+  <g transform="translate(540, 60)">
+    <text x="180" y="0" text-anchor="middle" font-weight="700" fill="#111827">HeldTorch.localToWorld()</text>
+
+    <rect x="0" y="14" width="360" height="232" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+
+    <text x="14" y="36" font-size="11" fill="#374151">Each level multiplies its local TRS:</text>
+
+    <!-- Three matrix boxes stacked, multiplied -->
+    <g font-family="ui-monospace, Consolas, monospace" font-size="11">
+      <!-- root (identity) -->
+      <rect x="14" y="50" width="120" height="40" fill="#fff" stroke="#374151" stroke-width="1" rx="3"/>
+      <text x="74" y="68" text-anchor="middle" font-weight="700" fill="#111827">root.local</text>
+      <text x="74" y="82" text-anchor="middle" font-size="10" fill="#6b7280">= identity</text>
+
+      <text x="148" y="76" font-size="14" font-weight="700" fill="#374151">×</text>
+
+      <!-- Player.local -->
+      <rect x="164" y="50" width="180" height="40" fill="#dcfce7" stroke="#15803d" stroke-width="1" rx="3"/>
+      <text x="254" y="68" text-anchor="middle" font-weight="700" fill="#14532d">Player.local</text>
+      <text x="254" y="82" text-anchor="middle" font-size="10" fill="#15803d">player position + yaw</text>
+
+      <!-- × HeldTorch.local -->
+      <text x="170" y="116" font-size="14" font-weight="700" fill="#374151">×</text>
+
+      <rect x="190" y="100" width="156" height="40" fill="#fed7aa" stroke="#c2410c" stroke-width="1" rx="3"/>
+      <text x="268" y="118" text-anchor="middle" font-weight="700" fill="#7c2d12">HeldTorch.local</text>
+      <text x="268" y="132" text-anchor="middle" font-size="10" fill="#c2410c">offset in player's hand</text>
+
+      <!-- = -->
+      <text x="170" y="166" font-size="14" font-weight="700" fill="#374151">=</text>
+
+      <!-- HeldTorch.world -->
+      <rect x="190" y="150" width="156" height="40" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.6" rx="3"/>
+      <text x="268" y="168" text-anchor="middle" font-weight="700" fill="#4c1d95">HeldTorch.world</text>
+      <text x="268" y="182" text-anchor="middle" font-size="10" fill="#7c3aed">final transform fed to GPU</text>
+    </g>
+
+    <text x="14" y="216" font-size="11" font-style="italic" fill="#6b7280">Move the player → torch follows automatically.</text>
+    <text x="14" y="232" font-size="11" font-style="italic" fill="#6b7280">No code in HeldTorch updates its world position.</text>
+  </g>
+
+  <!-- ===== Bottom note ===== -->
+  <g transform="translate(40, 380)">
+    <rect width="840" height="64" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+    <text x="14" y="22" font-weight="700" fill="#111827">Scene.update(dt) flat-walks the tree, calling update() on every component on every active GameObject.</text>
+    <text x="14" y="42" font-size="11" fill="#374151">findByName(name) and getComponents&lt;T&gt;(type) return flattened lists — handy for systems that don't care</text>
+    <text x="14" y="58" font-size="11" fill="#374151">about hierarchy (e.g. the renderer collecting every MeshRenderer in the scene).</text>
+  </g>
+</svg>
