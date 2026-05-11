@@ -14,6 +14,7 @@ const SNEAK_SPEED    =   1.3;   // blocks/s (ShiftLeft)
 const WALK_SPEED     =   4.3;   // blocks/s
 const SPRINT_SPEED   =   7.0;   // blocks/s (ControlLeft)
 const JUMP_VEL       =  11.5;   // blocks/s  (peak ≈ 2.36 blocks, clears 1-block walls)
+const AUTO_JUMP_VEL  =   8.0;   // blocks/s  (peak ≈ 1.14 blocks, just clears 1-block steps)
 const SWIM_VEL       =   3.5;   // blocks/s upward when Space pressed in water
 const HALF_W         =   0.3;   // player AABB half-width/depth
 const HEIGHT         =   1.8;   // player AABB height
@@ -47,6 +48,12 @@ export class PlayerController {
   inputSneak   = false;
   /** Held-sprint flag (OR-ed with ControlLeft / AltLeft). */
   inputSprint  = false;
+
+  /**
+   * When true, the controller automatically jumps when walking into a
+   * 1-block-high obstacle that has air above it (mobile auto-step).
+   */
+  autoJump = true;
 
   /**
    * Called when the player takes a footstep while on the ground.
@@ -230,6 +237,19 @@ export class PlayerController {
     // Step distance accumulator (only when on ground and moving).
     const wasOnGround = this._onGround;
     const hSpeed = Math.sqrt(mx * mx + mz * mz);
+
+    // Auto-jump for mobile: when walking into a 1-block-high obstacle that
+    // has air above it, step onto it automatically.
+    if (this.autoJump && this._onGround && hSpeed > 0.5) {
+      const norm = 1 / Math.max(hSpeed, 1);
+      const dx = mx * norm, dz = mz * norm;
+      const footY  = Math.floor(fy);
+      const aheadX = Math.floor(fx + dx * (HALF_W + 0.3));
+      const aheadZ = Math.floor(fz + dz * (HALF_W + 0.3));
+      if (this._isSolid(aheadX, footY, aheadZ) && !this._isSolid(aheadX, footY + 1, aheadZ)) {
+        this._velY = AUTO_JUMP_VEL;
+      }
+    }
 
     // Per-axis move + collide.
     fx = this._slideX(fx + mx * dt, fy, fz, mx);

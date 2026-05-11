@@ -201,6 +201,7 @@ async function main(): Promise<void> {
   }, () => {
     // Once we know it's a touch device, don't fight it with pointer-lock.
     player.usePointerLock = false;
+    player.autoJump = true;
     freeCamera.usePointerLock = false;
   });
 
