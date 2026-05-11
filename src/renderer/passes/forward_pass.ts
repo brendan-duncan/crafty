@@ -514,9 +514,10 @@ export class ForwardPass extends RenderPass {
     dirDataU32[7] = directionalLight.castShadows ? 1 : 0;
     // offset 32: shadowMapIndex u32
     dirDataU32[8] = 0; // shadowMapIndex (always 0 for directional light)
-    // offset 36: _pad vec3<u32> (aligned to 48)
-    // dirData[9-11] are padding, skip to index 12 (offset 48)
-    // offset 64: lightViewProj mat4x4<f32> (aligned to 16)
+    // offset 36-47: padding (dirData[9-11] are unused)
+    // offset 48-59: _pad vec3<u32> (vec3 requires 16-byte alignment, so it starts at 48)
+    // offset 60-63: padding before matrix
+    // offset 64-127: lightViewProj mat4x4<f32> (starts at index 16)
     if (directionalLight.lightViewProj) {
       dirData.set(directionalLight.lightViewProj.data, 16);
     }
