@@ -50,7 +50,7 @@ export type ModifierNode =
  * How particles are rasterized to the framebuffer.
  */
 export type RenderNode =
-  | { type: 'sprites'; blendMode: 'additive' | 'alpha'; billboard: 'camera' | 'velocity'; renderTarget?: 'gbuffer' | 'hdr' }
+  | { type: 'sprites'; blendMode: 'additive' | 'alpha'; billboard: 'camera' | 'velocity'; shape?: 'soft' | 'pixel'; renderTarget?: 'gbuffer' | 'hdr' }
   | { type: 'points' };
 
 /**

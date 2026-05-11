@@ -75,6 +75,33 @@ export class ParticlePass extends RenderPass {
   setSpawnRate(rate: number): void {
     this._config.emitter.spawnRate = rate;
   }
+
+  /**
+   * Pending one-shot burst, processed on the next {@link update}.
+   * Overrides the emitter's world transform position and the spawn color for
+   * this frame's spawn dispatch. Continuous emission is suppressed for that
+   * frame so the burst count is exactly what was requested.
+   */
+  private _pendingBurst: { px: number; py: number; pz: number; r: number; g: number; b: number; a: number; count: number } | null = null;
+
+  /**
+   * Queues a one-shot burst of `count` particles at `position`, tinted `color`,
+   * to be spawned on the next {@link update} call. Replaces any prior pending
+   * burst. The burst position overrides the emitter's world transform for the
+   * spawned particles only — subsequent frames return to using `worldTransform`.
+   */
+  burst(position: { x: number; y: number; z: number }, color: [number, number, number, number], count: number): void {
+    if (count <= 0) {
+      return;
+    }
+    const c = Math.min(count, this._maxParticles);
+    this._pendingBurst = {
+      px: position.x, py: position.y, pz: position.z,
+      r: color[0], g: color[1], b: color[2], a: color[3],
+      count: c,
+    };
+  }
+
   private _time        = 0;
   private _frameSeed   = 0;
 
@@ -415,8 +442,13 @@ export class ParticlePass extends RenderPass {
       // 'velocity' billboard = velocity-aligned streak (rain).
       // 'camera' billboard   = camera-facing soft disc (snow, smoke).
       const billboard = config.renderer.type === 'sprites' ? config.renderer.billboard : 'camera';
+      const shape     = config.renderer.type === 'sprites' ? (config.renderer.shape ?? 'soft') : 'soft';
       const vsEntry = billboard === 'camera' ? 'vs_camera' : 'vs_main';
-      const fsEntry = billboard === 'camera' ? 'fs_snow'   : 'fs_main';
+      // Velocity-aligned streaks always use fs_main (alpha-faded tips); camera-aligned
+      // sprites pick between the soft circular disc and the hard square pixel.
+      const fsEntry = billboard === 'velocity'
+        ? 'fs_main'
+        : (shape === 'pixel' ? 'fs_pixel' : 'fs_snow');
       const renderModule = device.createShaderModule({ label: 'ParticleRenderForward', code: renderForwardWgsl });
       const renderLayout = device.createPipelineLayout({
         bindGroupLayouts: [renderDataBGL, cameraRenderBGL],
@@ -530,13 +562,14 @@ export class ParticlePass extends RenderPass {
     this._time += dt;
     this._frameSeed = (this._frameSeed + 1) & 0xFFFFFFFF;
 
+    // Default: continuous emission accumulated from spawnRate.
     this._spawnAccum += this._config.emitter.spawnRate * dt;
     this._spawnCount  = Math.min(Math.floor(this._spawnAccum), this._maxParticles);
     this._spawnAccum -= this._spawnCount;
 
-    // Decompose world transform into position + rotation quaternion
+    // Default emitter transform comes from the per-frame world matrix.
     const m = worldTransform.data;
-    const px = m[12], py = m[13], pz = m[14];
+    let px = m[12], py = m[13], pz = m[14];
     const sx = Math.hypot(m[0], m[1], m[2]);
     const sy = Math.hypot(m[4], m[5], m[6]);
     const sz = Math.hypot(m[8], m[9], m[10]);
@@ -559,11 +592,28 @@ export class ParticlePass extends RenderPass {
       qw = (r10 - r01) / s; qx = (r02 + r20) / s; qy = (r12 + r21) / s; qz = 0.25 * s;
     }
 
-    // ComputeUniforms (20 floats / 80 bytes):
+    // Default spawn color comes from the emitter config; bursts override it.
+    const ec = this._config.emitter.initialColor;
+    let cr = ec[0], cg = ec[1], cb = ec[2], ca = ec[3];
+
+    // A pending burst overrides position, rotation (identity), spawn count and color
+    // for this single frame. Continuous emission is replaced (not added to) so the
+    // burst count is exactly what was requested.
+    if (this._pendingBurst) {
+      const b = this._pendingBurst;
+      px = b.px; py = b.py; pz = b.pz;
+      qx = 0; qy = 0; qz = 0; qw = 1;
+      this._spawnCount = b.count;
+      cr = b.r; cg = b.g; cb = b.b; ca = b.a;
+      this._pendingBurst = null;
+    }
+
+    // ComputeUniforms (24 floats / 96 bytes-of-space, 80 actually used):
     //   [0..2]  world_pos, [3] spawn_count
     //   [4..7]  world_quat
     //   [8]     spawn_offset, [9] max_particles, [10] frame_seed, [11] _pad
     //   [12]    dt, [13] time, [14..15] _pad
+    //   [16..19] spawn_color (rgba)
     const cu  = this._cuBuf;
     const cui = this._cuiView;
     cu[0] = px; cu[1] = py; cu[2] = pz;
@@ -575,6 +625,7 @@ export class ParticlePass extends RenderPass {
     cui[11] = 0;
     cu[12] = dt;
     cu[13] = this._time;
+    cu[16] = cr; cu[17] = cg; cu[18] = cb; cu[19] = ca;
     ctx.queue.writeBuffer(this._computeUniforms, 0, cu.buffer as ArrayBuffer);
 
     // Reset atomic counter for this frame's compact pass

@@ -30,6 +30,21 @@ export interface BlockInteractionState {
    * applied from network messages (those use {@link applyRemoteBlockEdit}).
    */
   onLocalEdit?: (edit: LocalBlockEdit) => void;
+
+  /**
+   * Optional sink fired when a block is fully broken locally, used by the
+   * renderer to spawn block-debris particles at the block centre tinted with
+   * the block's atlas colour.
+   */
+  onBlockBroken?: (x: number, y: number, z: number, blockType: BlockType) => void;
+
+  /**
+   * Optional sink fired when the visible crack stage of the currently-mining
+   * block advances (0→1, 1→2, …, 8→9). Used by the renderer to emit small
+   * "chip" bursts so debris flies off as the player mines, not just at the
+   * final break.
+   */
+  onBlockChip?: (x: number, y: number, z: number, blockType: BlockType) => void;
 }
 
 const BLOCK_INITIAL_DELAY  = 700; // ms before repeat starts
@@ -71,6 +86,7 @@ export function completeBreak(state: BlockInteractionState, world: World, scene:
   }
   if (world.mineBlock(tx, ty, tz)) {
     state.onLocalEdit?.({ kind: 'break', x: tx, y: ty, z: tz });
+    state.onBlockBroken?.(tx, ty, tz, minedType);
     if (!isBlockProp(minedType)) {
       const aboveType = world.getBlockType(tx, ty + 1, tz);
       if (isBlockProp(aboveType)) {
@@ -230,7 +246,12 @@ export function updateBlockInteraction(
         // Check if we're still targeting the same block
         if (target.x === state.breakingBlock.x && target.y === state.breakingBlock.y && target.z === state.breakingBlock.z) {
           state.breakProgress += dt * 1000;
-          state.crackStage = Math.min(Math.floor(state.breakProgress / state.breakTime * 10), 9);
+          const newStage = Math.min(Math.floor(state.breakProgress / state.breakTime * 10), 9);
+          if (newStage > state.crackStage) {
+            const minedType = world.getBlockType(target.x, target.y, target.z);
+            state.onBlockChip?.(target.x, target.y, target.z, minedType);
+          }
+          state.crackStage = newStage;
           if (state.breakProgress >= state.breakTime) {
             completeBreak(state, world, scene);
           }

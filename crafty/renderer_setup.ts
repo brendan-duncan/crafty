@@ -14,7 +14,7 @@ import type { Texture } from '../src/assets/texture.js';
 import type { World, Chunk, ChunkMesh } from '../src/block/index.js';
 import { EnvironmentEffect } from '../src/block/index.js';
 import type { Mat4 } from '../src/math/index.js';
-import { rainConfig, snowConfig } from './config/particle_configs.js';
+import { rainConfig, snowConfig, blockBreakConfig } from './config/particle_configs.js';
 
 export interface RenderPasses {
   shadowPass: ShadowPass;
@@ -33,6 +33,7 @@ export interface RenderPasses {
   dofPass: DofPass | null;
   bloomPass: BloomPass | null;
   rainPass: ParticlePass | null;
+  blockBreakPass: ParticlePass;
   godrayPass: GodrayPass | null;
   cloudPass: CloudPass | null;
   cloudShadowPass: CloudShadowPass | null;
@@ -161,7 +162,7 @@ export async function buildRenderTargets(
     ? (bloomPass = BloomPass.create(ctx, postInput), bloomPass.resultView)
     : postInput;
 
-  const blockHighlightPass = BlockHighlightPass.create(ctx, bloomOut, gbuffer.depthView);
+  const blockHighlightPass = BlockHighlightPass.create(ctx, bloomOut, gbuffer.depthView, blockTexture.colorAtlas);
   const autoExposurePass = AutoExposurePass.create(ctx, lightingPass.hdrTexture);
   autoExposurePass.enabled = effects.auto_exp;
   const compositePass = CompositePass.create(ctx, bloomOut, ssaoPass.aoView, gbuffer.depthView, lightingPass.cameraBuffer, lightingPass.lightBuffer, autoExposurePass.exposureBuffer);
@@ -173,6 +174,9 @@ export async function buildRenderTargets(
     const weatherConfig = currentWeatherEffect === EnvironmentEffect.Snow ? snowConfig : rainConfig;
     rainPass = ParticlePass.create(ctx, weatherConfig, gbuffer, lightingPass.hdrView);
   }
+
+  // Always-on burst-only particle pass for block-break debris.
+  const blockBreakPass = ParticlePass.create(ctx, blockBreakConfig, gbuffer, lightingPass.hdrView);
 
   // Build graph
   const { RenderGraph } = await import('../src/renderer/index.js');
@@ -201,6 +205,7 @@ export async function buildRenderTargets(
   if (rainPass) {
     graph.addPass(rainPass);
   }
+  graph.addPass(blockBreakPass);
   graph.addPass(taaPass);
   if (dofPass) {
     graph.addPass(dofPass);
@@ -229,6 +234,7 @@ export async function buildRenderTargets(
     dofPass,
     bloomPass,
     rainPass,
+    blockBreakPass,
     godrayPass,
     cloudPass,
     cloudShadowPass,

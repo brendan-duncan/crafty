@@ -25,6 +25,7 @@ struct ComputeUniforms {
   dt            : f32,
   time          : f32,
   _pad1         : vec2<f32>,
+  spawn_color   : vec4<f32>,
 }
 
 fn pcg_hash(v: u32) -> u32 {
@@ -244,7 +245,6 @@ export function buildSpawnShader(config: ParticleGraphConfig): string {
   const [lifeMin, lifeMax] = emitter.lifetime.map(v => v.toFixed(6));
   const [speedMin, speedMax] = emitter.initialSpeed.map(v => v.toFixed(6));
   const [sizeMin, sizeMax] = emitter.initialSize.map(v => v.toFixed(6));
-  const [cr, cg, cb, ca] = emitter.initialColor.map(v => v.toFixed(6));
 
   return /* wgsl */`
 ${PARTICLE_HEADER_WGSL}
@@ -269,7 +269,7 @@ fn cs_main(@builtin(global_invocation_id) gid: vec3<u32>) {
   var p: Particle;
   p.life     = 0.0;
   p.max_life = rand_range(${lifeMin}, ${lifeMax}, seed + 2u);
-  p.color    = vec4<f32>(${cr}, ${cg}, ${cb}, ${ca});
+  p.color    = uniforms.spawn_color;
   p.size     = rand_range(${sizeMin}, ${sizeMax}, seed + 3u);
   p.rotation = rand_f32(seed + 4u) * 6.28318530717958647;
 

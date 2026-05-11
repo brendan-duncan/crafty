@@ -4,6 +4,11 @@ import type { Vec3 } from '../../math/vec3.js';
 import { HDR_FORMAT } from './lighting_pass.js';
 import blockHighlightWgsl from '../../shaders/block_highlight.wgsl?raw';
 
+/** Subset of {@link BlockTexture} we actually need at the binding point. */
+interface CrackAtlasSource {
+  readonly view: GPUTextureView;
+}
+
 // viewProj(64) + blockPos(12) + pad(4) = 80 bytes
 const UNIFORM_SIZE = 80;
 
@@ -50,12 +55,19 @@ export class BlockHighlightPass extends RenderPass {
    * Builds the pass, allocating the uniform buffer, bind group, and the face
    * and edge pipelines.
    *
-   * @param ctx       Renderer context providing the GPU device.
-   * @param hdrView   HDR color attachment to draw the highlight into.
-   * @param depthView Depth attachment used for occlusion (load-only).
+   * @param ctx        Renderer context providing the GPU device.
+   * @param hdrView    HDR color attachment to draw the highlight into.
+   * @param depthView  Depth attachment used for occlusion (load-only).
+   * @param crackAtlas Block atlas texture; the rightmost column of tiles
+   *                   contains the per-stage crack overlay sampled by the face shader.
    * @returns A ready-to-execute BlockHighlightPass.
    */
-  static create(ctx: RenderContext, hdrView: GPUTextureView, depthView: GPUTextureView): BlockHighlightPass {
+  static create(
+    ctx: RenderContext,
+    hdrView: GPUTextureView,
+    depthView: GPUTextureView,
+    crackAtlas: CrackAtlasSource,
+  ): BlockHighlightPass {
     const { device } = ctx;
 
     const uniformBuf = device.createBuffer({
@@ -64,15 +76,32 @@ export class BlockHighlightPass extends RenderPass {
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
+    const crackSampler = device.createSampler({
+      label    : 'BlockHighlightCrackSampler',
+      magFilter: 'nearest',  // crisp pixel-art crack tiles
+      minFilter: 'nearest',
+      mipmapFilter: 'nearest',
+      addressModeU: 'clamp-to-edge',
+      addressModeV: 'clamp-to-edge',
+    });
+
     const bgl = device.createBindGroupLayout({
       label  : 'BlockHighlightBGL',
-      entries: [{ binding: 0, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, buffer: { type: 'uniform' } }],
+      entries: [
+        { binding: 0, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, buffer:  { type: 'uniform' } },
+        { binding: 1, visibility: GPUShaderStage.FRAGMENT,                          texture: { sampleType: 'float' } },
+        { binding: 2, visibility: GPUShaderStage.FRAGMENT,                          sampler: { type: 'filtering' } },
+      ],
     });
 
     const bg = device.createBindGroup({
       label  : 'BlockHighlightBG',
       layout : bgl,
-      entries: [{ binding: 0, resource: { buffer: uniformBuf } }],
+      entries: [
+        { binding: 0, resource: { buffer: uniformBuf } },
+        { binding: 1, resource: crackAtlas.view },
+        { binding: 2, resource: crackSampler },
+      ],
     });
 
     const shader = device.createShaderModule({ label: 'BlockHighlightShader', code: blockHighlightWgsl });

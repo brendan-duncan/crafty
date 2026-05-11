@@ -37,6 +37,7 @@ import { createHud } from './ui/hud.js';
 // Game logic imports
 import { setupPlayer } from './game/player_setup.js';
 import { createBlockInteractionState, setupBlockInteractionHandlers, updateBlockInteraction, applyRemoteBlockEdit } from './game/block_interaction.js';
+import { loadBlockColors, getBlockColor } from './game/block_colors.js';
 import { setupTouchControlsLazy, isTouchDevice } from './game/touch_controls.js';
 import { AudioManager } from './game/audio_manager.js';
 import { WeatherType, getWeatherCloudCoverage, getWeatherEnvironmentEffect, getWeatherSpawnRate, getWeatherName, pickRandomWeather, getWeatherChangeInterval } from './game/weather_system.js';
@@ -107,6 +108,7 @@ async function main(): Promise<void> {
   const iblTextures: IblTextures = await computeIblGpu(device, skyTexture.gpuTexture);
   const cloudNoises: CloudNoiseTextures = createCloudNoiseTextures(device);
   const blockTexture = await BlockTexture.load(device, colorAtlasUrl, normalAtlasUrl, merAtlasUrl, heightAtlasUrl);
+  await loadBlockColors(colorAtlasUrl);
   const dudvTexture = await Texture.fromUrl(device, dudvUrl);
   const gradientTexture = await Texture.fromUrl(device, gradientUrl);
   const flashlightTexture = await Texture.fromUrl(device, flashlightUrl, {
@@ -224,6 +226,20 @@ async function main(): Promise<void> {
   }
 
   await rebuildRenderTargets();
+
+  // Spawn block-debris particles tinted with the block's atlas colour. Small
+  // "chip" bursts fire each time the visible crack stage advances during
+  // mining; a larger burst plays on the final break.
+  // Closes over `passes` (a `let`) so it always uses the live blockBreakPass
+  // after a render-target rebuild.
+  blockInteraction.onBlockChip = (x, y, z, blockType) => {
+    const [r, g, b] = getBlockColor(blockType);
+    passes.blockBreakPass?.burst({ x: x + 0.5, y: y + 0.5, z: z + 0.5 }, [r, g, b, 1], 4);
+  };
+  blockInteraction.onBlockBroken = (x, y, z, blockType) => {
+    const [r, g, b] = getBlockColor(blockType);
+    passes.blockBreakPass?.burst({ x: x + 0.5, y: y + 0.5, z: z + 0.5 }, [r, g, b, 1], 14);
+  };
 
   // Register animal spawning on chunk load — must happen before world.update
   // so the initial bulk-load also populates animals near the spawn point.
@@ -926,6 +942,10 @@ async function main(): Promise<void> {
       _rainMat.data[12] = camPos.x; _rainMat.data[13] = camPos.y + spawnOffset; _rainMat.data[14] = camPos.z;
       passes.rainPass.update(ctx, dt, view, proj, vp, invVP, camPos, camera.near, camera.far, _rainMat);
     }
+
+    // Block-break debris pass: continuous emitter is off; the per-frame update
+    // still drives simulation so any in-flight burst particles age, fall, and shrink.
+    passes.blockBreakPass?.update(ctx, dt, view, proj, vp, invVP, camPos, camera.near, camera.far, _rainMat);
 
     passes.dofPass?.updateParams(ctx, 8.0, 75.0, 3.0, camera.near, camera.far);
     passes.godrayPass?.updateParams(ctx);

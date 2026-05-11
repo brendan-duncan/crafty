@@ -11,6 +11,8 @@ struct Uniforms {
 }
 
 @group(0) @binding(0) var<uniform> u: Uniforms;
+@group(0) @binding(1) var crack_atlas  : texture_2d<f32>;
+@group(0) @binding(2) var crack_sampler: sampler;
 
 // ── 36 vertices for 6 faces (triangle-list, cullMode=none) ──────────────────
 // Each row: two triangles covering one face of the unit cube.
@@ -96,28 +98,44 @@ fn vs_face(@builtin(vertex_index) vid: u32) -> FaceOutput {
   return out;
 }
 
-// Procedural crack overlay — hash-based cell pattern
-fn hash2(p: vec2<f32>) -> f32 {
-  return fract(sin(dot(p, vec2<f32>(127.1, 311.7))) * 43758.5453);
-}
+// Crack overlay sampled from the last column of the block atlas.
+// The atlas is 25 × 25 tiles; the rightmost column (x = 24) holds 9 crack
+// stages stacked from top (least cracked) to bottom (most cracked).
+const CRACK_ATLAS_TILES   : f32 = 25.0;
+const CRACK_ATLAS_COL     : f32 = 24.0;
+const CRACK_ATLAS_STAGES  : f32 = 9.0;
 
 fn crack_alpha(local: vec3<f32>, stage: f32) -> f32 {
   if (stage < 0.5) { return 0.0; }
 
-  // Use the two dominant face axes for UV
-  let ax = abs(local.x - 0.5);
-  let ay = abs(local.y - 0.5);
-  let az = abs(local.z - 0.5);
-  var u = local.x;
-  var v = local.z;
-  if (ax <= ay && ax <= az) { u = local.y; v = local.z; }
-  else if (az <= ax && az <= ay) { u = local.x; v = local.y; }
+  // Pick the dominant face axis (largest distance from block centre = the face
+  // the fragment lies on) and derive 0..1 face UV from the other two axes.
+  let dx = abs(local.x - 0.5);
+  let dy = abs(local.y - 0.5);
+  let dz = abs(local.z - 0.5);
+  var face_uv: vec2<f32>;
+  if (dx >= dy && dx >= dz) {
+    face_uv = vec2<f32>(local.z, local.y);   // ±X face
+  } else if (dy >= dx && dy >= dz) {
+    face_uv = vec2<f32>(local.x, local.z);   // ±Y face
+  } else {
+    face_uv = vec2<f32>(local.x, local.y);   // ±Z face
+  }
 
-  // 8x8 hash grid on the block face — each cell cracks independently
-  let cell = floor(vec2<f32>(u, v) * 8.0);
-  let h = hash2(cell);
-  let percent = stage / 10.0;
-  return 1.0 - smoothstep(percent - 0.08, percent + 0.08, h);
+  // Pick the crack tile for this break stage (1 → top tile, 9 → bottom tile)
+  // and remap face UV into the tile's slot in the atlas.
+  let stage_idx = clamp(floor(stage) - 1.0, 0.0, CRACK_ATLAS_STAGES - 1.0);
+  let atlas_uv = vec2<f32>(
+    (CRACK_ATLAS_COL + face_uv.x) / CRACK_ATLAS_TILES,
+    (stage_idx       + face_uv.y) / CRACK_ATLAS_TILES,
+  );
+
+  // The crack tile uses opaque dark pixels for the cracks; we treat luminance
+  // inverse as the crack strength so a black crack pattern reads as a strong
+  // dark overlay even on RGB-only crack textures.
+  let s = textureSampleLevel(crack_atlas, crack_sampler, atlas_uv, 0.0);
+  let lum = dot(s.rgb, vec3<f32>(0.2126, 0.7152, 0.0722));
+  return s.a * (1.0 - lum);
 }
 
 @fragment

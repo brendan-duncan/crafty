@@ -136,3 +136,11 @@ fn fs_snow(in: VertexOutput) -> @location(0) vec4<f32> {
   let alpha = in.color.a * (1.0 - d2);
   return vec4<f32>(in.color.rgb * EMIT_SCALE, alpha);
 }
+
+// Hard square pixel — no radial falloff, no discard. Suits chunky debris that
+// should read as a solid coloured pixel rather than a soft glow. Skips
+// EMIT_SCALE so the output matches the source colour after tonemapping.
+@fragment
+fn fs_pixel(in: VertexOutput) -> @location(0) vec4<f32> {
+  return vec4<f32>(in.color.rgb, in.color.a);
+}

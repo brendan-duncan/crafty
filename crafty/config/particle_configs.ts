@@ -21,6 +21,25 @@ export const rainConfig: ParticleGraphConfig = {
   renderer: { type: 'sprites', blendMode: 'alpha', billboard: 'velocity', renderTarget: 'hdr' },
 };
 
+export const blockBreakConfig: ParticleGraphConfig = {
+  emitter: {
+    maxParticles: 1024,
+    spawnRate: 0,                          // bursts only — no continuous emission
+    lifetime: [0.5, 1.0],
+    shape: { kind: 'sphere', radius: 0.15, solidAngle: Math.PI },
+    initialSpeed: [2.0, 4.5],
+    initialColor: [1, 1, 1, 1],            // overridden per burst by ParticlePass.burst()
+    initialSize: [0.025, 0.05],
+    roughness: 0.9,
+    metallic: 0.0,
+  },
+  modifiers: [
+    { type: 'gravity', strength: 14.0 },
+    { type: 'drag', coefficient: 0.6 },
+  ],
+  renderer: { type: 'sprites', blendMode: 'alpha', billboard: 'camera', shape: 'pixel', renderTarget: 'hdr' },
+};
+
 export const snowConfig: ParticleGraphConfig = {
   emitter: {
     maxParticles: 80000,
