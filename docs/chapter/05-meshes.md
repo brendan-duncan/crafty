@@ -171,6 +171,160 @@ bottom (0,-1,0) (1,0,0,-1)    (-h,-h,-h)-(h,-h,-h)-(h,-h,h)-(-h,-h,h)
 
 This is important for correct lighting — without explicit per-face normals, a cube with hard edges would appear softly shaded at the corners.
 
+### UV Sphere
+
+`Mesh.createSphere(device, radius, latSegments, lonSegments)` generates a **UV sphere** — a sphere built from latitude and longitude rings:
+
+```typescript
+static createSphere(device: GPUDevice, radius = 0.5,
+                    latSegments = 32, lonSegments = 32): Mesh {
+  const vertData: number[] = [];
+  const idxData: number[] = [];
+
+  for (let lat = 0; lat <= latSegments; lat++) {
+    const theta    = (lat / latSegments) * Math.PI;
+    const sinTheta = Math.sin(theta);
+    const cosTheta = Math.cos(theta);
+
+    for (let lon = 0; lon <= lonSegments; lon++) {
+      const phi    = (lon / lonSegments) * Math.PI * 2;
+      const sinPhi = Math.sin(phi);
+      const cosPhi = Math.cos(phi);
+
+      const nx = sinTheta * cosPhi;
+      const ny = cosTheta;
+      const nz = sinTheta * sinPhi;
+
+      vertData.push(
+        nx * radius, ny * radius, nz * radius,  // position
+        nx, ny, nz,                              // normal
+        lon / lonSegments, lat / latSegments,    // uv
+        -sinPhi, 0, cosPhi, 1,                    // tangent
+      );
+    }
+  }
+
+  for (let lat = 0; lat < latSegments; lat++) {
+    for (let lon = 0; lon < lonSegments; lon++) {
+      const a = lat * (lonSegments + 1) + lon;
+      const b = a + lonSegments + 1;
+      idxData.push(a, a + 1, b);
+      idxData.push(a + 1, b + 1, b);
+    }
+  }
+
+  return Mesh.fromData(device, new Float32Array(vertData),
+                       new Uint32Array(idxData));
+}
+```
+
+Because the sphere is centred at the origin, the **normal at each vertex equals the normalised vertex position** — the unit vector `(nx, ny, nz)`. The vertex position is simply that normal scaled by `radius`. This gives smooth, continuous normals across the entire surface, producing correct Lambertian and specular lighting.
+
+The **tangent** is the derivative of the surface position with respect to longitude — `(-sinPhi, 0, cosPhi)` — which points eastward along the latitude ring. This gives the normal map a consistent local reference frame.
+
+**UV coordinates** wrap `u` around the longitude (0 at the prime meridian, 1 at the same seam) and `v` across the latitude (0 at the south pole, 1 at the north pole). The seam at `lon = lonSegments` overlaps with `lon = 0` — two distinct vertices share the same spatial position but have different UVs, creating a single sharp seam where the texture wraps.
+
+**Indexing** produces two triangles per quad:
+
+```
+a ─── a+1         a = lat * (lonSegments + 1) + lon
+│ \     │         b = a + lonSegments + 1
+│   \   │
+b ─── b+1
+```
+
+The winding is counter-clockwise when viewed from outside the sphere, which matches WebGPU's default front face.
+
+**Segment count** trades quality for performance:
+
+- **16×16** — 1,058 vertices, used for distant or small objects.
+- **32×32** — 4,194 vertices, the default — smooth enough for most uses.
+- **64×64** — 16,514 vertices, used when the sphere fills a large portion of the screen.
+
+The sphere is used for debug light markers (showing point/spot light positions and colours) and for any procedural object requiring a round shape.
+
+### Cone
+
+`Mesh.createCone(device, radius, height, segments)` generates a cone with its apex at `(0, height, 0)` and its base centred at the origin on the XZ plane:
+
+```typescript
+static createCone(device: GPUDevice, radius = 0.5,
+                  height = 1.0, segments = 16): Mesh {
+  const vertData: number[] = [];
+  const idxData: number[] = [];
+
+  const slope = Math.sqrt(height * height + radius * radius);
+  const sn = height / slope;   // outward normal x/z scale
+  const cn = radius / slope;   // outward normal y component
+
+  // Apex
+  vertData.push(0, height, 0,  0, 1, 0,  0.5, 0,  1, 0, 0, 1);
+
+  // Side ring — segments+1 to close the seam
+  const sideRingStart = 1;
+  for (let i = 0; i <= segments; i++) {
+    const t = (i / segments) * Math.PI * 2;
+    const c = Math.cos(t), s = Math.sin(t);
+    vertData.push(
+      c * radius, 0, s * radius,
+      c * sn, cn, s * sn,
+      i / segments, 1,
+      c, 0, s, 1,
+    );
+  }
+
+  // Side triangles — apex, ring[i+1], ring[i]
+  for (let i = 0; i < segments; i++) {
+    idxData.push(0, sideRingStart + i + 1, sideRingStart + i);
+  }
+
+  // Base cap center
+  const capCenter = sideRingStart + segments + 1;
+  vertData.push(0, 0, 0,  0, -1, 0,  0.5, 0.5,  1, 0, 0, 1);
+
+  // Base cap ring
+  const capRingStart = capCenter + 1;
+  for (let i = 0; i <= segments; i++) {
+    const t = (i / segments) * Math.PI * 2;
+    const c = Math.cos(t), s = Math.sin(t);
+    vertData.push(
+      c * radius, 0, s * radius,
+      0, -1, 0,
+      0.5 + c * 0.5, 0.5 + s * 0.5,
+      1, 0, 0, 1,
+    );
+  }
+
+  // Base triangles — center, ring[i], ring[i+1]
+  for (let i = 0; i < segments; i++) {
+    idxData.push(capCenter, capRingStart + i, capRingStart + i + 1);
+  }
+
+  return Mesh.fromData(device, new Float32Array(vertData),
+                       new Uint32Array(idxData));
+}
+```
+
+The cone is built from three parts: the **apex** (a single vertex at the tip), the **side** (a triangle fan from the apex to the base ring), and the **base cap** (a triangle fan from the centre of the base to the ring).
+
+**Side normals** are computed from the slope of the cone. For a cone with radius `r` and height `h`, the outward normal on the side has a horizontal component proportional to `h / sqrt(h² + r²)` and a vertical component proportional to `r / sqrt(h² + r²)`:
+
+```typescript
+const slope = Math.sqrt(height * height + radius * radius);
+const sn = height / slope;   // horizontal scale factor
+const cn = radius / slope;   // vertical (Y) component
+```
+
+This produces normals that are perpendicular to the cone's slanted surface, giving correct Lambertian lighting across the sides.
+
+**Base cap normals** are `(0, -1, 0)` — straight down — shared by both the centre vertex and the ring vertices. The base and side use separate vertices at the same ring positions (the `sideRingStart` and `capRingStart` loops each generate their own copy of the ring), so the side and base can have different normals at the same spatial location.
+
+**UVs** for the side map `u` around the circumference and `v` to the vertical position (0 at the apex, 1 at the base). The base cap uses a radial projection: `(0.5 + cos(t) * 0.5, 0.5 + sin(t) * 0.5)`, creating a circular UV layout centred on the base.
+
+**Tangents** for the side are `(cos(t), 0, sin(t))` — the derivative of the vertex position around the ring. The apex and base centre use a fixed `(1, 0, 0, 1)` tangent since they are singular points connected to all segments.
+
+The cone is useful for rendering volumetric light cones (spot lights), particle emission cones, and any conical procedural shape.
+
 ## 5.5 Skinned Meshes and Skeletons
 
 Skinned meshes extend the basic mesh with **joint influences** — each vertex is bound to up to four bones with corresponding weights:
