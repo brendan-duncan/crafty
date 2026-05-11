@@ -8,12 +8,7 @@ This chapter introduces the WebGPU API from the ground up. We cover every resour
 
 Before diving into the API, it is worth reviewing the modern GPU pipeline. Every frame, the GPU executes a sequence of stages:
 
-```
-Vertex Shader  ──>  Tessellation (optional)  ──>  Geometry Shader (optional)
-       │
-       v
-Rasterisation  ──>  Fragment Shader  ──>  Depth/Stencil Test  ──>  Output Merger
-```
+![The modern GPU graphics pipeline](../illustrations/03-graphics-pipeline.svg)
 
 WebGPU exposes a subset of this pipeline with a clean, explicit API. The key programmable stages are:
 
@@ -25,7 +20,10 @@ Pipeline state is fully explicit. Every combination of shaders, vertex layout, b
 
 ## 3.2 GPUDevice and GPUAdapter
 
-The entry point to WebGPU is `navigator.gpu`. The first step is to request an **adapter** (a physical or virtual GPU), then create a **device** (the logical handle to that GPU):
+The entry point to WebGPU is `navigator.gpu`. The first step is to request an **adapter** (a physical or virtual GPU), then create a **device** (the logical handle to that GPU). The device, in turn, owns every resource you create — buffers, textures, shaders, pipelines — and exposes a single queue for submitting work:
+
+![WebGPU object hierarchy](../illustrations/03-device-hierarchy.svg)
+
 
 ```typescript
 // ── from src/renderer/render_context.ts ──
@@ -187,7 +185,10 @@ A `GPUTexture` is a GPU image — a 2D, 3D, or cube-map array of texels used as 
 
 ### Texture Creation
 
-The `GBuffer` class allocates three textures for deferred rendering:
+The `GBuffer` class allocates three textures for deferred rendering. Each one packs different per-pixel data into its four channels — albedo + roughness, world-space normal + metallic, and depth:
+
+![GBuffer channel packing across three textures](../illustrations/03-gbuffer-layout.svg)
+
 
 ```typescript
 // ── from src/renderer/gbuffer.ts ──
@@ -270,6 +271,11 @@ Samplers are lightweight objects that are bound to shaders through bind groups.
 ## 3.6 GPUBindGroup and GPUBindGroupLayout
 
 Resources are made available to shaders through **bind groups**. A `GPUBindGroupLayout` describes the types and visibility of resources a shader expects. A `GPUBindGroup` binds actual resources (buffers, textures, samplers) to that layout.
+
+The bind group index from `setBindGroup(N, …)` on the CPU lines up with the `@group(N)` annotation in the shader, and the per-entry `binding` numbers line up with `@binding(M)`. This is how Crafty's geometry pass connects camera, model, and material data to its WGSL:
+
+![Bind groups link CPU resources to shader bindings](../illustrations/03-bind-groups.svg)
+
 
 ### Bind Group Layout
 
@@ -440,7 +446,10 @@ Pipelines are the immutable, compiled representation of the entire GPU state for
 
 ### Render Pipeline Creation
 
-Creating a render pipeline requires specifying vertex buffers, shader stages, fragment targets, depth/stencil state, and primitive topology:
+Creating a render pipeline requires specifying vertex buffers, shader stages, fragment targets, depth/stencil state, and primitive topology — every piece of state needed to issue draw calls is funneled into one immutable object:
+
+![Render pipeline assembly](../illustrations/03-render-pipeline-assembly.svg)
+
 
 ```typescript
 // ── from geometry_pass.ts _getPipeline ──
@@ -529,7 +538,10 @@ Crafty uses compute pipelines for particle simulation, auto-exposure histogram c
 
 ## 3.9 GPUCommandEncoder and GPUQueue
 
-All GPU work is recorded into a **command buffer** via a `GPUCommandEncoder`, then submitted to the GPU through a `GPUQueue`.
+All GPU work is recorded into a **command buffer** via a `GPUCommandEncoder`, then submitted to the GPU through a `GPUQueue`. Every render pass for the frame writes into a single shared encoder, which is then finished and submitted as one command buffer:
+
+![Frame command flow: encoder → passes → submit](../illustrations/03-frame-command-flow.svg)
+
 
 ### The Frame Recording Pattern
 

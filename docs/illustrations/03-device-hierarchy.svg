@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 440" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="760" height="440" fill="#ffffff"/>
+  <text x="380" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">WebGPU Object Hierarchy</text>
+
+  <defs>
+    <marker id="hArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+    </marker>
+    <marker id="hOwn" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6b7280"/>
+    </marker>
+  </defs>
+
+  <!-- Top: navigator.gpu -->
+  <g transform="translate(280, 50)">
+    <rect width="200" height="50" fill="#fef3c7" stroke="#92400e" stroke-width="1.4" rx="6"/>
+    <text x="100" y="22" text-anchor="middle" font-weight="700" fill="#92400e" font-family="ui-monospace, Consolas, monospace">navigator.gpu</text>
+    <text x="100" y="40" text-anchor="middle" font-size="11" fill="#92400e" font-style="italic">browser entry point</text>
+  </g>
+
+  <!-- Arrow + requestAdapter() -->
+  <g>
+    <line x1="380" y1="100" x2="380" y2="124" stroke="#374151" stroke-width="1.5" marker-end="url(#hArr)"/>
+    <text x="388" y="118" font-size="11" fill="#374151" font-family="ui-monospace, Consolas, monospace">requestAdapter()</text>
+  </g>
+
+  <!-- GPUAdapter -->
+  <g transform="translate(280, 130)">
+    <rect width="200" height="50" fill="#dcfce7" stroke="#166534" stroke-width="1.4" rx="6"/>
+    <text x="100" y="22" text-anchor="middle" font-weight="700" fill="#166534" font-family="ui-monospace, Consolas, monospace">GPUAdapter</text>
+    <text x="100" y="40" text-anchor="middle" font-size="11" fill="#166534" font-style="italic">a physical/virtual GPU</text>
+  </g>
+
+  <!-- Arrow + requestDevice() -->
+  <g>
+    <line x1="380" y1="180" x2="380" y2="204" stroke="#374151" stroke-width="1.5" marker-end="url(#hArr)"/>
+    <text x="388" y="198" font-size="11" fill="#374151" font-family="ui-monospace, Consolas, monospace">requestDevice()</text>
+  </g>
+
+  <!-- GPUDevice -->
+  <g transform="translate(280, 210)">
+    <rect width="200" height="50" fill="#dbeafe" stroke="#1e40af" stroke-width="1.6" rx="6"/>
+    <text x="100" y="22" text-anchor="middle" font-weight="700" fill="#1e40af" font-family="ui-monospace, Consolas, monospace">GPUDevice</text>
+    <text x="100" y="40" text-anchor="middle" font-size="11" fill="#1e40af" font-style="italic">logical handle to the GPU</text>
+  </g>
+
+  <!-- GPUQueue branches off the device on the right -->
+  <g>
+    <line x1="480" y1="235" x2="540" y2="235" stroke="#6b7280" stroke-width="1.4" marker-end="url(#hOwn)"/>
+    <text x="510" y="226" text-anchor="middle" font-size="11" fill="#6b7280" font-style="italic">.queue</text>
+  </g>
+  <g transform="translate(540, 210)">
+    <rect width="180" height="50" fill="#fce7f3" stroke="#9d174d" stroke-width="1.4" rx="6"/>
+    <text x="90" y="22" text-anchor="middle" font-weight="700" fill="#9d174d" font-family="ui-monospace, Consolas, monospace">GPUQueue</text>
+    <text x="90" y="40" text-anchor="middle" font-size="11" fill="#9d174d" font-style="italic">submit() · writeBuffer()</text>
+  </g>
+
+  <!-- Resources created by device (fan out below) -->
+  <!-- 5 resource boxes at y=320, total width ~720 -->
+
+  <g transform="translate(380, 280)">
+    <line x1="0" y1="-20" x2="0" y2="20" stroke="#6b7280" stroke-width="1.4"/>
+    <text x="10" y="12" font-size="11" fill="#6b7280" font-style="italic">device.createXxx(…)</text>
+  </g>
+
+  <!-- Horizontal connector -->
+  <line x1="80" y1="300" x2="680" y2="300" stroke="#6b7280" stroke-width="1.4"/>
+  <line x1="80" y1="300" x2="80" y2="320" stroke="#6b7280" stroke-width="1.4" marker-end="url(#hOwn)"/>
+  <line x1="220" y1="300" x2="220" y2="320" stroke="#6b7280" stroke-width="1.4" marker-end="url(#hOwn)"/>
+  <line x1="380" y1="300" x2="380" y2="320" stroke="#6b7280" stroke-width="1.4" marker-end="url(#hOwn)"/>
+  <line x1="540" y1="300" x2="540" y2="320" stroke="#6b7280" stroke-width="1.4" marker-end="url(#hOwn)"/>
+  <line x1="680" y1="300" x2="680" y2="320" stroke="#6b7280" stroke-width="1.4" marker-end="url(#hOwn)"/>
+
+  <!-- Resource boxes -->
+  <g font-family="ui-monospace, Consolas, monospace" font-size="11" text-anchor="middle">
+    <g transform="translate(20, 326)">
+      <rect width="120" height="50" fill="#f3f4f6" stroke="#374151" stroke-width="1.2" rx="4"/>
+      <text x="60" y="20" font-weight="700" fill="#111827">GPUBuffer</text>
+      <text x="60" y="38" font-size="10" font-family="system-ui, sans-serif" font-style="italic" fill="#6b7280">uniforms · vertices</text>
+    </g>
+    <g transform="translate(160, 326)">
+      <rect width="120" height="50" fill="#f3f4f6" stroke="#374151" stroke-width="1.2" rx="4"/>
+      <text x="60" y="20" font-weight="700" fill="#111827">GPUTexture</text>
+      <text x="60" y="38" font-size="10" font-family="system-ui, sans-serif" font-style="italic" fill="#6b7280">render targets</text>
+    </g>
+    <g transform="translate(320, 326)">
+      <rect width="120" height="50" fill="#f3f4f6" stroke="#374151" stroke-width="1.2" rx="4"/>
+      <text x="60" y="20" font-weight="700" fill="#111827">GPUSampler</text>
+      <text x="60" y="38" font-size="10" font-family="system-ui, sans-serif" font-style="italic" fill="#6b7280">filter · address mode</text>
+    </g>
+    <g transform="translate(480, 326)">
+      <rect width="120" height="50" fill="#f3f4f6" stroke="#374151" stroke-width="1.2" rx="4"/>
+      <text x="60" y="20" font-weight="700" fill="#111827">GPUShaderModule</text>
+      <text x="60" y="38" font-size="10" font-family="system-ui, sans-serif" font-style="italic" fill="#6b7280">compiled WGSL</text>
+    </g>
+    <g transform="translate(620, 326)">
+      <rect width="120" height="50" fill="#f3f4f6" stroke="#374151" stroke-width="1.2" rx="4"/>
+      <text x="60" y="20" font-weight="700" fill="#111827">GPUxxxPipeline</text>
+      <text x="60" y="38" font-size="10" font-family="system-ui, sans-serif" font-style="italic" fill="#6b7280">render · compute</text>
+    </g>
+  </g>
+
+  <!-- Bottom note -->
+  <text x="380" y="412" text-anchor="middle" font-size="12" fill="#6b7280" font-style="italic">All GPU resources are created by the device. The queue is the device's interface for submitting work.</text>
+</svg>
