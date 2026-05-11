@@ -161,11 +161,11 @@ export class TouchControls {
       'z-index:50',
     ].join(';');
 
-    // Virtual joystick (bottom-left)
+    // Virtual joystick (bottom-left) — shifted up to clear the hotbar.
     this._joystick = document.createElement('div');
     this._joystick.style.cssText = [
       'position:absolute',
-      `left:${24}px`, `bottom:${24}px`,
+      `left:${24}px`, `bottom:${HOTBAR_CLEARANCE}px`,
       `width:${JOY_RADIUS * 2}px`, `height:${JOY_RADIUS * 2}px`,
       'border-radius:50%',
       'background:rgba(255,255,255,0.10)',
