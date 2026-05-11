@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 500" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="500" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">HDR Environment Cubemap &amp; RGBE Decoding</text>
+
+  <defs>
+    <linearGradient id="cubeSky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1e3a8a"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
+    </linearGradient>
+    <linearGradient id="cubeHorizon" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#60a5fa"/>
+      <stop offset="100%" stop-color="#fde68a"/>
+    </linearGradient>
+    <radialGradient id="cubeSun" cx="0.6" cy="0.4" r="0.4">
+      <stop offset="0%" stop-color="#fef3c7"/>
+      <stop offset="60%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#0c4a6e"/>
+    </radialGradient>
+    <linearGradient id="cubeGround" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1c1917"/>
+      <stop offset="100%" stop-color="#44403c"/>
+    </linearGradient>
+    <marker id="hdrArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+    </marker>
+  </defs>
+
+  <!-- ===== LEFT: cube unfolded as cross ===== -->
+  <g transform="translate(40, 60)">
+    <text x="200" y="0" text-anchor="middle" font-weight="700" fill="#111827">Six faces unfolded (cross layout)</text>
+
+    <!-- Cross of 6 faces, 48px each.
+         +Y at (148, 32),
+         -X at (100, 80), +Z at (148, 80), +X at (196, 80), -Z at (244, 80),
+         -Y at (148, 128) -->
+
+    <!-- +Y (sky zenith) -->
+    <rect x="148" y="32" width="48" height="48" fill="#1e3a8a" stroke="#374151" stroke-width="1"/>
+    <text x="172" y="22" text-anchor="middle" font-size="10" font-weight="700" fill="#1e3a8a">+Y</text>
+
+    <!-- -X (left horizon) -->
+    <rect x="100" y="80" width="48" height="48" fill="url(#cubeHorizon)" stroke="#374151" stroke-width="1"/>
+    <text x="124" y="142" text-anchor="middle" font-size="10" font-weight="700" fill="#1e3a8a">−X</text>
+
+    <!-- +Z (front, with sun) -->
+    <rect x="148" y="80" width="48" height="48" fill="url(#cubeSun)" stroke="#374151" stroke-width="1"/>
+    <text x="172" y="142" text-anchor="middle" font-size="10" font-weight="700" fill="#1e3a8a">+Z</text>
+
+    <!-- +X (right horizon) -->
+    <rect x="196" y="80" width="48" height="48" fill="url(#cubeHorizon)" stroke="#374151" stroke-width="1"/>
+    <text x="220" y="142" text-anchor="middle" font-size="10" font-weight="700" fill="#1e3a8a">+X</text>
+
+    <!-- -Z (back) -->
+    <rect x="244" y="80" width="48" height="48" fill="url(#cubeSky)" stroke="#374151" stroke-width="1"/>
+    <text x="268" y="142" text-anchor="middle" font-size="10" font-weight="700" fill="#1e3a8a">−Z</text>
+
+    <!-- -Y (ground) -->
+    <rect x="148" y="128" width="48" height="48" fill="url(#cubeGround)" stroke="#374151" stroke-width="1"/>
+    <text x="172" y="190" text-anchor="middle" font-size="10" font-weight="700" fill="#1e3a8a">−Y</text>
+
+    <!-- Sub-caption -->
+    <text x="200" y="220" text-anchor="middle" font-size="11" font-style="italic" fill="#6b7280">sampled with a 3D direction —</text>
+    <text x="200" y="234" text-anchor="middle" font-size="11" font-style="italic" fill="#6b7280">GPU picks the right face automatically</text>
+  </g>
+
+  <!-- ===== RIGHT: RGBE encoding ===== -->
+  <g transform="translate(460, 60)">
+    <text x="200" y="0" text-anchor="middle" font-weight="700" fill="#111827">RGBE: shared exponent for HDR range</text>
+
+    <!-- One texel as four bytes -->
+    <text x="200" y="26" text-anchor="middle" font-size="11" fill="#374151">One texel · 4 bytes</text>
+
+    <g font-family="ui-monospace, Consolas, monospace" font-size="13" text-anchor="middle">
+      <!-- R -->
+      <rect x="32" y="36" width="64" height="48" fill="#fee2e2" stroke="#dc2626" stroke-width="1.4"/>
+      <text x="64" y="62" font-weight="700" fill="#7f1d1d">128</text>
+      <text x="64" y="78" font-size="10" fill="#7f1d1d">R</text>
+      <!-- G -->
+      <rect x="104" y="36" width="64" height="48" fill="#dcfce7" stroke="#16a34a" stroke-width="1.4"/>
+      <text x="136" y="62" font-weight="700" fill="#14532d">192</text>
+      <text x="136" y="78" font-size="10" fill="#14532d">G</text>
+      <!-- B -->
+      <rect x="176" y="36" width="64" height="48" fill="#dbeafe" stroke="#2563eb" stroke-width="1.4"/>
+      <text x="208" y="62" font-weight="700" fill="#1e3a8a">50</text>
+      <text x="208" y="78" font-size="10" fill="#1e3a8a">B</text>
+      <!-- E -->
+      <rect x="248" y="36" width="64" height="48" fill="#fef9c3" stroke="#ca8a04" stroke-width="1.4"/>
+      <text x="280" y="62" font-weight="700" fill="#713f12">134</text>
+      <text x="280" y="78" font-size="10" fill="#713f12">E (exp)</text>
+    </g>
+
+    <!-- Decode arrow -->
+    <line x1="172" y1="98" x2="172" y2="124" stroke="#374151" stroke-width="1.6" marker-end="url(#hdrArr)"/>
+    <text x="186" y="115" font-size="10" fill="#374151" font-style="italic">decode</text>
+
+    <!-- Decoded HDR linear values -->
+    <g font-family="ui-monospace, Consolas, monospace" font-size="12" fill="#374151" transform="translate(20, 138)">
+      <text x="0" y="0">exponent = 134 − 128 = 6</text>
+      <text x="0" y="18">scale    = 2⁶ / 255 ≈ 0.251</text>
+      <text x="0" y="42" font-weight="700" fill="#111827">linear RGB ≈ (32.1, 48.2, 12.6)</text>
+      <text x="0" y="58" font-size="10" font-style="italic" fill="#6b7280">— far above 1.0, preserves bright sun</text>
+    </g>
+  </g>
+
+  <!-- ===== BOTTOM: WGSL decode ===== -->
+  <g transform="translate(40, 380)">
+    <rect width="840" height="100" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+    <text x="14" y="22" font-weight="700" fill="#111827">GPU-side decode (rgbe_decode.wgsl)</text>
+
+    <g font-family="ui-monospace, Consolas, monospace" font-size="12" fill="#374151" transform="translate(14, 0)">
+      <text x="0" y="46">fn rgbeToFloat(rgbe: vec4f) -&gt; vec3f {</text>
+      <text x="0" y="64">  let exponent = rgbe.a * 255.0 − 128.0;</text>
+      <text x="0" y="82">  return rgbe.rgb * pow(2.0, exponent);   <tspan fill="#dc2626">// rebuild HDR linear value</tspan></text>
+    </g>
+  </g>
+</svg>

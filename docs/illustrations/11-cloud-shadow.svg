@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 460" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="460" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Cloud Shadows: Top-Down Density Map → Sun Modulation</text>
+
+  <defs>
+    <marker id="csArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+    </marker>
+    <radialGradient id="csCloud1" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#0f172a" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- ===== LEFT: top-down cloud density texture ===== -->
+  <g transform="translate(40, 60)">
+    <text x="180" y="0" text-anchor="middle" font-weight="700" fill="#111827">Cloud density (top-down view)</text>
+
+    <!-- Texture frame -->
+    <rect x="0" y="18" width="360" height="240" fill="#cbd5e1" stroke="#374151" stroke-width="1.2"/>
+
+    <!-- Procedural cloud blobs -->
+    <ellipse cx="80"  cy="80"  rx="50" ry="34" fill="url(#csCloud1)"/>
+    <ellipse cx="180" cy="60"  rx="64" ry="30" fill="url(#csCloud1)"/>
+    <ellipse cx="280" cy="100" rx="56" ry="40" fill="url(#csCloud1)"/>
+    <ellipse cx="100" cy="160" rx="46" ry="34" fill="url(#csCloud1)"/>
+    <ellipse cx="220" cy="170" rx="60" ry="38" fill="url(#csCloud1)"/>
+    <ellipse cx="310" cy="200" rx="40" ry="30" fill="url(#csCloud1)"/>
+
+    <!-- Texture corner labels -->
+    <text x="6"   y="276" font-size="10" fill="#6b7280">(0, 0)</text>
+    <text x="354" y="276" text-anchor="end" font-size="10" fill="#6b7280">(1, 1)</text>
+
+    <text x="180" y="298" text-anchor="middle" font-size="11" font-style="italic" fill="#6b7280">2D texture sampled with worldPos.xz · scale + windOffset</text>
+  </g>
+
+  <!-- Arrow: project shadows down onto ground -->
+  <g transform="translate(420, 130)">
+    <text x="38" y="-10" text-anchor="middle" font-size="11" fill="#374151">project</text>
+    <text x="38" y="4"   text-anchor="middle" font-size="11" fill="#374151">downward</text>
+    <line x1="0" y1="40" x2="76" y2="40" stroke="#374151" stroke-width="1.6" marker-end="url(#csArr)"/>
+
+    <!-- Sun direction indicator -->
+    <circle cx="38" cy="78" r="11" fill="#fef3c7" stroke="#fbbf24" stroke-width="1.6"/>
+    <text x="38" y="106" text-anchor="middle" font-size="10" font-weight="700" fill="#a16207">sun</text>
+  </g>
+
+  <!-- ===== RIGHT: terrain with cloud shadow patches ===== -->
+  <g transform="translate(520, 60)">
+    <text x="180" y="0" text-anchor="middle" font-weight="700" fill="#111827">Ground with shadow patches</text>
+
+    <!-- Ground perspective rectangle -->
+    <polygon points="40,30 320,30 360,250 0,250" fill="#84cc16" stroke="#374151" stroke-width="1.2"/>
+
+    <!-- Shadow patches in perspective: same general layout as the density map above -->
+    <g fill="#0f172a" opacity="0.45">
+      <ellipse cx="86"  cy="74"  rx="38" ry="14"/>
+      <ellipse cx="170" cy="62"  rx="50" ry="14"/>
+      <ellipse cx="252" cy="80"  rx="42" ry="16"/>
+      <ellipse cx="92"  cy="138" rx="42" ry="20"/>
+      <ellipse cx="190" cy="146" rx="56" ry="22"/>
+      <ellipse cx="270" cy="178" rx="40" ry="20"/>
+    </g>
+
+    <!-- A few small "lit" highlights between shadows -->
+    <g fill="#fef3c7" opacity="0.35">
+      <ellipse cx="40"  cy="100" rx="24" ry="10"/>
+      <ellipse cx="240" cy="120" rx="22" ry="9"/>
+      <ellipse cx="140" cy="200" rx="30" ry="12"/>
+    </g>
+
+    <text x="180" y="278" text-anchor="middle" font-size="11" font-style="italic" fill="#6b7280">sunlight *= 1 − cloudShadowDensity at surface UV</text>
+  </g>
+
+  <!-- ===== BOTTOM: code ===== -->
+  <g transform="translate(40, 360)">
+    <rect width="840" height="80" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+    <text x="14" y="22" font-weight="700" fill="#111827">Sampling in the lighting pass</text>
+
+    <g font-family="ui-monospace, Consolas, monospace" font-size="12" fill="#374151" transform="translate(14, 0)">
+      <text x="0" y="46">let uv     = worldPos.xz * cloudShadowScale + windOffset;</text>
+      <text x="0" y="64">let shadow = textureSample(cloudShadowMap, samp, uv).r;   <tspan fill="#dc2626">// 0..1 cloud density</tspan></text>
+    </g>
+  </g>
+</svg>

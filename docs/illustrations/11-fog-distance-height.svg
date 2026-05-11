@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 480" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="480" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Fog: Distance Falloff and Height-Based Density</text>
+
+  <defs>
+    <linearGradient id="heightFogGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e5e7eb" stop-opacity="0"/>
+      <stop offset="60%" stop-color="#cbd5e1" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#cbd5e1" stop-opacity="0.95"/>
+    </linearGradient>
+  </defs>
+
+  <!-- ===== LEFT: distance falloff curve ===== -->
+  <g transform="translate(40, 60)">
+    <text x="200" y="0" text-anchor="middle" font-weight="700" fill="#111827">fogFactor = 1 − exp(−(k·d)²)</text>
+
+    <rect x="0" y="18" width="400" height="220" fill="#f9fafb" stroke="#9ca3af" stroke-width="1"/>
+
+    <!-- Plot area: x 40..380, y 36..220 inside group -->
+    <g>
+      <!-- Axes -->
+      <line x1="40" y1="220" x2="380" y2="220" stroke="#374151" stroke-width="1"/>
+      <line x1="40" y1="36"  x2="40"  y2="220" stroke="#374151" stroke-width="1"/>
+
+      <!-- Y labels -->
+      <g font-family="ui-monospace, Consolas, monospace" font-size="10" fill="#6b7280">
+        <text x="34" y="40"  text-anchor="end">1</text>
+        <text x="34" y="130" text-anchor="end">.5</text>
+        <text x="34" y="222" text-anchor="end">0</text>
+      </g>
+      <!-- X labels -->
+      <g font-family="ui-monospace, Consolas, monospace" font-size="10" fill="#6b7280">
+        <text x="40"  y="234" text-anchor="middle">0</text>
+        <text x="210" y="234" text-anchor="middle">distance</text>
+        <text x="380" y="234" text-anchor="middle">far</text>
+      </g>
+
+      <!-- Light fog curve k=0.005 -->
+      <path d="M 40 220
+               C 80 218, 120 214, 160 204
+               C 200 192, 240 174, 280 152
+               C 320 124, 350 96,  380 72"
+            fill="none" stroke="#60a5fa" stroke-width="2.2"/>
+      <text x="296" y="86" font-size="10" fill="#1e40af" font-weight="700">k = 0.005</text>
+      <text x="296" y="100" font-size="10" fill="#1e40af" font-style="italic">light haze</text>
+
+      <!-- Heavy fog curve k=0.012 -->
+      <path d="M 40 220
+               C 60 218, 90 200, 120 168
+               C 150 132, 180 96,  220 64
+               C 260 46,  320 40,  380 38"
+            fill="none" stroke="#dc2626" stroke-width="2.2"/>
+      <text x="200" y="58" font-size="10" fill="#7f1d1d" font-weight="700">k = 0.012</text>
+      <text x="200" y="72" font-size="10" fill="#7f1d1d" font-style="italic">dense fog</text>
+    </g>
+
+    <text x="200" y="262" text-anchor="middle" font-size="11" font-style="italic" fill="#6b7280">squared exponential — soft near, opaque far</text>
+  </g>
+
+  <!-- ===== RIGHT: height-based density (scene side view) ===== -->
+  <g transform="translate(480, 60)">
+    <text x="200" y="0" text-anchor="middle" font-weight="700" fill="#111827">Height fog: dense valleys, clear peaks</text>
+
+    <!-- Sky/scene viewport -->
+    <rect x="0" y="18" width="400" height="220" fill="#1e293b" stroke="#374151" stroke-width="1"/>
+
+    <!-- Mountain silhouette -->
+    <polygon points="0,220 60,220 100,150 150,180 200,110 260,170 300,140 360,200 400,220"
+             fill="#0f172a" stroke="#374151" stroke-width="1"/>
+
+    <!-- Sea level marker -->
+    <line x1="0" y1="200" x2="400" y2="200" stroke="#9ca3af" stroke-width="0.8" stroke-dasharray="4,3"/>
+    <text x="6" y="196" font-size="10" fill="#cbd5e1" font-style="italic">sea level</text>
+
+    <!-- Fog layer (dense at base, fading upward) -->
+    <rect x="0" y="100" width="400" height="138" fill="url(#heightFogGrad)"/>
+
+    <!-- Density scale on right -->
+    <g transform="translate(372, 36)">
+      <rect x="0" y="0" width="14" height="180" fill="url(#heightFogGrad)" stroke="#9ca3af" stroke-width="0.6"/>
+      <text x="-4" y="6"   text-anchor="end" font-size="10" fill="#cbd5e1">0</text>
+      <text x="-4" y="184" text-anchor="end" font-size="10" fill="#cbd5e1">1</text>
+    </g>
+    <text x="362" y="32" text-anchor="end" font-size="10" fill="#cbd5e1">density</text>
+
+    <text x="200" y="262" text-anchor="middle" font-size="11" font-style="italic" fill="#6b7280">density *= exp(−max(y − seaLevel, 0) · falloff)</text>
+  </g>
+
+  <!-- ===== BOTTOM: code ===== -->
+  <g transform="translate(40, 360)">
+    <rect width="840" height="100" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+    <text x="14" y="22" font-weight="700" fill="#111827">CompositePass: distance × height fog</text>
+
+    <g font-family="ui-monospace, Consolas, monospace" font-size="12" fill="#374151" transform="translate(14, 0)">
+      <text x="0" y="46">let heightFog = exp(−max(worldPos.y − seaLevel, 0.0) * fogHeightFalloff);</text>
+      <text x="0" y="64">let fogFactor = 1.0 − exp(−fogDensity * fogDensity * viewDepth * viewDepth);</text>
+      <text x="0" y="82">outputColor   = mix(sceneColor, fogColor, fogFactor * heightFog);</text>
+    </g>
+  </g>
+</svg>

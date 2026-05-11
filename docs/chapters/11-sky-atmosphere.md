@@ -6,6 +6,8 @@ The sky is the largest object in any outdoor scene. Crafty supports multiple sky
 
 ## 11.1 HDR Environment Maps
 
+![HDR cubemap unfolded into 6 faces, with RGBE byte layout and decode steps](../illustrations/11-hdr-cubemap.svg)
+
 The simplest sky is a **fixed HDR cubemap** — a 360° photograph of a real sky, stored in the Radiance HDR format (.hdr). The `SkyTexturePass` renders this cubemap as a fullscreen background:
 
 ```wgsl
@@ -28,6 +30,8 @@ fn rgbeToFloat(rgbe: vec4f) -> vec3f {
 
 ## 11.2 Atmospheric Sky
 
+![Path length through the atmosphere shifts color from blue to red, and Rayleigh vs Mie phase functions in polar form](../illustrations/11-rayleigh-mie-scattering.svg)
+
 The `AtmospherePass` (`src/renderer/passes/atmosphere_pass.ts`) renders a procedural sky using a simplified atmospheric scattering model. Rayleigh scattering (blue sky at zenith, red at sunset) and Mie scattering (sun halo) are computed per-pixel based on the view direction and sun position.
 
 ### Single Scattering Approximation
@@ -49,6 +53,8 @@ The atmosphere pass writes directly into the HDR target with a fullscreen draw. 
 
 ## 11.3 Cloud Rendering
 
+![Volumetric cloud raymarch: a view ray steps through the volume, sampling density and accumulating transmittance](../illustrations/11-cloud-raymarch.svg)
+
 The `CloudPass` (`src/renderer/passes/cloud_pass.ts`) renders volumetric clouds using a raymarching technique. Cloud density is sampled from a 3D Perlin noise texture with multiple octaves:
 
 ```wgsl
@@ -63,6 +69,8 @@ cloudDensity = smoothstep(cloudThreshold, 1.0, cloudDensity);
 The raymarch accumulates transmittance and colour along the view ray, producing soft, volumetric cloud shapes with realistic self-shadowing.
 
 ## 11.4 Volumetric Fog
+
+![Fog falloff: squared exponential distance curve and a height-based density gradient over a mountain silhouette](../illustrations/11-fog-distance-height.svg)
 
 Fog is rendered as part of the final `CompositePass`. The fog density is computed from the fragment depth and mixed with the scene colour:
 
@@ -79,6 +87,8 @@ fogDensity *= heightFog;
 ```
 
 ## 11.5 Cloud Shadows
+
+![Top-down cloud density map projected as shadow patches on the ground in the lighting pass](../illustrations/11-cloud-shadow.svg)
 
 The `CloudShadowPass` renders a top-down cloud shadow map — a 2D texture storing cloud density as seen from above. The lighting pass samples this texture at the surface position to modulate direct sunlight, producing dynamic cloud shadows on the terrain.
 

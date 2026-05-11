@@ -1,0 +1,140 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 540" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="540" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Rayleigh &amp; Mie Scattering: Path Length and Phase Functions</text>
+
+  <defs>
+    <linearGradient id="atmoBand" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0c4a6e" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#3b82f6" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#fde68a" stop-opacity="0.5"/>
+    </linearGradient>
+    <marker id="scArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#fbbf24"/>
+    </marker>
+  </defs>
+
+  <!-- ===== LEFT: zenith vs sunset path through atmosphere ===== -->
+  <g transform="translate(40, 60)">
+    <text x="200" y="0" text-anchor="middle" font-weight="700" fill="#111827">Path length determines color</text>
+
+    <!-- Atmosphere band: rectangle with vertical gradient (top of atmosphere → ground) -->
+    <rect x="0" y="40" width="400" height="200" fill="url(#atmoBand)"/>
+
+    <!-- Top-of-atmosphere boundary -->
+    <line x1="0" y1="40" x2="400" y2="40" stroke="#94a3b8" stroke-width="0.8" stroke-dasharray="4,3"/>
+    <text x="394" y="34" text-anchor="end" font-size="10" fill="#6b7280" font-style="italic">top of atmosphere</text>
+
+    <!-- Ground -->
+    <rect x="0" y="240" width="400" height="20" fill="#1c1917" stroke="#44403c" stroke-width="1.2"/>
+
+    <!-- Observer at lower-left -->
+    <circle cx="80" cy="240" r="5" fill="#fef3c7" stroke="#fbbf24" stroke-width="1.4"/>
+    <text x="80" y="276" text-anchor="middle" font-size="10" fill="#374151" font-weight="700">observer</text>
+
+    <!-- Zenith ray (short path) — straight up from observer -->
+    <line x1="80" y1="240" x2="80" y2="74" stroke="#3b82f6" stroke-width="2.4"/>
+    <circle cx="80" cy="74" r="14" fill="#fef3c7" stroke="#fbbf24" stroke-width="2"/>
+    <text x="100" y="62" font-size="10" fill="#a16207" font-weight="700">sun (overhead)</text>
+
+    <text x="92" y="150" font-size="10" fill="#1e40af" font-style="italic">short path</text>
+    <text x="92" y="164" font-size="10" fill="#1e40af" font-style="italic">→ blue dominates</text>
+
+    <!-- Sunset ray (long grazing path) — diagonal toward horizon -->
+    <line x1="80" y1="240" x2="380" y2="200" stroke="#dc2626" stroke-width="2.4"/>
+    <circle cx="380" cy="200" r="12" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/>
+    <text x="380" y="186" text-anchor="middle" font-size="10" fill="#7f1d1d" font-weight="700">sun (horizon)</text>
+
+    <text x="160" y="180" font-size="10" fill="#7f1d1d" font-style="italic">long grazing path through atmosphere</text>
+    <text x="160" y="194" font-size="10" fill="#7f1d1d" font-style="italic">→ blue scattered out, red survives</text>
+
+    <text x="200" y="298" text-anchor="middle" font-size="11" font-style="italic" fill="#6b7280">Rayleigh ∝ 1/λ⁴ — short wavelengths (blue) scatter most</text>
+  </g>
+
+  <!-- ===== RIGHT: phase function polar plots ===== -->
+  <g transform="translate(480, 60)">
+    <text x="200" y="0" text-anchor="middle" font-weight="700" fill="#111827">Phase functions (light scattered toward observer)</text>
+
+    <!-- Two polar plots side by side, each centered.
+         Light comes from the LEFT (incident direction).
+         Plot 1: Rayleigh (symmetric peanut), centered at (90, 130).
+         Plot 2: Mie       (forward lobe),    centered at (310, 130). -->
+
+    <!-- Rayleigh plot -->
+    <text x="90" y="22" text-anchor="middle" font-size="11" font-weight="700" fill="#7c3aed">Rayleigh (1 + cos²θ)</text>
+
+    <!-- Reference circle -->
+    <circle cx="90" cy="130" r="60" fill="none" stroke="#e5e7eb" stroke-width="1"/>
+    <line x1="20" y1="130" x2="160" y2="130" stroke="#e5e7eb" stroke-width="0.8"/>
+    <line x1="90" y1="60"  x2="90"  y2="200" stroke="#e5e7eb" stroke-width="0.8"/>
+
+    <!-- Rayleigh peanut: r = (1 + cos²θ) * 30, sampled at 24 angles.
+         Symmetric about both axes. -->
+    <path d="
+      M 150 130
+      C 148 116, 144 102, 138 90
+      C 130 76, 120 64, 110 60
+      C 102 58, 96 58, 90 60
+      C 84 58, 78 58, 70 60
+      C 60 64, 50 76, 42 90
+      C 36 102, 32 116, 30 130
+      C 32 144, 36 158, 42 170
+      C 50 184, 60 196, 70 200
+      C 78 202, 84 202, 90 200
+      C 96 202, 102 202, 110 200
+      C 120 196, 130 184, 138 170
+      C 144 158, 148 144, 150 130 Z"
+      fill="#ddd6fe" fill-opacity="0.7" stroke="#7c3aed" stroke-width="1.6"/>
+
+    <!-- Incident light arrow (from left) -->
+    <line x1="-2" y1="130" x2="22" y2="130" stroke="#fbbf24" stroke-width="2.2" marker-end="url(#scArr)"/>
+    <text x="-4" y="124" text-anchor="end" font-size="10" fill="#a16207" font-weight="700">light</text>
+
+    <text x="90" y="220" text-anchor="middle" font-size="10" font-style="italic" fill="#6b7280">symmetric forward + back</text>
+
+    <!-- Mie plot -->
+    <text x="310" y="22" text-anchor="middle" font-size="11" font-weight="700" fill="#16a34a">Mie (g = 0.76, forward bias)</text>
+
+    <!-- Reference circle -->
+    <circle cx="310" cy="130" r="60" fill="none" stroke="#e5e7eb" stroke-width="1"/>
+    <line x1="240" y1="130" x2="380" y2="130" stroke="#e5e7eb" stroke-width="0.8"/>
+    <line x1="310" y1="60"  x2="310" y2="200" stroke="#e5e7eb" stroke-width="0.8"/>
+
+    <!-- Mie forward-biased lobe: long lobe along +x, small back, narrow waist -->
+    <path d="
+      M 380 130
+      C 376 110, 366 88, 348 76
+      C 330 68, 320 68, 312 78
+      C 308 86, 308 90, 310 96
+      C 308 100, 304 102, 300 102
+      C 294 100, 290 98, 286 104
+      C 282 112, 282 120, 286 128
+      C 290 132, 294 132, 298 130
+      C 294 130, 290 130, 286 134
+      C 282 142, 282 152, 286 160
+      C 290 166, 294 166, 300 162
+      C 304 162, 308 164, 310 168
+      C 308 174, 308 178, 312 188
+      C 320 198, 330 198, 348 188
+      C 366 176, 376 154, 380 130 Z"
+      fill="#bbf7d0" fill-opacity="0.7" stroke="#16a34a" stroke-width="1.6"/>
+
+    <!-- Incident light arrow (from left) -->
+    <line x1="218" y1="130" x2="242" y2="130" stroke="#fbbf24" stroke-width="2.2" marker-end="url(#scArr)"/>
+    <text x="216" y="124" text-anchor="end" font-size="10" fill="#a16207" font-weight="700">light</text>
+
+    <text x="310" y="220" text-anchor="middle" font-size="10" font-style="italic" fill="#6b7280">strong forward — sun halo</text>
+  </g>
+
+  <!-- ===== BOTTOM: code ===== -->
+  <g transform="translate(40, 380)">
+    <rect width="840" height="140" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+    <text x="14" y="22" font-weight="700" fill="#111827">Phase functions (atmosphere.wgsl)</text>
+
+    <g font-family="ui-monospace, Consolas, monospace" font-size="12" fill="#374151" transform="translate(14, 0)">
+      <text x="0" y="46">rayleighPhase(cosθ) = (3 / 16π) * (1 + cosθ²)</text>
+      <text x="0" y="78">miePhase(cosθ) = (3 / 8π) * ((1 − g²)(1 + cosθ²)) /</text>
+      <text x="0" y="96">                            ((2 + g²) * (1 + g² − 2g·cosθ)^1.5)</text>
+      <text x="0" y="124" fill="#6b7280" font-style="italic">cosθ = dot(viewDir, sunDir) — angle between view ray and sun direction</text>
+    </g>
+  </g>
+</svg>
