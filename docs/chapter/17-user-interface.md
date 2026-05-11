@@ -1,10 +1,10 @@
-# Chapter 16: User Interface
+# Chapter 17: User Interface
 
-[Contents](../crafty.md) | [15-Audio](15-audio.md) | [17-Network Architecture](17-network-architecture.md)
+[Contents](../crafty.md) | [16-Audio](16-audio.md) | [18-Network Architecture](18-network-architecture.md)
 
 Crafty uses a hybrid UI approach: HTML/DOM for the menus and HUD, in-game overlays for crosshair and block interactions.
 
-## 16.1 DOM-Based UI vs. In-Game UI
+## 17.1 DOM-Based UI vs. In-Game UI
 
 **DOM-based UI** is used for:
 - Start screen (world selection, network connect)
@@ -18,7 +18,7 @@ Crafty uses a hybrid UI approach: HTML/DOM for the menus and HUD, in-game overla
 
 The DOM approach gives us accessibility (screen readers, browser zoom) and familiar styling via CSS. The in-game approach ensures the crosshair and block highlight are correctly aligned with the 3D scene without latency.
 
-## 16.2 The HUD
+## 17.2 The HUD
 
 The HUD (`crafty/ui/hud.ts`) is a DOM overlay with:
 
@@ -45,7 +45,7 @@ class HUD {
 
 The HUD is styled with CSS to be transparent to mouse events (except for interactive elements like the chat input).
 
-## 16.3 The Start Screen
+## 17.3 The Start Screen
 
 The start screen (`crafty/ui/start_screen.ts`) appears before the game loads. It provides:
 
@@ -72,7 +72,7 @@ class StartScreen {
 
 On connect to a multiplayer server, the start screen's name input is disabled to indicate the name was already sent and cannot be changed mid-session.
 
-## 16.4 The Settings Panel
+## 17.4 The Settings Panel
 
 Settings are stored in `localStorage` and applied dynamically:
 
@@ -89,7 +89,7 @@ interface Settings {
 
 Quality presets control shadow resolution, SSAO samples, bloom intensity, and particle counts.
 
-## 16.5 The Block Manager
+## 17.5 The Block Manager
 
 The block manager UI (`crafty/ui/block_manager.ts`) allows the player to select which block type to place. It shows a grid of available blocks with their textures, organized by category.
 
@@ -102,4 +102,4 @@ In creative mode, all block types are available. In survival mode, only blocks t
 - `crafty/ui/block_manager.ts` — Block selection grid
 
 ----
-[Contents](../crafty.md) | [15-Audio](15-audio.md) | [17-Network Architecture](17-network-architecture.md)
+[Contents](../crafty.md) | [16-Audio](16-audio.md) | [18-Network Architecture](18-network-architecture.md)

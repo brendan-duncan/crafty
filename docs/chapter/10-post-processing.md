@@ -1,10 +1,10 @@
-# Chapter 9: Post-Processing
+# Chapter 10: Post-Processing
 
-[Contents](../crafty.md) | [08-Shadow Mapping](08-shadow-mapping.md) | [10-Sky Atmosphere](10-sky-atmosphere.md)
+[Contents](../crafty.md) | [08-Shadow Mapping](08-shadow-mapping.md) | [11-Sky Atmosphere](11-sky-atmosphere.md)
 
 After the scene is rendered into the HDR target, a series of post-processing passes refines the image. This chapter covers tonemapping, bloom, temporal anti-aliasing, screen-space ambient occlusion, depth of field, and god rays.
 
-## 9.1 Tone Mapping and HDR Display
+## 10.1 Tone Mapping and HDR Display
 
 The final step before presentation is **tone mapping** — converting HDR pixel values to the SDR (or HDR) display range. Crafty's `CompositePass` performs this as the last operation before the swap chain.
 
@@ -43,7 +43,7 @@ if (ctx.hdr) {
 
 For SDR output, the tone-mapped value is converted from linear to sRGB gamma space. This can be done either in the shader or by marking the swap chain format as `'bgra8unorm-srgb'` (which instructs WebGPU to apply the sRGB transfer function automatically during the final resolve).
 
-## 9.2 Bloom
+## 10.2 Bloom
 
 Bloom simulates the scattering of bright light in a camera lens, creating a soft glow around bright regions. Crafty's `BloomPass` follows a standard three-step process:
 
@@ -78,7 +78,7 @@ hdrColor += bloomColor * bloomIntensity;
 
 The bloom intensity and threshold are adjustable parameters exposed through the settings UI.
 
-## 9.3 Temporal Anti-Aliasing (TAA)
+## 10.3 Temporal Anti-Aliasing (TAA)
 
 TAA `TAAPass` reduces aliasing by averaging the current frame with previous frames, using sub-pixel jitter to shift the sample pattern each frame.
 
@@ -124,7 +124,7 @@ let maxColor = max(neighbourhood);
 historyColor = clamp(historyColor, minColor, maxColor);
 ```
 
-## 9.4 Screen-Space Ambient Occlusion (SSAO)
+## 10.4 Screen-Space Ambient Occlusion (SSAO)
 
 SSAO estimates ambient light occlusion by sampling the depth buffer around each pixel. The `SSAOPass` (`src/renderer/passes/ssao_pass.ts`) computes an occlusion factor for each screen pixel.
 
@@ -159,7 +159,7 @@ blurred += neighbourValue * weight * gaussianWeight;
 totalWeight += weight * gaussianWeight;
 ```
 
-## 9.5 Depth of Field (DOF)
+## 10.5 Depth of Field (DOF)
 
 The `DofPass` (`src/renderer/passes/dof_pass.ts`) simulates camera lens defocus blur. Objects at a specific focal distance are sharp; objects farther or closer become increasingly blurred.
 
@@ -185,7 +185,7 @@ The DOF pass renders at half resolution for performance:
 
 The blur uses a Poisson-disk kernel where the number of samples is proportional to the CoC radius, capped at `maxCocRadius` (typically 8-16 texels).
 
-## 9.6 God Rays (Crepuscular Rays)
+## 10.6 God Rays (Crepuscular Rays)
 
 The `GodrayPass` (`src/renderer/passes/godray_pass.ts`) renders volumetric light shafts — rays of light that appear when sunlight filters through semitransparent occluders (clouds, tree leaves).
 
@@ -214,7 +214,7 @@ hdrColor += godrayColor * intensity;
 
 The sun screen position, density, decay, and intensity are configurable parameters that produce different godray effects — from subtle shafts to dramatic crepuscular rays.
 
-## 9.7 Auto-Exposure
+## 10.7 Auto-Exposure
 
 The `AutoExposurePass` (`src/renderer/passes/auto_exposure_pass.ts`) computes a scene-adaptive exposure value using compute shaders. It adapts the overall brightness when the scene changes (e.g., walking from indoors to sunlight).
 
@@ -246,7 +246,7 @@ hdrColor *= exposure;
 
 This provides a smooth, automatic transition between lighting conditions.
 
-## 9.8 Color Grading
+## 10.8 Color Grading
 
 The `CompositePass` optionally applies colour grading via a **lookup table (LUT)**. A 3D LUT texture maps input colours to graded output colours, enabling cinematic colour grading:
 
@@ -284,4 +284,4 @@ Post-processing transforms the raw HDR render into the final image:
 - `src/shaders/composite.wgsl` — Composite shader
 
 ----
-[Contents](../crafty.md) | [08-Shadow Mapping](08-shadow-mapping.md) | [10-Sky Atmosphere](10-sky-atmosphere.md)
+[Contents](../crafty.md) | [08-Shadow Mapping](08-shadow-mapping.md) | [11-Sky Atmosphere](11-sky-atmosphere.md)

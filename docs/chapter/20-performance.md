@@ -1,10 +1,10 @@
-# Chapter 19: Performance
+# Chapter 20: Performance
 
-[Contents](../crafty.md) | [18-Multiplayer Gameplay](18-multiplayer-gameplay.md) | [20-Tools](20-tools.md)
+[Contents](../crafty.md) | [19-Multiplayer Gameplay](19-multiplayer-gameplay.md) | [21-Tools](21-tools.md)
 
 This chapter covers the profiling, optimisation, and culling techniques used to keep Crafty running at 60+ FPS on mid-range hardware.
 
-## 19.1 GPU Timestamps and Profiling
+## 20.1 GPU Timestamps and Profiling
 
 Crafty uses WebGPU timestamp queries to measure per-pass GPU execution time:
 
@@ -35,7 +35,7 @@ for (let i = 0; i < passCount; i++) {
 
 Timestamp queries require the `'timestamp-query'` feature, which must be requested during device creation. The results identify which passes are GPU-bound.
 
-## 19.2 Async Shader Compilation
+## 20.2 Async Shader Compilation
 
 Pipeline compilation is expensive. Crafty uses the `getCompilationInfo()` API to diagnose shader compile errors, and creates pipelines lazily (on first use) rather than upfront:
 
@@ -52,7 +52,7 @@ private _getPipeline(device: GPUDevice, material: Material): GPURenderPipeline {
 
 For materials that are always visible, pipelines can be compiled eagerly during the loading screen by iterating the material list and calling `_getPipeline` once.
 
-## 19.3 Frustum Culling
+## 20.3 Frustum Culling
 
 Every chunk and mesh is tested against the camera frustum before rendering. The test uses the six planes of the view-projection frustum:
 
@@ -74,7 +74,7 @@ function isVisible(aabb: AABB, frustum: Plane[]): boolean {
 
 Frustum culling for chunks uses the chunk's axis-aligned bounding box (16×256×16 blocks). Mesh objects use their local AABB transformed to world space.
 
-## 19.4 Occlusion Culling
+## 20.4 Occlusion Culling
 
 Occlusion culling determines whether an object is hidden behind other objects (not just outside the frustum). Crafty uses a simple **temporal occlusion culling** approach:
 
@@ -84,7 +84,7 @@ Occlusion culling determines whether an object is hidden behind other objects (n
 
 This is implemented as a compute pass that reads the depth buffer and writes an indirect draw count.
 
-## 19.5 Draw Call Batching
+## 20.5 Draw Call Batching
 
 Chunk rendering uses **indirect draw** to issue many draws with a single call. The chunk visibility and draw parameters are computed on the GPU:
 
@@ -101,7 +101,7 @@ struct DrawArraysIndirect {
 
 A compute shader performs frustum culling on the GPU and packs visible chunks into the indirect buffer. This eliminates CPU-GPU round trips for chunk culling.
 
-## 19.6 Memory Management
+## 20.6 Memory Management
 
 ### Pre-Allocated Staging Arrays
 
@@ -155,4 +155,4 @@ class TextureCache {
 - `crafty/main.ts` — Frame loop and performance tracking
 
 ----
-[Contents](../crafty.md) | [18-Multiplayer Gameplay](18-multiplayer-gameplay.md) | [20-Tools](20-tools.md)
+[Contents](../crafty.md) | [19-Multiplayer Gameplay](19-multiplayer-gameplay.md) | [21-Tools](21-tools.md)

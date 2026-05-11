@@ -1,10 +1,10 @@
-# Chapter 11: Terrain and Voxel World
+# Chapter 12: Terrain and Voxel World
 
-[Contents](../crafty.md) | [10-Sky / Atmosphere](10-sky-atmosphere.md) | [13-Game Engine](13-game-engine.md)
+[Contents](../crafty.md) | [11-Sky / Atmosphere](11-sky-atmosphere.md) | [14-Game Engine](14-game-engine.md)
 
 The voxel world is what distinguishes Crafty from a generic rendering demo. This chapter covers the data structures, generation, and rendering of a block-based terrain.
 
-## 11.1 Voxel Data Structure
+## 12.1 Voxel Data Structure
 
 The world is divided into **chunks** — fixed-size 3D arrays of block IDs. Each chunk is a 16×256×16 volume (X, Y, Z):
 
@@ -21,7 +21,7 @@ class Chunk {
 
 Block types are stored as small integers (0 = air, 1 = grass, 2 = dirt, etc.). The `BlockType` enum maps to material and rendering properties: colour, texture atlas tile, opacity, hardness, and so on.
 
-## 11.2 Chunk Management
+## 12.2 Chunk Management
 
 Chunks are loaded and unloaded based on distance from the player. The `World` class maintains a map of loaded chunks:
 
@@ -47,7 +47,7 @@ function worldToChunkCoord(worldX: number, worldZ: number): [number, number] {
 
 Before rendering, each chunk is tested against the camera frustum. Only chunks that intersect the view frustum are submitted to the GPU. This culling is performed on the CPU each frame.
 
-## 11.3 Procedural World Generation
+## 12.3 Procedural World Generation
 
 ### Noise-Based Terrain
 
@@ -83,7 +83,7 @@ Each biome has its own surface block type, tree generation rules, and colour pal
 
 Underground features are generated using additional noise passes. Caves use a cellular/Perlin threshold that defines underground voids. Ore veins use clustered noise with biome-specific depth distributions.
 
-## 11.4 Greedy Meshing
+## 12.4 Greedy Meshing
 
 Rendering each visible block face as two triangles creates millions of quads — far too many for real-time performance. **Greedy meshing** solves this by merging adjacent faces of the same block type into larger quads.
 
@@ -110,7 +110,7 @@ class ChunkMesh {
 
 Each chunk produces two meshes: one for opaque blocks (dirt, stone, etc.) and one for transparent/translucent blocks (water, leaves, glass). The opaque mesh writes depth and G-buffer normally. The transparent mesh uses alpha blending in the forward pass.
 
-## 11.5 Level-of-Detail (LOD)
+## 12.5 Level-of-Detail (LOD)
 
 Distant chunks use a simplified mesh to reduce triangle count. LOD levels merge 2×2×2 or 4×4×4 blocks into single blocks, reducing geometric detail where the player cannot perceive it.
 
@@ -124,7 +124,7 @@ enum LODLevel {
 
 LOD selection is based on distance from the camera. Transitions between LOD levels use a slight mesh overlap with alpha dithering to hide pop-in.
 
-## 11.6 Block Interaction
+## 12.6 Block Interaction
 
 ### Ray Casting
 
@@ -147,7 +147,7 @@ When a block is broken or placed:
 
 Breaking blocks uses a gradual animation — the block shows cracks at progressive stages (mined over ~0.75 seconds for stone, instant for dirt).
 
-## 11.7 Erosion Simulation
+## 12.7 Erosion Simulation
 
 Crafty includes an optional erosion simulation for more realistic terrain. A compute shader simulates water flow and sediment transport:
 
@@ -157,7 +157,7 @@ Crafty includes an optional erosion simulation for more realistic terrain. A com
 
 The simulation runs as a background compute pass and updates the terrain height map, which is sampled during chunk generation.
 
-## 11.8 Water Rendering
+## 12.8 Water Rendering
 
 Water is a transparent block type rendered through the `WaterPass` (`src/renderer/passes/water_pass.ts`). It uses **screen-space refraction** — the scene behind the water is sampled with an offset based on a DUDV normal map:
 
@@ -184,4 +184,4 @@ The water surface combines:
 - `src/shaders/chunk_geometry.wgsl` — Chunk G-buffer shader
 
 ----
-[Contents](../crafty.md) | [10-Sky / Atmosphere](10-sky-atmosphere.md) | [13-Game Engine](13-game-engine.md)
+[Contents](../crafty.md) | [11-Sky / Atmosphere](11-sky-atmosphere.md) | [14-Game Engine](14-game-engine.md)

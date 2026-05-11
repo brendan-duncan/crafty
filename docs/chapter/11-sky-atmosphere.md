@@ -1,10 +1,10 @@
-# Chapter 10: Sky and Atmosphere
+# Chapter 11: Sky and Atmosphere
 
-[Contents](../crafty.md) | [09-Post Processing](09-post-processing.md) | [11-Terrain](11-terrain.md)
+[Contents](../crafty.md) | [10-Post-Processing](10-post-processing.md) | [12-Terrain](12-terrain.md)
 
 The sky is the largest object in any outdoor scene. Crafty supports multiple sky rendering techniques: HDR environment maps, procedural atmospheric sky, and volumetric clouds.
 
-## 10.1 HDR Environment Maps
+## 11.1 HDR Environment Maps
 
 The simplest sky is a **fixed HDR cubemap** — a 360° photograph of a real sky, stored in the Radiance HDR format (.hdr). The `SkyTexturePass` renders this cubemap as a fullscreen background:
 
@@ -26,7 +26,7 @@ fn rgbeToFloat(rgbe: vec4f) -> vec3f {
 }
 ```
 
-## 10.2 Atmospheric Sky
+## 11.2 Atmospheric Sky
 
 The `AtmospherePass` (`src/renderer/passes/atmosphere_pass.ts`) renders a procedural sky using a simplified atmospheric scattering model. Rayleigh scattering (blue sky at zenith, red at sunset) and Mie scattering (sun halo) are computed per-pixel based on the view direction and sun position.
 
@@ -47,7 +47,7 @@ fn miePhase(cosTheta: f32) -> f32 {
 
 The atmosphere pass writes directly into the HDR target with a fullscreen draw. It supports a day/night cycle driven by the sun's elevation angle.
 
-## 10.3 Cloud Rendering
+## 11.3 Cloud Rendering
 
 The `CloudPass` (`src/renderer/passes/cloud_pass.ts`) renders volumetric clouds using a raymarching technique. Cloud density is sampled from a 3D Perlin noise texture with multiple octaves:
 
@@ -62,7 +62,7 @@ cloudDensity = smoothstep(cloudThreshold, 1.0, cloudDensity);
 
 The raymarch accumulates transmittance and colour along the view ray, producing soft, volumetric cloud shapes with realistic self-shadowing.
 
-## 10.4 Volumetric Fog
+## 11.4 Volumetric Fog
 
 Fog is rendered as part of the final `CompositePass`. The fog density is computed from the fragment depth and mixed with the scene colour:
 
@@ -78,7 +78,7 @@ let heightFog = exp(-max(worldPos.y - seaLevel, 0.0) * fogHeightFalloff);
 fogDensity *= heightFog;
 ```
 
-## 10.5 Weather Effects
+## 11.5 Weather Effects
 
 Rain and snow are rendered through the particle system. Rain uses elongated streak particles that fall at high velocity; snow uses small, slowly falling particles with slight horizontal drift from wind. Both are GPU compute-driven, with spawn rates tied to weather parameters.
 
@@ -96,4 +96,4 @@ The `CloudShadowPass` renders a top-down cloud shadow map — a 2D texture stori
 - `src/shaders/clouds.wgsl` — Cloud raymarching shader
 
 ----
-[Contents](../crafty.md) | [09-Post Processing](09-post-processing.md) | [11-Terrain](11-terrain.md)
+[Contents](../crafty.md) | [10-Post-Processing](10-post-processing.md) | [12-Terrain](12-terrain.md)

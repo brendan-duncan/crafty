@@ -20,6 +20,7 @@ ground up.
 | Render graph architecture | Multi-pass deferred rendering |
 | PBR lighting | Directional + point + spot, IBL, BRDF |
 | Shadow algorithms | Cascade shadow maps, VSM, spot shadows |
+| GPU particle systems | Compute-based spawn/update/compact, billboard rendering |
 | Post-processing | Bloom, TAA, SSAO, DOF, tone-mapping |
 | Terrain rendering | Chunked voxel world, greedy meshing, LOD |
 | Game engine design | Component/entity system, scene graph |
@@ -144,113 +145,126 @@ This book is a work in progress.  Chapters are added as the engine evolves.
   - 8.6 Shadow sampling and filtering
   - 8.7 Shadow acne and Peter Panning
 
-- [Chapter 9: Post-Processing](chapter/09-post-processing.md)
-  - 9.1 Tone mapping and HDR display
-  - 9.2 Bloom
-  - 9.3 Temporal anti-aliasing (TAA)
-  - 9.4 Screen-space ambient occlusion (SSAO)
-  - 9.5 Depth of field (DOF)
-  - 9.6 God rays (crepuscular rays)
-  - 9.7 Auto-exposure
-  - 9.8 Color grading
+- [Chapter 9: GPU Particle System](chapter/09-particle-system.md)
+  - 9.1 Architecture Overview
+  - 9.2 Particle Graph Config
+  - 9.3 The Particle Struct
+  - 9.4 GPU Buffers
+  - 9.5 The Spawn Stage
+  - 9.6 The Update Stage
+  - 9.7 The Compact Stage
+  - 9.8 The Render Stage
+  - 9.9 Per-Frame CPU Upload
+  - 9.10 Runtime Spawn Rate Adjustment
+  - 9.11 Rain and Snow Configurations
 
-- [Chapter 10: Sky and Atmosphere](chapter/10-sky-atmosphere.md)
-  - 10.1 HDR environment maps
-  - 10.2 Sky texture pass
-  - 10.3 Cloud rendering
-  - 10.4 Volumetric fog
-  - 10.5 Weather effects (rain, snow)
+- [Chapter 10: Post-Processing](chapter/10-post-processing.md)
+  - 10.1 Tone mapping and HDR display
+  - 10.2 Bloom
+  - 10.3 Temporal anti-aliasing (TAA)
+  - 10.4 Screen-space ambient occlusion (SSAO)
+  - 10.5 Depth of field (DOF)
+  - 10.6 God rays (crepuscular rays)
+  - 10.7 Auto-exposure
+  - 10.8 Color grading
 
-- [Chapter 11: Terrain and Voxel World](chapter/11-terrain.md)
-  - 11.1 Voxel data structure
-  - 11.2 Chunk management
-  - 11.3 Procedural world generation (noise, biomes)
-  - 11.4 Greedy meshing
-  - 11.5 Level-of-detail (LOD)
-  - 11.6 Block interaction (place, break)
-  - 11.7 Erosion simulation
-  - 11.8 Water rendering
+- [Chapter 11: Sky and Atmosphere](chapter/11-sky-atmosphere.md)
+  - 11.1 HDR environment maps
+  - 11.2 Sky texture pass
+  - 11.3 Cloud rendering
+  - 11.4 Volumetric fog
+  - 11.5 Weather effects (rain, snow)
 
-- [Chapter 12: Weather System](chapter/12-weather-system.md)
-  - 12.1 Weather types
-  - 12.2 Biome weather tables
-  - 12.3 Dynamic weather transitions
-  - 12.4 Cloud coverage mapping
-  - 12.5 Precipitation control
-  - 12.6 Integration in the frame loop
-  - 12.7 Debug overlay display
+- [Chapter 12: Terrain and Voxel World](chapter/12-terrain.md)
+  - 12.1 Voxel data structure
+  - 12.2 Chunk management
+  - 12.3 Procedural world generation (noise, biomes)
+  - 12.4 Greedy meshing
+  - 12.5 Level-of-detail (LOD)
+  - 12.6 Block interaction (place, break)
+  - 12.7 Erosion simulation
+  - 12.8 Water rendering
+
+- [Chapter 13: Weather System](chapter/13-weather-system.md)
+  - 13.1 Weather types
+  - 13.2 Biome weather tables
+  - 13.3 Dynamic weather transitions
+  - 13.4 Cloud coverage mapping
+  - 13.5 Precipitation control
+  - 13.6 Integration in the frame loop
+  - 13.7 Debug overlay display
 
 ## III — Game Engine
 
-- [Chapter 13: Game Engine Design](chapter/13-game-engine.md)
-  - 13.1 The component/entity system
-  - 13.2 GameObject and Component
-  - 13.3 The Scene graph
-  - 13.4 The game loop
-  - 13.5 Input handling (keyboard, mouse, touch)
-  - 13.6 Camera controls
-  - 13.7 The player controller
-  - 13.8 Touch Controls (Mobile)
+- [Chapter 14: Game Engine Design](chapter/14-game-engine.md)
+  - 14.1 The component/entity system
+  - 14.2 GameObject and Component
+  - 14.3 The Scene graph
+  - 14.4 The game loop
+  - 14.5 Input handling (keyboard, mouse, touch)
+  - 14.6 Camera controls
+  - 14.7 The player controller
+  - 14.8 Touch Controls (Mobile)
 
-- [Chapter 14: Physics and Interaction](chapter/14-physics.md)
-  - 14.1 Collision detection (AABB)
-  - 14.2 Player movement and gravity
-  - 14.3 Block ray casting
-  - 14.4 Block interaction (placement, breaking)
-  - 14.5 Animal AI (ducks, pigs)
+- [Chapter 15: Physics and Interaction](chapter/15-physics.md)
+  - 15.1 Collision detection (AABB)
+  - 15.2 Player movement and gravity
+  - 15.3 Block ray casting
+  - 15.4 Block interaction (placement, breaking)
+  - 15.5 Animal AI (ducks, pigs)
 
-- [Chapter 15: Audio](chapter/15-audio.md)
-  - 15.1 Web Audio API fundamentals
-  - 15.2 Spatial audio
-  - 15.3 Sound effect triggers
-  - 15.4 Ambient and music
+- [Chapter 16: Audio](chapter/16-audio.md)
+  - 16.1 Web Audio API fundamentals
+  - 16.2 Spatial audio
+  - 16.3 Sound effect triggers
+  - 16.4 Ambient and music
 
-- [Chapter 16: User Interface](chapter/16-user-interface.md)
-  - 16.1 DOM-based UI vs. in-game UI
-  - 16.2 The HUD (crosshair, hotbar, stats)
-  - 16.3 The start screen (local, network, world management)
-  - 16.4 The settings panel
-  - 16.5 The block manager
+- [Chapter 17: User Interface](chapter/17-user-interface.md)
+  - 17.1 DOM-based UI vs. in-game UI
+  - 17.2 The HUD (crosshair, hotbar, stats)
+  - 17.3 The start screen (local, network, world management)
+  - 17.4 The settings panel
+  - 17.5 The block manager
 
 ## IV — Multiplayer
 
-- [Chapter 17: Network Architecture](chapter/17-network-architecture.md)
-  - 17.1 WebSocket fundamentals
-  - 17.2 Message protocol design (C2S / S2C)
-  - 17.3 Connection lifecycle (lobby, join, in-game)
-  - 17.4 The server architecture
-  - 17.5 World state persistence
+- [Chapter 18: Network Architecture](chapter/18-network-architecture.md)
+  - 18.1 WebSocket fundamentals
+  - 18.2 Message protocol design (C2S / S2C)
+  - 18.3 Connection lifecycle (lobby, join, in-game)
+  - 18.4 The server architecture
+  - 18.5 World state persistence
 
-- [Chapter 18: Multiplayer Gameplay](chapter/18-multiplayer-gameplay.md)
-  - 18.1 Player state synchronisation
-  - 18.2 Snapshot interpolation
-  - 18.3 Remote player rendering
-  - 18.4 Name labels
-  - 18.5 Block edit replication
-  - 18.6 Latency compensation
+- [Chapter 19: Multiplayer Gameplay](chapter/19-multiplayer-gameplay.md)
+  - 19.1 Player state synchronisation
+  - 19.2 Snapshot interpolation
+  - 19.3 Remote player rendering
+  - 19.4 Name labels
+  - 19.5 Block edit replication
+  - 19.6 Latency compensation
 
 ## V — Advanced Topics
 
-- [Chapter 19: Performance](chapter/19-performance.md)
-  - 19.1 GPU timestamps and profiling
-  - 19.2 Async shader compilation
-  - 19.3 Frustum culling
-  - 19.4 Occlusion culling
-  - 19.5 Draw call batching
-  - 19.6 Memory management
+- [Chapter 20: Performance](chapter/20-performance.md)
+  - 20.1 GPU timestamps and profiling
+  - 20.2 Async shader compilation
+  - 20.3 Frustum culling
+  - 20.4 Occlusion culling
+  - 20.5 Draw call batching
+  - 20.6 Memory management
 
-- [Chapter 20: Tools and Workflow](chapter/20-tools.md)
-  - 20.1 The sample framework
-  - 20.2 Testing strategy (unit, integration, visual)
-  - 20.3 Debugging WebGPU
-  - 20.4 Asset pipeline
-  - 20.5 Continuous integration
+- [Chapter 21: Tools and Workflow](chapter/21-tools.md)
+  - 21.1 The sample framework
+  - 21.2 Testing strategy (unit, integration, visual)
+  - 21.3 Debugging WebGPU
+  - 21.4 Asset pipeline
+  - 21.5 Continuous integration
 
-- [Chapter 21: The Road Ahead](chapter/21-road-ahead.md)
-  - 21.1 Ray tracing with WebGPU
-  - 21.2 Compute shader post-processing
-  - 21.3 Procedural generation at scale
-  - 21.4 WebXR
+- [Chapter 22: The Road Ahead](chapter/22-road-ahead.md)
+  - 22.1 Ray tracing with WebGPU
+  - 22.2 Compute shader post-processing
+  - 22.3 Procedural generation at scale
+  - 22.4 WebXR
 
 ## Appendices
 
