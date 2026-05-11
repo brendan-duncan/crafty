@@ -8,6 +8,9 @@ Textures provide surface detail beyond what geometry alone can express. Material
 
 Crafty supports three texture dimensionalities:
 
+![2D, Cube, and 3D textures](../illustrations/06-texture-dimensions.svg)
+
+
 **2D textures** are the most common — albedo maps, normal maps, roughness/metallic/emissive (MER) maps, and shadow maps. They are created with a single `width` × `height` size.
 
 **Cube textures** are used for the sky and image-based lighting (IBL). A cube texture has 6 array layers (one per face: +X, -X, +Y, -Y, +Z, -Z):
@@ -46,19 +49,16 @@ HDR environment maps (.hdr files) use a custom RGBE decoder (`src/shaders/rgbe_d
 
 ### Block Texture Atlas
 
-Voxel games face a unique texturing challenge: there can be hundreds of unique block types, each with up to 6 face textures. Rather than binding individual textures per chunk, Crafty packs all block textures into a **texture atlas**:
+Voxel games face a unique texturing challenge: there can be hundreds of unique block types, each with up to 6 face textures. Rather than binding individual textures per chunk, Crafty packs all block textures into a **texture atlas**. Each block face stores its UV offset and scale within the atlas as part of its material parameters, so a fragment's local UV gets remapped into the atlas at sample time:
 
-```
-┌────┬────┬────┬────┬────┬────┬────┬────┐
-│grass│dirt│stone│wood │leaf │sand │water│... │
-├────┼────┼────┼────┼────┼────┼────┼────┤
-│... │... │... │... │... │... │... │... │
-└────┴────┴────┴────┴────┴────┴────┴────┘
-```
+![Block atlas with per-tile UV remapping](../illustrations/06-block-atlas.svg)
 
-Each block face stores its UV offset and scale within the atlas as part of its material parameters. The atlas is built at development time via `npm run build-atlas`, which runs `scripts/build_atlas.js`.
+The atlas is built at development time via `npm run build-atlas`, which runs `scripts/build_atlas.js`.
 
-Multiple atlas textures exist for different channel groups:
+Multiple atlas textures exist for different channel groups — all four are sampled in parallel at the same UV per fragment:
+
+![Four parallel atlases sampled at the same UV](../illustrations/06-atlas-channels.svg)
+
 
 | Atlas | Channels | Format |
 |-------|----------|--------|
@@ -208,7 +208,10 @@ This pattern allows materials to lazily update GPU uniform buffers only when the
 
 ## 6.5 Material Passes
 
-Different render passes use different subsets of the material system:
+Different render passes use different subsets of the material system. The mesh kind (static / skinned / voxel) and the `transparent` flag determine which pass actually draws an object:
+
+![Material → render pass routing](../illustrations/06-material-pass-routing.svg)
+
 
 **GeometryPass** draws opaque materials into the G-buffer. It expects materials to output albedo+roughness and normal+metallic in the fragment shader.
 

@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 400" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="880" height="400" fill="#ffffff"/>
+  <text x="440" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Texture Dimensionalities: 2D · Cube · 3D</text>
+
+  <defs>
+    <linearGradient id="tx2dGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fde68a"/>
+      <stop offset="100%" stop-color="#92400e"/>
+    </linearGradient>
+    <linearGradient id="tx3dGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ddd6fe"/>
+      <stop offset="100%" stop-color="#6d28d9"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Three columns, each 240 wide, gap 60 -->
+
+  <!-- ===== Column 1: 2D texture ===== -->
+  <g transform="translate(60, 70)">
+    <text x="120" y="0" text-anchor="middle" font-weight="700" fill="#1e40af" font-size="14">2D Texture</text>
+
+    <!-- Image rectangle -->
+    <g transform="translate(20, 28)">
+      <rect width="200" height="140" fill="url(#tx2dGrad)" stroke="#1e40af" stroke-width="1.5"/>
+
+      <!-- Width / height labels (placed OUTSIDE the rect) -->
+      <line x1="0" y1="156" x2="200" y2="156" stroke="#374151" stroke-width="1"/>
+      <line x1="0" y1="152" x2="0" y2="160" stroke="#374151" stroke-width="1"/>
+      <line x1="200" y1="152" x2="200" y2="160" stroke="#374151" stroke-width="1"/>
+      <text x="100" y="174" text-anchor="middle" font-size="11" fill="#374151">width</text>
+
+      <line x1="216" y1="0" x2="216" y2="140" stroke="#374151" stroke-width="1"/>
+      <line x1="212" y1="0" x2="220" y2="0" stroke="#374151" stroke-width="1"/>
+      <line x1="212" y1="140" x2="220" y2="140" stroke="#374151" stroke-width="1"/>
+      <text x="226" y="74" font-size="11" fill="#374151">height</text>
+    </g>
+
+    <!-- Use cases -->
+    <g transform="translate(0, 220)" font-size="11" fill="#374151" text-anchor="middle">
+      <text x="120" y="0" font-weight="600">albedo · normal · MER</text>
+      <text x="120" y="16">shadow maps · UI</text>
+    </g>
+
+    <!-- WGSL type -->
+    <text x="120" y="276" text-anchor="middle" font-family="ui-monospace, Consolas, monospace" font-size="12" fill="#1e40af">texture_2d&lt;f32&gt;</text>
+  </g>
+
+  <!-- ===== Column 2: Cube texture ===== -->
+  <g transform="translate(320, 70)">
+    <text x="120" y="0" text-anchor="middle" font-weight="700" fill="#9d174d" font-size="14">Cube Texture</text>
+
+    <!-- Unfolded cross of 6 faces (each 40×40) -->
+    <!-- Cross spans x:30-190, y:28-148 (160 wide, 120 tall) inside 240-wide column -->
+    <g font-size="11" text-anchor="middle">
+      <!-- +Y (top) -->
+      <rect x="90" y="28"  width="40" height="40" fill="#fce7f3" stroke="#9d174d" stroke-width="1.2"/>
+      <text x="110" y="53" fill="#9d174d" font-weight="700">+Y</text>
+
+      <!-- Middle row: -X, +Z, +X, -Z -->
+      <rect x="50"  y="68" width="40" height="40" fill="#fce7f3" stroke="#9d174d" stroke-width="1.2"/>
+      <text x="70" y="93" fill="#9d174d" font-weight="700">−X</text>
+
+      <rect x="90"  y="68" width="40" height="40" fill="#fbcfe8" stroke="#9d174d" stroke-width="1.2"/>
+      <text x="110" y="93" fill="#9d174d" font-weight="700">+Z</text>
+
+      <rect x="130" y="68" width="40" height="40" fill="#fce7f3" stroke="#9d174d" stroke-width="1.2"/>
+      <text x="150" y="93" fill="#9d174d" font-weight="700">+X</text>
+
+      <rect x="170" y="68" width="40" height="40" fill="#fce7f3" stroke="#9d174d" stroke-width="1.2"/>
+      <text x="190" y="93" fill="#9d174d" font-weight="700">−Z</text>
+
+      <!-- -Y (bottom) -->
+      <rect x="90" y="108" width="40" height="40" fill="#fce7f3" stroke="#9d174d" stroke-width="1.2"/>
+      <text x="110" y="133" fill="#9d174d" font-weight="700">−Y</text>
+    </g>
+
+    <!-- Caption below the cross (well clear) -->
+    <text x="120" y="178" text-anchor="middle" font-size="11" font-style="italic" fill="#6b7280">6 array layers (one per face)</text>
+
+    <!-- Use cases -->
+    <g transform="translate(0, 220)" font-size="11" fill="#374151" text-anchor="middle">
+      <text x="120" y="0" font-weight="600">sky · environment maps</text>
+      <text x="120" y="16">image-based lighting</text>
+    </g>
+
+    <text x="120" y="276" text-anchor="middle" font-family="ui-monospace, Consolas, monospace" font-size="12" fill="#9d174d">texture_cube&lt;f32&gt;</text>
+  </g>
+
+  <!-- ===== Column 3: 3D texture ===== -->
+  <g transform="translate(580, 70)">
+    <text x="120" y="0" text-anchor="middle" font-weight="700" fill="#5b21b6" font-size="14">3D Texture</text>
+
+    <!-- Stacked slices to suggest depth -->
+    <g transform="translate(40, 32)">
+      <!-- Five slices, each 130×80, offset by (12,-8) for depth illusion -->
+      <rect x="48" y="-32" width="130" height="80" fill="url(#tx3dGrad)" stroke="#5b21b6" stroke-width="1.2" opacity="0.55"/>
+      <rect x="36" y="-24" width="130" height="80" fill="url(#tx3dGrad)" stroke="#5b21b6" stroke-width="1.2" opacity="0.65"/>
+      <rect x="24" y="-16" width="130" height="80" fill="url(#tx3dGrad)" stroke="#5b21b6" stroke-width="1.2" opacity="0.75"/>
+      <rect x="12" y="-8"  width="130" height="80" fill="url(#tx3dGrad)" stroke="#5b21b6" stroke-width="1.2" opacity="0.85"/>
+      <rect x="0"  y="0"   width="130" height="80" fill="url(#tx3dGrad)" stroke="#5b21b6" stroke-width="1.5"/>
+
+      <!-- Depth annotation -->
+      <line x1="-8" y1="0" x2="40" y2="-32" stroke="#374151" stroke-width="1" stroke-dasharray="3,2"/>
+      <text x="-12" y="-22" text-anchor="end" font-size="11" fill="#374151">depth</text>
+    </g>
+
+    <!-- Caption below slice stack -->
+    <text x="120" y="138" text-anchor="middle" font-size="11" font-style="italic" fill="#6b7280">width × height × depth</text>
+
+    <!-- Use cases -->
+    <g transform="translate(0, 220)" font-size="11" fill="#374151" text-anchor="middle">
+      <text x="120" y="0" font-weight="600">cloud noise · LUT</text>
+      <text x="120" y="16">volumetric data</text>
+    </g>
+
+    <text x="120" y="276" text-anchor="middle" font-family="ui-monospace, Consolas, monospace" font-size="12" fill="#5b21b6">texture_3d&lt;f32&gt;</text>
+  </g>
+
+  <!-- Bottom note -->
+  <g transform="translate(60, 332)">
+    <rect width="760" height="48" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="4"/>
+    <text x="14" y="20" font-size="12" font-weight="600" fill="#111827">All three are created via device.createTexture(), differing only in the size descriptor.</text>
+    <text x="14" y="38" font-size="11" font-style="italic" fill="#6b7280">2D: { width, height }   ·   Cube: { width, height, depthOrArrayLayers: 6 }   ·   3D: { width, height, depthOrArrayLayers: depth }</text>
+  </g>
+</svg>

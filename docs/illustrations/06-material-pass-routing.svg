@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 440" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="440" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Materials → Passes: Which Pass Draws What</text>
+
+  <defs>
+    <marker id="mrArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+    </marker>
+  </defs>
+
+  <!-- ===== TOP ROW: 4 material categories ===== -->
+  <g font-size="13">
+
+    <!-- Static opaque -->
+    <g transform="translate(40, 60)">
+      <rect width="180" height="80" fill="#dbeafe" stroke="#1e40af" stroke-width="1.4" rx="6"/>
+      <text x="90" y="22" text-anchor="middle" font-weight="700" fill="#1e40af">Static · opaque</text>
+      <text x="90" y="44" text-anchor="middle" font-size="11" fill="#1e40af">PBR Material</text>
+      <text x="90" y="60" text-anchor="middle" font-size="11" fill="#1e40af" font-style="italic">transparent: false</text>
+      <text x="90" y="74" text-anchor="middle" font-size="11" fill="#1e40af" font-style="italic">no skinning</text>
+    </g>
+
+    <!-- Static transparent -->
+    <g transform="translate(244, 60)">
+      <rect width="180" height="80" fill="#fce7f3" stroke="#9d174d" stroke-width="1.4" rx="6"/>
+      <text x="90" y="22" text-anchor="middle" font-weight="700" fill="#9d174d">Static · transparent</text>
+      <text x="90" y="44" text-anchor="middle" font-size="11" fill="#9d174d">PBR Material</text>
+      <text x="90" y="60" text-anchor="middle" font-size="11" fill="#9d174d" font-style="italic">transparent: true</text>
+      <text x="90" y="74" text-anchor="middle" font-size="11" fill="#9d174d" font-style="italic">alpha-blended</text>
+    </g>
+
+    <!-- Skinned mesh -->
+    <g transform="translate(448, 60)">
+      <rect width="180" height="80" fill="#dcfce7" stroke="#166534" stroke-width="1.4" rx="6"/>
+      <text x="90" y="22" text-anchor="middle" font-weight="700" fill="#166534">Skinned</text>
+      <text x="90" y="44" text-anchor="middle" font-size="11" fill="#166534">Skinned Material</text>
+      <text x="90" y="60" text-anchor="middle" font-size="11" fill="#166534" font-style="italic">joints + weights</text>
+      <text x="90" y="74" text-anchor="middle" font-size="11" fill="#166534" font-style="italic">animated meshes</text>
+    </g>
+
+    <!-- Voxel chunk -->
+    <g transform="translate(652, 60)">
+      <rect width="180" height="80" fill="#fef3c7" stroke="#92400e" stroke-width="1.4" rx="6"/>
+      <text x="90" y="22" text-anchor="middle" font-weight="700" fill="#92400e">Voxel chunk</text>
+      <text x="90" y="44" text-anchor="middle" font-size="11" fill="#92400e">Block Material</text>
+      <text x="90" y="60" text-anchor="middle" font-size="11" fill="#92400e" font-style="italic">block atlas UVs</text>
+      <text x="90" y="74" text-anchor="middle" font-size="11" fill="#92400e" font-style="italic">per-chunk geometry</text>
+    </g>
+  </g>
+
+  <!-- Routing arrows from material → pass (drawn straight down, slight angles for clarity) -->
+  <g stroke="#374151" stroke-width="1.6" fill="none">
+    <line x1="130" y1="140" x2="130" y2="244" marker-end="url(#mrArr)"/>
+    <line x1="334" y1="140" x2="334" y2="244" marker-end="url(#mrArr)"/>
+    <line x1="538" y1="140" x2="538" y2="244" marker-end="url(#mrArr)"/>
+    <line x1="742" y1="140" x2="742" y2="244" marker-end="url(#mrArr)"/>
+  </g>
+
+  <!-- Pass-type label between rows -->
+  <text x="460" y="200" text-anchor="middle" font-size="11" font-style="italic" fill="#6b7280">routed by transparent + mesh kind</text>
+
+  <!-- ===== BOTTOM ROW: 4 render passes ===== -->
+  <g font-size="13">
+    <g transform="translate(40, 250)">
+      <rect width="180" height="80" fill="#ffffff" stroke="#1e40af" stroke-width="1.6" rx="6"/>
+      <text x="90" y="24" text-anchor="middle" font-weight="700" fill="#1e40af">GeometryPass</text>
+      <text x="90" y="44" text-anchor="middle" font-size="11" fill="#1e40af">writes G-buffer</text>
+      <text x="90" y="60" text-anchor="middle" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#1e40af">depthCompare: less</text>
+      <text x="90" y="74" text-anchor="middle" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#1e40af">depthWrite: true</text>
+    </g>
+
+    <g transform="translate(244, 250)">
+      <rect width="180" height="80" fill="#ffffff" stroke="#9d174d" stroke-width="1.6" rx="6"/>
+      <text x="90" y="24" text-anchor="middle" font-weight="700" fill="#9d174d">ForwardPass</text>
+      <text x="90" y="44" text-anchor="middle" font-size="11" fill="#9d174d">writes HDR (alpha blend)</text>
+      <text x="90" y="60" text-anchor="middle" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#9d174d">depthCompare: less</text>
+      <text x="90" y="74" text-anchor="middle" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#9d174d">depthWrite: false</text>
+    </g>
+
+    <g transform="translate(448, 250)">
+      <rect width="180" height="80" fill="#ffffff" stroke="#166534" stroke-width="1.6" rx="6"/>
+      <text x="90" y="24" text-anchor="middle" font-weight="700" fill="#166534">SkinnedGeometryPass</text>
+      <text x="90" y="44" text-anchor="middle" font-size="11" fill="#166534">writes G-buffer</text>
+      <text x="90" y="60" text-anchor="middle" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#166534">+ joint storage buffer</text>
+      <text x="90" y="74" text-anchor="middle" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#166534">@group(3)</text>
+    </g>
+
+    <g transform="translate(652, 250)">
+      <rect width="180" height="80" fill="#ffffff" stroke="#92400e" stroke-width="1.6" rx="6"/>
+      <text x="90" y="24" text-anchor="middle" font-weight="700" fill="#92400e">WorldGeometryPass</text>
+      <text x="90" y="44" text-anchor="middle" font-size="11" fill="#92400e">writes G-buffer</text>
+      <text x="90" y="60" text-anchor="middle" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#92400e">chunk_geometry.wgsl</text>
+      <text x="90" y="74" text-anchor="middle" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#92400e">block atlas binding</text>
+    </g>
+  </g>
+
+  <!-- Convergence arrows: G-buffer passes converge into one G-buffer; ForwardPass writes HDR -->
+  <g stroke="#374151" stroke-width="1.5" fill="none">
+    <path d="M 130,330 C 130,360, 240,360, 240,386" marker-end="url(#mrArr)"/>
+    <path d="M 538,330 C 538,360, 280,360, 280,386" marker-end="url(#mrArr)"/>
+    <path d="M 742,330 C 742,360, 320,360, 320,386" marker-end="url(#mrArr)"/>
+
+    <!-- ForwardPass goes to HDR (a separate downstream box) -->
+    <path d="M 334,330 C 334,360, 640,360, 640,386" marker-end="url(#mrArr)"/>
+  </g>
+
+  <!-- Final outputs -->
+  <g transform="translate(140, 388)">
+    <rect width="280" height="40" fill="#fde68a" stroke="#92400e" stroke-width="1.6" rx="6"/>
+    <text x="140" y="18" text-anchor="middle" font-weight="700" fill="#92400e">G-buffer (deferred opaque)</text>
+    <text x="140" y="34" text-anchor="middle" font-size="11" fill="#92400e">→ LightingPass reads it</text>
+  </g>
+
+  <g transform="translate(540, 388)">
+    <rect width="200" height="40" fill="#fce7f3" stroke="#9d174d" stroke-width="1.6" rx="6"/>
+    <text x="100" y="18" text-anchor="middle" font-weight="700" fill="#9d174d">HDR target</text>
+    <text x="100" y="34" text-anchor="middle" font-size="11" fill="#9d174d">→ post-FX</text>
+  </g>
+</svg>

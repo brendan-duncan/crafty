@@ -3,7 +3,7 @@
 This book explores real-time graphics programming through the lens of **Crafty**,
 an open-source WebGPU voxel game engine written in TypeScript.
 
-![Crafty](../assets/crafty.png)
+![Crafty](images/crafty.png)
 
 ## Who this is for
 

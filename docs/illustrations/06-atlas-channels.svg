@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 460" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="880" height="460" fill="#ffffff"/>
+  <text x="440" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Four Parallel Atlases — Sampled with the Same UV</text>
+
+  <defs>
+    <marker id="acArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+    </marker>
+
+    <!-- Color atlas: warm spectrum stripes -->
+    <linearGradient id="acColor" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#16a34a"/>
+      <stop offset="33%" stop-color="#92400e"/>
+      <stop offset="66%" stop-color="#6b7280"/>
+      <stop offset="100%" stop-color="#fde68a"/>
+    </linearGradient>
+
+    <!-- Normal atlas: tangent-space normals are blueish/purple -->
+    <linearGradient id="acNormal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#a78bfa"/>
+      <stop offset="50%" stop-color="#7dd3fc"/>
+      <stop offset="100%" stop-color="#bfdbfe"/>
+    </linearGradient>
+
+    <!-- MER: red metallic, green emissive, blue roughness -->
+    <linearGradient id="acMer" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#dc2626"/>
+      <stop offset="50%" stop-color="#16a34a"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+
+    <!-- Heightmap: grayscale -->
+    <linearGradient id="acHeight" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1f2937"/>
+      <stop offset="100%" stop-color="#f3f4f6"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Four atlas thumbnails in a row, each 180×120, gap 24, total = 4*180 + 3*24 = 792. Start at x=44 -->
+
+  <g transform="translate(44, 60)">
+    <text x="90" y="0" text-anchor="middle" font-weight="700" fill="#1e40af">Color atlas</text>
+    <text x="90" y="16" text-anchor="middle" font-size="11" font-style="italic" fill="#1e40af">sRGB albedo</text>
+    <rect x="0" y="28" width="180" height="120" fill="url(#acColor)" stroke="#1e40af" stroke-width="1.5"/>
+    <text x="90" y="170" text-anchor="middle" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#374151">rgba8unorm</text>
+    <text x="90" y="186" text-anchor="middle" font-size="11" fill="#374151">→ albedo.rgb</text>
+  </g>
+
+  <g transform="translate(248, 60)">
+    <text x="90" y="0" text-anchor="middle" font-weight="700" fill="#7c3aed">Normal atlas</text>
+    <text x="90" y="16" text-anchor="middle" font-size="11" font-style="italic" fill="#7c3aed">tangent-space normals</text>
+    <rect x="0" y="28" width="180" height="120" fill="url(#acNormal)" stroke="#7c3aed" stroke-width="1.5"/>
+    <text x="90" y="170" text-anchor="middle" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#374151">rgba8unorm</text>
+    <text x="90" y="186" text-anchor="middle" font-size="11" fill="#374151">→ normal.xyz</text>
+  </g>
+
+  <g transform="translate(452, 60)">
+    <text x="90" y="0" text-anchor="middle" font-weight="700" fill="#9d174d">MER atlas</text>
+    <text x="90" y="16" text-anchor="middle" font-size="11" font-style="italic" fill="#9d174d">metallic · emissive · roughness</text>
+    <rect x="0" y="28" width="180" height="120" fill="url(#acMer)" stroke="#9d174d" stroke-width="1.5"/>
+    <text x="90" y="170" text-anchor="middle" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#374151">rgba8unorm</text>
+    <text x="90" y="186" text-anchor="middle" font-size="11" fill="#374151">→ metal · emit · rough</text>
+  </g>
+
+  <g transform="translate(656, 60)">
+    <text x="90" y="0" text-anchor="middle" font-weight="700" fill="#374151">Heightmap atlas</text>
+    <text x="90" y="16" text-anchor="middle" font-size="11" font-style="italic" fill="#374151">parallax / displacement</text>
+    <rect x="0" y="28" width="180" height="120" fill="url(#acHeight)" stroke="#374151" stroke-width="1.5"/>
+    <text x="90" y="170" text-anchor="middle" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#374151">r8unorm</text>
+    <text x="90" y="186" text-anchor="middle" font-size="11" fill="#374151">→ height</text>
+  </g>
+
+  <!-- Funnel arrows from each atlas down to a "shared UV" box -->
+  <g stroke="#374151" stroke-width="1.5" fill="none">
+    <path d="M 134,266 C 134,290, 320,290, 320,310" marker-end="url(#acArr)"/>
+    <path d="M 338,266 C 338,290, 380,290, 400,310" marker-end="url(#acArr)"/>
+    <path d="M 542,266 C 542,290, 480,290, 460,310" marker-end="url(#acArr)"/>
+    <path d="M 746,266 C 746,290, 540,290, 540,310" marker-end="url(#acArr)"/>
+  </g>
+
+  <!-- Shared UV box -->
+  <g transform="translate(280, 312)">
+    <rect width="320" height="56" fill="#fef3c7" stroke="#92400e" stroke-width="1.5" rx="6"/>
+    <text x="160" y="22" text-anchor="middle" font-weight="700" fill="#92400e">Same uv per fragment</text>
+    <text x="160" y="42" text-anchor="middle" font-family="ui-monospace, Consolas, monospace" font-size="12" fill="#92400e">uv = local * scale + offset</text>
+  </g>
+
+  <!-- Shader fragment example -->
+  <g transform="translate(60, 388)">
+    <rect width="760" height="60" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+    <g font-family="ui-monospace, Consolas, monospace" font-size="12" transform="translate(14, 0)">
+      <text x="0" y="22"><tspan fill="#1e40af">let albedo = textureSample(albedo_map, samp, uv).rgb;</tspan></text>
+      <text x="0" y="38"><tspan fill="#7c3aed">let normal = textureSample(normal_map, samp, uv).xyz * 2.0 − 1.0;</tspan></text>
+      <text x="380" y="22"><tspan fill="#9d174d">let mer = textureSample(mer_map, samp, uv).rgb;</tspan></text>
+      <text x="380" y="38"><tspan fill="#374151">let h = textureSample(height_map, samp, uv).r;</tspan></text>
+    </g>
+  </g>
+</svg>

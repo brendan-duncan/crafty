@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 480" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="480" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Block Texture Atlas: One Texture, Many Tiles</text>
+
+  <defs>
+    <marker id="atArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+    </marker>
+  </defs>
+
+  <!-- ===== LEFT: 5×4 atlas grid ===== -->
+  <g transform="translate(40, 70)">
+    <text x="180" y="0" text-anchor="middle" font-weight="700" fill="#111827">Atlas (5 × 4 tiles)</text>
+
+    <!-- Each tile 70×70, total 350×280 -->
+    <g transform="translate(5, 18)" font-size="10" text-anchor="middle">
+      <!-- Row 0 -->
+      <g>
+        <rect x="0"   y="0" width="70" height="70" fill="#16a34a" stroke="#374151"/><text x="35"  y="40" fill="#ffffff" font-weight="600">grass</text>
+        <rect x="70"  y="0" width="70" height="70" fill="#92400e" stroke="#374151"/><text x="105" y="40" fill="#ffffff" font-weight="600">dirt</text>
+        <rect x="140" y="0" width="70" height="70" fill="#6b7280" stroke="#374151"/><text x="175" y="40" fill="#ffffff" font-weight="600">stone</text>
+        <rect x="210" y="0" width="70" height="70" fill="#854d0e" stroke="#374151"/><text x="245" y="40" fill="#ffffff" font-weight="600">wood</text>
+        <rect x="280" y="0" width="70" height="70" fill="#15803d" stroke="#374151"/><text x="315" y="40" fill="#ffffff" font-weight="600">leaf</text>
+      </g>
+      <!-- Row 1 — highlighted tile is row 1, col 2 (stone variant): position (140, 70) to (210, 140) -->
+      <g>
+        <rect x="0"   y="70" width="70" height="70" fill="#fde68a" stroke="#374151"/><text x="35"  y="110" fill="#92400e" font-weight="600">sand</text>
+        <rect x="70"  y="70" width="70" height="70" fill="#1e40af" stroke="#374151"/><text x="105" y="110" fill="#ffffff" font-weight="600">water</text>
+        <!-- HIGHLIGHTED tile — drawn with thicker border AFTER siblings to sit on top -->
+        <rect x="210" y="70" width="70" height="70" fill="#9ca3af" stroke="#374151"/><text x="245" y="110" fill="#ffffff" font-weight="600">cobble</text>
+        <rect x="280" y="70" width="70" height="70" fill="#facc15" stroke="#374151"/><text x="315" y="110" fill="#92400e" font-weight="600">gold</text>
+        <!-- highlighted tile last so its red outline sits on top -->
+        <rect x="140" y="70" width="70" height="70" fill="#52525b" stroke="#dc2626" stroke-width="3"/>
+        <text x="175" y="110" fill="#ffffff" font-weight="600">brick</text>
+      </g>
+      <!-- Row 2 -->
+      <g>
+        <rect x="0"   y="140" width="70" height="70" fill="#a16207" stroke="#374151"/><text x="35"  y="180" fill="#ffffff" font-weight="600">log</text>
+        <rect x="70"  y="140" width="70" height="70" fill="#fef3c7" stroke="#374151"/><text x="105" y="180" fill="#92400e" font-weight="600">plank</text>
+        <rect x="140" y="140" width="70" height="70" fill="#dc2626" stroke="#374151"/><text x="175" y="180" fill="#ffffff" font-weight="600">brick</text>
+        <rect x="210" y="140" width="70" height="70" fill="#1f2937" stroke="#374151"/><text x="245" y="180" fill="#ffffff" font-weight="600">coal</text>
+        <rect x="280" y="140" width="70" height="70" fill="#facc15" stroke="#374151"/><text x="315" y="180" fill="#000000" font-weight="600">torch</text>
+      </g>
+      <!-- Row 3 -->
+      <g>
+        <rect x="0"   y="210" width="70" height="70" fill="#65a30d" stroke="#374151"/><text x="35"  y="250" fill="#ffffff" font-weight="600">moss</text>
+        <rect x="70"  y="210" width="70" height="70" fill="#0891b2" stroke="#374151"/><text x="105" y="250" fill="#ffffff" font-weight="600">ice</text>
+        <rect x="140" y="210" width="70" height="70" fill="#f3f4f6" stroke="#374151"/><text x="175" y="250" fill="#374151" font-weight="600">snow</text>
+        <rect x="210" y="210" width="70" height="70" fill="#7c2d12" stroke="#374151"/><text x="245" y="250" fill="#ffffff" font-weight="600">rust</text>
+        <rect x="280" y="210" width="70" height="70" fill="#a855f7" stroke="#374151"/><text x="315" y="250" fill="#ffffff" font-weight="600">amethyst</text>
+      </g>
+    </g>
+
+    <!-- Atlas-wide UV axes outside the grid -->
+    <g font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#6b7280">
+      <text x="5"   y="316">u = 0</text>
+      <text x="355" y="316" text-anchor="end">u = 1</text>
+      <text x="-6"  y="22"  text-anchor="end">v = 0</text>
+      <text x="-6"  y="294" text-anchor="end">v = 1</text>
+    </g>
+  </g>
+
+  <!-- ===== RIGHT: how the highlighted tile is sampled ===== -->
+  <g transform="translate(500, 70)">
+    <text x="200" y="0" text-anchor="middle" font-weight="700" fill="#dc2626">Sampling the highlighted tile</text>
+
+    <!-- Local UV box -->
+    <g transform="translate(20, 28)">
+      <rect width="160" height="160" fill="#fef3c7" stroke="#dc2626" stroke-width="1.5"/>
+      <text x="80" y="86" text-anchor="middle" font-size="11" font-style="italic" fill="#92400e">local UV ∈ [0, 1]²</text>
+
+      <!-- Local UV axes -->
+      <g font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#6b7280">
+        <text x="0"   y="178">(0, 0)</text>
+        <text x="160" y="178" text-anchor="end">(1, 0)</text>
+        <text x="0"   y="-4">(0, 1)</text>
+        <text x="160" y="-4" text-anchor="end">(1, 1)</text>
+      </g>
+    </g>
+
+    <!-- Arrow from local UV to formula -->
+    <line x1="200" y1="108" x2="232" y2="108" stroke="#374151" stroke-width="1.5" marker-end="url(#atArr)"/>
+
+    <!-- Formula box -->
+    <g transform="translate(238, 56)">
+      <rect width="180" height="106" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+      <text x="90" y="22" text-anchor="middle" font-weight="700" fill="#111827">Atlas UV formula</text>
+
+      <g font-family="ui-monospace, Consolas, monospace" font-size="12" fill="#374151" transform="translate(14, 0)">
+        <text x="0" y="46">uv_atlas =</text>
+        <text x="0" y="64">  uv_local *</text>
+        <text x="0" y="82">    <tspan fill="#1e40af">scale</tspan> + <tspan fill="#16a34a">offset</tspan></text>
+      </g>
+    </g>
+
+    <!-- Concrete values (separate, no overlap with formula) -->
+    <g transform="translate(20, 226)">
+      <rect width="400" height="116" fill="#f3f4f6" stroke="#374151" stroke-width="1" rx="4"/>
+      <text x="14" y="22" font-weight="700" fill="#111827">For this tile (col 2, row 1 of 5×4):</text>
+
+      <g font-family="ui-monospace, Consolas, monospace" font-size="12" transform="translate(14, 0)">
+        <text x="0" y="46"><tspan fill="#1e40af">scale</tspan>  = (1/5, 1/4)  = (0.20, 0.25)</text>
+        <text x="0" y="66"><tspan fill="#16a34a">offset</tspan> = (2/5, 1/4)  = (0.40, 0.25)</text>
+
+        <text x="0" y="96" fill="#374151">uv_atlas = uv_local * (0.20, 0.25) + (0.40, 0.25)</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- Bottom note -->
+  <g transform="translate(40, 408)">
+    <rect width="840" height="56" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+    <text x="14" y="22" font-weight="600" fill="#111827">Why an atlas?</text>
+    <text x="14" y="40" font-size="12" fill="#374151">Each chunk needs hundreds of distinct block textures. Binding them individually would mean a separate draw call per texture.</text>
+    <text x="14" y="52" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#374151">Per-tile (scale, offset) lives in the material uniform; one atlas + one bind group serves the entire chunk.</text>
+  </g>
+</svg>

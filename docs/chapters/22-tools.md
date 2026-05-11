@@ -102,6 +102,8 @@ The [**WebGPU Inspector**](https://chromewebstore.google.com/detail/webgpu-inspe
 - GPU command traces.
 - Validation error messages with backtraces.
 
+![WebGPU Inspector](../images/22_webgpu_inspector.png)
+
 ## 22.4 Asset Pipeline
 
 ### Texture Atlas Building
