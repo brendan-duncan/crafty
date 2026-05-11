@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 320" font-family="system-ui, -apple-system, sans-serif" font-size="13">
-  <rect width="760" height="320" fill="#ffffff"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 350" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="760" height="350" fill="#ffffff"/>
   <text x="380" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">TRS Composition: Scale → Rotate → Translate</text>
 
   <defs>
@@ -65,8 +65,8 @@
   <circle cx="280" cy="160" r="2.5" fill="#dc2626"/>
   <circle cx="490" cy="160" r="2.5" fill="#dc2626"/>
 
-  <!-- Equation footer -->
-  <g transform="translate(160, 270)">
+  <!-- Equation footer (shifted down so the per-step subtitles don't clip the box top) -->
+  <g transform="translate(160, 300)">
     <rect x="0" y="0" width="440" height="40" fill="#f3f4f6" stroke="#9ca3af" rx="4"/>
     <text x="220" y="26" text-anchor="middle" font-family="ui-monospace, Consolas, monospace" fill="#111827">M = T · R · S — applied right-to-left to a vertex</text>
   </g>
