@@ -1,9 +1,8 @@
-import { Vec3 } from '../../src/math/index.js';
 import type { PlayerController, CameraControls } from '../../src/engine/index.js';
 import type { World, BlockType } from '../../src/block/index.js';
 import type { Scene } from '../../src/engine/index.js';
 import type { BlockInteractionState } from './block_interaction.js';
-import { completeBreak, doBlockAction } from './block_interaction.js';
+import { doBlockAction } from './block_interaction.js';
 
 const JOY_RADIUS    = 60;   // px — virtual joystick outer radius
 const JOY_DEAD_ZONE = 0.10; // fraction of radius treated as zero
@@ -505,16 +504,9 @@ export class TouchControls {
     }
     const time = performance.now();
     if (button === 0) {
-      // Touch: mine directly (instant break — no progressive tracking for touch).
-      // The progressive break system (updateBlockInteraction) requires holding the
-      // button across frames, but touch events (touchend/touchcancel) can race
-      // with the render loop, making hold-to-break unreliable on mobile.
-      const target = blockInteraction.targetBlock;
-      if (target) {
-        blockInteraction.breakingBlock = new Vec3(target.x, target.y, target.z);
-        completeBreak(blockInteraction, world, scene);
-      }
-      blockInteraction.mouseHeld     = -1;
+      // Mirror mouse mousedown: set mouseHeld so updateBlockInteraction drives
+      // the progressive break frame-by-frame; _actionUp clears it on touchend.
+      blockInteraction.mouseHeld     = 0;
       blockInteraction.mouseHoldTime = time;
     } else if (button === 2) {
       blockInteraction.mouseHeld     = button;
