@@ -8,23 +8,7 @@ Shadows are essential for spatial perception. Crafty implements three shadow tec
 
 The fundamental idea of shadow mapping is simple: render the scene from the light's perspective into a depth buffer (the shadow map), then during shading, compare each surface point's depth against the shadow map at the corresponding light-space coordinate. If the surface point is farther from the light than the closest surface recorded in the shadow map, it is in shadow.
 
-```
-                    Light
-                      │
-                      ▼
-              ┌───────────────┐
-              │  Shadow Map   │
-              │ (depth from   │
-              │  light POV)   │
-              └───────────────┘
-                     ▲
-                     │ sample
-                     │
-  Camera ──► Surface ──► Compare depth:
-              │           surface_depth > shadow_map_depth → shadowed
-              ▼
-           Lit / Shadowed
-```
+![Shadow mapping: render from light POV into a depth texture, then sample and compare during shading](../illustrations/08-shadow-map-basics.svg)
 
 In WGSL, this comparison is:
 
@@ -58,6 +42,8 @@ The `depthBiasSlopeScale` term adds bias proportional to the polygon's slope rel
 ## 8.2 Cascade Shadow Maps (CSM)
 
 A single shadow map for a directional light covers too large an area to be useful — texels near the camera appear blocky. Cascade shadow maps split the view frustum into multiple depth ranges, each rendered into its own shadow map with texel density matched to that range.
+
+![Cascade shadow maps: the camera frustum is split by distance and each cascade is rendered into one layer of a depth array texture](../illustrations/08-csm-cascades.svg)
 
 ### Cascade Setup
 
@@ -138,6 +124,8 @@ The cascade count, split depths, and per-cascade view-projection matrices are up
 ## 8.3 Variance Shadow Maps (VSM)
 
 Crafty uses **VSM** for point and spot light shadows. VSM stores the depth *and* depth-squared in a `rg16float` texture, and uses variance-based filtering to produce soft, pre-filtered shadows without hardware PCF:
+
+![VSM moments and Chebyshev's inequality: pMax = variance / (variance + d²) gives a smooth shadow falloff that grows wider with variance](../illustrations/08-vsm-chebyshev.svg)
 
 ```typescript
 // Fragment shader writes depth and depth²
@@ -233,6 +221,8 @@ Cube shadow maps are expensive — they require 6 draw calls per light per frame
 
 For directional CSM shadows, Crafty uses hardware PCF with a `depth32float` texture and a comparison sampler:
 
+![PCF with a Poisson disk: 16 jittered taps inside the filter radius produce a smooth penumbra instead of the stairsteps a regular grid would give](../illustrations/08-pcf-poisson.svg)
+
 ```typescript
 const shadowSampler = device.createSampler({
   compare: 'less',  // Enables PCF
@@ -259,6 +249,8 @@ shadow /= f32(kernelSize);
 VSM shadows are blurred with a separable Gaussian kernel (two-pass: horizontal + vertical). The `PointSpotShadowPass` performs this blur in the same pass by writing to an intermediate `rg16float` render target and then to the final VSM atlas.
 
 ## 8.7 Shadow Acne and Peter Panning
+
+![Shadow bias trade-off: no bias gives self-shadowing acne, too much bias detaches the shadow from the caster, slope-scaled bias adapts per-polygon](../illustrations/08-shadow-bias.svg)
 
 Crafty addresses shadow artifacts through two mechanisms:
 

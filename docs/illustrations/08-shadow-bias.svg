@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 460" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="460" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Shadow Bias: Acne vs Peter Panning vs Hardware Bias</text>
+
+  <defs>
+    <pattern id="acneStripes" x="0" y="0" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(-12)">
+      <rect x="0" y="0" width="14" height="14" fill="#cbd5e1"/>
+      <rect x="0" y="0" width="7"  height="14" fill="#1f2937"/>
+    </pattern>
+  </defs>
+
+  <!-- ===== Three side-by-side cases ===== -->
+  <!-- Each panel: 270 wide -->
+
+  <!-- ===== Panel 1: NO BIAS — acne ===== -->
+  <g transform="translate(20, 60)">
+    <text x="135" y="0" text-anchor="middle" font-weight="700" fill="#dc2626">No bias → shadow acne</text>
+
+    <!-- Sky -->
+    <rect x="0" y="18" width="270" height="230" fill="#0f172a" stroke="#374151" stroke-width="1.2"/>
+
+    <!-- Light arrow -->
+    <g stroke="#fbbf24" stroke-width="1.4" opacity="0.9">
+      <line x1="40" y1="38" x2="80" y2="78"/>
+      <line x1="80" y1="38" x2="120" y2="78"/>
+      <line x1="120" y1="38" x2="160" y2="78"/>
+      <line x1="160" y1="38" x2="200" y2="78"/>
+      <line x1="200" y1="38" x2="240" y2="78"/>
+    </g>
+    <text x="20" y="32" font-size="10" fill="#fde047" font-weight="700">light</text>
+
+    <!-- Ground (lit, with acne stripes) -->
+    <rect x="0" y="160" width="270" height="88" fill="url(#acneStripes)"/>
+
+    <!-- Caster -->
+    <rect x="60" y="120" width="40" height="40" fill="#60a5fa" stroke="#93c5fd" stroke-width="1.2"/>
+
+    <!-- Drawn shadow (correct, attached to caster) -->
+    <polygon points="100,160 80,160 130,200 150,200" fill="#0f172a" opacity="0.55"/>
+
+    <!-- Caption -->
+    <text x="135" y="270" text-anchor="middle" font-size="11" font-style="italic" fill="#374151">depth precision: lit surface self-shadows</text>
+  </g>
+
+  <!-- ===== Panel 2: TOO MUCH BIAS — peter panning ===== -->
+  <g transform="translate(325, 60)">
+    <text x="135" y="0" text-anchor="middle" font-weight="700" fill="#ea580c">Too much bias → Peter Panning</text>
+
+    <rect x="0" y="18" width="270" height="230" fill="#0f172a" stroke="#374151" stroke-width="1.2"/>
+
+    <g stroke="#fbbf24" stroke-width="1.4" opacity="0.9">
+      <line x1="40" y1="38" x2="80" y2="78"/>
+      <line x1="80" y1="38" x2="120" y2="78"/>
+      <line x1="120" y1="38" x2="160" y2="78"/>
+      <line x1="160" y1="38" x2="200" y2="78"/>
+      <line x1="200" y1="38" x2="240" y2="78"/>
+    </g>
+    <text x="20" y="32" font-size="10" fill="#fde047" font-weight="700">light</text>
+
+    <!-- Lit ground (clean) -->
+    <rect x="0" y="160" width="270" height="88" fill="#cbd5e1"/>
+
+    <!-- Caster floats above ground -->
+    <rect x="60" y="120" width="40" height="40" fill="#60a5fa" stroke="#93c5fd" stroke-width="1.2"/>
+
+    <!-- Detached shadow (gap between caster bottom and shadow start) -->
+    <polygon points="120,180 100,180 150,220 170,220" fill="#0f172a" opacity="0.55"/>
+
+    <!-- Detachment indicator -->
+    <line x1="80" y1="160" x2="120" y2="180" stroke="#fca5a5" stroke-width="1" stroke-dasharray="2,2"/>
+    <text x="180" y="174" font-size="10" fill="#fca5a5" font-style="italic">gap</text>
+
+    <text x="135" y="270" text-anchor="middle" font-size="11" font-style="italic" fill="#374151">shadow detaches from contact point</text>
+  </g>
+
+  <!-- ===== Panel 3: HARDWARE BIAS — clean ===== -->
+  <g transform="translate(630, 60)">
+    <text x="135" y="0" text-anchor="middle" font-weight="700" fill="#16a34a">depthBias + slopeScale → clean</text>
+
+    <rect x="0" y="18" width="270" height="230" fill="#0f172a" stroke="#374151" stroke-width="1.2"/>
+
+    <g stroke="#fbbf24" stroke-width="1.4" opacity="0.9">
+      <line x1="40" y1="38" x2="80" y2="78"/>
+      <line x1="80" y1="38" x2="120" y2="78"/>
+      <line x1="120" y1="38" x2="160" y2="78"/>
+      <line x1="160" y1="38" x2="200" y2="78"/>
+      <line x1="200" y1="38" x2="240" y2="78"/>
+    </g>
+    <text x="20" y="32" font-size="10" fill="#fde047" font-weight="700">light</text>
+
+    <!-- Clean lit ground -->
+    <rect x="0" y="160" width="270" height="88" fill="#cbd5e1"/>
+
+    <!-- Caster -->
+    <rect x="60" y="120" width="40" height="40" fill="#60a5fa" stroke="#93c5fd" stroke-width="1.2"/>
+
+    <!-- Attached shadow -->
+    <polygon points="100,160 80,160 130,200 150,200" fill="#0f172a" opacity="0.6"/>
+
+    <!-- Tick at attachment point -->
+    <circle cx="100" cy="160" r="3" fill="#22c55e"/>
+    <text x="155" y="158" font-size="10" fill="#bbf7d0" font-style="italic">attached</text>
+
+    <text x="135" y="270" text-anchor="middle" font-size="11" font-style="italic" fill="#374151">slope-scaled bias adapts to surface angle</text>
+  </g>
+
+  <!-- ===== BOTTOM: code + explanation ===== -->
+  <g transform="translate(40, 348)">
+    <rect width="840" height="100" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+    <text x="14" y="22" font-weight="700" fill="#111827">Hardware bias in the shadow pipeline</text>
+
+    <g font-family="ui-monospace, Consolas, monospace" font-size="12" fill="#374151" transform="translate(14, 0)">
+      <text x="0" y="46">depthStencil: {</text>
+      <text x="0" y="64">  depthBias: 1,             <tspan fill="#6b7280">// constant offset (kills acne on faces toward light)</tspan></text>
+      <text x="0" y="82">  depthBiasSlopeScale: 1.5, <tspan fill="#dc2626">// adds offset proportional to slope</tspan> <tspan fill="#6b7280">— grazing surfaces need more</tspan></text>
+    </g>
+  </g>
+</svg>

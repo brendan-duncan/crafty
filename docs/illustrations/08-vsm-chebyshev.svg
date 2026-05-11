@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 460" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="460" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Variance Shadow Maps: Moments → Chebyshev Probability</text>
+
+  <!-- ===== LEFT: store two moments ===== -->
+  <g transform="translate(40, 60)">
+    <text x="190" y="0" text-anchor="middle" font-weight="700" fill="#111827">Store depth and depth² per texel</text>
+
+    <!-- texture frame -->
+    <rect x="0" y="18" width="380" height="160" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="4"/>
+
+    <!-- Two channel labels with sample values -->
+    <g transform="translate(20, 40)">
+      <rect x="0" y="0" width="160" height="60" fill="#fee2e2" stroke="#dc2626" stroke-width="1.2" rx="3"/>
+      <text x="80" y="20" text-anchor="middle" font-size="11" font-weight="700" fill="#7f1d1d">R: depth (M₁)</text>
+      <text x="80" y="44" text-anchor="middle" font-family="ui-monospace, Consolas, monospace" font-size="14" fill="#7f1d1d">0.62</text>
+
+      <rect x="180" y="0" width="160" height="60" fill="#dbeafe" stroke="#2563eb" stroke-width="1.2" rx="3"/>
+      <text x="260" y="20" text-anchor="middle" font-size="11" font-weight="700" fill="#1e3a8a">G: depth² (M₂)</text>
+      <text x="260" y="44" text-anchor="middle" font-family="ui-monospace, Consolas, monospace" font-size="14" fill="#1e3a8a">0.40</text>
+    </g>
+
+    <!-- Format -->
+    <g transform="translate(20, 116)" font-family="ui-monospace, Consolas, monospace" font-size="11" fill="#374151">
+      <text x="0" y="0">format:  rg16float</text>
+      <text x="0" y="18">filter:  linear (then blur)</text>
+      <text x="0" y="36" font-style="italic" fill="#6b7280">— variance is recoverable: σ² = M₂ − M₁²</text>
+    </g>
+
+    <text x="190" y="200" text-anchor="middle" font-size="11" font-style="italic" fill="#6b7280">two moments make the shadow map filterable like color</text>
+  </g>
+
+  <!-- ===== RIGHT: Chebyshev curve ===== -->
+  <g transform="translate(460, 60)">
+    <text x="200" y="0" text-anchor="middle" font-weight="700" fill="#111827">Chebyshev: pMax = σ² / (σ² + d²)</text>
+
+    <!-- chart frame: 360 wide × 180 tall, plot area inset -->
+    <rect x="0" y="18" width="400" height="200" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="4"/>
+
+    <!-- Plot area: x 50..380, y 36..200. d range 0..0.3, p range 0..1.
+         Curves use σ small (0.005) and σ larger (0.04) to show comparison. -->
+    <g transform="translate(50, 36)">
+      <!-- Axes -->
+      <line x1="0" y1="160" x2="320" y2="160" stroke="#374151" stroke-width="1"/>
+      <line x1="0" y1="0"   x2="0"   y2="160" stroke="#374151" stroke-width="1"/>
+
+      <!-- Y-axis labels -->
+      <g font-family="ui-monospace, Consolas, monospace" font-size="10" fill="#6b7280">
+        <text x="-6" y="4"   text-anchor="end">1</text>
+        <text x="-6" y="84"  text-anchor="end">0.5</text>
+        <text x="-6" y="164" text-anchor="end">0</text>
+      </g>
+      <!-- X-axis labels -->
+      <g font-family="ui-monospace, Consolas, monospace" font-size="10" fill="#6b7280">
+        <text x="0"   y="178" text-anchor="middle">0</text>
+        <text x="160" y="178" text-anchor="middle">d</text>
+        <text x="320" y="178" text-anchor="middle">→</text>
+      </g>
+
+      <!-- Hard step (no VSM): vertical drop at d=0 -->
+      <g stroke="#9ca3af" stroke-width="1.4" fill="none" stroke-dasharray="3,3">
+        <path d="M0,0 L0,160"/>
+        <path d="M0,160 L320,160"/>
+      </g>
+      <text x="76" y="14" font-size="10" fill="#6b7280">hard step (depth test)</text>
+
+      <!-- Small variance (sharp): drops fast -->
+      <path d="M0,0
+               C 12,2 22,8 32,22
+               C 44,40 60,72 84,104
+               C 110,136 160,154 320,159"
+            fill="none" stroke="#dc2626" stroke-width="2.4"/>
+      <text x="98" y="62" font-size="11" fill="#dc2626" font-weight="700">σ² small</text>
+      <text x="98" y="76" font-size="10" fill="#dc2626" font-style="italic">crisp shadow</text>
+
+      <!-- Large variance (soft): drops slowly -->
+      <path d="M0,0
+               C 30,10 60,28 96,50
+               C 132,72 168,92 208,112
+               C 248,128 280,142 320,156"
+            fill="none" stroke="#2563eb" stroke-width="2.4"/>
+      <text x="200" y="56" font-size="11" fill="#2563eb" font-weight="700">σ² large</text>
+      <text x="200" y="70" font-size="10" fill="#2563eb" font-style="italic">soft penumbra</text>
+
+      <!-- d annotation -->
+      <text x="160" y="194" font-size="10" fill="#374151" font-style="italic" text-anchor="middle">d = fragmentDepth − M₁</text>
+    </g>
+  </g>
+
+  <!-- ===== BOTTOM: code snippet ===== -->
+  <g transform="translate(40, 320)">
+    <rect width="840" height="120" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+    <text x="14" y="22" font-weight="700" fill="#111827">Lookup at lighting time</text>
+
+    <g font-family="ui-monospace, Consolas, monospace" font-size="12" fill="#374151" transform="translate(14, 0)">
+      <text x="0" y="46">let m       = textureSample(vsmMap, samp, uv).rg;        <tspan fill="#6b7280">// blurred moments</tspan></text>
+      <text x="0" y="64">let d       = fragmentDepth − m.x;</text>
+      <text x="0" y="82">let variance = max(m.y − m.x * m.x, 1e-4);</text>
+      <text x="0" y="100">let pMax     = variance / (variance + d * d);             <tspan fill="#dc2626">// upper bound on lit probability</tspan></text>
+    </g>
+  </g>
+</svg>

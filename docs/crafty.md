@@ -175,7 +175,7 @@ This book is a work in progress.  Chapters are added as the engine evolves.
   - 11.2 Sky texture pass
   - 11.3 Cloud rendering
   - 11.4 Volumetric fog
-  - 11.5 Weather effects (rain, snow)
+  - 11.5 Cloud shadows
 
 - [Chapter 12: Terrain and Voxel World](chapters/12-terrain.md)
   - 12.1 Voxel data structure

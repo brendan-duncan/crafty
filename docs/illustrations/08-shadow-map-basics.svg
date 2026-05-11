@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 460" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="460" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Shadow Mapping: Two-Pass Algorithm</text>
+
+  <defs>
+    <marker id="smArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+    </marker>
+    <linearGradient id="depthRamp" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#f3f4f6"/>
+    </linearGradient>
+  </defs>
+
+  <!-- ===== LEFT: Pass 1 — render from light POV ===== -->
+  <g transform="translate(40, 60)">
+    <text x="180" y="0" text-anchor="middle" font-weight="700" fill="#111827">Pass 1: render from light POV → depth</text>
+
+    <!-- Scene viewport -->
+    <rect x="20" y="18" width="320" height="200" fill="#1e293b" stroke="#374151" stroke-width="1.4"/>
+
+    <!-- Light source -->
+    <circle cx="60" cy="50" r="11" fill="#fef3c7" stroke="#dc2626" stroke-width="2"/>
+    <text x="60" y="38" text-anchor="middle" font-size="11" font-weight="700" fill="#fef3c7">light</text>
+
+    <!-- Light frustum lines -->
+    <g stroke="#fbbf24" stroke-width="1" stroke-dasharray="3,2" opacity="0.6">
+      <line x1="60" y1="50" x2="320" y2="80"/>
+      <line x1="60" y1="50" x2="320" y2="200"/>
+    </g>
+
+    <!-- Caster (close to light) -->
+    <rect x="170" y="100" width="40" height="40" fill="#60a5fa" stroke="#93c5fd" stroke-width="1.4"/>
+    <text x="190" y="125" text-anchor="middle" font-size="10" fill="#0f172a" font-weight="700">A</text>
+
+    <!-- Receiver (far from light) -->
+    <rect x="40" y="180" width="290" height="20" fill="#475569" stroke="#94a3b8" stroke-width="1"/>
+    <text x="280" y="195" text-anchor="middle" font-size="10" fill="#e5e7eb">ground</text>
+
+    <!-- Shadow rays from light through A -->
+    <g stroke="#dc2626" stroke-width="1.2" opacity="0.85">
+      <line x1="60" y1="50" x2="170" y2="100"/>
+      <line x1="60" y1="50" x2="210" y2="100"/>
+      <line x1="170" y1="100" x2="240" y2="180" stroke-dasharray="2,2"/>
+      <line x1="210" y1="100" x2="305" y2="180" stroke-dasharray="2,2"/>
+    </g>
+
+    <!-- Shadow region label on ground -->
+    <text x="272" y="172" text-anchor="middle" font-size="10" fill="#fca5a5" font-style="italic">shadow</text>
+
+    <!-- Sub-caption -->
+    <text x="180" y="240" text-anchor="middle" font-size="11" font-style="italic" fill="#6b7280">depth-only render — no color, no shading</text>
+  </g>
+
+  <!-- Arrow from scene → depth map -->
+  <line x1="380" y1="160" x2="430" y2="160" stroke="#374151" stroke-width="1.6" marker-end="url(#smArr)"/>
+  <text x="405" y="152" text-anchor="middle" font-size="11" fill="#374151">store</text>
+
+  <!-- ===== RIGHT: depth map texture ===== -->
+  <g transform="translate(450, 60)">
+    <text x="200" y="0" text-anchor="middle" font-weight="700" fill="#111827">Shadow map (depth texture)</text>
+
+    <!-- Background dark frame -->
+    <rect x="50" y="18" width="300" height="200" fill="url(#depthRamp)" stroke="#374151" stroke-width="1.4"/>
+
+    <!-- Caster A appears as a near-black blob (small depth = close to light) -->
+    <rect x="160" y="78" width="60" height="50" fill="#1e293b"/>
+    <text x="190" y="108" text-anchor="middle" font-size="10" font-weight="700" fill="#f3f4f6">A: 0.20</text>
+
+    <!-- Ground appears as a grey region (larger depth = farther) -->
+    <rect x="60" y="160" width="280" height="48" fill="#9ca3af"/>
+    <text x="200" y="190" text-anchor="middle" font-size="10" fill="#1f2937" font-weight="700">ground: 0.78</text>
+
+    <!-- Depth scale -->
+    <text x="200" y="240" text-anchor="middle" font-size="11" font-style="italic" fill="#6b7280">closer to light = smaller depth value</text>
+
+    <!-- Mini scale legend -->
+    <g transform="translate(50, 256)" font-size="10" fill="#374151">
+      <rect x="0" y="0" width="300" height="10" fill="url(#depthRamp)" stroke="#374151" stroke-width="0.6"/>
+      <text x="0"   y="22" text-anchor="start">0  (near)</text>
+      <text x="300" y="22" text-anchor="end">1  (far)</text>
+    </g>
+  </g>
+
+  <!-- ===== BOTTOM: Pass 2 — sample and compare ===== -->
+  <g transform="translate(40, 332)">
+    <rect width="840" height="100" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+    <text x="14" y="22" font-weight="700" fill="#111827">Pass 2: sample &amp; compare during lighting</text>
+
+    <g font-family="ui-monospace, Consolas, monospace" font-size="12" fill="#374151" transform="translate(14, 0)">
+      <text x="0" y="46">let lightCoord = lightViewProj * worldPos;        <tspan fill="#6b7280">// fragment in light space</tspan></text>
+      <text x="0" y="64">let mapDepth   = textureSample(shadowMap, samp, lightCoord.xy).r;</text>
+      <text x="0" y="82">let inShadow   = lightCoord.z &gt; mapDepth + bias;  <tspan fill="#dc2626">// occluded if behind nearest surface</tspan></text>
+    </g>
+  </g>
+</svg>

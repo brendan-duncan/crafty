@@ -78,11 +78,7 @@ let heightFog = exp(-max(worldPos.y - seaLevel, 0.0) * fogHeightFalloff);
 fogDensity *= heightFog;
 ```
 
-## 11.5 Weather Effects
-
-Rain and snow are rendered through the particle system. Rain uses elongated streak particles that fall at high velocity; snow uses small, slowly falling particles with slight horizontal drift from wind. Both are GPU compute-driven, with spawn rates tied to weather parameters.
-
-### Cloud Shadows
+## 11.5 Cloud Shadows
 
 The `CloudShadowPass` renders a top-down cloud shadow map — a 2D texture storing cloud density as seen from above. The lighting pass samples this texture at the surface position to modulate direct sunlight, producing dynamic cloud shadows on the terrain.
 
