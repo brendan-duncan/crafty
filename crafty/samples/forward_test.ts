@@ -302,6 +302,12 @@ async function main() {
         normalMatrix: Mat4.identity(),
         material: transparentMaterial,
       },
+      {
+        mesh: cubeMesh,
+        modelMatrix: Mat4.translation(2, 2, -2).multiply(Mat4.rotationY(time * 30 * Math.PI / 180)),
+        normalMatrix: Mat4.identity(),
+        material: transparentMaterial,
+      },
     ];
 
     // Update shadow passes

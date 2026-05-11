@@ -30,8 +30,15 @@ export function createHotbar(atlasUrl: string): Hotbar {
   // ── Outer bar using the Litecraft hotbar sprite ──
   const bar = document.createElement('div');
   bar.style.cssText = [
-    'position:fixed', 'bottom:12px', 'left:50%', 'transform:translateX(-50%)',
-    'display:flex', 'flex-direction:row', 'flex-wrap:nowrap', 'align-items:center', 'gap:0px',
+    'position:fixed',
+    'bottom:12px',
+    'left:50%',
+    'transform:translateX(-50%)',
+    'display:flex',
+    'flex-direction:row',
+    'flex-wrap:nowrap',
+    'align-items:center',
+    'gap:0px',
     'background:url(' + hotbarUrl + ') no-repeat',
     // hotbar.png: 207×24 px; bar strip is x=24..205, we shift the sprite so the
     // bar starts at the left edge, and scale to 2× Minecraft's 182×22 bar.
@@ -41,6 +48,8 @@ export function createHotbar(atlasUrl: string): Hotbar {
     'padding:1px 2px',
     'image-rendering:pixelated',
     'box-sizing:border-box',
+    'align-items:center',
+    'justify-content:flex-start',
   ].join(';');
 
   const slots: HTMLDivElement[] = [];

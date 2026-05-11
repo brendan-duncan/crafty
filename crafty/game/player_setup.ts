@@ -67,7 +67,7 @@ export function setupPlayer(
       reticleElement.style.display = visible ? '' : 'none';
     }
     if (hotbarElement) {
-      hotbarElement.style.display = visible ? '' : 'none';
+      hotbarElement.style.display = visible ? 'flex' : 'none';
     }
   }
 

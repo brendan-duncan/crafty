@@ -78,6 +78,16 @@ export class ForwardPass extends RenderPass {
   private _opaqueItems: ForwardDrawItem[] = [];
   private _transparentItems: ForwardDrawItem[] = [];
 
+  /**
+   * When `true` (default), transparent draw items are sorted back-to-front
+   * relative to the camera each frame so alpha blending produces correct
+   * results. Set to `false` to draw transparents in registration order (useful
+   * for performance comparisons or when items are manually ordered).
+   */
+  sortTransparent = true;
+  /** Cached camera world-space position, used for transparent sorting. */
+  private _camPos = new Float32Array(3);
+
   private readonly _modelData = new Float32Array(32);
 
   // Reused per-frame staging buffers — avoid allocating typed arrays each
@@ -376,6 +386,18 @@ export class ForwardPass extends RenderPass {
   setDrawItems(items: ForwardDrawItem[]): void {
     this._opaqueItems = items.filter((item) => !item.material.transparent);
     this._transparentItems = items.filter((item) => item.material.transparent);
+    if (this.sortTransparent && this._transparentItems.length > 1) {
+      const cx = this._camPos[0], cy = this._camPos[1], cz = this._camPos[2];
+      this._transparentItems.sort((a, b) => {
+        const dxA = a.modelMatrix.data[12] - cx;
+        const dyA = a.modelMatrix.data[13] - cy;
+        const dzA = a.modelMatrix.data[14] - cz;
+        const dxB = b.modelMatrix.data[12] - cx;
+        const dyB = b.modelMatrix.data[13] - cy;
+        const dzB = b.modelMatrix.data[14] - cz;
+        return (dxB * dxB + dyB * dyB + dzB * dzB) - (dxA * dxA + dyA * dyA + dzA * dzA);
+      });
+    }
   }
 
   /**
@@ -410,6 +432,9 @@ export class ForwardPass extends RenderPass {
     data[66] = camPos.z;
     data[67] = near;
     data[68] = far;
+    this._camPos[0] = camPos.x;
+    this._camPos[1] = camPos.y;
+    this._camPos[2] = camPos.z;
     ctx.device.queue.writeBuffer(this._cameraBuffer, 0, data);
   }
 
