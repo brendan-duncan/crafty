@@ -70,6 +70,11 @@ export class ParticlePass extends RenderPass {
   private _spawnAccum  = 0;
   private _spawnOffset = 0;
   private _spawnCount  = 0;
+
+  /** Override the per-second spawn rate at runtime without rebuilding the pass. */
+  setSpawnRate(rate: number): void {
+    this._config.emitter.spawnRate = rate;
+  }
   private _time        = 0;
   private _frameSeed   = 0;
 

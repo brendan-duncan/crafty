@@ -17,7 +17,7 @@ import type { IblTextures } from '../src/assets/ibl.js';
 import { Texture } from '../src/assets/texture.js';
 import { parseHdr, createHdrTexture } from '../src/assets/hdr_loader.js';
 import { BlockTexture } from '../src/assets/block_texture.js';
-import { World, BiomeType, EnvironmentEffect, getBiomeEnvironmentEffect, getBiomeCloudCoverage, getBiomeCloudBounds, isBlockWater } from '../src/block/index.js';
+import { World, BiomeType, EnvironmentEffect, getBiomeCloudBounds, isBlockWater } from '../src/block/index.js';
 import type { Chunk, ChunkMesh } from '../src/block/index.js';
 import type { DrawItem } from '../src/renderer/passes/geometry_pass.js';
 import { createDuckBodyMesh, createDuckHeadMesh, createDuckBillMesh } from '../src/assets/duck_mesh.js';
@@ -39,6 +39,7 @@ import { setupPlayer } from './game/player_setup.js';
 import { createBlockInteractionState, setupBlockInteractionHandlers, updateBlockInteraction, applyRemoteBlockEdit } from './game/block_interaction.js';
 import { setupTouchControlsLazy, isTouchDevice } from './game/touch_controls.js';
 import { AudioManager } from './game/audio_manager.js';
+import { WeatherType, getWeatherCloudCoverage, getWeatherEnvironmentEffect, getWeatherSpawnRate, getWeatherName, pickRandomWeather, getWeatherChangeInterval } from './game/weather_system.js';
 import { updateTorchFlicker, updateMagmaFlicker } from './game/lights.js';
 import { setupAnimalSpawning } from './game/animal_spawner.js';
 import { HeightmapManager } from './game/heightmap.js';
@@ -164,6 +165,7 @@ async function main(): Promise<void> {
     hud.stats.style.display = _showDebug ? '' : 'none';
     hud.biome.style.display = _showDebug ? '' : 'none';
     hud.pos.style.display = _showDebug ? '' : 'none';
+    hud.weather.style.display = _showDebug ? '' : 'none';
   }
   _updateDebugOverlay();
   window.addEventListener('keydown', (e) => {
@@ -622,8 +624,11 @@ async function main(): Promise<void> {
   let frameIndex = 0;
   let cloudWindX = 0;
   let cloudWindZ = 0;
-  let cloudCoverage = getBiomeCloudCoverage(world.getBiomeAt(cameraGO.position.x, cameraGO.position.y, cameraGO.position.z));
-  const _initBounds = getBiomeCloudBounds(world.getBiomeAt(cameraGO.position.x, cameraGO.position.y, cameraGO.position.z));
+  const _initBiome = world.getBiomeAt(cameraGO.position.x, cameraGO.position.y, cameraGO.position.z);
+  let currentWeather = pickRandomWeather(_initBiome);
+  let weatherTimer = getWeatherChangeInterval();
+  let cloudCoverage = getWeatherCloudCoverage(currentWeather);
+  const _initBounds = getBiomeCloudBounds(_initBiome);
   let cloudBase = _initBounds.cloudBase;
   let cloudTop  = _initBounds.cloudTop;
 
@@ -794,13 +799,25 @@ async function main(): Promise<void> {
     world.update(camPos, dt);
 
     const biome = world.getBiomeAt(camPos.x, camPos.y, camPos.z);
-    const weatherEffect = getBiomeEnvironmentEffect(biome);
-    if (weatherEffect !== passes.currentWeatherEffect) {
-      passes.currentWeatherEffect = weatherEffect;
-      await rebuildRenderTargets();
+
+    // Weather transitions over time
+    weatherTimer -= dt;
+    if (weatherTimer <= 0) {
+      currentWeather = pickRandomWeather(biome, currentWeather);
+      weatherTimer = getWeatherChangeInterval();
+
+      const newEffect = getWeatherEnvironmentEffect(currentWeather);
+      if (newEffect !== passes.currentWeatherEffect) {
+        passes.currentWeatherEffect = newEffect;
+        await rebuildRenderTargets();
+      }
+      const spawnRate = getWeatherSpawnRate(currentWeather);
+      if (passes.rainPass && spawnRate > 0) {
+        passes.rainPass.setSpawnRate(spawnRate);
+      }
     }
 
-    const targetCloudCoverage = getBiomeCloudCoverage(biome);
+    const targetCloudCoverage = getWeatherCloudCoverage(currentWeather);
     cloudCoverage += (targetCloudCoverage - cloudCoverage) * Math.min(1, 0.3 * dt);
     const targetBounds = getBiomeCloudBounds(biome);
     cloudBase += (targetBounds.cloudBase - cloudBase) * Math.min(1, 0.3 * dt);
@@ -810,7 +827,8 @@ async function main(): Promise<void> {
       hud.fps.textContent = `${smoothFps.toFixed(0)} fps`;
       const kTris = (passes.worldGeometryPass!.triangles / 1000).toFixed(1);
       hud.stats.textContent = `${passes.worldGeometryPass!.drawCalls} draws  ${kTris}k tris\n${world.chunkCount} chunks  ${world.pendingChunks} pending`;
-      hud.biome.textContent = `${BiomeType[biome]}  coverage:${cloudCoverage.toFixed(2)}`;
+      hud.biome.textContent = BiomeType[biome];
+      hud.weather.textContent = `${getWeatherName(currentWeather)}\nclouds: ${cloudCoverage.toFixed(2)}\nnext: ${weatherTimer.toFixed(0)}s`;
       hud.pos.textContent = `X: ${camPos.x.toFixed(1)}  Y: ${camPos.y.toFixed(1)}  Z: ${camPos.z.toFixed(1)}`;
     }
 

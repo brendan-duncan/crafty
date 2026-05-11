@@ -3,6 +3,7 @@ export interface HudElements {
   stats: HTMLDivElement;
   biome: HTMLDivElement;
   pos: HTMLDivElement;
+  weather: HTMLDivElement;
   reticle: HTMLDivElement;
 }
 
@@ -67,5 +68,15 @@ export function createHud(): HudElements {
     'padding:4px 8px', 'border-radius:4px', 'pointer-events:none',
   ].join(';');
 
-  return { fps, stats, biome, pos, reticle };
+  // Weather display
+  const weather = createDebug();
+  weather.style.cssText = [
+    'position:fixed', 'top:76px', 'right:12px',
+    'font-family:ui-monospace,monospace', 'font-size:11px',
+    'color:#afc', 'background:rgba(0,0,0,0.85)',
+    'padding:4px 8px', 'border-radius:4px', 'pointer-events:none',
+    'white-space:pre',
+  ].join(';');
+
+  return { fps, stats, biome, pos, weather, reticle };
 }
