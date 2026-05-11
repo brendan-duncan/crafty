@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 480" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="480" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">G-Buffer Fill: Three Passes Layered with loadOp</text>
+
+  <defs>
+    <marker id="gbArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+    </marker>
+  </defs>
+
+  <!-- ===== TOP: three pass boxes side by side ===== -->
+  <!-- Pass box width 240, height 100 -->
+
+  <!-- Pass 1: GeometryPass (clear) -->
+  <g transform="translate(40, 60)">
+    <rect x="0" y="0" width="240" height="100" fill="#fef2f2" stroke="#dc2626" stroke-width="1.4" rx="6"/>
+    <rect x="0" y="0" width="240" height="26" fill="#fee2e2"/>
+    <text x="120" y="18" text-anchor="middle" font-weight="700" fill="#7f1d1d">Pass 1 · GeometryPass</text>
+
+    <text x="120" y="46" text-anchor="middle" font-size="11" fill="#7f1d1d">opaque mesh objects</text>
+
+    <!-- loadOp tag -->
+    <rect x="60" y="60" width="120" height="28" fill="#dc2626" rx="3"/>
+    <text x="120" y="78" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">loadOp: 'clear'</text>
+  </g>
+
+  <!-- Pass 2: WorldGeometryPass (load) -->
+  <g transform="translate(340, 60)">
+    <rect x="0" y="0" width="240" height="100" fill="#eff6ff" stroke="#2563eb" stroke-width="1.4" rx="6"/>
+    <rect x="0" y="0" width="240" height="26" fill="#dbeafe"/>
+    <text x="120" y="18" text-anchor="middle" font-weight="700" fill="#1e3a8a">Pass 2 · WorldGeometryPass</text>
+
+    <text x="120" y="46" text-anchor="middle" font-size="11" fill="#1e3a8a">voxel chunks</text>
+
+    <rect x="60" y="60" width="120" height="28" fill="#2563eb" rx="3"/>
+    <text x="120" y="78" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">loadOp: 'load'</text>
+  </g>
+
+  <!-- Pass 3: SkinnedGeometryPass (load) -->
+  <g transform="translate(640, 60)">
+    <rect x="0" y="0" width="240" height="100" fill="#f0fdf4" stroke="#15803d" stroke-width="1.4" rx="6"/>
+    <rect x="0" y="0" width="240" height="26" fill="#dcfce7"/>
+    <text x="120" y="18" text-anchor="middle" font-weight="700" fill="#14532d">Pass 3 · SkinnedGeometryPass</text>
+
+    <text x="120" y="46" text-anchor="middle" font-size="11" fill="#14532d">animated meshes</text>
+
+    <rect x="60" y="60" width="120" height="28" fill="#15803d" rx="3"/>
+    <text x="120" y="78" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">loadOp: 'load'</text>
+  </g>
+
+  <!-- Arrows from passes converging into the G-buffer below -->
+  <line x1="160" y1="160" x2="280" y2="220" stroke="#374151" stroke-width="1.4" marker-end="url(#gbArr)"/>
+  <line x1="460" y1="160" x2="460" y2="220" stroke="#374151" stroke-width="1.4" marker-end="url(#gbArr)"/>
+  <line x1="760" y1="160" x2="640" y2="220" stroke="#374151" stroke-width="1.4" marker-end="url(#gbArr)"/>
+
+  <!-- ===== MIDDLE: G-buffer (3 attachment slabs) ===== -->
+  <g transform="translate(40, 230)">
+    <rect x="0" y="0" width="840" height="124" fill="#fef3c7" stroke="#a16207" stroke-width="1.4" rx="6"/>
+    <text x="14" y="22" font-weight="700" fill="#713f12">Shared G-Buffer (3 attachments, all written by passes 1 → 3)</text>
+
+    <!-- 3 attachment slabs -->
+    <g transform="translate(20, 36)">
+      <!-- Albedo+Roughness -->
+      <rect x="0" y="0" width="260" height="78" fill="#fff7ed" stroke="#a16207" stroke-width="1.2" rx="4"/>
+      <text x="130" y="20" text-anchor="middle" font-weight="700" fill="#713f12">albedoRoughness</text>
+      <text x="130" y="38" text-anchor="middle" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#713f12">rgba8unorm</text>
+      <text x="130" y="56" text-anchor="middle" font-size="10" fill="#713f12">RGB = albedo</text>
+      <text x="130" y="70" text-anchor="middle" font-size="10" fill="#713f12">A = roughness</text>
+
+      <!-- Normal+Metallic -->
+      <rect x="270" y="0" width="260" height="78" fill="#fff7ed" stroke="#a16207" stroke-width="1.2" rx="4"/>
+      <text x="400" y="20" text-anchor="middle" font-weight="700" fill="#713f12">normalMetallic</text>
+      <text x="400" y="38" text-anchor="middle" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#713f12">rgba16float</text>
+      <text x="400" y="56" text-anchor="middle" font-size="10" fill="#713f12">RGB = world normal</text>
+      <text x="400" y="70" text-anchor="middle" font-size="10" fill="#713f12">A = metallic</text>
+
+      <!-- Depth -->
+      <rect x="540" y="0" width="260" height="78" fill="#fff7ed" stroke="#a16207" stroke-width="1.2" rx="4"/>
+      <text x="670" y="20" text-anchor="middle" font-weight="700" fill="#713f12">depth</text>
+      <text x="670" y="38" text-anchor="middle" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#713f12">depth32float</text>
+      <text x="670" y="56" text-anchor="middle" font-size="10" fill="#713f12">camera-space</text>
+      <text x="670" y="70" text-anchor="middle" font-size="10" fill="#713f12">depth value</text>
+    </g>
+  </g>
+
+  <!-- Arrow down from G-buffer to "consumed by" -->
+  <line x1="460" y1="354" x2="460" y2="386" stroke="#374151" stroke-width="1.4" marker-end="url(#gbArr)"/>
+  <text x="476" y="376" font-size="11" font-style="italic" fill="#374151">read by</text>
+
+  <!-- ===== BOTTOM: consumers banner ===== -->
+  <g transform="translate(40, 388)">
+    <rect width="840" height="80" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+    <text x="14" y="22" font-weight="700" fill="#111827">Downstream consumers</text>
+
+    <g font-size="11" fill="#374151" transform="translate(14, 0)">
+      <text x="0" y="46">SSAOPass · SSGIPass · LightingPass · PointSpotLightPass · TAAPass · DofPass · GodrayPass · CompositePass (fog)</text>
+      <text x="0" y="64" font-style="italic" fill="#6b7280">all bind G-buffer textures via TEXTURE_BINDING — never ping-pong, never copy.</text>
+    </g>
+  </g>
+</svg>

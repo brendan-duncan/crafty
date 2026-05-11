@@ -6,6 +6,8 @@ This chapter presents the architectural backbone of Crafty's renderer — the **
 
 ## 4.1 The Render Graph
 
+![Render graph: 21 passes grouped into 7 phases, all sharing one GPUCommandEncoder](../illustrations/04-render-graph.svg)
+
 The render graph (`src/renderer/render_graph.ts`) is a straightforward ordered sequence of render passes. It is deliberately simple — no automatic dependency analysis, no resource barrier management, no topological sort. Passes are registered in execution order and run sequentially.
 
 ```typescript
@@ -119,6 +121,8 @@ This pattern ensures that:
 
 ### Per-Frame Update Pattern
 
+![Pass lifecycle: create() once at init, update + execute every frame, destroy() at teardown](../illustrations/04-pass-lifecycle.svg)
+
 Passes expose `update*()` methods that are called **before** `execute()` each frame. These methods upload per-frame data via `queue.writeBuffer()`:
 
 ```typescript
@@ -129,6 +133,8 @@ pass.updateCamera(ctx, view, proj, viewProj, invViewProj, cameraPos, near, far);
 This separation of **update** (uploading uniforms to GPU buffers) and **execute** (encoding draw commands) mirrors the GPU's own separation of upload and execution work.
 
 ## 4.3 Multi-Pass Deferred Rendering
+
+![Forward vs deferred: lighting baked into geometry pass vs lighting decoupled into a screen-space pass that reads the G-buffer](../illustrations/04-deferred-vs-forward.svg)
 
 Crafty uses a **deferred shading** pipeline for its main geometry. The core idea: render surface properties (albedo, normal, depth, etc.) into a **G-buffer** in a first set of passes, then compute lighting in a separate pass that reads the G-buffer.
 
@@ -167,6 +173,8 @@ Crafty also supports forward rendering for special cases:
 These forward passes run after the deferred passes are complete, typically with additive blending or depth tests configured for transparency.
 
 ## 4.4 HDR Rendering Pipeline
+
+![HDR target as central buffer: lighting writes, post passes ping-pong, composite tonemaps to swap chain](../illustrations/04-hdr-target-flow.svg)
 
 Crafty renders in **HDR** (high dynamic range) throughout the lighting and post-processing stages, then tone-maps to SDR for display at the end.
 
@@ -238,6 +246,8 @@ export class GBuffer {
 The G-buffer is allocated once per canvas size and re-created on resize. It is shared across the geometry-fill passes (which write to it) and the lighting/post-processing passes (which read from it via `TEXTURE_BINDING`).
 
 ### G-buffer Fill Strategy
+
+![Three geometry passes layer into the same G-buffer using clear / load / load loadOps; downstream passes read it via TEXTURE_BINDING](../illustrations/04-gbuffer-fill.svg)
 
 Multiple passes write into the same G-buffer attachments:
 

@@ -1,0 +1,185 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 580" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="580" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Render Graph: Ordered Phases on a Single Encoder</text>
+
+  <defs>
+    <marker id="rgArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+    </marker>
+  </defs>
+
+  <!-- Each row: phase tag (left) | pass chips (middle) | output texture (right). Row height 58. -->
+  <!-- y starts at 56, step 60 -->
+
+  <!-- Row 1: SHADOWS -->
+  <g transform="translate(20, 56)">
+    <rect x="0" y="0" width="160" height="48" fill="#fee2e2" stroke="#dc2626" stroke-width="1.4" rx="4"/>
+    <text x="80" y="22" text-anchor="middle" font-weight="700" fill="#7f1d1d">1 · SHADOWS</text>
+    <text x="80" y="38" text-anchor="middle" font-size="10" fill="#7f1d1d">4 passes</text>
+
+    <g font-size="11" fill="#7f1d1d" transform="translate(180, 0)">
+      <rect x="0"   y="6"  width="120" height="36" fill="#fff" stroke="#dc2626" stroke-width="1"/>
+      <text x="60"  y="22" text-anchor="middle">ShadowPass</text>
+      <text x="60"  y="35" text-anchor="middle" font-size="9" fill="#9ca3af">CSM</text>
+
+      <rect x="128" y="6"  width="120" height="36" fill="#fff" stroke="#dc2626" stroke-width="1"/>
+      <text x="188" y="22" text-anchor="middle">WorldShadowPass</text>
+      <text x="188" y="35" text-anchor="middle" font-size="9" fill="#9ca3af">chunks</text>
+
+      <rect x="256" y="6"  width="120" height="36" fill="#fff" stroke="#dc2626" stroke-width="1"/>
+      <text x="316" y="22" text-anchor="middle">PointSpotShadow</text>
+      <text x="316" y="35" text-anchor="middle" font-size="9" fill="#9ca3af">VSM</text>
+
+      <rect x="384" y="6"  width="120" height="36" fill="#fff" stroke="#dc2626" stroke-width="1"/>
+      <text x="444" y="22" text-anchor="middle">CloudShadowPass</text>
+    </g>
+
+    <g transform="translate(720, 0)">
+      <rect x="0" y="6" width="160" height="36" fill="#fef3c7" stroke="#a16207" stroke-width="1"/>
+      <text x="80" y="22" text-anchor="middle" font-size="11" font-weight="700" fill="#713f12">depth + VSM textures</text>
+      <text x="80" y="35" text-anchor="middle" font-size="9" fill="#713f12">→ used by lighting</text>
+    </g>
+  </g>
+
+  <!-- Row 2: SKY -->
+  <g transform="translate(20, 116)">
+    <rect x="0" y="0" width="160" height="48" fill="#dbeafe" stroke="#1d4ed8" stroke-width="1.4" rx="4"/>
+    <text x="80" y="22" text-anchor="middle" font-weight="700" fill="#1e3a8a">2 · SKY</text>
+    <text x="80" y="38" text-anchor="middle" font-size="10" fill="#1e3a8a">1 pass</text>
+
+    <g font-size="11" fill="#1e3a8a" transform="translate(180, 0)">
+      <rect x="0" y="6" width="160" height="36" fill="#fff" stroke="#1d4ed8" stroke-width="1"/>
+      <text x="80" y="28" text-anchor="middle">SkyTexturePass / AtmospherePass</text>
+    </g>
+
+    <g transform="translate(720, 0)">
+      <rect x="0" y="6" width="160" height="36" fill="#fef3c7" stroke="#a16207" stroke-width="1"/>
+      <text x="80" y="22" text-anchor="middle" font-size="11" font-weight="700" fill="#713f12">HDR target</text>
+      <text x="80" y="35" text-anchor="middle" font-size="9" fill="#713f12">background fill</text>
+    </g>
+  </g>
+
+  <!-- Row 3: GEOMETRY -->
+  <g transform="translate(20, 176)">
+    <rect x="0" y="0" width="160" height="48" fill="#dcfce7" stroke="#15803d" stroke-width="1.4" rx="4"/>
+    <text x="80" y="22" text-anchor="middle" font-weight="700" fill="#14532d">3 · GEOMETRY</text>
+    <text x="80" y="38" text-anchor="middle" font-size="10" fill="#14532d">3 passes (G-buffer fill)</text>
+
+    <g font-size="11" fill="#14532d" transform="translate(180, 0)">
+      <rect x="0"   y="6" width="160" height="36" fill="#fff" stroke="#15803d" stroke-width="1"/>
+      <text x="80"  y="22" text-anchor="middle">GeometryPass</text>
+      <text x="80"  y="35" text-anchor="middle" font-size="9" fill="#9ca3af">clears G-buffer</text>
+
+      <rect x="172" y="6" width="160" height="36" fill="#fff" stroke="#15803d" stroke-width="1"/>
+      <text x="252" y="22" text-anchor="middle">WorldGeometryPass</text>
+      <text x="252" y="35" text-anchor="middle" font-size="9" fill="#9ca3af">load + append</text>
+
+      <rect x="344" y="6" width="160" height="36" fill="#fff" stroke="#15803d" stroke-width="1"/>
+      <text x="424" y="22" text-anchor="middle">SkinnedGeometryPass</text>
+      <text x="424" y="35" text-anchor="middle" font-size="9" fill="#9ca3af">load + append</text>
+    </g>
+
+    <g transform="translate(720, 0)">
+      <rect x="0" y="6" width="160" height="36" fill="#fef3c7" stroke="#a16207" stroke-width="1"/>
+      <text x="80" y="22" text-anchor="middle" font-size="11" font-weight="700" fill="#713f12">G-buffer</text>
+      <text x="80" y="35" text-anchor="middle" font-size="9" fill="#713f12">albedo · normal · depth</text>
+    </g>
+  </g>
+
+  <!-- Row 4: SCREEN-SPACE -->
+  <g transform="translate(20, 236)">
+    <rect x="0" y="0" width="160" height="48" fill="#fef9c3" stroke="#ca8a04" stroke-width="1.4" rx="4"/>
+    <text x="80" y="22" text-anchor="middle" font-weight="700" fill="#713f12">4 · SCREEN-SPACE</text>
+    <text x="80" y="38" text-anchor="middle" font-size="10" fill="#713f12">2 passes (read G-buffer)</text>
+
+    <g font-size="11" fill="#713f12" transform="translate(180, 0)">
+      <rect x="0"   y="6" width="160" height="36" fill="#fff" stroke="#ca8a04" stroke-width="1"/>
+      <text x="80"  y="28" text-anchor="middle">SSAOPass</text>
+
+      <rect x="172" y="6" width="160" height="36" fill="#fff" stroke="#ca8a04" stroke-width="1"/>
+      <text x="252" y="28" text-anchor="middle">SSGIPass</text>
+    </g>
+
+    <g transform="translate(720, 0)">
+      <rect x="0" y="6" width="160" height="36" fill="#fef3c7" stroke="#a16207" stroke-width="1"/>
+      <text x="80" y="22" text-anchor="middle" font-size="11" font-weight="700" fill="#713f12">AO + indirect light</text>
+    </g>
+  </g>
+
+  <!-- Row 5: LIGHTING -->
+  <g transform="translate(20, 296)">
+    <rect x="0" y="0" width="160" height="48" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.4" rx="4"/>
+    <text x="80" y="22" text-anchor="middle" font-weight="700" fill="#4c1d95">5 · LIGHTING</text>
+    <text x="80" y="38" text-anchor="middle" font-size="10" fill="#4c1d95">2 passes</text>
+
+    <g font-size="11" fill="#4c1d95" transform="translate(180, 0)">
+      <rect x="0"   y="6" width="160" height="36" fill="#fff" stroke="#7c3aed" stroke-width="1"/>
+      <text x="80"  y="22" text-anchor="middle">LightingPass</text>
+      <text x="80"  y="35" text-anchor="middle" font-size="9" fill="#9ca3af">deferred · directional</text>
+
+      <rect x="172" y="6" width="160" height="36" fill="#fff" stroke="#7c3aed" stroke-width="1"/>
+      <text x="252" y="22" text-anchor="middle">PointSpotLightPass</text>
+      <text x="252" y="35" text-anchor="middle" font-size="9" fill="#9ca3af">additive blend</text>
+    </g>
+
+    <g transform="translate(720, 0)">
+      <rect x="0" y="6" width="160" height="36" fill="#fef3c7" stroke="#a16207" stroke-width="1"/>
+      <text x="80" y="22" text-anchor="middle" font-size="11" font-weight="700" fill="#713f12">HDR target</text>
+      <text x="80" y="35" text-anchor="middle" font-size="9" fill="#713f12">lit color, rgba16float</text>
+    </g>
+  </g>
+
+  <!-- Row 6: POST-PROCESSING -->
+  <g transform="translate(20, 356)">
+    <rect x="0" y="0" width="160" height="48" fill="#cffafe" stroke="#0891b2" stroke-width="1.4" rx="4"/>
+    <text x="80" y="22" text-anchor="middle" font-weight="700" fill="#155e75">6 · POST-FX</text>
+    <text x="80" y="38" text-anchor="middle" font-size="10" fill="#155e75">7 passes (HDR in/out)</text>
+
+    <g font-size="10" fill="#155e75" transform="translate(180, 0)">
+      <rect x="0"   y="6"  width="76"  height="36" fill="#fff" stroke="#0891b2" stroke-width="1"/>
+      <text x="38"  y="28" text-anchor="middle">TAA</text>
+      <rect x="80"  y="6"  width="76"  height="36" fill="#fff" stroke="#0891b2" stroke-width="1"/>
+      <text x="118" y="28" text-anchor="middle">DOF</text>
+      <rect x="160" y="6"  width="76"  height="36" fill="#fff" stroke="#0891b2" stroke-width="1"/>
+      <text x="198" y="28" text-anchor="middle">Godray</text>
+      <rect x="240" y="6"  width="76"  height="36" fill="#fff" stroke="#0891b2" stroke-width="1"/>
+      <text x="278" y="28" text-anchor="middle">Bloom</text>
+      <rect x="320" y="6"  width="76"  height="36" fill="#fff" stroke="#0891b2" stroke-width="1"/>
+      <text x="358" y="28" text-anchor="middle">Water</text>
+      <rect x="400" y="6"  width="76"  height="36" fill="#fff" stroke="#0891b2" stroke-width="1"/>
+      <text x="438" y="28" text-anchor="middle">Particle</text>
+    </g>
+
+    <g transform="translate(720, 0)">
+      <rect x="0" y="6" width="160" height="36" fill="#fef3c7" stroke="#a16207" stroke-width="1"/>
+      <text x="80" y="22" text-anchor="middle" font-size="11" font-weight="700" fill="#713f12">HDR target (refined)</text>
+    </g>
+  </g>
+
+  <!-- Row 7: COMPOSITE -->
+  <g transform="translate(20, 416)">
+    <rect x="0" y="0" width="160" height="48" fill="#e5e7eb" stroke="#374151" stroke-width="1.4" rx="4"/>
+    <text x="80" y="22" text-anchor="middle" font-weight="700" fill="#111827">7 · COMPOSITE</text>
+    <text x="80" y="38" text-anchor="middle" font-size="10" fill="#374151">1 pass</text>
+
+    <g font-size="11" fill="#111827" transform="translate(180, 0)">
+      <rect x="0" y="6" width="160" height="36" fill="#fff" stroke="#374151" stroke-width="1"/>
+      <text x="80" y="22" text-anchor="middle">CompositePass</text>
+      <text x="80" y="35" text-anchor="middle" font-size="9" fill="#9ca3af">tonemap + fog + present</text>
+    </g>
+
+    <g transform="translate(720, 0)">
+      <rect x="0" y="6" width="160" height="36" fill="#bbf7d0" stroke="#15803d" stroke-width="1"/>
+      <text x="80" y="22" text-anchor="middle" font-size="11" font-weight="700" fill="#14532d">swap chain</text>
+      <text x="80" y="35" text-anchor="middle" font-size="9" fill="#14532d">→ display</text>
+    </g>
+  </g>
+
+  <!-- Footer: shared encoder annotation -->
+  <g transform="translate(20, 496)">
+    <rect x="0" y="0" width="880" height="60" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+    <text x="14" y="22" font-weight="700" fill="#111827">All 21 passes share one GPUCommandEncoder</text>
+    <text x="14" y="42" font-size="11" fill="#374151">No per-pass barriers, no automatic dependency tracking — passes agree on textures by convention.</text>
+    <text x="866" y="42" text-anchor="end" font-size="11" font-style="italic" fill="#6b7280">queue.submit([encoder.finish()])  ·  one submit / frame</text>
+  </g>
+</svg>
