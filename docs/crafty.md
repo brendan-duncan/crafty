@@ -71,7 +71,7 @@ This book is a work in progress.  Chapters are added as the engine evolves.
 
 ## I — Foundations
 
-- [Chapter 1: Introduction](chapter/01-introduction.md)
+- [Chapter 1: Introduction](chapters/01-introduction.md)
   - 1.1 What is Crafty?
   - 1.2 A brief history of graphics APIs
   - 1.3 Why WebGPU?
@@ -79,7 +79,7 @@ This book is a work in progress.  Chapters are added as the engine evolves.
   - 1.5 Setting up the development environment
   - 1.6 The Crafty codebase at a glance
 
-- [Chapter 2: 3D Mathematics](chapter/02-mathematics.md)
+- [Chapter 2: 3D Mathematics](chapters/02-mathematics.md)
   - 2.1 Coordinate systems and conventions
   - 2.2 Vectors (Vec2, Vec3, Vec4)
   - 2.3 Matrices (Mat4)
@@ -88,7 +88,7 @@ This book is a work in progress.  Chapters are added as the engine evolves.
   - 2.6 Coordinate space transformations
   - 2.7 Random numbers and noise
 
-- [Chapter 3: WebGPU Fundamentals](chapter/03-webgpu-fundamentals.md)
+- [Chapter 3: WebGPU Fundamentals](chapters/03-webgpu-fundamentals.md)
   - 3.1 The graphics pipeline
   - 3.2 GPUDevice and GPUAdapter
   - 3.3 GPUBuffer — uploading data to the GPU
@@ -102,7 +102,7 @@ This book is a work in progress.  Chapters are added as the engine evolves.
 
 ## II — Rendering
 
-- [Chapter 4: Rendering Architecture](chapter/04-rendering-architecture.md)
+- [Chapter 4: Rendering Architecture](chapters/04-rendering-architecture.md)
   - 4.1 The render graph
   - 4.2 Render passes
   - 4.3 Multi-pass deferred rendering
@@ -110,7 +110,7 @@ This book is a work in progress.  Chapters are added as the engine evolves.
   - 4.5 The GBuffer
   - 4.6 Swap chain and presentation
 
-- [Chapter 5: Meshes and Geometry](chapter/05-meshes.md)
+- [Chapter 5: Meshes and Geometry](chapters/05-meshes.md)
   - 5.1 Vertex and index buffers
   - 5.2 Vertex attributes and layouts
   - 5.3 The Mesh asset type
@@ -118,7 +118,7 @@ This book is a work in progress.  Chapters are added as the engine evolves.
   - 5.6 Skinned meshes and skeletons
   - 5.7 Animation — clips, sampling, blending
 
-- [Chapter 6: Textures and Materials](chapter/06-textures-materials.md)
+- [Chapter 6: Textures and Materials](chapters/06-textures-materials.md)
   - 6.1 2D, 3D, and cube textures
   - 6.2 Texture loading (PNG, HDR)
   - 6.3 Block texture atlas
@@ -126,7 +126,7 @@ This book is a work in progress.  Chapters are added as the engine evolves.
   - 6.5 Material passes (opaque, transparent, shadow)
   - 6.6 Shader management and caching
 
-- [Chapter 7: Lighting](chapter/07-lighting.md)
+- [Chapter 7: Lighting](chapters/07-lighting.md)
   - 7.1 Physically-based rendering theory
   - 7.2 The directional light (sun)
   - 7.3 Point lights
@@ -136,7 +136,7 @@ This book is a work in progress.  Chapters are added as the engine evolves.
   - 7.7 The deferred lighting pass
   - 7.8 The forward lighting path
 
-- [Chapter 8: Shadow Mapping](chapter/08-shadow-mapping.md)
+- [Chapter 8: Shadow Mapping](chapters/08-shadow-mapping.md)
   - 8.1 Shadow map theory
   - 8.2 Cascade shadow maps (CSM)
   - 8.3 Variance shadow maps (VSM)
@@ -145,7 +145,7 @@ This book is a work in progress.  Chapters are added as the engine evolves.
   - 8.6 Shadow sampling and filtering
   - 8.7 Shadow acne and Peter Panning
 
-- [Chapter 9: GPU Particle System](chapter/09-particle-system.md)
+- [Chapter 9: GPU Particle System](chapters/09-particle-system.md)
   - 9.1 Architecture Overview
   - 9.2 Particle Graph Config
   - 9.3 The Particle Struct
@@ -158,7 +158,7 @@ This book is a work in progress.  Chapters are added as the engine evolves.
   - 9.10 Runtime Spawn Rate Adjustment
   - 9.11 Rain and Snow Configurations
 
-- [Chapter 10: Post-Processing](chapter/10-post-processing.md)
+- [Chapter 10: Post-Processing](chapters/10-post-processing.md)
   - 10.1 Tone mapping and HDR display
   - 10.2 Bloom
   - 10.3 Temporal anti-aliasing (TAA)
@@ -168,14 +168,14 @@ This book is a work in progress.  Chapters are added as the engine evolves.
   - 10.7 Auto-exposure
   - 10.8 Color grading
 
-- [Chapter 11: Sky and Atmosphere](chapter/11-sky-atmosphere.md)
+- [Chapter 11: Sky and Atmosphere](chapters/11-sky-atmosphere.md)
   - 11.1 HDR environment maps
   - 11.2 Sky texture pass
   - 11.3 Cloud rendering
   - 11.4 Volumetric fog
   - 11.5 Weather effects (rain, snow)
 
-- [Chapter 12: Terrain and Voxel World](chapter/12-terrain.md)
+- [Chapter 12: Terrain and Voxel World](chapters/12-terrain.md)
   - 12.1 Voxel data structure
   - 12.2 Chunk management
   - 12.3 Procedural world generation (noise, biomes)
@@ -185,7 +185,7 @@ This book is a work in progress.  Chapters are added as the engine evolves.
   - 12.7 Erosion simulation
   - 12.8 Water rendering
 
-- [Chapter 13: Weather System](chapter/13-weather-system.md)
+- [Chapter 13: Weather System](chapters/13-weather-system.md)
   - 13.1 Weather types
   - 13.2 Biome weather tables
   - 13.3 Dynamic weather transitions
@@ -196,7 +196,7 @@ This book is a work in progress.  Chapters are added as the engine evolves.
 
 ## III — Game Engine
 
-- [Chapter 14: Game Engine Design](chapter/14-game-engine.md)
+- [Chapter 14: Game Engine Design](chapters/14-game-engine.md)
   - 14.1 The component/entity system
   - 14.2 GameObject and Component
   - 14.3 The Scene graph
@@ -206,13 +206,13 @@ This book is a work in progress.  Chapters are added as the engine evolves.
   - 14.7 The player controller
   - 14.8 Touch Controls (Mobile)
 
-- [Chapter 15: Physics and Interaction](chapter/15-physics.md)
+- [Chapter 15: Physics and Interaction](chapters/15-physics.md)
   - 15.1 Collision detection (AABB)
   - 15.2 Player movement and gravity
   - 15.3 Block ray casting
   - 15.4 Block interaction (placement, breaking)
 
-- [Chapter 16: NPC AI](chapter/16-npc-ai.md)
+- [Chapter 16: NPC AI](chapters/16-npc-ai.md)
   - 16.1 NPC Architecture
   - 16.2 The AI State Machine
   - 16.3 Duck AI — Three-State Behaviour
@@ -223,13 +223,13 @@ This book is a work in progress.  Chapters are added as the engine evolves.
   - 16.8 Animated Models and Skeletal Animation
   - 16.9 Extending the NPC System
 
-- [Chapter 17: Audio](chapter/17-audio.md)
+- [Chapter 17: Audio](chapters/17-audio.md)
   - 17.1 Web Audio API fundamentals
   - 17.2 Spatial audio
   - 17.3 Sound effect triggers
   - 17.4 Ambient and music
 
-- [Chapter 18: User Interface](chapter/18-user-interface.md)
+- [Chapter 18: User Interface](chapters/18-user-interface.md)
   - 18.1 DOM-based UI vs. in-game UI
   - 18.2 The HUD (crosshair, hotbar, stats)
   - 18.3 The start screen (local, network, world management)
@@ -238,14 +238,14 @@ This book is a work in progress.  Chapters are added as the engine evolves.
 
 ## IV — Multiplayer
 
-- [Chapter 19: Network Architecture](chapter/19-network-architecture.md)
+- [Chapter 19: Network Architecture](chapters/19-network-architecture.md)
   - 19.1 WebSocket fundamentals
   - 19.2 Message protocol design (C2S / S2C)
   - 19.3 Connection lifecycle (lobby, join, in-game)
   - 19.4 The server architecture
   - 19.5 World state persistence
 
-- [Chapter 20: Multiplayer Gameplay](chapter/20-multiplayer-gameplay.md)
+- [Chapter 20: Multiplayer Gameplay](chapters/20-multiplayer-gameplay.md)
   - 20.1 Player state synchronisation
   - 20.2 Snapshot interpolation
   - 20.3 Remote player rendering
@@ -255,7 +255,7 @@ This book is a work in progress.  Chapters are added as the engine evolves.
 
 ## V — Advanced Topics
 
-- [Chapter 21: Performance](chapter/21-performance.md)
+- [Chapter 21: Performance](chapters/21-performance.md)
   - 21.1 GPU timestamps and profiling
   - 21.2 Async shader compilation
   - 21.3 Frustum culling
@@ -263,14 +263,14 @@ This book is a work in progress.  Chapters are added as the engine evolves.
   - 21.5 Draw call batching
   - 21.6 Memory management
 
-- [Chapter 22: Tools and Workflow](chapter/22-tools.md)
+- [Chapter 22: Tools and Workflow](chapters/22-tools.md)
   - 22.1 The sample framework
   - 22.2 Testing strategy (unit, integration, visual)
   - 22.3 Debugging WebGPU
   - 22.4 Asset pipeline
   - 22.5 Continuous integration
 
-- [Chapter 23: The Road Ahead](chapter/23-road-ahead.md)
+- [Chapter 23: The Road Ahead](chapters/23-road-ahead.md)
   - 23.1 Ray tracing with WebGPU
   - 23.2 Compute shader post-processing
   - 23.3 Procedural generation at scale
