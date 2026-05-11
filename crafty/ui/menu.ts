@@ -20,15 +20,18 @@ export function createMenu(canvas: HTMLCanvasElement, reticle: HTMLDivElement): 
 
   const menuCard = document.createElement('div');
   menuCard.style.cssText = [
-    'display:flex', 'flex-direction:column', 'align-items:center', 'gap:clamp(12px,3vh,24px)',
+    'display:flex', 
+    'flex-direction:column', 
+    'align-items:center',
     'padding:clamp(20px,5vh,48px) clamp(16px,5vw,56px)',
-    'background:rgba(255,255,255,0.24)',
+    'background:rgba(255,255,255,0.74)',
     'border:1px solid rgba(255,255,255,0.12)',
     'border-radius:12px',
     'width:min(860px,calc(100vw - 24px))',
     'box-sizing:border-box',
     'max-height:min(700px,calc(100vh - 24px))',
     'overflow-y:auto',
+    'padding:0px;'
   ].join(';');
   menuOverlay.appendChild(menuCard);
 
@@ -43,13 +46,14 @@ export function createMenu(canvas: HTMLCanvasElement, reticle: HTMLDivElement): 
   menuCard.appendChild(menuTitle);
 
   const resumeBtn = document.createElement('button');
-  resumeBtn.textContent = 'Back to Game';
+  resumeBtn.textContent = 'Back to Game (ESC)';
   resumeBtn.style.cssText = [
     'padding:10px 40px', 'font-size:15px', 'font-family:ui-monospace,monospace',
     'background:#1a3a1a', 'color:#5f5',
     'border:1px solid #5f5', 'border-radius:6px',
     'cursor:pointer', 'letter-spacing:0.06em',
     'transition:background 0.15s',
+    'margin-top:12px',
   ].join(';');
   resumeBtn.addEventListener('mouseenter', () => { resumeBtn.style.background = '#243e24'; });
   resumeBtn.addEventListener('mouseleave', () => { resumeBtn.style.background = '#1a3a1a'; });
@@ -65,10 +69,6 @@ export function createMenu(canvas: HTMLCanvasElement, reticle: HTMLDivElement): 
   // also fire on touchend for reliability.
   resumeBtn.addEventListener('touchend', (e) => { e.preventDefault(); onPlay(); }, { passive: false });
   menuCard.appendChild(resumeBtn);
-
-  const sep = document.createElement('div');
-  sep.style.cssText = 'width:100%;height:1px;background:rgba(255,255,255,0.12)';
-  menuCard.appendChild(sep);
 
   let menuOpenedAt = 0;
 

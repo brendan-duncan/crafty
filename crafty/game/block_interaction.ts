@@ -197,8 +197,8 @@ export function setupBlockInteractionHandlers(
     }
     state.mouseHeld = e.button;
     state.mouseHoldTime = e.timeStamp;
-    // Right-click (place) is immediate; left-click (mine) is tracked progressively
-    // in updateBlockInteraction so we pass dt=0 to signal "just started".
+    // Right-click (place) is immediate; left-click (mine) is handled progressively
+    // in the per-frame updateBlockInteraction.
     if (e.button === 2) {
       doBlockAction(e.button, e.timeStamp, state, world, getSelectedBlock, scene);
     }
@@ -217,13 +217,12 @@ export function setupBlockInteractionHandlers(
 export function updateBlockInteraction(
   dt: number,
   time: number,
-  canvas: HTMLCanvasElement,
   state: BlockInteractionState,
   world: World,
   getSelectedBlock: () => BlockType,
   scene: Scene,
 ): void {
-  if (state.mouseHeld >= 0 && document.pointerLockElement === canvas) {
+  if (state.mouseHeld >= 0) {
     if (state.mouseHeld === 0) {
       // Progressive mining
       const target = state.targetBlock;

@@ -434,21 +434,74 @@ async function main(): Promise<void> {
     }
   }
 
-  // Setup menu content
+  // Setup menu content — tabs
   const sep = document.createElement('div');
   sep.style.cssText = 'width:100%;height:1px;background:rgba(255,255,255,0.12)';
   menu.card.appendChild(sep);
 
-  const blockManager = createBlockManager(menu.card, colorAtlasUrl, hotbar.slots, () => hotbar.refresh(), hotbar.getSelectedSlot, hotbar.setSelectedSlot);
+  const activeTabStyle = 'background:rgba(255,255,255,0.75);color:#000;border-bottom-color:rgba(100,200,255,0.6)';
+  const inactiveTabStyle = 'background:transparent;color:#000;border-bottom-color:transparent';
 
-  const invSep = document.createElement('div');
-  invSep.style.cssText = 'width:100%;height:1px;background:rgba(255,255,255,0.12)';
-  menu.card.appendChild(invSep);
+  const tabBar = document.createElement('div');
+  tabBar.style.cssText = 'display:flex;gap:0;width:100%;border-bottom:1px solid rgba(255,255,255,0.1)';
+  menu.card.appendChild(tabBar);
 
-  const effectsLabel = document.createElement('div');
-  effectsLabel.textContent = 'EFFECTS';
-  effectsLabel.style.cssText = 'color:rgba(255,255,255,0.35);font-size:11px;letter-spacing:0.18em;align-self:flex-start';
-  menu.card.appendChild(effectsLabel);
+  const invTab = document.createElement('button');
+  invTab.textContent = 'Inventory';
+  invTab.style.cssText = [
+    'padding:8px 24px',
+    'font-size:13px',
+    'font-family:ui-monospace,monospace',
+    'border:none',
+    'border-bottom:2px solid transparent',
+    'cursor:pointer',
+    'letter-spacing:0.06em',
+    'transition:background 0.15s',
+    'border-radius:6px 6px 0 0',
+    activeTabStyle,
+  ].join(';');
+  tabBar.appendChild(invTab);
+
+  const setTab = document.createElement('button');
+  setTab.textContent = 'Settings';
+  setTab.style.cssText = [
+    'padding:8px 24px',
+    'font-size:13px',
+    'font-family:ui-monospace,monospace',
+    'border:none',
+    'border-bottom:2px solid transparent',
+    'cursor:pointer',
+    'letter-spacing:0.06em',
+    'transition:background 0.15s',
+    'border-radius:6px 6px 0 0', 
+    inactiveTabStyle,
+  ].join(';');
+  tabBar.appendChild(setTab);
+
+  const invPanel = document.createElement('div');
+  invPanel.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:12px;width:100%';
+  menu.card.appendChild(invPanel);
+
+  const setPanel = document.createElement('div');
+  setPanel.style.cssText = 'display:none;flex-direction:column;align-items:center;gap:10px;width:100%';
+  menu.card.appendChild(setPanel);
+
+  function switchTab(tab: 'inv' | 'set'): void {
+    const showInv = tab === 'inv';
+    invPanel.style.display = showInv ? 'flex' : 'none';
+    setPanel.style.display = showInv ? 'none' : 'flex';
+    invTab.style.cssText = invTab.style.cssText.replace(/background:[^;]+;/, showInv ? 'background:rgba(255,255,255,0.75);' : 'background:transparent;');
+    invTab.style.cssText = invTab.style.cssText.replace(/color:[^;]+;/, showInv ? 'color:#000;' : 'color:#000;');
+    invTab.style.borderBottomColor = showInv ? 'rgba(100,200,255,0.6)' : 'transparent';
+    setTab.style.cssText = setTab.style.cssText.replace(/background:[^;]+;/, showInv ? 'background:transparent;' : 'background:rgba(255,255,255,0.72);');
+    setTab.style.cssText = setTab.style.cssText.replace(/color:[^;]+;/, showInv ? 'color:#000;' : 'color:#000;');
+    setTab.style.borderBottomColor = showInv ? 'transparent' : 'rgba(100,200,255,0.6)';
+  }
+
+  invTab.addEventListener('click', () => switchTab('inv'));
+  setTab.addEventListener('click', () => switchTab('set'));
+
+  const blockManager = createBlockManager(invPanel, colorAtlasUrl, hotbar.slots, () => hotbar.refresh(), hotbar.getSelectedSlot, hotbar.setSelectedSlot);
 
   createControlPanel(effects, async (key) => {
     if (key === 'ssao') {
@@ -493,14 +546,9 @@ async function main(): Promise<void> {
       return;
     }
     await rebuildRenderTargets();
-  }, menu.card);
+  }, setPanel);
 
   hotbar.setOnSelectionChanged(blockManager.refreshSlotHighlight);
-
-  const escHint = document.createElement('div');
-  escHint.textContent = 'ESC  ·  resume';
-  escHint.style.cssText = 'color:rgba(255,255,255,0.25);font-size:11px;letter-spacing:0.1em';
-  menu.card.appendChild(escHint);
 
   // Exit to launcher. Reload is the cleanest way to fully tear down WebGPU,
   // the world, the WebSocket, etc. — main() re-runs and re-shows the launcher.
@@ -511,10 +559,11 @@ async function main(): Promise<void> {
     'font-size:13px',
     'font-family:ui-monospace,monospace',
     'background: #3a1a1a',
-    'color:#f88',
+    'color:rgb(255,251,251)',
     'border:1px solid #f88', 'border-radius:6px',
     'cursor:pointer', 'letter-spacing:0.06em',
     'transition:background 0.15s',
+    'margin-top:12px',
   ].join(';');
   exitBtn.addEventListener('mouseenter', () => { exitBtn.style.background = '#4a2424'; });
   exitBtn.addEventListener('mouseleave', () => { exitBtn.style.background = '#3a1a1a'; });
@@ -824,7 +873,7 @@ async function main(): Promise<void> {
     passes.blockHighlightPass!.setCrackStage(blockInteraction.crackStage);
     passes.blockHighlightPass!.update(ctx, vp, highlightBlock);
 
-    updateBlockInteraction(dt, time, canvas, blockInteraction, world, () => hotbar.getSelected(), scene);
+    updateBlockInteraction(dt, time, blockInteraction, world, () => hotbar.getSelected(), scene);
 
     if (passes.rainPass) {
       heightmap.update(camPos.x, camPos.z, world);
