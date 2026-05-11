@@ -44,7 +44,11 @@ if (ctx.hdr) {
 
 ### Gamma Correction
 
-For SDR output, the tone-mapped value is converted from linear to sRGB gamma space. This can be done either in the shader or by marking the swap chain format as `'bgra8unorm-srgb'` (which instructs WebGPU to apply the sRGB transfer function automatically during the final resolve).
+For SDR output, the tone-mapped value is converted from linear to sRGB gamma space. This is done in the shader just before the final display by applying a gamma curve to the output color:
+
+```typescript
+return vec4<f32>(pow(max(ldr, vec3<f32>(0.0)), vec3<f32>(1.0 / 2.2)), 1.0);
+```
 
 ## 10.2 Bloom
 
