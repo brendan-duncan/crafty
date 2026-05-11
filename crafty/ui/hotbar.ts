@@ -69,6 +69,10 @@ export function createHotbar(atlasUrl: string): Hotbar {
     ].join(';');
     slot.appendChild(lbl);
 
+    slot.addEventListener('click', () => {
+      selected = i;
+      updateSelection();
+    });
     bar.appendChild(slot);
     slots.push(slot);
     canvases.push(cv);
@@ -134,6 +138,10 @@ export function createHotbar(atlasUrl: string): Hotbar {
     updateSelection();
   }, { passive: true });
 
+  // Re-position highlight whenever the window resizes (resolution change,
+  // orientation change) — the bar auto-centers via CSS, but the highlight
+  // overlay position is computed from getBoundingClientRect.
+  window.addEventListener('resize', updateSelection);
   // Delay first position update until bar is laid out
   requestAnimationFrame(updateSelection);
 

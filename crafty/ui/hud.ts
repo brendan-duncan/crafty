@@ -7,7 +7,7 @@ export interface HudElements {
 }
 
 export function createHud(): HudElements {
-  // Reticle (crosshair)
+  // Reticle (crosshair) — always visible
   const reticle = document.createElement('div');
   reticle.style.cssText = [
     'position:fixed', 'top:50%', 'left:50%',
@@ -22,18 +22,25 @@ export function createHud(): HudElements {
   ].join('');
   document.body.appendChild(reticle);
 
+  // Debug overlay (hidden by default, toggled with X key)
+  const createDebug = (): HTMLDivElement => {
+    const el = document.createElement('div');
+    el.style.display = 'none';
+    document.body.appendChild(el);
+    return el;
+  };
+
   // FPS counter
-  const fps = document.createElement('div');
+  const fps = createDebug();
   fps.style.cssText = [
     'position:fixed', 'top:12px', 'right:12px',
     'font-family:ui-monospace,monospace', 'font-size:13px',
     'color:#ff0', 'background:rgba(0,0,0,0.85)',
     'padding:4px 8px', 'border-radius:4px', 'pointer-events:none',
   ].join(';');
-  document.body.appendChild(fps);
 
   // Stats (draws, tris, chunks)
-  const stats = document.createElement('div');
+  const stats = createDebug();
   stats.style.cssText = [
     'position:fixed', 'top:44px', 'right:12px',
     'font-family:ui-monospace,monospace', 'font-size:11px',
@@ -41,27 +48,24 @@ export function createHud(): HudElements {
     'padding:4px 8px', 'border-radius:4px', 'pointer-events:none',
     'white-space:pre',
   ].join(';');
-  document.body.appendChild(stats);
 
   // Biome display
-  const biome = document.createElement('div');
+  const biome = createDebug();
   biome.style.cssText = [
     'position:fixed', 'bottom:12px', 'right:12px',
     'font-family:ui-monospace,monospace', 'font-size:13px',
     'color:#ff0', 'background:rgba(0,0,0,0.85)',
     'padding:4px 8px', 'border-radius:4px', 'pointer-events:none',
   ].join(';');
-  document.body.appendChild(biome);
 
   // Position display
-  const pos = document.createElement('div');
+  const pos = createDebug();
   pos.style.cssText = [
     'position:fixed', 'bottom:44px', 'right:12px',
     'font-family:ui-monospace,monospace', 'font-size:11px',
     'color:#ccf', 'background:rgba(0,0,0,0.85)',
     'padding:4px 8px', 'border-radius:4px', 'pointer-events:none',
   ].join(';');
-  document.body.appendChild(pos);
 
   return { fps, stats, biome, pos, reticle };
 }

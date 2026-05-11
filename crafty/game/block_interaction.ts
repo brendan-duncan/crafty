@@ -60,7 +60,7 @@ export function createBlockInteractionState(): BlockInteractionState {
 /**
  * Completes a progressive break: removes the block, handles light/prop cascade.
  */
-function completeBreak(state: BlockInteractionState, world: World, scene: Scene): void {
+export function completeBreak(state: BlockInteractionState, world: World, scene: Scene): void {
   const tx = state.breakingBlock!.x, ty = state.breakingBlock!.y, tz = state.breakingBlock!.z;
   const minedType = world.getBlockType(tx, ty, tz);
   if (minedType === BlockType.TORCH) {

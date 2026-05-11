@@ -157,6 +157,22 @@ async function main(): Promise<void> {
   const blockInteraction = createBlockInteractionState();
   setupBlockInteractionHandlers(canvas, blockInteraction, world, () => hotbar.getSelected(), scene);
 
+  // Toggle debug overlay with X key (hidden by default)
+  let _showDebug = false;
+  function _updateDebugOverlay(): void {
+    hud.fps.style.display = _showDebug ? '' : 'none';
+    hud.stats.style.display = _showDebug ? '' : 'none';
+    hud.biome.style.display = _showDebug ? '' : 'none';
+    hud.pos.style.display = _showDebug ? '' : 'none';
+  }
+  _updateDebugOverlay();
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'KeyX') {
+      _showDebug = !_showDebug;
+      _updateDebugOverlay();
+    }
+  });
+
   // Initialise audio context from the first click / touch interaction
   // (required by browser autoplay policy).
   const _initAudio = (): void => {

@@ -1,14 +1,16 @@
+import { Vec3 } from '../../src/math/index.js';
 import type { PlayerController, CameraControls } from '../../src/engine/index.js';
 import type { World, BlockType } from '../../src/block/index.js';
 import type { Scene } from '../../src/engine/index.js';
 import type { BlockInteractionState } from './block_interaction.js';
-import { doBlockAction } from './block_interaction.js';
+import { completeBreak, doBlockAction } from './block_interaction.js';
 
 const JOY_RADIUS    = 60;   // px — virtual joystick outer radius
 const JOY_DEAD_ZONE = 0.10; // fraction of radius treated as zero
 const STICK_RADIUS  = 28;   // px — inner draggable knob radius
 const BUTTON_SIZE      = 64;   // px — action-button diameter
 const MENU_BUTTON_SIZE = 44;   // px — small menu button in the corner
+const HOTBAR_CLEARANCE  = 70;   // px from bottom — bottom row of buttons sits here so they clear the 44px hotbar (bottom:12px) plus a gap
 const LOOK_SENSITIVITY = 0.005; // radians per pixel for touch drag (~2.5× mouse)
 
 /**
@@ -128,6 +130,7 @@ export class TouchControls {
   private _stick     : HTMLDivElement;
   private _btnJump   : HTMLDivElement;
   private _btnSneak  : HTMLDivElement;
+  private _btnRun    : HTMLDivElement;
   private _btnMine   : HTMLDivElement;
   private _btnPlace  : HTMLDivElement;
   private _btnMenu   : HTMLDivElement;
@@ -140,6 +143,8 @@ export class TouchControls {
   private _lookLastX  = 0;
   private _lookLastY  = 0;
   private _lookLastTapAt = -Infinity;
+
+  private _sprinting = false;
 
   private readonly _lookSensitivity: number;
 
@@ -181,11 +186,15 @@ export class TouchControls {
     this._joystick.appendChild(this._stick);
     this._root.appendChild(this._joystick);
 
-    // Action buttons (bottom-right cluster)
-    this._btnMine  = this._makeButton('⛏', `right:${24 + BUTTON_SIZE + 12}px`, `bottom:${24 + BUTTON_SIZE + 12}px`, 'rgba(220,80,80,0.45)');
-    this._btnPlace = this._makeButton('▣',  `right:${24}px`,                    `bottom:${24 + BUTTON_SIZE + 12}px`, 'rgba(80,180,90,0.45)');
-    this._btnJump  = this._makeButton('⤒', `right:${24}px`,                    `bottom:${24}px`,                    'rgba(255,255,255,0.18)');
-    this._btnSneak = this._makeButton('⤓', `right:${24 + BUTTON_SIZE + 12}px`, `bottom:${24}px`,                    'rgba(255,255,255,0.10)');
+    // Action buttons (bottom-right cluster), shifted up to clear the hotbar.
+    const btnGap = BUTTON_SIZE + 12;
+    // 3-button bottom row: Sneak | Run | Jump
+    this._btnSneak = this._makeButton('⤓', `right:${24 + 2 * btnGap}px`, `bottom:${HOTBAR_CLEARANCE}px`, 'rgba(255,255,255,0.10)');
+    this._btnRun   = this._makeButton('>>', `right:${24 + btnGap}px`,     `bottom:${HOTBAR_CLEARANCE}px`, 'rgba(100,200,100,0.25)');
+    this._btnJump  = this._makeButton('⤒', `right:${24}px`,               `bottom:${HOTBAR_CLEARANCE}px`, 'rgba(255,255,255,0.18)');
+    // 2-button top row: Mine | Place
+    this._btnMine  = this._makeButton('⛏', `right:${24 + btnGap}px`, `bottom:${HOTBAR_CLEARANCE + btnGap}px`, 'rgba(220,80,80,0.45)');
+    this._btnPlace = this._makeButton('▣',  `right:${24}px`,          `bottom:${HOTBAR_CLEARANCE + btnGap}px`, 'rgba(80,180,90,0.45)');
 
     // Menu button (top-right corner) — smaller, less prominent than gameplay buttons.
     this._btnMenu  = this._makeButton('☰', `right:${16}px`, `top:${16}px`, 'rgba(0,0,0,0.45)');
@@ -236,6 +245,7 @@ export class TouchControls {
     this._bindHoldButton(this._btnSneak, () => this._setSneak(true), () => this._setSneak(false));
     this._bindHoldButton(this._btnMine,  () => this._actionDown(0),  () => this._actionUp(0));
     this._bindHoldButton(this._btnPlace, () => this._actionDown(2),  () => this._actionUp(2));
+    this._bindToggleButton(this._btnRun, () => this._toggleSprint());
 
     // Menu button is a tap, not a hold — fire on touchend so a swipe-off cancels it.
     const onMenuTap = (e: TouchEvent): void => {
@@ -265,6 +275,25 @@ export class TouchControls {
     el.addEventListener('touchstart',  down, { passive: false });
     el.addEventListener('touchend',    up,   { passive: false });
     el.addEventListener('touchcancel', up,   { passive: false });
+  }
+
+  private _bindToggleButton(el: HTMLDivElement, onToggle: () => void): void {
+    const toggle = (e: TouchEvent) => { e.preventDefault(); onToggle(); };
+    el.addEventListener('touchstart', toggle, { passive: false });
+    el.addEventListener('touchend',   (e) => e.preventDefault(), { passive: false });
+  }
+
+  private _toggleSprint(): void {
+    this._sprinting = !this._sprinting;
+    this._btnRun.style.background = this._sprinting
+      ? 'rgba(100,200,100,0.55)'
+      : 'rgba(100,200,100,0.25)';
+    this._btnRun.style.borderColor = this._sprinting
+      ? 'rgba(100,255,100,0.8)'
+      : 'rgba(255,255,255,0.45)';
+    if (this._opts.player) {
+      this._opts.player.inputSprint = this._sprinting;
+    }
   }
 
   // ── Joystick ─────────────────────────────────────────────────────────────
@@ -458,9 +487,23 @@ export class TouchControls {
       return;
     }
     const time = performance.now();
-    blockInteraction.mouseHeld     = button;
-    blockInteraction.mouseHoldTime = time;
-    doBlockAction(button, time, blockInteraction, world, getSelectedBlock, scene);
+    if (button === 0) {
+      // Touch: mine directly (instant break — no progressive tracking for touch).
+      // The progressive break system (updateBlockInteraction) requires holding the
+      // button across frames, but touch events (touchend/touchcancel) can race
+      // with the render loop, making hold-to-break unreliable on mobile.
+      const target = blockInteraction.targetBlock;
+      if (target) {
+        blockInteraction.breakingBlock = new Vec3(target.x, target.y, target.z);
+        completeBreak(blockInteraction, world, scene);
+      }
+      blockInteraction.mouseHeld     = -1;
+      blockInteraction.mouseHoldTime = time;
+    } else if (button === 2) {
+      blockInteraction.mouseHeld     = button;
+      blockInteraction.mouseHoldTime = time;
+      doBlockAction(button, time, blockInteraction, world, getSelectedBlock, scene);
+    }
   }
 
   private _actionUp(button: number): void {
