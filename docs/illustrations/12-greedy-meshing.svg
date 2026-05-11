@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 460" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="460" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Greedy Meshing: Merge Adjacent Same-Type Faces</text>
+
+  <!-- Two panels: left = naive (face per block), right = greedy merged -->
+  <!-- Each panel: 380 wide, with title + 8x4 grid of cells -->
+  <!-- Cell size 36, grid 8 wide × 4 tall = 288 × 144. Center within panel -->
+
+  <defs>
+    <!-- Block color: dirt (brown) and grass (green) for visual interest -->
+  </defs>
+
+  <!-- ===== LEFT: naive face-per-block ===== -->
+  <g transform="translate(60, 70)">
+    <text x="170" y="0" text-anchor="middle" font-weight="700" fill="#dc2626">Naive: one quad per block face</text>
+
+    <!-- Grid of 8x4 = 32 cells. 4 columns of grass on top, 4 of dirt below.
+         Actually let's mix: top row grass, bottom 3 rows dirt; then add a 4-cell stone "patch" on the right -->
+
+    <!-- Cells. Each cell drawn separately with its own border -->
+    <g stroke="#dc2626" stroke-width="0.8">
+      <!-- Row 0: grass (8 cells) -->
+      <g fill="#16a34a" fill-opacity="0.7">
+        <rect x="40"  y="40" width="36" height="36"/>
+        <rect x="76"  y="40" width="36" height="36"/>
+        <rect x="112" y="40" width="36" height="36"/>
+        <rect x="148" y="40" width="36" height="36"/>
+        <rect x="184" y="40" width="36" height="36"/>
+        <rect x="220" y="40" width="36" height="36"/>
+        <rect x="256" y="40" width="36" height="36"/>
+        <rect x="292" y="40" width="36" height="36"/>
+      </g>
+      <!-- Row 1-2: dirt (8 cells x 2 rows) -->
+      <g fill="#92400e" fill-opacity="0.7">
+        <rect x="40"  y="76" width="36" height="36"/>
+        <rect x="76"  y="76" width="36" height="36"/>
+        <rect x="112" y="76" width="36" height="36"/>
+        <rect x="148" y="76" width="36" height="36"/>
+        <rect x="184" y="76" width="36" height="36"/>
+        <rect x="220" y="76" width="36" height="36"/>
+        <rect x="256" y="76" width="36" height="36"/>
+        <rect x="292" y="76" width="36" height="36"/>
+
+        <rect x="40"  y="112" width="36" height="36"/>
+        <rect x="76"  y="112" width="36" height="36"/>
+        <rect x="112" y="112" width="36" height="36"/>
+        <rect x="148" y="112" width="36" height="36"/>
+        <rect x="184" y="112" width="36" height="36"/>
+        <rect x="220" y="112" width="36" height="36"/>
+        <rect x="256" y="112" width="36" height="36"/>
+        <rect x="292" y="112" width="36" height="36"/>
+      </g>
+      <!-- Row 3: stone (8 cells) -->
+      <g fill="#6b7280" fill-opacity="0.7">
+        <rect x="40"  y="148" width="36" height="36"/>
+        <rect x="76"  y="148" width="36" height="36"/>
+        <rect x="112" y="148" width="36" height="36"/>
+        <rect x="148" y="148" width="36" height="36"/>
+        <rect x="184" y="148" width="36" height="36"/>
+        <rect x="220" y="148" width="36" height="36"/>
+        <rect x="256" y="148" width="36" height="36"/>
+        <rect x="292" y="148" width="36" height="36"/>
+      </g>
+    </g>
+
+    <!-- Stats below grid -->
+    <g transform="translate(0, 218)">
+      <rect width="340" height="56" fill="#fee2e2" stroke="#dc2626" stroke-width="1.4" rx="4"/>
+      <text x="14" y="22" font-weight="700" fill="#dc2626">32 quads · 128 vertices · 192 indices</text>
+      <text x="14" y="40" font-size="11" font-style="italic" fill="#991b1b">one quad per block — explodes for large chunks</text>
+    </g>
+  </g>
+
+  <!-- Divider -->
+  <line x1="460" y1="60" x2="460" y2="380" stroke="#d1d5db" stroke-width="1" stroke-dasharray="4,3"/>
+
+  <!-- ===== RIGHT: greedy merged ===== -->
+  <g transform="translate(500, 70)">
+    <text x="170" y="0" text-anchor="middle" font-weight="700" fill="#16a34a">Greedy: merge same-type runs</text>
+
+    <!-- Same grid layout, but only THREE quads (one per type) drawn with thick borders -->
+    <g stroke="#16a34a" stroke-width="2.5">
+      <!-- Grass row (1 quad) -->
+      <rect x="40"  y="40"  width="288" height="36" fill="#16a34a" fill-opacity="0.7"/>
+      <!-- Dirt block (1 quad spanning 8x2 cells) -->
+      <rect x="40"  y="76"  width="288" height="72" fill="#92400e" fill-opacity="0.7"/>
+      <!-- Stone row (1 quad) -->
+      <rect x="40"  y="148" width="288" height="36" fill="#6b7280" fill-opacity="0.7"/>
+    </g>
+
+    <!-- Faint cell guides so the original 32 cells are still visible behind the merged quads -->
+    <g stroke="#ffffff" stroke-width="0.5" opacity="0.55">
+      <line x1="76"  y1="40" x2="76"  y2="184"/>
+      <line x1="112" y1="40" x2="112" y2="184"/>
+      <line x1="148" y1="40" x2="148" y2="184"/>
+      <line x1="184" y1="40" x2="184" y2="184"/>
+      <line x1="220" y1="40" x2="220" y2="184"/>
+      <line x1="256" y1="40" x2="256" y2="184"/>
+      <line x1="292" y1="40" x2="292" y2="184"/>
+      <line x1="40" y1="112" x2="328" y2="112"/>
+    </g>
+
+    <!-- Stats below grid -->
+    <g transform="translate(0, 218)">
+      <rect width="340" height="56" fill="#dcfce7" stroke="#16a34a" stroke-width="1.4" rx="4"/>
+      <text x="14" y="22" font-weight="700" fill="#16a34a">3 quads · 12 vertices · 18 indices</text>
+      <text x="14" y="40" font-size="11" font-style="italic" fill="#166534">~10× reduction here, often 50–100× for full chunks</text>
+    </g>
+  </g>
+
+  <!-- ===== BOTTOM: algorithm summary ===== -->
+  <g transform="translate(60, 360)">
+    <rect width="800" height="80" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+    <text x="14" y="22" font-weight="700" fill="#111827">Algorithm (one pass per face direction × 6)</text>
+
+    <g font-size="12" fill="#374151" transform="translate(14, 0)">
+      <text x="0" y="44">1. <tspan font-weight="600">Mask</tspan>: for each slice perpendicular to the face direction, mark cells whose neighbour in that direction is air.</text>
+      <text x="0" y="60">2. <tspan font-weight="600">Merge</tspan>: scan the mask, growing each unfilled cell into the largest rectangle of same-type neighbours.</text>
+      <text x="0" y="76">3. <tspan font-weight="600">Emit</tspan>: each merged rectangle becomes one quad (4 vertices, 6 indices).</text>
+    </g>
+  </g>
+</svg>

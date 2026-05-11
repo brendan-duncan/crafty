@@ -1,0 +1,138 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 460" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="760" height="460" fill="#ffffff"/>
+  <text x="380" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">DDA Voxel Ray Cast</text>
+
+  <!-- Grid: 12 wide × 8 tall, cell size 36, total 432 × 288. Place at (40, 70) -->
+
+  <g transform="translate(40, 70)">
+    <!-- Grid background -->
+    <rect width="432" height="288" fill="#f9fafb" stroke="#374151" stroke-width="1.4"/>
+
+    <!-- Grid lines -->
+    <g stroke="#d1d5db" stroke-width="1">
+      <line x1="36"  y1="0" x2="36"  y2="288"/>
+      <line x1="72"  y1="0" x2="72"  y2="288"/>
+      <line x1="108" y1="0" x2="108" y2="288"/>
+      <line x1="144" y1="0" x2="144" y2="288"/>
+      <line x1="180" y1="0" x2="180" y2="288"/>
+      <line x1="216" y1="0" x2="216" y2="288"/>
+      <line x1="252" y1="0" x2="252" y2="288"/>
+      <line x1="288" y1="0" x2="288" y2="288"/>
+      <line x1="324" y1="0" x2="324" y2="288"/>
+      <line x1="360" y1="0" x2="360" y2="288"/>
+      <line x1="396" y1="0" x2="396" y2="288"/>
+
+      <line x1="0" y1="36"  x2="432" y2="36"/>
+      <line x1="0" y1="72"  x2="432" y2="72"/>
+      <line x1="0" y1="108" x2="432" y2="108"/>
+      <line x1="0" y1="144" x2="432" y2="144"/>
+      <line x1="0" y1="180" x2="432" y2="180"/>
+      <line x1="0" y1="216" x2="432" y2="216"/>
+      <line x1="0" y1="252" x2="432" y2="252"/>
+    </g>
+
+    <!-- Visited cells along the ray (light yellow), in traversal order -->
+    <!-- Ray from (18, 252) going to (414, 36). Step through cells from (0,6) to (10, 0). -->
+    <!-- The DDA visits cells in order: (0,6), (1,6), (1,5), (2,5), (2,4), (3,4), (3,3), (4,3), (5,3), (5,2), (6,2), (7,2), (7,1), (8,1), (9,1), (9,0), (10,0) -->
+    <!-- Use approximate cells for a good visual. Cell (cx, cy) → rect at (cx*36, cy*36) -->
+    <g fill="#fef3c7" fill-opacity="0.85">
+      <rect x="0"   y="216" width="36" height="36"/>
+      <rect x="36"  y="216" width="36" height="36"/>
+      <rect x="36"  y="180" width="36" height="36"/>
+      <rect x="72"  y="180" width="36" height="36"/>
+      <rect x="72"  y="144" width="36" height="36"/>
+      <rect x="108" y="144" width="36" height="36"/>
+      <rect x="108" y="108" width="36" height="36"/>
+      <rect x="144" y="108" width="36" height="36"/>
+      <rect x="180" y="108" width="36" height="36"/>
+      <rect x="180" y="72"  width="36" height="36"/>
+      <rect x="216" y="72"  width="36" height="36"/>
+      <rect x="252" y="72"  width="36" height="36"/>
+      <rect x="252" y="36"  width="36" height="36"/>
+      <rect x="288" y="36"  width="36" height="36"/>
+    </g>
+
+    <!-- HIT block (solid block) at cell (8, 1) → (288, 36) -->
+    <rect x="288" y="36" width="36" height="36" fill="#16a34a" stroke="#166534" stroke-width="2.5"/>
+
+    <!-- Other solid blocks to make the scene look varied -->
+    <g fill="#92400e" stroke="#451a03" stroke-width="1">
+      <rect x="324" y="36" width="36" height="36"/>
+      <rect x="360" y="36" width="36" height="36"/>
+      <rect x="396" y="36" width="36" height="36"/>
+      <rect x="324" y="72" width="36" height="36"/>
+      <rect x="360" y="72" width="36" height="36"/>
+      <rect x="396" y="72" width="36" height="36"/>
+      <rect x="36"  y="252" width="36" height="36"/>
+      <rect x="72"  y="252" width="36" height="36"/>
+      <rect x="252" y="216" width="36" height="36"/>
+      <rect x="288" y="216" width="36" height="36"/>
+      <rect x="288" y="252" width="36" height="36"/>
+      <rect x="324" y="252" width="36" height="36"/>
+      <rect x="360" y="252" width="36" height="36"/>
+      <rect x="396" y="252" width="36" height="36"/>
+    </g>
+
+    <!-- Ray line from origin (18, 252) to hit (288, 54) — center of hit cell -->
+    <line x1="18" y1="252" x2="288" y2="54" stroke="#dc2626" stroke-width="2.5"/>
+
+    <!-- Tick marks along the ray showing where it crosses each grid line (intersection points) -->
+    <g fill="#dc2626">
+      <circle cx="18"  cy="252" r="5"/>
+      <circle cx="36"  cy="238" r="3.5"/>
+      <circle cx="72"  cy="212" r="3.5"/>
+      <circle cx="108" cy="185" r="3.5"/>
+      <circle cx="144" cy="158" r="3.5"/>
+      <circle cx="180" cy="132" r="3.5"/>
+      <circle cx="216" cy="105" r="3.5"/>
+      <circle cx="252" cy="79"  r="3.5"/>
+      <circle cx="288" cy="54"  r="6" stroke="#7f1d1d" stroke-width="2"/>
+    </g>
+
+    <!-- Ray-origin label outside the grid (below) -->
+    <text x="-6" y="288" text-anchor="end" font-size="11" font-weight="600" fill="#dc2626">origin</text>
+  </g>
+
+  <!-- ===== RIGHT: legend / algorithm summary ===== -->
+  <g transform="translate(500, 80)">
+    <rect width="220" height="270" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+    <text x="14" y="22" font-weight="700" fill="#111827">DDA traversal</text>
+
+    <g transform="translate(14, 40)" font-size="11">
+      <!-- Yellow swatch + label -->
+      <rect x="0" y="0" width="14" height="14" fill="#fef3c7" stroke="#374151"/>
+      <text x="22" y="11" fill="#374151">cell visited</text>
+
+      <!-- Red swatch + label -->
+      <rect x="0" y="22" width="14" height="14" fill="#16a34a" stroke="#166534" stroke-width="1.5"/>
+      <text x="22" y="33" fill="#374151">first non-air block (hit)</text>
+
+      <!-- Brown swatch -->
+      <rect x="0" y="44" width="14" height="14" fill="#92400e" stroke="#451a03"/>
+      <text x="22" y="55" fill="#374151">other solid blocks</text>
+
+      <!-- Red dot -->
+      <circle cx="7" cy="74" r="3.5" fill="#dc2626"/>
+      <text x="22" y="78" fill="#374151">grid-line crossing</text>
+    </g>
+
+    <!-- Step rule -->
+    <g transform="translate(14, 144)" font-size="11">
+      <text x="0" y="0" font-weight="700" fill="#111827">Each step:</text>
+      <text x="0" y="18" fill="#374151">advance to the nearer of</text>
+      <text x="0" y="32" fill="#374151">the next x or y grid line</text>
+      <text x="0" y="50" fill="#6b7280" font-style="italic">→ visits cells in exact</text>
+      <text x="0" y="64" fill="#6b7280" font-style="italic">  ray order, no overshoot</text>
+    </g>
+
+    <!-- Result note -->
+    <g transform="translate(14, 224)" font-size="11" font-weight="600">
+      <text x="0" y="0" fill="#16a34a">stops on hit;</text>
+      <text x="0" y="14" fill="#374151">returns block + face normal</text>
+    </g>
+  </g>
+
+  <!-- Bottom note -->
+  <text x="380" y="408" text-anchor="middle" font-size="11" fill="#6b7280" font-style="italic">In 3D, the same idea adds a Z-step axis. O(grid cells crossed) — independent of cell size.</text>
+  <text x="380" y="432" text-anchor="middle" font-size="11" fill="#6b7280" font-style="italic">Used in Crafty for block placement, breaking, and player aim raycasts.</text>
+</svg>

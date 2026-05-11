@@ -8,6 +8,9 @@ The voxel world is what distinguishes Crafty from a generic rendering demo. This
 
 The world is divided into **chunks** — fixed-size 3D arrays of block IDs. Each chunk is a 16×256×16 volume (X, Y, Z):
 
+![Chunk structure: 16 × 256 × 16 = 65,536 blocks](../illustrations/12-chunk-structure.svg)
+
+
 ```typescript
 class Chunk {
   readonly cx: number;       // Chunk X index
@@ -67,7 +70,10 @@ function generateHeight(worldX: number, worldZ: number): number {
 
 ### Biomes
 
-Biomes are determined by a secondary noise layer that encodes temperature and humidity:
+Biomes are determined by a secondary noise layer that encodes temperature and humidity. Each block of world space gets two independent noise values, and where it lands in temperature × humidity space picks the biome:
+
+![Biome map: temperature × humidity classification](../illustrations/12-biome-map.svg)
+
 
 ```typescript
 function getBiome(worldX: number, worldZ: number): Biome {
@@ -85,7 +91,10 @@ Underground features are generated using additional noise passes. Caves use a ce
 
 ## 12.4 Greedy Meshing
 
-Rendering each visible block face as two triangles creates millions of quads — far too many for real-time performance. **Greedy meshing** solves this by merging adjacent faces of the same block type into larger quads.
+Rendering each visible block face as two triangles creates millions of quads — far too many for real-time performance. **Greedy meshing** solves this by merging adjacent faces of the same block type into larger quads:
+
+![Greedy meshing: naive vs merged](../illustrations/12-greedy-meshing.svg)
+
 
 ### Algorithm
 
@@ -112,7 +121,10 @@ Each chunk produces two meshes: one for opaque blocks (dirt, stone, etc.) and on
 
 ## 12.5 Level-of-Detail (LOD)
 
-Distant chunks use a simplified mesh to reduce triangle count. LOD levels merge 2×2×2 or 4×4×4 blocks into single blocks, reducing geometric detail where the player cannot perceive it.
+Distant chunks use a simplified mesh to reduce triangle count. LOD levels merge 2×2×2 or 4×4×4 blocks into single blocks, reducing geometric detail where the player cannot perceive it. Concentric distance bands around the player select which LOD each chunk uses:
+
+![LOD distance bands around the player](../illustrations/12-lod-distance.svg)
+
 
 ```typescript
 enum LODLevel {
@@ -128,7 +140,10 @@ LOD selection is based on distance from the camera. Transitions between LOD leve
 
 ### Ray Casting
 
-The player interacts with blocks by aiming at them. A ray is cast from the camera through the crosshair, and the voxel traversal uses a **DDA (digital differential analyzer)** algorithm:
+The player interacts with blocks by aiming at them. A ray is cast from the camera through the crosshair, and the voxel traversal uses a **DDA (digital differential analyzer)** algorithm — at each step it advances to whichever grid line is closer along the ray, visiting cells in exact order:
+
+![DDA voxel ray cast](../illustrations/12-dda-raycast.svg)
+
 
 ```typescript
 function raycastVoxels(origin: Vec3, direction: Vec3, world: World, maxDist: number): BlockHit | null {
