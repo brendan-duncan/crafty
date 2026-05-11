@@ -188,15 +188,15 @@ Mobile devices get a completely separate input overlay (`crafty/game/touch_contr
 │     Camera look               │
 │     (right-half drag)         │
 │                               │
-│           ┌────┐ ┌────┐       │
-│           │ ⛏  │ │ ▣  │      │  Top row: Mine | Place
-│           └────┘ └────┘       │
-│  ┌────┐ ┌────┐ ┌────┐         │
-│  │ ⤓  │ │ >> │ │ ⤒  │         │  Bottom row: Sneak | Run | Jump
-│  └────┘ └────┘ └────┘         │
-│  ┌──────┐                     │
-│  │ ○←→  │  Joystick           │  Virtual joystick (bottom-left)
-│  └──────┘                     │
+│  ┌────┐ ┌────┐ ┌────┐        │
+│  │ ⛏  │ │ ▣  │ │ 💡 │        │  Top row: Mine | Place | Flashlight
+│  └────┘ └────┘ └────┘        │
+│  ┌────┐ ┌────┐ ┌────┐        │
+│  │ ⤓  │ │ >> │ │ ⤒  │        │  Bottom row: Sneak | Run | Jump
+│  └────┘ └────┘ └────┘        │
+│  ┌──────┐                    │
+│  │ ○←→  │  Joystick          │  Virtual joystick (bottom-left)
+│  └──────┘                    │
 └───────────────────────────────┘
 ```
 
@@ -246,7 +246,7 @@ private _bindHoldButton(el, onDown, onUp): void {
 
 The mine button bypasses the progressive break system (which requires holding the button across multiple frames via `updateBlockInteraction`). On touch, `touchstart` immediately calls `completeBreak` — the block is mined in one tap. This avoids the unreliability of touch events (finger slip, system gestures) racing with the render loop.
 
-Toggle-type buttons use `_bindToggleButton`. The Run button (`>>`) toggles `player.inputSprint`, visually switching between a dim and bright green background to indicate the active state.
+Toggle-type buttons use `_bindToggleButton`. The Run button (`>>`) toggles `player.inputSprint`, visually switching between a dim and bright green background to indicate the active state. The Flashlight button (`💡`) calls the `onFlashlightToggle` callback, with the button's background/border brightening when active.
 
 ### Layout and Hotbar Clearance
 

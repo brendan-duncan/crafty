@@ -195,6 +195,9 @@ async function main(): Promise<void> {
     getSelectedBlock: () => hotbar.getSelected(),
     onLookDoubleTap: () => playerSetup.toggleController(),
     onMenu: () => menu.open(),
+    onFlashlightToggle: () => {
+      playerSetup.setFlashlightEnabled(!playerSetup.isFlashlightEnabled());
+    },
   }, () => {
     // Once we know it's a touch device, don't fight it with pointer-lock.
     player.usePointerLock = false;

@@ -115,6 +115,8 @@ export interface TouchControlsOptions {
   onLookDoubleTap?: () => void;
   /** Optional: tapped when the player presses the on-screen menu button (top-right). */
   onMenu?: () => void;
+  /** Optional: called when the player taps the flashlight toggle button. */
+  onFlashlightToggle?: () => void;
   /** Override the touch look sensitivity (radians per pixel). */
   lookSensitivity?: number;
 }
@@ -131,9 +133,10 @@ export class TouchControls {
   private _btnJump   : HTMLDivElement;
   private _btnSneak  : HTMLDivElement;
   private _btnRun    : HTMLDivElement;
-  private _btnMine   : HTMLDivElement;
-  private _btnPlace  : HTMLDivElement;
-  private _btnMenu   : HTMLDivElement;
+  private _btnMine      : HTMLDivElement;
+  private _btnPlace     : HTMLDivElement;
+  private _btnFlashlight: HTMLDivElement;
+  private _btnMenu      : HTMLDivElement;
 
   private _joyTouchId : number | null = null;
   private _joyOriginX = 0;
@@ -145,6 +148,7 @@ export class TouchControls {
   private _lookLastTapAt = -Infinity;
 
   private _sprinting = false;
+  private _flashlightOn = false;
 
   private readonly _lookSensitivity: number;
 
@@ -192,9 +196,10 @@ export class TouchControls {
     this._btnSneak = this._makeButton('⤓', `right:${24 + 2 * btnGap}px`, `bottom:${HOTBAR_CLEARANCE}px`, 'rgba(255,255,255,0.10)');
     this._btnRun   = this._makeButton('>>', `right:${24 + btnGap}px`,     `bottom:${HOTBAR_CLEARANCE}px`, 'rgba(100,200,100,0.25)');
     this._btnJump  = this._makeButton('⤒', `right:${24}px`,               `bottom:${HOTBAR_CLEARANCE}px`, 'rgba(255,255,255,0.18)');
-    // 2-button top row: Mine | Place
-    this._btnMine  = this._makeButton('⛏', `right:${24 + btnGap}px`, `bottom:${HOTBAR_CLEARANCE + btnGap}px`, 'rgba(220,80,80,0.45)');
-    this._btnPlace = this._makeButton('▣',  `right:${24}px`,          `bottom:${HOTBAR_CLEARANCE + btnGap}px`, 'rgba(80,180,90,0.45)');
+    // 3-button top row: Mine | Place | Flashlight
+    this._btnMine  = this._makeButton('⛏', `right:${24 + 2 * btnGap}px`, `bottom:${HOTBAR_CLEARANCE + btnGap}px`, 'rgba(220,80,80,0.45)');
+    this._btnPlace = this._makeButton('▣',  `right:${24 + btnGap}px`,     `bottom:${HOTBAR_CLEARANCE + btnGap}px`, 'rgba(80,180,90,0.45)');
+    this._btnFlashlight = this._makeButton('💡', `right:${24}px`,          `bottom:${HOTBAR_CLEARANCE + btnGap}px`, 'rgba(200,200,80,0.25)');
 
     // Menu button (top-right corner) — smaller, less prominent than gameplay buttons.
     this._btnMenu  = this._makeButton('☰', `right:${16}px`, `top:${16}px`, 'rgba(0,0,0,0.45)');
@@ -246,6 +251,7 @@ export class TouchControls {
     this._bindHoldButton(this._btnMine,  () => this._actionDown(0),  () => this._actionUp(0));
     this._bindHoldButton(this._btnPlace, () => this._actionDown(2),  () => this._actionUp(2));
     this._bindToggleButton(this._btnRun, () => this._toggleSprint());
+    this._bindToggleButton(this._btnFlashlight, () => this._toggleFlashlight());
 
     // Menu button is a tap, not a hold — fire on touchend so a swipe-off cancels it.
     const onMenuTap = (e: TouchEvent): void => {
@@ -294,6 +300,17 @@ export class TouchControls {
     if (this._opts.player) {
       this._opts.player.inputSprint = this._sprinting;
     }
+  }
+
+  private _toggleFlashlight(): void {
+    this._flashlightOn = !this._flashlightOn;
+    this._btnFlashlight.style.background = this._flashlightOn
+      ? 'rgba(200,200,80,0.55)'
+      : 'rgba(200,200,80,0.25)';
+    this._btnFlashlight.style.borderColor = this._flashlightOn
+      ? 'rgba(255,255,180,0.8)'
+      : 'rgba(255,255,255,0.45)';
+    this._opts.onFlashlightToggle?.();
   }
 
   // ── Joystick ─────────────────────────────────────────────────────────────
