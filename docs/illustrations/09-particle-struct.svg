@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 380" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="380" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Particle Struct: 64 Bytes per Slot, Dense GPU Storage</text>
+
+  <!-- Byte ruler: 0..64, each byte = 12 px. Strip from x=60 to x=828 (768 px = 64 × 12). -->
+  <!-- Tick marks every 4 bytes at positions x=60, 108, 156, 204, 252, 300, 348, 396, 444, 492, 540, 588, 636, 684, 732, 780, 828 -->
+
+  <g transform="translate(0, 64)">
+    <!-- Tick marks above strip -->
+    <g stroke="#9ca3af" stroke-width="0.8" font-size="9" font-family="ui-monospace, Consolas, monospace" fill="#6b7280">
+      <line x1="60"  y1="22" x2="60"  y2="28"/><text x="60"  y="18" text-anchor="middle">0</text>
+      <line x1="156" y1="22" x2="156" y2="28"/><text x="156" y="18" text-anchor="middle">8</text>
+      <line x1="252" y1="22" x2="252" y2="28"/><text x="252" y="18" text-anchor="middle">16</text>
+      <line x1="348" y1="22" x2="348" y2="28"/><text x="348" y="18" text-anchor="middle">24</text>
+      <line x1="444" y1="22" x2="444" y2="28"/><text x="444" y="18" text-anchor="middle">32</text>
+      <line x1="540" y1="22" x2="540" y2="28"/><text x="540" y="18" text-anchor="middle">40</text>
+      <line x1="636" y1="22" x2="636" y2="28"/><text x="636" y="18" text-anchor="middle">48</text>
+      <line x1="732" y1="22" x2="732" y2="28"/><text x="732" y="18" text-anchor="middle">56</text>
+      <line x1="828" y1="22" x2="828" y2="28"/><text x="828" y="18" text-anchor="middle">64</text>
+    </g>
+
+    <!-- Field strip (y=30 to y=110, height 80) -->
+    <!-- position: 0..12 → x=60..204 (12*12=144) -->
+    <rect x="60"  y="30" width="144" height="80" fill="#dbeafe" stroke="#1d4ed8" stroke-width="1.2"/>
+    <text x="132" y="62" text-anchor="middle" font-weight="700" fill="#1e3a8a">position</text>
+    <text x="132" y="80" text-anchor="middle" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#1e3a8a">vec3&lt;f32&gt;</text>
+    <text x="132" y="96" text-anchor="middle" font-size="10" fill="#1e3a8a">3 × f32 = 12 B</text>
+
+    <!-- life: 12..16 → x=204..252 (4*12=48) -->
+    <rect x="204" y="30" width="48" height="80" fill="#fef3c7" stroke="#a16207" stroke-width="1.2"/>
+    <text x="228" y="62" text-anchor="middle" font-weight="700" fill="#713f12">life</text>
+    <text x="228" y="80" text-anchor="middle" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#713f12">f32</text>
+    <text x="228" y="96" text-anchor="middle" font-size="9" fill="#713f12">−1 = dead</text>
+
+    <!-- velocity: 16..28 → x=252..396 -->
+    <rect x="252" y="30" width="144" height="80" fill="#dbeafe" stroke="#1d4ed8" stroke-width="1.2"/>
+    <text x="324" y="62" text-anchor="middle" font-weight="700" fill="#1e3a8a">velocity</text>
+    <text x="324" y="80" text-anchor="middle" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#1e3a8a">vec3&lt;f32&gt;</text>
+    <text x="324" y="96" text-anchor="middle" font-size="10" fill="#1e3a8a">12 B</text>
+
+    <!-- max_life: 28..32 → x=396..444 -->
+    <rect x="396" y="30" width="48" height="80" fill="#fef3c7" stroke="#a16207" stroke-width="1.2"/>
+    <text x="420" y="62" text-anchor="middle" font-size="11" font-weight="700" fill="#713f12">max_life</text>
+    <text x="420" y="80" text-anchor="middle" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#713f12">f32</text>
+
+    <!-- color: 32..48 → x=444..636 (16*12=192) -->
+    <rect x="444" y="30" width="192" height="80" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.2"/>
+    <text x="540" y="62" text-anchor="middle" font-weight="700" fill="#4c1d95">color</text>
+    <text x="540" y="80" text-anchor="middle" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#4c1d95">vec4&lt;f32&gt;</text>
+    <text x="540" y="96" text-anchor="middle" font-size="10" fill="#4c1d95">RGBA, 16 B</text>
+
+    <!-- size: 48..52 → x=636..684 -->
+    <rect x="636" y="30" width="48" height="80" fill="#fef3c7" stroke="#a16207" stroke-width="1.2"/>
+    <text x="660" y="62" text-anchor="middle" font-weight="700" fill="#713f12">size</text>
+    <text x="660" y="80" text-anchor="middle" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#713f12">f32</text>
+
+    <!-- rotation: 52..56 → x=684..732 -->
+    <rect x="684" y="30" width="48" height="80" fill="#fef3c7" stroke="#a16207" stroke-width="1.2"/>
+    <text x="708" y="62" text-anchor="middle" font-size="11" font-weight="700" fill="#713f12">rotation</text>
+    <text x="708" y="80" text-anchor="middle" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#713f12">f32</text>
+
+    <!-- _pad: 56..64 → x=732..828 -->
+    <rect x="732" y="30" width="96" height="80" fill="#e5e7eb" stroke="#6b7280" stroke-width="1.2"/>
+    <text x="780" y="62" text-anchor="middle" font-weight="700" fill="#374151">_pad</text>
+    <text x="780" y="80" text-anchor="middle" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#374151">vec2&lt;f32&gt;</text>
+    <text x="780" y="96" text-anchor="middle" font-size="10" font-style="italic" fill="#6b7280">align to 16 B</text>
+  </g>
+
+  <!-- ===== Sentinel and recycling notes ===== -->
+  <g transform="translate(60, 220)">
+    <rect width="800" height="60" fill="#fef9c3" stroke="#ca8a04" stroke-width="1" rx="6"/>
+    <text x="14" y="22" font-weight="700" fill="#713f12">life as a tombstone</text>
+    <text x="14" y="40" font-size="11" fill="#713f12">life = −1.0 → slot dead and reusable.   life ≥ 0 → alive, ticked by dt each update;</text>
+    <text x="14" y="54" font-size="11" fill="#713f12">when life ≥ max_life the update shader writes back life = −1, freeing the slot for the next spawn.</text>
+  </g>
+
+  <!-- ===== Capacity note ===== -->
+  <g transform="translate(60, 296)">
+    <rect width="800" height="60" fill="#eff6ff" stroke="#2563eb" stroke-width="1" rx="6"/>
+    <text x="14" y="22" font-weight="700" fill="#1e3a8a">Buffer capacity = maxParticles × 64 bytes</text>
+    <text x="14" y="40" font-size="11" fill="#1e3a8a">rain (80 000 slots) → 5.0 MB.   snow (50 000 slots) → 3.1 MB.   allocated once, never reallocated.</text>
+  </g>
+</svg>

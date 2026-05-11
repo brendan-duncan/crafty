@@ -6,6 +6,8 @@ Particle effects bring a scene to life — rain streaking past the player, snow 
 
 ## 9.1 Architecture Overview
 
+![Five GPU stages (spawn → update → compact → indirect → render) operating on four GPU buffers, with no CPU readback](../illustrations/09-pipeline-stages.svg)
+
 The particle system is built around a **four-stage compute pipeline** executed each frame:
 
 ```
@@ -94,6 +96,8 @@ Two render targets are supported:
 
 ## 9.3 The Particle Struct
 
+![64-byte particle layout: position, life, velocity, max_life, color, size, rotation, padding](../illustrations/09-particle-struct.svg)
+
 Every particle is a fixed-size 64-byte struct stored in a GPU storage buffer:
 
 ```wgsl
@@ -166,6 +170,8 @@ fn cs_main(@builtin(global_invocation_id) gid: vec3<u32>) {
 The number of particles spawned this frame is computed on the CPU by accumulating `spawnRate × dt` and then rounding down. This accumulator-based approach handles variable frame rates smoothly — particles are not created or lost when the frame rate fluctuates.
 
 ### Spawn Shapes
+
+![Three spawn shapes: sphere (omnidirectional burst), cone (directional spray), box (planar emitter for rain/snow)](../illustrations/09-spawn-shapes.svg)
 
 **Sphere.** Samples a direction from a spherical cap (solid angle `θ`), rotates it by the emitter's world rotation, and places the particle at the emitter position plus that direction times the sphere radius.
 
@@ -243,6 +249,8 @@ Only particles within the heightmap's axis-aligned rectangle are tested — part
 
 ## 9.7 The Compact Stage
 
+![Compact stage: sparse particleBuffer → dense aliveList via atomic counter → indirect draw parameters](../illustrations/09-compact-stage.svg)
+
 After update, the particle buffer contains a mix of alive and dead particles. The compact stage rebuilds a dense `alive_list` array and writes the count into the indirect draw buffer — all on the GPU with no CPU involvement.
 
 **First dispatch** (`cs_compact`): every thread checks one particle slot. If alive, it atomically increments the counter and writes its index:
@@ -270,6 +278,8 @@ fn cs_write_indirect() {
 The counter buffer is reset to zero at the start of each frame (written by the CPU before the compute pass).
 
 ## 9.8 The Render Stage
+
+![Camera-facing discs (snow/smoke) vs velocity-aligned streaks (rain/sparks) — same vertex skeleton, different basis vectors](../illustrations/09-billboard-modes.svg)
 
 Particles are drawn via **indirect draw** — the `indirectBuffer` is bound as the draw parameters, so the GPU decides how many instances to render without CPU intervention.
 

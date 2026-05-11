@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 460" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="460" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Billboard Modes: Camera-Facing vs Velocity-Aligned</text>
+
+  <defs>
+    <marker id="bbArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/>
+    </marker>
+  </defs>
+
+  <!-- ===== LEFT: Camera billboard ===== -->
+  <g transform="translate(20, 60)">
+    <text x="200" y="0" text-anchor="middle" font-weight="700" fill="#111827">Camera billboard — discs face the camera</text>
+
+    <!-- Sky / scene viewport -->
+    <rect x="0" y="14" width="400" height="240" fill="#0f172a" stroke="#374151" stroke-width="1.2"/>
+
+    <!-- Camera icon at left -->
+    <g transform="translate(40, 134)">
+      <polygon points="-12,-14 12,-14 16,4 -16,4" fill="#60a5fa" stroke="#bfdbfe" stroke-width="1.4"/>
+      <ellipse cx="0" cy="6" rx="12" ry="4" fill="#fef3c7" stroke="#bfdbfe" stroke-width="1"/>
+      <text x="0" y="-22" text-anchor="middle" font-size="10" font-weight="700" fill="#bfdbfe">camera</text>
+    </g>
+
+    <!-- 5 snow particles at different positions, all drawn as upright ellipses (facing camera) -->
+    <g fill="#f3f4f6" stroke="#cbd5e1" stroke-width="1">
+      <circle cx="160" cy="60"  r="14"/>
+      <circle cx="220" cy="120" r="14"/>
+      <circle cx="280" cy="80"  r="14"/>
+      <circle cx="320" cy="180" r="14"/>
+      <circle cx="200" cy="220" r="14"/>
+    </g>
+
+    <!-- Sight lines from camera to each particle, with each particle showing as a flat disc PERPENDICULAR to that line — but since billboard always faces camera, they all look like circles -->
+    <g stroke="#6b7280" stroke-width="0.8" stroke-dasharray="2,3" opacity="0.7">
+      <line x1="56" y1="140" x2="160" y2="60"/>
+      <line x1="56" y1="140" x2="220" y2="120"/>
+      <line x1="56" y1="140" x2="280" y2="80"/>
+      <line x1="56" y1="140" x2="320" y2="180"/>
+      <line x1="56" y1="140" x2="200" y2="220"/>
+    </g>
+
+    <!-- Sub-caption inside viewport (top-right) -->
+    <text x="394" y="32" text-anchor="end" font-size="10" font-style="italic" fill="#cbd5e1">all quads share orientation</text>
+
+    <!-- Caption below frame -->
+    <text x="200" y="276" text-anchor="middle" font-size="11" font-weight="700" fill="#374151">use: snow, smoke, soft glows</text>
+    <text x="200" y="294" text-anchor="middle" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#6b7280">right = view[0].xyz · up = view[1].xyz</text>
+  </g>
+
+  <!-- ===== RIGHT: Velocity billboard ===== -->
+  <g transform="translate(500, 60)">
+    <text x="200" y="0" text-anchor="middle" font-weight="700" fill="#111827">Velocity billboard — streaks align to motion</text>
+
+    <!-- Sky / scene viewport -->
+    <rect x="0" y="14" width="400" height="240" fill="#0f172a" stroke="#374151" stroke-width="1.2"/>
+
+    <!-- Camera icon at left -->
+    <g transform="translate(40, 134)">
+      <polygon points="-12,-14 12,-14 16,4 -16,4" fill="#60a5fa" stroke="#bfdbfe" stroke-width="1.4"/>
+      <ellipse cx="0" cy="6" rx="12" ry="4" fill="#fef3c7" stroke="#bfdbfe" stroke-width="1"/>
+      <text x="0" y="-22" text-anchor="middle" font-size="10" font-weight="700" fill="#bfdbfe">camera</text>
+    </g>
+
+    <!-- Rain streaks at various positions, all stretched mostly downward (velocity = world_down).
+         Each shown as a thin vertical capsule with red velocity arrow. -->
+    <g>
+      <rect x="156" y="50"  width="6" height="40" rx="3" fill="#bae6fd" stroke="#bfdbfe" stroke-width="1"/>
+      <rect x="218" y="100" width="6" height="44" rx="3" fill="#bae6fd" stroke="#bfdbfe" stroke-width="1"/>
+      <rect x="278" y="64"  width="6" height="38" rx="3" fill="#bae6fd" stroke="#bfdbfe" stroke-width="1"/>
+      <rect x="318" y="160" width="6" height="46" rx="3" fill="#bae6fd" stroke="#bfdbfe" stroke-width="1"/>
+      <rect x="198" y="200" width="6" height="40" rx="3" fill="#bae6fd" stroke="#bfdbfe" stroke-width="1"/>
+    </g>
+
+    <!-- Velocity arrows pointing down for each particle -->
+    <g stroke="#dc2626" stroke-width="1.2">
+      <line x1="159" y1="92"  x2="159" y2="100" marker-end="url(#bbArr)"/>
+      <line x1="221" y1="146" x2="221" y2="154" marker-end="url(#bbArr)"/>
+      <line x1="281" y1="104" x2="281" y2="112" marker-end="url(#bbArr)"/>
+      <line x1="321" y1="208" x2="321" y2="216" marker-end="url(#bbArr)"/>
+      <line x1="201" y1="242" x2="201" y2="250" marker-end="url(#bbArr)"/>
+    </g>
+
+    <!-- Sub-caption inside viewport (top-right) -->
+    <text x="394" y="32" text-anchor="end" font-size="10" font-style="italic" fill="#cbd5e1">long axis = velocity direction</text>
+
+    <!-- Caption below frame -->
+    <text x="200" y="276" text-anchor="middle" font-size="11" font-weight="700" fill="#374151">use: rain, sparks, projectile trails</text>
+    <text x="200" y="294" text-anchor="middle" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#6b7280">right = cross(vel_dir, cam_dir) · stretch ∝ speed</text>
+  </g>
+
+  <!-- ===== Bottom: shared notes ===== -->
+  <g transform="translate(20, 380)">
+    <rect width="880" height="64" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+    <text x="14" y="22" font-weight="700" fill="#111827">Both modes share the same vertex shader skeleton — only the basis vectors differ</text>
+    <g font-size="11" fill="#374151" transform="translate(14, 0)">
+      <text x="0" y="42">world_pos = particle.position + right * uv.x * size + up * uv.y * size · stretch</text>
+      <text x="0" y="58" font-style="italic" fill="#6b7280">camera mode: stretch = 1, basis from view matrix · velocity mode: stretch grows with speed, up = vel_dir</text>
+    </g>
+  </g>
+</svg>

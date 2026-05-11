@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 500" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="500" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Compact Stage: Sparse Slots → Dense aliveList → Indirect Draw</text>
+
+  <defs>
+    <marker id="cmpArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+    </marker>
+  </defs>
+
+  <!-- ===== Sparse particleBuffer ===== -->
+  <g transform="translate(40, 56)">
+    <text x="0" y="0" font-weight="700" fill="#111827">particleBuffer · 16 of N slots shown (sparse — alive interleaved with dead)</text>
+
+    <!-- 16 cells, each 50 wide × 36 tall, x = 0..800 -->
+    <g font-size="11" font-family="ui-monospace, Consolas, monospace" text-anchor="middle">
+      <!-- alive = green, dead = gray. Index labels below. -->
+      <!-- Slot 0 alive --> <rect x="0"   y="14" width="50" height="36" fill="#bbf7d0" stroke="#15803d" stroke-width="1"/><text x="25"  y="38" font-weight="700" fill="#14532d">A</text><text x="25"  y="62" fill="#6b7280">0</text>
+      <!-- 1 dead    --> <rect x="50"  y="14" width="50" height="36" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/><text x="75"  y="38" fill="#9ca3af">·</text><text x="75"  y="62" fill="#9ca3af">1</text>
+      <!-- 2 dead    --> <rect x="100" y="14" width="50" height="36" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/><text x="125" y="38" fill="#9ca3af">·</text><text x="125" y="62" fill="#9ca3af">2</text>
+      <!-- 3 alive   --> <rect x="150" y="14" width="50" height="36" fill="#bbf7d0" stroke="#15803d" stroke-width="1"/><text x="175" y="38" font-weight="700" fill="#14532d">A</text><text x="175" y="62" fill="#6b7280">3</text>
+      <!-- 4 alive   --> <rect x="200" y="14" width="50" height="36" fill="#bbf7d0" stroke="#15803d" stroke-width="1"/><text x="225" y="38" font-weight="700" fill="#14532d">A</text><text x="225" y="62" fill="#6b7280">4</text>
+      <!-- 5 dead    --> <rect x="250" y="14" width="50" height="36" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/><text x="275" y="38" fill="#9ca3af">·</text><text x="275" y="62" fill="#9ca3af">5</text>
+      <!-- 6 alive   --> <rect x="300" y="14" width="50" height="36" fill="#bbf7d0" stroke="#15803d" stroke-width="1"/><text x="325" y="38" font-weight="700" fill="#14532d">A</text><text x="325" y="62" fill="#6b7280">6</text>
+      <!-- 7 dead    --> <rect x="350" y="14" width="50" height="36" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/><text x="375" y="38" fill="#9ca3af">·</text><text x="375" y="62" fill="#9ca3af">7</text>
+      <!-- 8 dead    --> <rect x="400" y="14" width="50" height="36" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/><text x="425" y="38" fill="#9ca3af">·</text><text x="425" y="62" fill="#9ca3af">8</text>
+      <!-- 9 alive   --> <rect x="450" y="14" width="50" height="36" fill="#bbf7d0" stroke="#15803d" stroke-width="1"/><text x="475" y="38" font-weight="700" fill="#14532d">A</text><text x="475" y="62" fill="#6b7280">9</text>
+      <!-- 10 dead   --> <rect x="500" y="14" width="50" height="36" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/><text x="525" y="38" fill="#9ca3af">·</text><text x="525" y="62" fill="#9ca3af">10</text>
+      <!-- 11 alive  --> <rect x="550" y="14" width="50" height="36" fill="#bbf7d0" stroke="#15803d" stroke-width="1"/><text x="575" y="38" font-weight="700" fill="#14532d">A</text><text x="575" y="62" fill="#6b7280">11</text>
+      <!-- 12 alive  --> <rect x="600" y="14" width="50" height="36" fill="#bbf7d0" stroke="#15803d" stroke-width="1"/><text x="625" y="38" font-weight="700" fill="#14532d">A</text><text x="625" y="62" fill="#6b7280">12</text>
+      <!-- 13 dead   --> <rect x="650" y="14" width="50" height="36" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/><text x="675" y="38" fill="#9ca3af">·</text><text x="675" y="62" fill="#9ca3af">13</text>
+      <!-- 14 alive  --> <rect x="700" y="14" width="50" height="36" fill="#bbf7d0" stroke="#15803d" stroke-width="1"/><text x="725" y="38" font-weight="700" fill="#14532d">A</text><text x="725" y="62" fill="#6b7280">14</text>
+      <!-- 15 alive  --> <rect x="750" y="14" width="50" height="36" fill="#bbf7d0" stroke="#15803d" stroke-width="1"/><text x="775" y="38" font-weight="700" fill="#14532d">A</text><text x="775" y="62" fill="#6b7280">15</text>
+    </g>
+  </g>
+
+  <!-- Compact arrow down -->
+  <line x1="460" y1="142" x2="460" y2="186" stroke="#374151" stroke-width="1.6" marker-end="url(#cmpArr)"/>
+  <text x="476" y="160" font-size="11" font-weight="700" fill="#374151">cs_compact</text>
+  <text x="476" y="174" font-size="10" font-style="italic" fill="#374151">slot = atomicAdd(counter, 1)</text>
+
+  <!-- ===== Dense aliveList ===== -->
+  <g transform="translate(40, 200)">
+    <text x="0" y="0" font-weight="700" fill="#111827">aliveList · packed indices of live slots (length = atomic counter)</text>
+
+    <!-- 9 cells of 50 wide, then "..." cell. Total: 9*50 + 50 = 500. Centered would put at x=190..690. Let's left-align. -->
+    <g font-size="11" font-family="ui-monospace, Consolas, monospace" text-anchor="middle">
+      <rect x="0"   y="14" width="50" height="36" fill="#bbf7d0" stroke="#15803d" stroke-width="1"/><text x="25"  y="38" font-weight="700" fill="#14532d">0</text><text x="25"  y="62" fill="#6b7280">0</text>
+      <rect x="50"  y="14" width="50" height="36" fill="#bbf7d0" stroke="#15803d" stroke-width="1"/><text x="75"  y="38" font-weight="700" fill="#14532d">3</text><text x="75"  y="62" fill="#6b7280">1</text>
+      <rect x="100" y="14" width="50" height="36" fill="#bbf7d0" stroke="#15803d" stroke-width="1"/><text x="125" y="38" font-weight="700" fill="#14532d">4</text><text x="125" y="62" fill="#6b7280">2</text>
+      <rect x="150" y="14" width="50" height="36" fill="#bbf7d0" stroke="#15803d" stroke-width="1"/><text x="175" y="38" font-weight="700" fill="#14532d">6</text><text x="175" y="62" fill="#6b7280">3</text>
+      <rect x="200" y="14" width="50" height="36" fill="#bbf7d0" stroke="#15803d" stroke-width="1"/><text x="225" y="38" font-weight="700" fill="#14532d">9</text><text x="225" y="62" fill="#6b7280">4</text>
+      <rect x="250" y="14" width="50" height="36" fill="#bbf7d0" stroke="#15803d" stroke-width="1"/><text x="275" y="38" font-weight="700" fill="#14532d">11</text><text x="275" y="62" fill="#6b7280">5</text>
+      <rect x="300" y="14" width="50" height="36" fill="#bbf7d0" stroke="#15803d" stroke-width="1"/><text x="325" y="38" font-weight="700" fill="#14532d">12</text><text x="325" y="62" fill="#6b7280">6</text>
+      <rect x="350" y="14" width="50" height="36" fill="#bbf7d0" stroke="#15803d" stroke-width="1"/><text x="375" y="38" font-weight="700" fill="#14532d">14</text><text x="375" y="62" fill="#6b7280">7</text>
+      <rect x="400" y="14" width="50" height="36" fill="#bbf7d0" stroke="#15803d" stroke-width="1"/><text x="425" y="38" font-weight="700" fill="#14532d">15</text><text x="425" y="62" fill="#6b7280">8</text>
+
+      <!-- Unused tail of buffer (gray) -->
+      <rect x="450" y="14" width="50" height="36" fill="#f3f4f6" stroke="#d1d5db" stroke-width="1" stroke-dasharray="3,2"/><text x="475" y="38" fill="#9ca3af">·</text><text x="475" y="62" fill="#9ca3af">9..N</text>
+    </g>
+
+    <!-- Counter callout to the right of aliveList -->
+    <g transform="translate(560, 14)">
+      <rect x="0" y="0" width="200" height="36" fill="#fef3c7" stroke="#a16207" stroke-width="1.4" rx="4"/>
+      <text x="100" y="22" text-anchor="middle" font-weight="700" fill="#713f12">atomic counter = 9</text>
+    </g>
+  </g>
+
+  <!-- Indirect arrow down -->
+  <line x1="460" y1="284" x2="460" y2="328" stroke="#374151" stroke-width="1.6" marker-end="url(#cmpArr)"/>
+  <text x="476" y="302" font-size="11" font-weight="700" fill="#374151">cs_write_indirect</text>
+  <text x="476" y="316" font-size="10" font-style="italic" fill="#374151">indirect[1] = atomicLoad(counter)</text>
+
+  <!-- ===== indirectBuffer ===== -->
+  <g transform="translate(40, 340)">
+    <text x="0" y="0" font-weight="700" fill="#111827">indirectBuffer · drawIndirect parameters</text>
+
+    <g font-family="ui-monospace, Consolas, monospace" font-size="13" text-anchor="middle">
+      <rect x="0"   y="14" width="170" height="40" fill="#fef9c3" stroke="#ca8a04" stroke-width="1.2"/>
+      <text x="85"  y="32" font-weight="700" fill="#713f12">vertexCount</text>
+      <text x="85"  y="48" fill="#713f12">6</text>
+
+      <rect x="190" y="14" width="170" height="40" fill="#fee2e2" stroke="#dc2626" stroke-width="1.4"/>
+      <text x="275" y="32" font-weight="700" fill="#7f1d1d">instanceCount</text>
+      <text x="275" y="48" font-weight="700" fill="#7f1d1d">9 ← from counter</text>
+
+      <rect x="380" y="14" width="170" height="40" fill="#fef9c3" stroke="#ca8a04" stroke-width="1.2"/>
+      <text x="465" y="32" font-weight="700" fill="#713f12">firstVertex</text>
+      <text x="465" y="48" fill="#713f12">0</text>
+
+      <rect x="570" y="14" width="170" height="40" fill="#fef9c3" stroke="#ca8a04" stroke-width="1.2"/>
+      <text x="655" y="32" font-weight="700" fill="#713f12">firstInstance</text>
+      <text x="655" y="48" fill="#713f12">0</text>
+    </g>
+  </g>
+
+  <!-- ===== Bottom: render banner ===== -->
+  <g transform="translate(40, 420)">
+    <rect width="800" height="60" fill="#dbeafe" stroke="#2563eb" stroke-width="1" rx="6"/>
+    <text x="14" y="22" font-weight="700" fill="#1e3a8a">→ pass.drawIndirect(indirectBuffer, 0)</text>
+    <text x="14" y="40" font-size="11" fill="#1e3a8a">GPU draws 9 instances of a 6-vertex quad. Vertex shader looks up aliveList[instance_index] →</text>
+    <text x="14" y="54" font-size="11" fill="#1e3a8a">particleBuffer[idx]. CPU never sees the count.</text>
+  </g>
+</svg>
