@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 400" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="720" height="400" fill="#ffffff"/>
+  <text x="360" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">One API, Three Backends</text>
+
+  <defs>
+    <marker id="bArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+    </marker>
+  </defs>
+
+  <!-- Top: application code -->
+  <g transform="translate(180, 56)">
+    <rect width="360" height="64" fill="#fef3c7" stroke="#92400e" stroke-width="1.5" rx="6"/>
+    <text x="180" y="28" text-anchor="middle" font-weight="700" fill="#92400e">Crafty (TypeScript)</text>
+    <text x="180" y="48" text-anchor="middle" font-size="12" fill="#92400e" font-style="italic">renderer, game engine, voxel terrain — all platform-agnostic</text>
+  </g>
+
+  <!-- Arrow down to WebGPU -->
+  <line x1="360" y1="120" x2="360" y2="142" stroke="#374151" stroke-width="1.5" marker-end="url(#bArr)"/>
+
+  <!-- WebGPU API layer -->
+  <g transform="translate(120, 148)">
+    <rect width="480" height="56" fill="#ede9fe" stroke="#5b21b6" stroke-width="1.8" rx="6"/>
+    <text x="240" y="26" text-anchor="middle" font-weight="700" fill="#5b21b6">WebGPU API (browser implementation)</text>
+    <text x="240" y="44" text-anchor="middle" font-size="12" fill="#5b21b6" font-style="italic">single specification — same TypeScript code on every platform</text>
+  </g>
+
+  <!-- Three arrows fanning out from WebGPU to backends -->
+  <g stroke="#374151" stroke-width="1.5" fill="none">
+    <!-- to Metal (left) -->
+    <path d="M 220,204 L 160,250" marker-end="url(#bArr)"/>
+    <!-- to D3D12 (center) -->
+    <path d="M 360,204 L 360,250" marker-end="url(#bArr)"/>
+    <!-- to Vulkan (right) -->
+    <path d="M 500,204 L 560,250" marker-end="url(#bArr)"/>
+  </g>
+
+  <!-- Three backend boxes -->
+  <g>
+    <!-- Metal -->
+    <g transform="translate(60, 256)">
+      <rect width="200" height="56" fill="#dbeafe" stroke="#1e40af" stroke-width="1.4" rx="6"/>
+      <text x="100" y="26" text-anchor="middle" font-weight="700" fill="#1e40af">Metal</text>
+      <text x="100" y="44" text-anchor="middle" font-size="11" fill="#1e40af">macOS · iOS</text>
+    </g>
+
+    <!-- D3D12 -->
+    <g transform="translate(260, 256)">
+      <rect width="200" height="56" fill="#dbeafe" stroke="#1e40af" stroke-width="1.4" rx="6"/>
+      <text x="100" y="26" text-anchor="middle" font-weight="700" fill="#1e40af">Direct3D 12</text>
+      <text x="100" y="44" text-anchor="middle" font-size="11" fill="#1e40af">Windows</text>
+    </g>
+
+    <!-- Vulkan -->
+    <g transform="translate(460, 256)">
+      <rect width="200" height="56" fill="#dbeafe" stroke="#1e40af" stroke-width="1.4" rx="6"/>
+      <text x="100" y="26" text-anchor="middle" font-weight="700" fill="#1e40af">Vulkan</text>
+      <text x="100" y="44" text-anchor="middle" font-size="11" fill="#1e40af">Linux · Android · Windows</text>
+    </g>
+  </g>
+
+  <!-- GPU layer -->
+  <g transform="translate(120, 332)">
+    <rect width="480" height="40" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.2" rx="6"/>
+    <text x="240" y="26" text-anchor="middle" font-weight="600" fill="#374151">GPU hardware (NVIDIA · AMD · Intel · Apple · Qualcomm · …)</text>
+  </g>
+
+  <!-- Three short arrows from backends to GPU -->
+  <g stroke="#374151" stroke-width="1.2" fill="none">
+    <line x1="160" y1="312" x2="200" y2="332" marker-end="url(#bArr)"/>
+    <line x1="360" y1="312" x2="360" y2="332" marker-end="url(#bArr)"/>
+    <line x1="560" y1="312" x2="520" y2="332" marker-end="url(#bArr)"/>
+  </g>
+
+  <!-- Side note -->
+  <text x="360" y="394" text-anchor="middle" font-size="12" fill="#6b7280" font-style="italic">No #ifdef paths in user code — the browser picks the backend.</text>
+</svg>

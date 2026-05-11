@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 320" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="880" height="320" fill="#ffffff"/>
+  <text x="440" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Three Decades of Graphics APIs</text>
+
+  <!-- Main timeline axis -->
+  <line x1="60" y1="180" x2="820" y2="180" stroke="#374151" stroke-width="2"/>
+
+  <!-- Decade tick marks and labels (1990, 2000, 2010, 2020, 2025) -->
+  <g font-size="12" fill="#374151" text-anchor="middle">
+    <g><line x1="80"  y1="174" x2="80"  y2="186" stroke="#374151" stroke-width="2"/><text x="80"  y="206">1990</text></g>
+    <g><line x1="270" y1="174" x2="270" y2="186" stroke="#374151" stroke-width="2"/><text x="270" y="206">2000</text></g>
+    <g><line x1="460" y1="174" x2="460" y2="186" stroke="#374151" stroke-width="2"/><text x="460" y="206">2010</text></g>
+    <g><line x1="650" y1="174" x2="650" y2="186" stroke="#374151" stroke-width="2"/><text x="650" y="206">2020</text></g>
+    <g><line x1="800" y1="174" x2="800" y2="186" stroke="#374151" stroke-width="2"/><text x="800" y="206">2025</text></g>
+  </g>
+
+  <!-- Era bands above the timeline -->
+  <!-- Era 1: Fixed-function (1990-2000ish) -->
+  <g>
+    <rect x="80" y="80" width="190" height="44" fill="#fef3c7" stroke="#92400e" stroke-width="1.2" rx="4"/>
+    <text x="175" y="98" text-anchor="middle" font-weight="600" fill="#92400e">Fixed-function era</text>
+    <text x="175" y="116" text-anchor="middle" font-size="11" fill="#92400e">OpenGL 1.0 · Direct3D 7</text>
+  </g>
+
+  <!-- Era 2: Programmable shaders (2000-2010) -->
+  <g>
+    <rect x="270" y="80" width="190" height="44" fill="#dcfce7" stroke="#166534" stroke-width="1.2" rx="4"/>
+    <text x="365" y="98" text-anchor="middle" font-weight="600" fill="#166534">Programmable shaders</text>
+    <text x="365" y="116" text-anchor="middle" font-size="11" fill="#166534">OpenGL 2.0+ · D3D 8–11</text>
+  </g>
+
+  <!-- Era 3: Explicit native APIs (2010-2020) -->
+  <g>
+    <rect x="460" y="80" width="190" height="44" fill="#dbeafe" stroke="#1e40af" stroke-width="1.2" rx="4"/>
+    <text x="555" y="98" text-anchor="middle" font-weight="600" fill="#1e40af">Explicit, low-overhead</text>
+    <text x="555" y="116" text-anchor="middle" font-size="11" fill="#1e40af">Metal · D3D12 · Vulkan</text>
+  </g>
+
+  <!-- Era 4: Web-native (2020+) -->
+  <g>
+    <rect x="650" y="80" width="170" height="44" fill="#ede9fe" stroke="#5b21b6" stroke-width="1.2" rx="4"/>
+    <text x="735" y="98" text-anchor="middle" font-weight="600" fill="#5b21b6">Web-native explicit</text>
+    <text x="735" y="116" text-anchor="middle" font-size="11" fill="#5b21b6">WebGPU</text>
+  </g>
+
+  <!-- Connectors from era bands to timeline -->
+  <g stroke="#9ca3af" stroke-width="1" stroke-dasharray="3,3">
+    <line x1="175" y1="124" x2="175" y2="174"/>
+    <line x1="365" y1="124" x2="365" y2="174"/>
+    <line x1="555" y1="124" x2="555" y2="174"/>
+    <line x1="735" y1="124" x2="735" y2="174"/>
+  </g>
+
+  <!-- Below timeline: key release markers -->
+  <g font-size="11" fill="#374151">
+    <!-- OpenGL 1.0 (1992) -->
+    <circle cx="118" cy="180" r="4" fill="#92400e"/>
+    <line x1="118" y1="184" x2="118" y2="232" stroke="#9ca3af" stroke-width="0.8"/>
+    <text x="118" y="246" text-anchor="middle">OpenGL 1.0</text>
+    <text x="118" y="260" text-anchor="middle" fill="#6b7280">'92</text>
+
+    <!-- OpenGL 2.0 (2004) -->
+    <circle cx="346" cy="180" r="4" fill="#166534"/>
+    <line x1="346" y1="184" x2="346" y2="232" stroke="#9ca3af" stroke-width="0.8"/>
+    <text x="346" y="246" text-anchor="middle">OpenGL 2.0</text>
+    <text x="346" y="260" text-anchor="middle" fill="#6b7280">'04 — shaders</text>
+
+    <!-- Metal (2014) -->
+    <circle cx="536" cy="180" r="4" fill="#1e40af"/>
+    <line x1="536" y1="184" x2="536" y2="232" stroke="#9ca3af" stroke-width="0.8"/>
+    <text x="536" y="246" text-anchor="middle">Metal</text>
+    <text x="536" y="260" text-anchor="middle" fill="#6b7280">'14</text>
+
+    <!-- D3D12 (2015) and Vulkan (2016) close together -->
+    <circle cx="555" cy="180" r="4" fill="#1e40af"/>
+    <text x="565" y="276" text-anchor="middle" fill="#6b7280">'15 D3D12</text>
+
+    <circle cx="574" cy="180" r="4" fill="#1e40af"/>
+    <text x="615" y="290" text-anchor="middle" fill="#6b7280">'16 Vulkan</text>
+
+    <!-- WebGPU shipped (2023) -->
+    <circle cx="707" cy="180" r="5" fill="#5b21b6"/>
+    <line x1="707" y1="184" x2="707" y2="232" stroke="#9ca3af" stroke-width="0.8"/>
+    <text x="707" y="246" text-anchor="middle" font-weight="600" fill="#5b21b6">WebGPU 1.0</text>
+    <text x="707" y="260" text-anchor="middle" fill="#6b7280">'23 — Chrome ships</text>
+  </g>
+
+  <!-- Bottom note -->
+  <text x="440" y="304" text-anchor="middle" font-size="12" fill="#6b7280" font-style="italic">Each era pushed more responsibility to the application: more boilerplate, more control, fewer surprises.</text>
+</svg>

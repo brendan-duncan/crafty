@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 440" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="760" height="440" fill="#ffffff"/>
+  <text x="380" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Crafty Module Architecture</text>
+
+  <!-- Vertical layered stack: dependencies point downward -->
+  <!-- Each layer: 600 wide, 50 tall, with the higher layer on top -->
+
+  <!-- Layer 6 (top): game application -->
+  <g transform="translate(80, 60)">
+    <rect width="600" height="56" fill="#fef3c7" stroke="#92400e" stroke-width="1.4" rx="6"/>
+    <text x="20" y="24" font-weight="700" fill="#92400e">crafty/game</text>
+    <text x="20" y="42" font-size="11" fill="#92400e">player controller · multiplayer client · UI · samples</text>
+    <text x="580" y="34" text-anchor="end" font-size="11" font-style="italic" fill="#92400e">application</text>
+  </g>
+
+  <!-- Layer 5: renderer -->
+  <g transform="translate(120, 130)">
+    <rect width="520" height="56" fill="#fce7f3" stroke="#9d174d" stroke-width="1.4" rx="6"/>
+    <text x="20" y="24" font-weight="700" fill="#9d174d">src/renderer</text>
+    <text x="20" y="42" font-size="11" fill="#9d174d">render graph · GBuffer · lighting · shadows · post-FX · sky</text>
+    <text x="500" y="34" text-anchor="end" font-size="11" font-style="italic" fill="#9d174d">rendering</text>
+  </g>
+
+  <!-- Layer 4: block (voxel) -->
+  <g transform="translate(160, 200)">
+    <rect width="440" height="56" fill="#ede9fe" stroke="#5b21b6" stroke-width="1.4" rx="6"/>
+    <text x="20" y="24" font-weight="700" fill="#5b21b6">src/block</text>
+    <text x="20" y="42" font-size="11" fill="#5b21b6">voxel world · chunks · biomes · greedy meshing</text>
+    <text x="420" y="34" text-anchor="end" font-size="11" font-style="italic" fill="#5b21b6">voxel domain</text>
+  </g>
+
+  <!-- Layer 3: engine + assets (side by side at same level) -->
+  <g transform="translate(120, 270)">
+    <rect width="252" height="56" fill="#dcfce7" stroke="#166534" stroke-width="1.4" rx="6"/>
+    <text x="16" y="24" font-weight="700" fill="#166534">src/engine</text>
+    <text x="16" y="42" font-size="11" fill="#166534">scene graph · components · materials</text>
+  </g>
+  <g transform="translate(388, 270)">
+    <rect width="252" height="56" fill="#dcfce7" stroke="#166534" stroke-width="1.4" rx="6"/>
+    <text x="16" y="24" font-weight="700" fill="#166534">src/assets</text>
+    <text x="16" y="42" font-size="11" fill="#166534">mesh · texture · shader loading</text>
+  </g>
+
+  <!-- Layer 2: math -->
+  <g transform="translate(160, 340)">
+    <rect width="440" height="56" fill="#dbeafe" stroke="#1e40af" stroke-width="1.4" rx="6"/>
+    <text x="20" y="24" font-weight="700" fill="#1e40af">src/math</text>
+    <text x="20" y="42" font-size="11" fill="#1e40af">Vec · Mat4 · Quaternion · Random · Perlin noise</text>
+    <text x="420" y="34" text-anchor="end" font-size="11" font-style="italic" fill="#1e40af">foundations</text>
+  </g>
+
+  <!-- Layer 1 (bottom): WebGPU + TypeScript stdlib -->
+  <g transform="translate(80, 410)">
+    <rect width="600" height="22" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.2" rx="4"/>
+    <text x="300" y="16" text-anchor="middle" font-weight="600" fill="#374151" font-size="12">WebGPU API · TypeScript standard library  (the only external dependencies)</text>
+  </g>
+
+  <!-- Vertical "depends on" arrow on the side -->
+  <g transform="translate(40, 80)">
+    <line x1="0" y1="0" x2="0" y2="324" stroke="#6b7280" stroke-width="1.2" marker-end="url(#archArr)"/>
+    <text x="-8" y="170" font-size="11" fill="#6b7280" text-anchor="middle" transform="rotate(-90, -8, 170)">depends on</text>
+  </g>
+
+  <defs>
+    <marker id="archArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6b7280"/>
+    </marker>
+  </defs>
+</svg>

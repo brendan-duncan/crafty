@@ -30,14 +30,7 @@ To understand why WebGPU exists, it helps to see where it came from.
 
 **WebGPU — the web-native explicit API.** The web needed a modern graphics API that could run on all three native backends (Metal, D3D12, Vulkan) without the legacy baggage of WebGL (which was based on OpenGL ES 2.0/3.0). WebGPU, designed by the W3M GPU for the Web Community Group, is the result. It provides an explicit, low-overhead API with a clean, ergonomic design that feels like Metal with Vulkan's validation philosophy baked in.
 
-```
-Era          | API                     | Philosophy
--------------|-------------------------|-------------------------------
-1990s        | OpenGL 1.0, D3D 7      | Fixed-function, driver-managed
-2000s        | OpenGL 2.0+, D3D 8-11  | Programmable shaders, still driver-managed
-2010s        | Metal, D3D12, Vulkan   | Explicit, low-overhead, cross-platform
-2020s        | WebGPU                 | Explicit, cross-API, web-native
-```
+![Three decades of graphics APIs](../illustrations/01-graphics-api-timeline.svg)
 
 ## 1.3 Why WebGPU?
 
@@ -50,6 +43,8 @@ We chose WebGPU for Crafty for several reasons:
 **Clean API design.** Compared to Vulkan, WebGPU eliminates enormous amounts of boilerplate. There are no instance/device/queue hierarchy splits, no explicit memory allocation, and no manual synchronization (the driver still handles resource tracking under the hood, just with more predictability than OpenGL). Yet WebGPU retains the explicit pipeline state objects, descriptor-based resource binding, and command buffer recording that make modern APIs efficient.
 
 **Cross-platform.** Write once, run on Windows (D3D12), macOS/iOS (Metal), Linux/Android (Vulkan), and — eventually — all major browsers. No `#ifdef` platform paths.
+
+![WebGPU sits on top of native backends](../illustrations/01-webgpu-backends.svg)
 
 **It is the future of graphics on the web.** WebGL 2.0 is in maintenance mode. All major browser vendors have committed to WebGPU as the successor. Learning WebGPU today means your skills are relevant for the next decade.
 
@@ -155,6 +150,10 @@ crafty/
 
 The library code in `src/` is self-contained and could be used independently from the game application in `crafty/`. The game application is the primary consumer of the library and demonstrates all its features.
 
+These directories form a layered architecture — each layer depends only on the ones below it, with WebGPU and the TypeScript standard library at the very bottom:
+
+![Crafty module architecture](../illustrations/01-engine-architecture.svg)
+
 **Where we go from here.** This book proceeds in five parts:
 
 1. **Foundations** (Chapters 1–3): Mathematics, WebGPU API fundamentals.
@@ -162,6 +161,8 @@ The library code in `src/` is self-contained and could be used independently fro
 3. **Game Engine** (Chapters 12–15): Components, scenes, physics, audio, UI.
 4. **Multiplayer** (Chapters 16–17): WebSocket networking, state sync, snapshot interpolation.
 5. **Advanced Topics** (Chapters 18–20): Performance, tools, and future directions.
+
+![Reading roadmap by part and chapter](../illustrations/01-book-roadmap.svg)
 
 By the end, you will understand how every pixel on the screen got there — from the WGSL shader that computed it to the WebGPU pipeline that rasterized it to the game engine that placed the object in the world.
 
