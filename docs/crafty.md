@@ -189,6 +189,7 @@ This book is a work in progress.  Chapters are added as the engine evolves.
   - 12.5 Input handling (keyboard, mouse, touch)
   - 12.6 Camera controls
   - 12.7 The player controller
+  - 12.8 Touch Controls (Mobile)
 
 - [Chapter 13: Physics and Interaction](chapter/13-physics.md)
   - 13.1 Collision detection (AABB)
@@ -248,7 +249,7 @@ This book is a work in progress.  Chapters are added as the engine evolves.
   - 20.1 Ray tracing with WebGPU
   - 20.2 Compute shader post-processing
   - 20.3 Procedural generation at scale
-  - 20.4 Mobile and WebXR
+  - 20.4 WebXR
 
 ## Appendices
 

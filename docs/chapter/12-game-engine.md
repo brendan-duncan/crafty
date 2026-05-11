@@ -176,11 +176,87 @@ class PlayerController extends Component {
 }
 ```
 
+## 12.8 Touch Controls (Mobile)
+
+Mobile devices get a completely separate input overlay (`crafty/game/touch_controls.ts`). Desktop pointer-lock and keyboard don't work on a touchscreen, so a DOM-based overlay provides virtual controls:
+
+```
+┌───────────────────────────────┐
+│                       ┌────┐  │
+│                       │ ☰ │  │  Menu button (top-right)
+│                       └────┘  │
+│     Camera look               │
+│     (right-half drag)         │
+│                               │
+│           ┌────┐ ┌────┐       │
+│           │ ⛏  │ │ ▣  │      │  Top row: Mine | Place
+│           └────┘ └────┘       │
+│  ┌────┐ ┌────┐ ┌────┐         │
+│  │ ⤓  │ │ >> │ │ ⤒  │         │  Bottom row: Sneak | Run | Jump
+│  └────┘ └────┘ └────┘         │
+│  ┌──────┐                     │
+│  │ ○←→  │  Joystick           │  Virtual joystick (bottom-left)
+│  └──────┘                     │
+└───────────────────────────────┘
+```
+
+### Lazy Initialization
+
+The overlay is **not** created at page load. Instead, `setupTouchControlsLazy` registers a one-shot `touchstart` listener on the window. The first real touch anywhere on the page creates the `TouchControls` instance and attaches all the DOM elements. This avoids adding unused DOM for desktop users and works around unreliable touch-detection APIs:
+
+```typescript
+// crafty/game/touch_controls.ts
+export function setupTouchControlsLazy(canvas, opts, onInit?) {
+  const listener = () => {
+    handle.controls = new TouchControls(canvas, opts);
+    onInit?.(handle.controls);
+  };
+  window.addEventListener('touchstart', listener, { once: true });
+  return handle;
+}
+```
+
+When the overlay initialises, it disables pointer lock on the player and camera controllers since touch doesn't use it.
+
+### Virtual Joystick
+
+The left thumb controls movement via a virtual joystick — a 120px circular area positioned at the bottom-left. Touch position relative to the joystick centre is normalised to `[-1, 1]` and written to `player.inputForward` / `player.inputStrafe`, which the `PlayerController.update` loop reads alongside keyboard input:
+
+```typescript
+private _setMovement(strafe: number, forward: number): void {
+  this._opts.player.inputForward = forward;
+  this._opts.player.inputStrafe  = strafe;
+}
+```
+
+### Camera Look
+
+The right half of the canvas acts as a touch-drag look area. Finger movement deltas are scaled by `lookSensitivity` and fed to `player.applyLookDelta(dx, dy)`, which adjusts yaw/pitch identically to mouse movement. A double-tap on the look area toggles between player mode and free-camera mode.
+
+### Action Buttons
+
+Hold-type buttons (Sneak, Jump, Mine, Place) use `_bindHoldButton`, which fires a callback on `touchstart` and another on `touchend`/`touchcancel`:
+
+```typescript
+private _bindHoldButton(el, onDown, onUp): void {
+  el.addEventListener('touchstart', (e) => { e.preventDefault(); onDown(); });
+  el.addEventListener('touchend',   (e) => { e.preventDefault(); onUp(); });
+}
+```
+
+The mine button bypasses the progressive break system (which requires holding the button across multiple frames via `updateBlockInteraction`). On touch, `touchstart` immediately calls `completeBreak` — the block is mined in one tap. This avoids the unreliability of touch events (finger slip, system gestures) racing with the render loop.
+
+Toggle-type buttons use `_bindToggleButton`. The Run button (`>>`) toggles `player.inputSprint`, visually switching between a dim and bright green background to indicate the active state.
+
+### Layout and Hotbar Clearance
+
+The action buttons are positioned with a `HOTBAR_CLEARANCE` of 70px from the bottom of the screen, keeping them above the 44px fixed hotbar. The virtual joystick uses the same clearance. A `resize` listener on the highlight overlay recalculates its position after orientation or resolution changes so the visual selection tracks the correct slot.
+
 **Further reading:**
-- `src/engine/` — Scene, GameObject, Component
-- `src/engine/components/` — Camera, CameraControls, PlayerController
-- `crafty/main.ts` — Game loop
-- `crafty/ui/` — Start screen, HUD
+- `crafty/game/touch_controls.ts` — Full touch overlay implementation
+- `src/engine/player_controller.ts` — Analog input support (inputForward, inputStrafe, inputSprint)
+- `crafty/ui/hotbar.ts` — Hotbar with tap-to-select and resize handling
+- `crafty/main.ts` — Touch control initialisation and audio context bootstrap
 
 ----
 [Contents](../crafty.md) | [11-Terrain](11-terrain.md) | [13-Physics](13-physics.md)

@@ -48,12 +48,8 @@ The terrain generation system will be extended with:
 - **Structure generation** — trees, villages, dungeons placed by rule-based and template-based generation.
 - **LOD system for generation** — distant chunks use lower-octave noise for faster generation.
 
-## 20.4 Mobile and WebXR
+## 20.4 WebXR
 
-WebGPU runs on mobile devices, and Crafty could target them with:
-
-- **Touch controls** — virtual joystick and tap-to-interact.
-- **Performance scaling** — automatic quality reduction based on GPU capabilities (shadow resolution, SSAO samples, render scale).
 - **WebXR integration** — immersive VR mode using `XRSession` with WebGPU as the rendering backend. The renderer would output to the WebXR framebuffer with the correct projection and view matrices for each eye.
 
 ### Closing Thoughts
