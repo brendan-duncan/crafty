@@ -1,10 +1,10 @@
-# Chapter 19: Multiplayer Gameplay
+# Chapter 20: Multiplayer Gameplay
 
-[Contents](../crafty.md) | [18-Network Architecture](18-network-architecture.md) | [20-Performance](20-performance.md)
+[Contents](../crafty.md) | [19-Network Architecture](19-network-architecture.md) | [21-Performance](21-performance.md)
 
 Multiplayer gameplay adds state synchronisation, remote player rendering, and latency compensation.
 
-## 19.1 Player State Synchronisation
+## 20.1 Player State Synchronisation
 
 The client sends its player state to the server at a fixed rate (typically 20 Hz):
 
@@ -51,7 +51,7 @@ class PlayerConn {
 }
 ```
 
-## 19.2 Snapshot Interpolation
+## 20.2 Snapshot Interpolation
 
 The client receives snapshots at 20 Hz but renders at 60+ Hz. Snapshot interpolation smooths the motion between received states:
 
@@ -82,7 +82,7 @@ class SnapshotInterpolator {
 
 The 100 ms render delay gives the interpolation buffer time to fill. This introduces a small but imperceptible input lag while eliminating visible jitter.
 
-## 19.3 Remote Player Rendering
+## 20.3 Remote Player Rendering
 
 Remote players are rendered as animated character meshes with name labels. The `RemotePlayer` component updates its position from the interpolated snapshot:
 
@@ -105,7 +105,7 @@ class RemotePlayer {
 }
 ```
 
-## 19.4 Name Labels
+## 20.4 Name Labels
 
 Each remote player has a name label rendered as a DOM element positioned above the player's head. The label position is projected from 3D world space to 2D screen space:
 
@@ -120,7 +120,7 @@ function updateNameLabel(label: HTMLElement, worldPos: Vec3, camera: Camera, can
 
 The label fades with distance and is hidden when behind the camera. Player names are sent once in the `hello` message and stored on the server; the name input is disabled after connecting to prevent confusion.
 
-## 19.5 Block Edit Replication
+## 20.5 Block Edit Replication
 
 When a player places or breaks a block, the client sends a `block_edit` message and immediately applies the change locally (client-side prediction). The server validates the edit and broadcasts a `block_update` to all other clients:
 
@@ -139,7 +139,7 @@ server.onBlockEdit(player, msg) {
 }
 ```
 
-## 19.6 Latency Compensation
+## 20.6 Latency Compensation
 
 Crafty does not implement server-side rewind (lag compensation) for block interactions. Instead, the client uses a simple interpolation delay that trades a small amount of latency for smoothness:
 
@@ -155,4 +155,4 @@ This approach is sufficient for a creative-mode voxel game where precise frame-p
 - `server/src/world_room.ts` — Server-side broadcast
 
 ----
-[Contents](../crafty.md) | [18-Network Architecture](18-network-architecture.md) | [20-Performance](20-performance.md)
+[Contents](../crafty.md) | [19-Network Architecture](19-network-architecture.md) | [21-Performance](21-performance.md)

@@ -1,10 +1,10 @@
-# Chapter 22: The Road Ahead
+# Chapter 23: The Road Ahead
 
-[Contents](../crafty.md) | [21-Tools](21-tools.md)
+[Contents](../crafty.md) | [22-Tools](22-tools.md)
 
 Crafty is a living project. This chapter outlines the planned features and directions for future development.
 
-## 22.1 Ray Tracing with WebGPU
+## 23.1 Ray Tracing with WebGPU
 
 WebGPU includes experimental support for ray tracing through the `"ray-tracing"` feature flag (available in Chrome Canary). Future versions of Crafty could implement:
 
@@ -23,7 +23,7 @@ const rtPipeline = device.createRayTracingPipeline({
 });
 ```
 
-## 22.2 Compute Shader Post-Processing
+## 23.2 Compute Shader Post-Processing
 
 Several post-processing effects could benefit from compute shader implementations:
 
@@ -38,7 +38,7 @@ const computePipeline = device.createComputePipeline({
 });
 ```
 
-## 22.3 Procedural Generation at Scale
+## 23.3 Procedural Generation at Scale
 
 The terrain generation system will be extended with:
 
@@ -48,7 +48,7 @@ The terrain generation system will be extended with:
 - **Structure generation** — trees, villages, dungeons placed by rule-based and template-based generation.
 - **LOD system for generation** — distant chunks use lower-octave noise for faster generation.
 
-## 22.4 WebXR
+## 23.4 WebXR
 
 - **WebXR integration** — immersive VR mode using `XRSession` with WebGPU as the rendering backend. The renderer would output to the WebXR framebuffer with the correct projection and view matrices for each eye.
 
@@ -66,4 +66,4 @@ The source code at `https://github.com/brendan-duncan/crafty` will continue to e
 - Physically Based Rendering (Pharr, Jakob, Humphreys): <https://pbr-book.org/>
 
 ----
-[Contents](../crafty.md) | [21-Tools](21-tools.md)
+[Contents](../crafty.md) | [22-Tools](22-tools.md)

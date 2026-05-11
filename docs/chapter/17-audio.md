@@ -1,10 +1,10 @@
-# Chapter 16: Audio
+# Chapter 17: Audio
 
-[Contents](../crafty.md) | [15-Physics](15-physics.md) | [17-User Interface](17-user-interface.md)
+[Contents](../crafty.md) | [15-Physics](15-physics.md) | [18-User Interface](18-user-interface.md)
 
 Audio in Crafty uses the Web Audio API for spatialised sound effects and background music. Audio playback is triggered by game events and positioned in 3D space relative to the listener (the player's camera).
 
-## 16.1 Web Audio API Fundamentals
+## 17.1 Web Audio API Fundamentals
 
 The Web Audio API provides an `AudioContext` that manages all audio processing:
 
@@ -23,7 +23,7 @@ async function loadSound(url: string): Promise<AudioBuffer> {
 }
 ```
 
-## 16.2 Spatial Audio
+## 17.2 Spatial Audio
 
 Each `AudioSource` component creates a `PannerNode` that positions the sound in 3D space:
 
@@ -61,7 +61,7 @@ class AudioSource extends Component {
 
 The HRTF panning model provides realistic directional audio — sounds to the left of the camera are quieter in the right ear, and vice versa.
 
-## 16.3 Sound Effect Triggers
+## 17.3 Sound Effect Triggers
 
 Sounds are triggered by game events through a simple audio manager:
 
@@ -85,7 +85,7 @@ class AudioManager {
 
 Footstep sounds are triggered by the player controller when the player moves and is on the ground. The sound varies based on the surface block type (grass, stone, wood).
 
-## 16.4 Ambient and Music
+## 17.4 Ambient and Music
 
 Background music and ambient sounds use looping playback with gain nodes for volume control:
 
@@ -115,4 +115,4 @@ Ambient sounds (wind, birds, water near rivers) use spatial audio sources positi
 - `src/engine/components/audio_source.ts` — Spatial audio component
 
 ----
-[Contents](../crafty.md) | [15-Physics](15-physics.md) | [17-User Interface](17-user-interface.md)
+[Contents](../crafty.md) | [15-Physics](15-physics.md) | [18-User Interface](18-user-interface.md)

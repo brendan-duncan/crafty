@@ -211,60 +211,70 @@ This book is a work in progress.  Chapters are added as the engine evolves.
   - 15.2 Player movement and gravity
   - 15.3 Block ray casting
   - 15.4 Block interaction (placement, breaking)
-  - 15.5 Animal AI (ducks, pigs)
 
-- [Chapter 16: Audio](chapter/16-audio.md)
-  - 16.1 Web Audio API fundamentals
-  - 16.2 Spatial audio
-  - 16.3 Sound effect triggers
-  - 16.4 Ambient and music
+- [Chapter 16: NPC AI](chapter/16-npc-ai.md)
+  - 16.1 NPC Architecture
+  - 16.2 The AI State Machine
+  - 16.3 Duck AI — Three-State Behaviour
+  - 16.4 Duckling AI — Follow Behaviour
+  - 16.5 Pig AI — Two-State Wandering
+  - 16.6 Gravity and Ground Collision
+  - 16.7 Head Bob Animation
+  - 16.8 Animated Models and Skeletal Animation
+  - 16.9 Extending the NPC System
 
-- [Chapter 17: User Interface](chapter/17-user-interface.md)
-  - 17.1 DOM-based UI vs. in-game UI
-  - 17.2 The HUD (crosshair, hotbar, stats)
-  - 17.3 The start screen (local, network, world management)
-  - 17.4 The settings panel
-  - 17.5 The block manager
+- [Chapter 17: Audio](chapter/17-audio.md)
+  - 17.1 Web Audio API fundamentals
+  - 17.2 Spatial audio
+  - 17.3 Sound effect triggers
+  - 17.4 Ambient and music
+
+- [Chapter 18: User Interface](chapter/18-user-interface.md)
+  - 18.1 DOM-based UI vs. in-game UI
+  - 18.2 The HUD (crosshair, hotbar, stats)
+  - 18.3 The start screen (local, network, world management)
+  - 18.4 The settings panel
+  - 18.5 The block manager
 
 ## IV — Multiplayer
 
-- [Chapter 18: Network Architecture](chapter/18-network-architecture.md)
-  - 18.1 WebSocket fundamentals
-  - 18.2 Message protocol design (C2S / S2C)
-  - 18.3 Connection lifecycle (lobby, join, in-game)
-  - 18.4 The server architecture
-  - 18.5 World state persistence
+- [Chapter 19: Network Architecture](chapter/19-network-architecture.md)
+  - 19.1 WebSocket fundamentals
+  - 19.2 Message protocol design (C2S / S2C)
+  - 19.3 Connection lifecycle (lobby, join, in-game)
+  - 19.4 The server architecture
+  - 19.5 World state persistence
 
-- [Chapter 19: Multiplayer Gameplay](chapter/19-multiplayer-gameplay.md)
-  - 19.1 Player state synchronisation
-  - 19.2 Snapshot interpolation
-  - 19.3 Remote player rendering
-  - 19.4 Name labels
-  - 19.5 Block edit replication
-  - 19.6 Latency compensation
+- [Chapter 20: Multiplayer Gameplay](chapter/20-multiplayer-gameplay.md)
+  - 20.1 Player state synchronisation
+  - 20.2 Snapshot interpolation
+  - 20.3 Remote player rendering
+  - 20.4 Name labels
+  - 20.5 Block edit replication
+  - 20.6 Latency compensation
 
 ## V — Advanced Topics
 
-- [Chapter 20: Performance](chapter/20-performance.md)
-  - 20.1 GPU timestamps and profiling
-  - 20.2 Async shader compilation
-  - 20.3 Frustum culling
-  - 20.4 Occlusion culling
-  - 20.5 Draw call batching
-  - 20.6 Memory management
+- [Chapter 21: Performance](chapter/21-performance.md)
+  - 21.1 GPU timestamps and profiling
+  - 21.2 Async shader compilation
+  - 21.3 Frustum culling
+  - 21.4 Occlusion culling
+  - 21.5 Draw call batching
+  - 21.6 Memory management
 
-- [Chapter 21: Tools and Workflow](chapter/21-tools.md)
-  - 21.1 The sample framework
-  - 21.2 Testing strategy (unit, integration, visual)
-  - 21.3 Debugging WebGPU
-  - 21.4 Asset pipeline
-  - 21.5 Continuous integration
+- [Chapter 22: Tools and Workflow](chapter/22-tools.md)
+  - 22.1 The sample framework
+  - 22.2 Testing strategy (unit, integration, visual)
+  - 22.3 Debugging WebGPU
+  - 22.4 Asset pipeline
+  - 22.5 Continuous integration
 
-- [Chapter 22: The Road Ahead](chapter/22-road-ahead.md)
-  - 22.1 Ray tracing with WebGPU
-  - 22.2 Compute shader post-processing
-  - 22.3 Procedural generation at scale
-  - 22.4 WebXR
+- [Chapter 23: The Road Ahead](chapter/23-road-ahead.md)
+  - 23.1 Ray tracing with WebGPU
+  - 23.2 Compute shader post-processing
+  - 23.3 Procedural generation at scale
+  - 23.4 WebXR
 
 ## Appendices
 

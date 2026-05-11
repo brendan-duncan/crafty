@@ -1,6 +1,6 @@
 # Chapter 15: Physics and Interaction
 
-[Contents](../crafty.md) | [14-Game Engine](14-game-engine.md) | [16-Audio](16-audio.md)
+[Contents](../crafty.md) | [14-Game Engine](14-game-engine.md) | [16-NPC AI](16-npc-ai.md)
 
 Crafty implements a minimal physics system focused on player movement and block interaction. There is no general-purpose physics engine — only what the gameplay requires.
 
@@ -94,41 +94,7 @@ function placeBlock(hit: BlockHit, blockType: BlockType) {
 }
 ```
 
-## 15.5 Animal AI
 
-Ducks and pigs implement simple behaviour: wandering, following, and fleeing. Each animal has a state machine with idle, walk, and flee states:
-
-```typescript
-class AnimalAI extends Component {
-  state: 'idle' | 'walk' | 'flee' = 'idle';
-  targetPosition: Vec3;
-  detectionRadius = 10;
-
-  update(dt: number) {
-    switch (this.state) {
-      case 'idle':
-        if (random() < 0.01) this.startWalking();
-        if (this.playerNearby()) this.state = 'flee';
-        break;
-      case 'walk':
-        this.moveToward(this.targetPosition, dt);
-        if (this.arrived() || random() < 0.01) this.state = 'idle';
-        break;
-      case 'flee':
-        this.moveAwayFrom(this.player.position, dt);
-        if (!this.playerNearby()) this.state = 'idle';
-        break;
-    }
-  }
-}
-```
-
-Animations are simple — ducks and pigs use a few frames of vertex animation (waddle) blended with movement direction.
-
-**Further reading:**
-- `src/engine/components/player_controller.ts` — Player movement and collision
-- `src/engine/components/` — Animal AI, block interaction
-- `src/block/` — World modification and ray casting
 
 ----
-[Contents](../crafty.md) | [14-Game Engine](14-game-engine.md) | [16-Audio](16-audio.md)
+[Contents](../crafty.md) | [14-Game Engine](14-game-engine.md) | [16-NPC AI](16-npc-ai.md)
