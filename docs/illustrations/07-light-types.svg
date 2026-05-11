@@ -1,0 +1,157 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 420" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="420" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Three Light Types: Directional · Point · Spot</text>
+
+  <defs>
+    <marker id="ltDir" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#ca8a04"/>
+    </marker>
+    <marker id="ltPt" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/>
+    </marker>
+    <marker id="ltSp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/>
+    </marker>
+    <radialGradient id="ptGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#fef3c7" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#fef3c7" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Three columns of width 280, gap 20, starting x=40 -->
+
+  <!-- ===== Directional ===== -->
+  <g transform="translate(40, 60)">
+    <text x="140" y="0" text-anchor="middle" font-weight="700" fill="#ca8a04" font-size="14">Directional (Sun)</text>
+
+    <!-- Sun icon at top-left -->
+    <g transform="translate(40, 40)">
+      <circle cx="0" cy="0" r="14" fill="#fef3c7" stroke="#ca8a04" stroke-width="2"/>
+      <g stroke="#ca8a04" stroke-width="1.6">
+        <line x1="-22" y1="0" x2="-30" y2="0"/>
+        <line x1="22"  y1="0" x2="30"  y2="0"/>
+        <line x1="0"   y1="-22" x2="0" y2="-30"/>
+        <line x1="-16" y1="-16" x2="-22" y2="-22"/>
+        <line x1="16"  y1="-16" x2="22"  y2="-22"/>
+      </g>
+    </g>
+
+    <!-- Parallel rays going down-right -->
+    <g stroke="#ca8a04" stroke-width="1.5">
+      <line x1="20"  y1="100" x2="80"  y2="220" marker-end="url(#ltDir)"/>
+      <line x1="60"  y1="100" x2="120" y2="220" marker-end="url(#ltDir)"/>
+      <line x1="100" y1="100" x2="160" y2="220" marker-end="url(#ltDir)"/>
+      <line x1="140" y1="100" x2="200" y2="220" marker-end="url(#ltDir)"/>
+      <line x1="180" y1="100" x2="240" y2="220" marker-end="url(#ltDir)"/>
+    </g>
+
+    <!-- Ground -->
+    <line x1="0" y1="234" x2="280" y2="234" stroke="#374151" stroke-width="2"/>
+    <g stroke="#9ca3af" stroke-width="0.8">
+      <line x1="20"  y1="234" x2="40"  y2="252"/>
+      <line x1="60"  y1="234" x2="80"  y2="252"/>
+      <line x1="100" y1="234" x2="120" y2="252"/>
+      <line x1="140" y1="234" x2="160" y2="252"/>
+      <line x1="180" y1="234" x2="200" y2="252"/>
+      <line x1="220" y1="234" x2="240" y2="252"/>
+    </g>
+
+    <!-- Caption -->
+    <text x="140" y="290" text-anchor="middle" font-size="12" font-weight="600" fill="#374151">Parallel rays</text>
+    <text x="140" y="306" text-anchor="middle" font-size="11" font-style="italic" fill="#6b7280">infinitely distant source</text>
+
+    <!-- Parameters -->
+    <g transform="translate(0, 326)" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#ca8a04">
+      <text x="14" y="0">direction</text>
+      <text x="14" y="16">color</text>
+      <text x="14" y="32">intensity</text>
+    </g>
+  </g>
+
+  <!-- Vertical dividers -->
+  <line x1="340" y1="60" x2="340" y2="380" stroke="#d1d5db" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="640" y1="60" x2="640" y2="380" stroke="#d1d5db" stroke-width="1" stroke-dasharray="4,3"/>
+
+  <!-- ===== Point ===== -->
+  <g transform="translate(360, 60)">
+    <text x="140" y="0" text-anchor="middle" font-weight="700" fill="#dc2626" font-size="14">Point Light</text>
+
+    <!-- Glow background -->
+    <circle cx="140" cy="160" r="100" fill="url(#ptGlow)"/>
+
+    <!-- Range circle (faded) -->
+    <circle cx="140" cy="160" r="100" fill="none" stroke="#dc2626" stroke-width="1" stroke-dasharray="4,3" opacity="0.6"/>
+    <text x="244" y="158" font-size="10" fill="#dc2626" font-style="italic">range</text>
+
+    <!-- Light bulb at center -->
+    <circle cx="140" cy="160" r="10" fill="#fef3c7" stroke="#dc2626" stroke-width="2"/>
+
+    <!-- 12 rays radiating outward -->
+    <g stroke="#dc2626" stroke-width="1.4">
+      <line x1="140" y1="160" x2="140" y2="80"  marker-end="url(#ltPt)"/>
+      <line x1="140" y1="160" x2="200" y2="100" marker-end="url(#ltPt)"/>
+      <line x1="140" y1="160" x2="220" y2="160" marker-end="url(#ltPt)"/>
+      <line x1="140" y1="160" x2="200" y2="220" marker-end="url(#ltPt)"/>
+      <line x1="140" y1="160" x2="140" y2="240" marker-end="url(#ltPt)"/>
+      <line x1="140" y1="160" x2="80"  y2="220" marker-end="url(#ltPt)"/>
+      <line x1="140" y1="160" x2="60"  y2="160" marker-end="url(#ltPt)"/>
+      <line x1="140" y1="160" x2="80"  y2="100" marker-end="url(#ltPt)"/>
+    </g>
+
+    <!-- Caption (placed below the glow circle which ends at y=260) -->
+    <text x="140" y="290" text-anchor="middle" font-size="12" font-weight="600" fill="#374151">Radial 1/r² falloff</text>
+    <text x="140" y="306" text-anchor="middle" font-size="11" font-style="italic" fill="#6b7280">limited by range</text>
+
+    <g transform="translate(0, 326)" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#dc2626">
+      <text x="14" y="0">position</text>
+      <text x="14" y="16">color, intensity</text>
+      <text x="14" y="32">range</text>
+    </g>
+  </g>
+
+  <!-- ===== Spot ===== -->
+  <g transform="translate(660, 60)">
+    <text x="140" y="0" text-anchor="middle" font-weight="700" fill="#7c3aed" font-size="14">Spot Light</text>
+
+    <!-- Spot light at top-center -->
+    <g transform="translate(140, 60)">
+      <!-- housing -->
+      <polygon points="-14,-12 14,-12 18,4 -18,4" fill="#ddd6fe" stroke="#7c3aed" stroke-width="1.5"/>
+      <!-- bulb -->
+      <ellipse cx="0" cy="6" rx="14" ry="4" fill="#fef3c7" stroke="#7c3aed" stroke-width="1.2"/>
+    </g>
+
+    <!-- Outer cone (faded) -->
+    <polygon points="140,72 220,234 60,234" fill="#ddd6fe" stroke="#7c3aed" stroke-width="1.4" stroke-dasharray="4,3" opacity="0.7"/>
+
+    <!-- Inner cone (solid bright) -->
+    <polygon points="140,72 184,234 96,234" fill="#a78bfa" stroke="#7c3aed" stroke-width="1.5" opacity="0.85"/>
+
+    <!-- Direction arrow -->
+    <line x1="140" y1="90" x2="140" y2="220" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="3,2" marker-end="url(#ltSp)"/>
+
+    <!-- Inner / outer angle labels (placed clear of the cone fills) -->
+    <text x="92" y="220" text-anchor="middle" font-size="10" fill="#7c3aed" font-weight="600">inner</text>
+    <text x="46" y="220" text-anchor="middle" font-size="10" fill="#7c3aed" font-weight="600">outer</text>
+
+    <!-- Ground -->
+    <line x1="20" y1="234" x2="260" y2="234" stroke="#374151" stroke-width="2"/>
+    <g stroke="#9ca3af" stroke-width="0.8">
+      <line x1="40"  y1="234" x2="60"  y2="252"/>
+      <line x1="80"  y1="234" x2="100" y2="252"/>
+      <line x1="120" y1="234" x2="140" y2="252"/>
+      <line x1="160" y1="234" x2="180" y2="252"/>
+      <line x1="200" y1="234" x2="220" y2="252"/>
+    </g>
+
+    <!-- Caption -->
+    <text x="140" y="290" text-anchor="middle" font-size="12" font-weight="600" fill="#374151">Cone with smooth falloff</text>
+    <text x="140" y="306" text-anchor="middle" font-size="11" font-style="italic" fill="#6b7280">smoothstep(outer, inner, cosθ)</text>
+
+    <g transform="translate(0, 326)" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#7c3aed">
+      <text x="14" y="0">position, direction</text>
+      <text x="14" y="16">innerAngle, outerAngle</text>
+      <text x="14" y="32">color, intensity, range</text>
+    </g>
+  </g>
+</svg>

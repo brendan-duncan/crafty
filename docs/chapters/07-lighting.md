@@ -6,7 +6,11 @@ Lighting is the heart of any renderer. Crafty implements a full physically-based
 
 ## 7.1 Physically-Based Rendering Theory
 
-Crafty uses the **Cook-Torrance** microfacet BRDF (bidirectional reflectance distribution function), which models a surface as a collection of microscopic facets. The BRDF has three terms:
+Crafty uses the **Cook-Torrance** microfacet BRDF (bidirectional reflectance distribution function), which models a surface as a collection of microscopic facets. Every PBR shading calculation revolves around four vectors at the surface point — the surface normal, the directions to the light and the viewer, and the half-vector between them:
+
+![BRDF vectors at a surface point](../illustrations/07-brdf-vectors.svg)
+
+The BRDF has three terms, each evaluated from dot products of these vectors:
 
 **Normal distribution function** (GGX/Trowbridge-Reitz) — describes the statistical orientation of microfacets relative to the surface normal:
 
@@ -62,6 +66,10 @@ let F0 = mix(vec3f(0.04), albedo, metallic);
 ```
 
 ## 7.2 The Directional Light (Sun)
+
+Crafty supports three light types — directional, point, and spot — each with a distinct geometry and falloff model:
+
+![Directional, point, and spot lights](../illustrations/07-light-types.svg)
 
 The directional light represents the sun — an infinitely distant light source with parallel rays. It is defined by the `DirectionalLight` interface (`src/renderer/directional_light.ts`):
 
@@ -137,6 +145,9 @@ Each point light's world position is tested against the camera frustum; lights o
 
 Point light shadows use **cube-map depth textures**. A single point light renders its scene to 6 faces of a cube map, then samples that cube map during lighting:
 
+![Point light shadow: scene rendered to 6 cube faces](../illustrations/07-point-shadow-cube.svg)
+
+
 ```typescript
 // ── from point_shadow_pass.ts ──
 // Renders scene 6 times (once per cube face)
@@ -196,7 +207,10 @@ A dirty flag avoids recomputation when the light's parameters haven't changed. C
 
 ### Spot Light Attenuation
 
-The GPU evaluates spot light falloff using the inner and outer angles:
+The GPU evaluates spot light falloff using the inner and outer angles. A `smoothstep` between `cos(outer)` and `cos(inner)` gives a soft transition from the bright inner cone to the dark exterior:
+
+![Spot light cone and smoothstep falloff](../illustrations/07-spot-light-cone.svg)
+
 
 ```wgsl
 // Spot cone attenuation
@@ -212,7 +226,10 @@ let attenuation = spotFactor / (distSq + 0.01);
 
 Image-based lighting uses an HDR environment map to illuminate surfaces with distant light. This provides ambient lighting that matches the sky and surrounding environment.
 
-IBL requires three textures derived from the HDR sky cubemap:
+IBL requires three textures derived from the HDR sky cubemap — one for diffuse, one for specular at varying roughness, and a 2D table that captures the Fresnel integral:
+
+![IBL: irradiance map, prefilter mip chain, BRDF LUT](../illustrations/07-ibl-textures.svg)
+
 
 ```typescript
 interface IblTextures {
