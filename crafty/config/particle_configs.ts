@@ -23,9 +23,9 @@ export const rainConfig: ParticleGraphConfig = {
 
 export const snowConfig: ParticleGraphConfig = {
   emitter: {
-    maxParticles: 50000,
+    maxParticles: 80000,
     spawnRate: 1500,
-    lifetime: [30.0, 45.0],
+    lifetime: [30.0, 105.0],
     shape: { kind: 'box', halfExtents: [35, 0.1, 35] },
     initialSpeed: [0, 0],
     initialColor: [0.92, 0.96, 1.0, 0.85],

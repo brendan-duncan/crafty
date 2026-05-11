@@ -632,6 +632,12 @@ async function main(): Promise<void> {
   let cloudBase = _initBounds.cloudBase;
   let cloudTop  = _initBounds.cloudTop;
 
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'KeyO') {
+      weatherTimer = 0;
+    }
+  });
+
   const heightmap = new HeightmapManager();
   const _forward = new Vec3(0, 0, -1);
   const _rainMat = new Mat4([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]);

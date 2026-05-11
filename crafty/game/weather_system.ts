@@ -47,12 +47,12 @@ export function getWeatherName(weather: WeatherType): string {
 export function getWeatherCloudCoverage(weather: WeatherType): number {
   switch (weather) {
     case WeatherType.Clear:      return 0.1;
-    case WeatherType.Cloudy:     return 0.55;
-    case WeatherType.Overcast:   return 0.9;
-    case WeatherType.LightRain:  return 0.7;
-    case WeatherType.HeavyRain:  return 0.9;
+    case WeatherType.Cloudy:     return 0.85;
+    case WeatherType.Overcast:   return 1.1;
+    case WeatherType.LightRain:  return 0.95;
+    case WeatherType.HeavyRain:  return 1.1;
     case WeatherType.LightSnow:  return 0.8;
-    case WeatherType.HeavySnow:  return 0.95;
+    case WeatherType.HeavySnow:  return 1.2;
   }
 }
 
@@ -72,9 +72,9 @@ export function getWeatherEnvironmentEffect(weather: WeatherType): EnvironmentEf
 export function getWeatherSpawnRate(weather: WeatherType): number {
   switch (weather) {
     case WeatherType.LightRain:  return 12000;
-    case WeatherType.HeavyRain:  return 24000;
+    case WeatherType.HeavyRain:  return 50000;
     case WeatherType.LightSnow:  return 800;
-    case WeatherType.HeavySnow:  return 1500;
+    case WeatherType.HeavySnow:  return 5500;
     default:                     return 0;
   }
 }
