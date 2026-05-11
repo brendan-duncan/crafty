@@ -6,6 +6,8 @@ Crafty implements a minimal physics system focused on player movement and block 
 
 ## 15.1 Collision Detection (AABB)
 
+![Player AABB on a voxel grid: only the cells that overlap the box (≤ 2 × 2 × 2) need to be tested for solidity](../illustrations/15-aabb-collision.svg)
+
 The player's collision volume is an axis-aligned bounding box (AABB). Collision detection tests the player's AABB against solid blocks in the world:
 
 ```typescript
@@ -22,6 +24,8 @@ The **sweep test** moves the AABB along the velocity vector and finds the first 
 
 ## 15.2 Player Movement and Gravity
 
+![Collide-and-slide: subtract the velocity component along the wall normal so the tangential motion (v_slide) survives](../illustrations/15-collide-and-slide.svg)
+
 The player controller implements a simplified **collide-and-slide** algorithm:
 
 1. Compute desired velocity from input and gravity.
@@ -33,6 +37,8 @@ The player controller implements a simplified **collide-and-slide** algorithm:
 Gravity is constant at `-20 m/s²` (slightly higher than Earth's `-9.8` for a more responsive feel). Ground friction slows horizontal movement when the player is standing on a block.
 
 ## 15.3 Block Ray Casting
+
+![DDA stepping through voxels (cells 1 → 6) until hitting a solid block, returning both the block coords and the face normal](../illustrations/15-block-raycast.svg)
 
 To determine which block the player is looking at, a ray is cast from the camera through the crosshair. The DDA (Digital Differential Analyzer) algorithm traverses the voxel grid efficiently:
 
@@ -61,6 +67,8 @@ function raycastVoxels(origin: Vec3, dir: Vec3, world: World, maxDist: number): 
 The return value includes the block position and the face normal (which side was hit), used for placing new blocks adjacent to the hit face.
 
 ## 15.4 Block Interaction
+
+![Progressive crack stages 0 → 9 over breakTime ms, then setBlock(Air); placement uses hit + normal to find the adjacent empty cell](../illustrations/15-block-interaction.svg)
 
 Block breaking uses a **progressive crack animation** — holding the mouse button on a block gradually breaks it:
 

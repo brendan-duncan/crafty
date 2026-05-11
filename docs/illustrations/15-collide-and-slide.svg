@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 480" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="480" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Collide-and-Slide: Remove Normal Component, Keep Tangential Motion</text>
+
+  <defs>
+    <marker id="csVel" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#1e3a8a"/>
+    </marker>
+    <marker id="csNorm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/>
+    </marker>
+    <marker id="csSlide" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/>
+    </marker>
+  </defs>
+
+  <!-- ===== LEFT: top-down scenario ===== -->
+  <g transform="translate(40, 60)">
+    <text x="220" y="0" text-anchor="middle" font-weight="700" fill="#111827">Top-down: player walks into a wall</text>
+
+    <!-- Frame -->
+    <rect x="0" y="14" width="440" height="280" fill="#f9fafb" stroke="#9ca3af" stroke-width="1"/>
+
+    <!-- Wall on the right (from y=30 down to y=290) -->
+    <rect x="280" y="30" width="100" height="260" fill="#a16207" stroke="#7c2d12" stroke-width="1.4"/>
+    <text x="330" y="68" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">wall</text>
+
+    <!-- Player AABB (top-down square) at left -->
+    <rect x="120" y="148" width="36" height="36" fill="#60a5fa" fill-opacity="0.45" stroke="#1e3a8a" stroke-width="1.6"/>
+    <text x="138" y="172" text-anchor="middle" font-size="10" font-weight="700" fill="#1e3a8a">player</text>
+
+    <!-- Desired velocity arrow (diagonal up-right toward wall) -->
+    <line x1="138" y1="166" x2="240" y2="120" stroke="#1e3a8a" stroke-width="2.4" marker-end="url(#csVel)"/>
+    <text x="190" y="100" text-anchor="middle" font-size="11" font-weight="700" fill="#1e3a8a">v_desired</text>
+
+    <!-- Hit point on wall -->
+    <circle cx="280" cy="135" r="4" fill="#dc2626"/>
+    <text x="276" y="124" text-anchor="end" font-size="10" font-weight="700" fill="#dc2626">hit</text>
+
+    <!-- Wall normal (pointing left from hit) -->
+    <line x1="280" y1="135" x2="240" y2="135" stroke="#dc2626" stroke-width="2" marker-end="url(#csNorm)"/>
+    <text x="232" y="128" font-size="10" font-weight="700" fill="#dc2626">n</text>
+
+    <!-- Slid velocity (tangential, vertical along the wall) -->
+    <line x1="138" y1="166" x2="138" y2="100" stroke="#16a34a" stroke-width="2.4" marker-end="url(#csSlide)"/>
+    <text x="100" y="100" text-anchor="end" font-size="11" font-weight="700" fill="#16a34a">v_slide</text>
+    <text x="100" y="114" text-anchor="end" font-size="10" font-style="italic" fill="#16a34a">= v − (v·n)·n</text>
+
+    <!-- Dashed projection of v onto n — the component that gets subtracted -->
+    <line x1="156" y1="166" x2="220" y2="166" stroke="#dc2626" stroke-width="1.4" stroke-dasharray="3,2"/>
+  </g>
+
+  <!-- ===== RIGHT: algorithm steps ===== -->
+  <g transform="translate(500, 60)">
+    <text x="200" y="0" text-anchor="middle" font-weight="700" fill="#111827">Per-frame algorithm (≤ 3 iterations)</text>
+
+    <rect x="0" y="14" width="400" height="280" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+
+    <g font-size="12" fill="#374151" transform="translate(14, 0)">
+      <text x="0" y="42"><tspan font-weight="700" fill="#111827">1.</tspan> v = WASD·speed + (0, gravity·dt, 0)</text>
+      <text x="0" y="74"><tspan font-weight="700" fill="#111827">2.</tspan> hit = sweepAABB(box, v · dt, world)</text>
+      <text x="0" y="106"><tspan font-weight="700" fill="#111827">3.</tspan> if !hit: pos += v · dt;  break</text>
+      <text x="0" y="138"><tspan font-weight="700" fill="#111827">4.</tspan> pos += v · dt · hit.time   <tspan fill="#16a34a">// move up to wall</tspan></text>
+      <text x="0" y="170"><tspan font-weight="700" fill="#111827">5.</tspan> v -= dot(v, hit.normal) · hit.normal</text>
+      <text x="0" y="186" fill="#6b7280" font-style="italic">     ↑ kill normal component, keep tangent</text>
+      <text x="0" y="218"><tspan font-weight="700" fill="#111827">6.</tspan> goto 2 (with remaining (1 − time)·dt)</text>
+
+      <text x="0" y="254" fill="#dc2626" font-style="italic">3-iteration cap prevents tunnelling in concave corners</text>
+    </g>
+  </g>
+
+  <!-- ===== Bottom: per-axis variant ===== -->
+  <g transform="translate(40, 376)">
+    <rect width="840" height="80" fill="#eff6ff" stroke="#2563eb" stroke-width="1" rx="6"/>
+    <text x="14" y="22" font-weight="700" fill="#1e3a8a">Crafty's simplification: per-axis sweeps instead of full sweep</text>
+    <text x="14" y="42" font-size="11" fill="#1e3a8a">slideX(v.x) → slideZ(v.z) → slideY(v.y).  Each axis is checked independently against the AABB cell range.</text>
+    <text x="14" y="60" font-size="11" font-style="italic" fill="#6b7280">Cheaper, voxel-aligned — works because Crafty's geometry is axis-aligned blocks (no diagonal walls).</text>
+  </g>
+</svg>

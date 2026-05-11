@@ -1,0 +1,129 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 480" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="480" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Block Ray Cast: DDA Steps Cell-by-Cell to the First Solid Hit</text>
+
+  <defs>
+    <marker id="brArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#fbbf24"/>
+    </marker>
+    <marker id="brNorm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/>
+    </marker>
+  </defs>
+
+  <!-- ===== LEFT: voxel grid with ray ===== -->
+  <g transform="translate(40, 60)">
+    <text x="220" y="0" text-anchor="middle" font-weight="700" fill="#111827">Camera ray traversing the voxel grid</text>
+
+    <!-- Frame: 9 cells × 6 cells, cell size 48. Total 432 × 288. -->
+    <rect x="0" y="14" width="432" height="288" fill="#f9fafb" stroke="#9ca3af" stroke-width="1"/>
+
+    <!-- Visited cells (DDA path numbered 1–6) — light yellow with order numbers -->
+    <g font-size="11" font-family="ui-monospace, Consolas, monospace" text-anchor="middle">
+      <rect x="48"  y="158" width="48" height="48" fill="#fef3c7" stroke="#d1d5db" stroke-width="0.6"/>
+      <text x="72"  y="186" fill="#a16207">1</text>
+
+      <rect x="96"  y="158" width="48" height="48" fill="#fef3c7" stroke="#d1d5db" stroke-width="0.6"/>
+      <text x="120" y="186" fill="#a16207">2</text>
+
+      <rect x="96"  y="110" width="48" height="48" fill="#fef3c7" stroke="#d1d5db" stroke-width="0.6"/>
+      <text x="120" y="138" fill="#a16207">3</text>
+
+      <rect x="144" y="110" width="48" height="48" fill="#fef3c7" stroke="#d1d5db" stroke-width="0.6"/>
+      <text x="168" y="138" fill="#a16207">4</text>
+
+      <rect x="192" y="110" width="48" height="48" fill="#fef3c7" stroke="#d1d5db" stroke-width="0.6"/>
+      <text x="216" y="138" fill="#a16207">5</text>
+
+      <rect x="192" y="62"  width="48" height="48" fill="#fef3c7" stroke="#d1d5db" stroke-width="0.6"/>
+      <text x="216" y="90"  fill="#a16207">6</text>
+    </g>
+
+    <!-- Hit block (solid stone) at the end of the ray, with red border -->
+    <rect x="240" y="62" width="48" height="48" fill="#a16207" stroke="#dc2626" stroke-width="2.4"/>
+    <text x="264" y="90" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">HIT</text>
+
+    <!-- Other terrain blocks (visual context) -->
+    <g fill="#a16207" stroke="#7c2d12" stroke-width="1">
+      <rect x="0"   y="254" width="48" height="48"/>
+      <rect x="48"  y="254" width="48" height="48"/>
+      <rect x="96"  y="254" width="48" height="48"/>
+      <rect x="144" y="254" width="48" height="48"/>
+      <rect x="192" y="254" width="48" height="48"/>
+      <rect x="240" y="254" width="48" height="48"/>
+      <rect x="288" y="254" width="48" height="48"/>
+      <rect x="336" y="254" width="48" height="48"/>
+      <rect x="384" y="254" width="48" height="48"/>
+      <rect x="240" y="206" width="48" height="48"/>
+      <rect x="240" y="158" width="48" height="48"/>
+      <rect x="240" y="110" width="48" height="48"/>
+    </g>
+
+    <!-- Grid lines (drawn after fills) -->
+    <g stroke="#d1d5db" stroke-width="0.5">
+      <line x1="48"  y1="14" x2="48"  y2="302"/>
+      <line x1="96"  y1="14" x2="96"  y2="302"/>
+      <line x1="144" y1="14" x2="144" y2="302"/>
+      <line x1="192" y1="14" x2="192" y2="302"/>
+      <line x1="240" y1="14" x2="240" y2="302"/>
+      <line x1="288" y1="14" x2="288" y2="302"/>
+      <line x1="336" y1="14" x2="336" y2="302"/>
+      <line x1="384" y1="14" x2="384" y2="302"/>
+      <line x1="0" y1="62"  x2="432" y2="62"/>
+      <line x1="0" y1="110" x2="432" y2="110"/>
+      <line x1="0" y1="158" x2="432" y2="158"/>
+      <line x1="0" y1="206" x2="432" y2="206"/>
+      <line x1="0" y1="254" x2="432" y2="254"/>
+    </g>
+
+    <!-- Camera icon (origin of ray) — placed left of cell #1 so it doesn't overlap the cell label -->
+    <g transform="translate(20, 182)">
+      <polygon points="-12,-10 12,-10 14,4 -14,4" fill="#60a5fa" stroke="#1e3a8a" stroke-width="1.4"/>
+      <ellipse cx="0" cy="6" rx="10" ry="3" fill="#fef3c7" stroke="#1e3a8a" stroke-width="1"/>
+    </g>
+    <text x="20" y="234" text-anchor="middle" font-size="10" font-weight="700" fill="#1e3a8a">camera</text>
+
+    <!-- Ray from camera through visited cells to hit -->
+    <line x1="20" y1="182" x2="246" y2="86" stroke="#fbbf24" stroke-width="2.2" marker-end="url(#brArr)"/>
+
+    <!-- Face normal at hit (left face hit, normal points left toward camera) -->
+    <line x1="240" y1="86" x2="208" y2="86" stroke="#dc2626" stroke-width="2" marker-end="url(#brNorm)"/>
+    <text x="200" y="80" text-anchor="end" font-size="10" font-weight="700" fill="#dc2626">normal</text>
+    <text x="200" y="92" text-anchor="end" font-size="10" font-style="italic" fill="#dc2626">→ place block here</text>
+
+    <!-- Sub-caption -->
+    <text x="220" y="328" text-anchor="middle" font-size="11" font-style="italic" fill="#6b7280">6 cells visited before hitting solid — work scales with distance, not world size</text>
+  </g>
+
+  <!-- ===== RIGHT: DDA per-step ===== -->
+  <g transform="translate(500, 60)">
+    <text x="200" y="0" text-anchor="middle" font-weight="700" fill="#111827">Each step picks the smallest tMax</text>
+
+    <rect x="0" y="14" width="400" height="280" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+
+    <g font-family="ui-monospace, Consolas, monospace" font-size="12" fill="#374151" transform="translate(14, 0)">
+      <text x="0" y="38" font-weight="700" fill="#111827">// init</text>
+      <text x="0" y="56">tMaxX = next X face / dir.x</text>
+      <text x="0" y="74">tMaxY = next Y face / dir.y</text>
+      <text x="0" y="92">tMaxZ = next Z face / dir.z</text>
+      <text x="0" y="110">tDelta = abs(1 / dir)        <tspan fill="#6b7280">// per axis</tspan></text>
+
+      <text x="0" y="142" font-weight="700" fill="#111827">// loop</text>
+      <text x="0" y="160">if (tMaxX &lt; tMaxY &amp;&amp; tMaxX &lt; tMaxZ):</text>
+      <text x="0" y="178">  x += stepX;  tMaxX += tDeltaX;</text>
+      <text x="0" y="196">  normal = (-stepX, 0, 0)</text>
+      <text x="0" y="214">elif (tMaxY &lt; tMaxZ):  y += stepY; ...</text>
+      <text x="0" y="232">else:                  z += stepZ; ...</text>
+
+      <text x="0" y="262" fill="#dc2626" font-style="italic">// each step crosses ONE face</text>
+      <text x="0" y="278" fill="#dc2626" font-style="italic">// → cheap and exact, no missed cells</text>
+    </g>
+  </g>
+
+  <!-- ===== Bottom note ===== -->
+  <g transform="translate(40, 408)">
+    <rect width="840" height="60" fill="#eff6ff" stroke="#2563eb" stroke-width="1" rx="6"/>
+    <text x="14" y="22" font-weight="700" fill="#1e3a8a">Returns: { x, y, z, normal } → which block, and which face</text>
+    <text x="14" y="42" font-size="11" fill="#1e3a8a">Mining uses the block coords. Placement uses (x, y, z) + normal — the empty cell adjacent to the hit face.</text>
+  </g>
+</svg>
