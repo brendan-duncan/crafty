@@ -231,12 +231,11 @@ This book is a work in progress.  Chapters are added as the engine evolves.
 
 - [Chapter 18: Performance](chapter/18-performance.md)
   - 18.1 GPU timestamps and profiling
-  - 18.2 Pipeline barriers and synchronization
-  - 18.3 Async shader compilation
-  - 18.4 Frustum culling
-  - 18.5 Occlusion culling
-  - 18.6 Draw call batching
-  - 18.7 Memory management
+  - 18.2 Async shader compilation
+  - 18.3 Frustum culling
+  - 18.4 Occlusion culling
+  - 18.5 Draw call batching
+  - 18.6 Memory management
 
 - [Chapter 19: Tools and Workflow](chapter/19-tools.md)
   - 19.1 The sample framework

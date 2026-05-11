@@ -35,21 +35,7 @@ for (let i = 0; i < passCount; i++) {
 
 Timestamp queries require the `'timestamp-query'` feature, which must be requested during device creation. The results identify which passes are GPU-bound.
 
-## 18.2 Pipeline Barriers and Synchronisation
-
-WebGPU manages most resource barriers automatically, but explicit barriers are still needed for certain transitions (e.g., compute shader writing to a storage buffer that a draw call reads):
-
-```typescript
-encoder.debugGroup('ParticleSimulation');
-// Compute pass writes to indirect draw buffer
-pass.dispatchWorkgroups(...);
-// Barrier: compute → indirect draw
-encoder.addMemoryBarrier();  // Implicit via pass boundaries in WebGPU
-```
-
-Crafty's single-command-buffer-per-frame design means most barriers are handled by the WebGPU implementation at pass boundaries. The explicit barrier API (`encoder.addMemoryBarrier()`) is used sparingly.
-
-## 18.3 Async Shader Compilation
+## 18.2 Async Shader Compilation
 
 Pipeline compilation is expensive. Crafty uses the `getCompilationInfo()` API to diagnose shader compile errors, and creates pipelines lazily (on first use) rather than upfront:
 
@@ -66,7 +52,7 @@ private _getPipeline(device: GPUDevice, material: Material): GPURenderPipeline {
 
 For materials that are always visible, pipelines can be compiled eagerly during the loading screen by iterating the material list and calling `_getPipeline` once.
 
-## 18.4 Frustum Culling
+## 18.3 Frustum Culling
 
 Every chunk and mesh is tested against the camera frustum before rendering. The test uses the six planes of the view-projection frustum:
 
@@ -88,7 +74,7 @@ function isVisible(aabb: AABB, frustum: Plane[]): boolean {
 
 Frustum culling for chunks uses the chunk's axis-aligned bounding box (16×256×16 blocks). Mesh objects use their local AABB transformed to world space.
 
-## 18.5 Occlusion Culling
+## 18.4 Occlusion Culling
 
 Occlusion culling determines whether an object is hidden behind other objects (not just outside the frustum). Crafty uses a simple **temporal occlusion culling** approach:
 
@@ -98,7 +84,7 @@ Occlusion culling determines whether an object is hidden behind other objects (n
 
 This is implemented as a compute pass that reads the depth buffer and writes an indirect draw count.
 
-## 18.6 Draw Call Batching
+## 18.5 Draw Call Batching
 
 Chunk rendering uses **indirect draw** to issue many draws with a single call. The chunk visibility and draw parameters are computed on the GPU:
 
@@ -115,7 +101,7 @@ struct DrawArraysIndirect {
 
 A compute shader performs frustum culling on the GPU and packs visible chunks into the indirect buffer. This eliminates CPU-GPU round trips for chunk culling.
 
-## 18.7 Memory Management
+## 18.6 Memory Management
 
 ### Pre-Allocated Staging Arrays
 
