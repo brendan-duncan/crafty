@@ -1,0 +1,134 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 540" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="540" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Cloud Coverage: Per-Weather Target + Smooth Frame Interpolation</text>
+
+  <!-- ===== TOP: bar chart of target coverage ===== -->
+  <g transform="translate(40, 60)">
+    <text x="0" y="0" font-weight="700" fill="#111827">Target coverage per weather type</text>
+
+    <!-- Plot frame -->
+    <rect x="0" y="14" width="840" height="220" fill="#f9fafb" stroke="#9ca3af" stroke-width="1"/>
+
+    <!-- Y axis: 0..1 over y=200..20 (relative to plot inner top y=14, so usable 200px) -->
+    <!-- Plot inner: x=40..820, y=24..214 (190 high) -->
+    <g font-family="ui-monospace, Consolas, monospace" font-size="10" fill="#6b7280">
+      <text x="34" y="28"  text-anchor="end">1.0</text>
+      <text x="34" y="76"  text-anchor="end">0.75</text>
+      <text x="34" y="124" text-anchor="end">0.5</text>
+      <text x="34" y="172" text-anchor="end">0.25</text>
+      <text x="34" y="218" text-anchor="end">0</text>
+    </g>
+    <line x1="40" y1="24"  x2="40" y2="214" stroke="#374151" stroke-width="1"/>
+    <line x1="40" y1="214" x2="820" y2="214" stroke="#374151" stroke-width="1"/>
+
+    <!-- Gridlines -->
+    <g stroke="#e5e7eb" stroke-width="0.6">
+      <line x1="40" y1="28"  x2="820" y2="28"/>
+      <line x1="40" y1="76"  x2="820" y2="76"/>
+      <line x1="40" y1="124" x2="820" y2="124"/>
+      <line x1="40" y1="172" x2="820" y2="172"/>
+    </g>
+
+    <!-- 7 bars. Each bar slot is 100 wide, gap 12. Total: 7*100 + 6*12 = 772. Start at x=64. -->
+    <!-- Bar height = coverage * 192. Baseline y=214. Top y = 214 - height. -->
+
+    <!-- Sunny: 0.10 → height 19, top y=195 -->
+    <g>
+      <rect x="64"  y="195" width="100" height="19"  fill="#fef3c7" stroke="#ca8a04"/>
+      <text x="114" y="232" text-anchor="middle" font-size="11" fill="#713f12">Sunny</text>
+      <text x="114" y="190" text-anchor="middle" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#713f12">0.10</text>
+    </g>
+
+    <!-- Cloudy: 0.55 → height 106, top y=108 -->
+    <g>
+      <rect x="176" y="108" width="100" height="106" fill="#e5e7eb" stroke="#6b7280"/>
+      <text x="226" y="232" text-anchor="middle" font-size="11" fill="#374151">Cloudy</text>
+      <text x="226" y="103" text-anchor="middle" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#374151">0.55</text>
+    </g>
+
+    <!-- Overcast: 0.90 → height 173, top y=41 -->
+    <g>
+      <rect x="288" y="41"  width="100" height="173" fill="#9ca3af" stroke="#374151"/>
+      <text x="338" y="232" text-anchor="middle" font-size="11" fill="#111827">Overcast</text>
+      <text x="338" y="36"  text-anchor="middle" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#111827">0.90</text>
+    </g>
+
+    <!-- LightRain: 0.70 → height 134, top y=80 -->
+    <g>
+      <rect x="400" y="80"  width="100" height="134" fill="#bfdbfe" stroke="#2563eb"/>
+      <text x="450" y="232" text-anchor="middle" font-size="11" fill="#1e3a8a">LightRain</text>
+      <text x="450" y="75"  text-anchor="middle" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#1e3a8a">0.70</text>
+    </g>
+
+    <!-- HeavyRain: 0.90 → height 173, top y=41 -->
+    <g>
+      <rect x="512" y="41"  width="100" height="173" fill="#60a5fa" stroke="#1e3a8a"/>
+      <text x="562" y="232" text-anchor="middle" font-size="11" fill="#1e3a8a">HeavyRain</text>
+      <text x="562" y="36"  text-anchor="middle" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#1e3a8a">0.90</text>
+    </g>
+
+    <!-- LightSnow: 0.80 → height 154, top y=60 -->
+    <g>
+      <rect x="624" y="60"  width="100" height="154" fill="#e0f2fe" stroke="#0891b2"/>
+      <text x="674" y="232" text-anchor="middle" font-size="11" fill="#155e75">LightSnow</text>
+      <text x="674" y="55"  text-anchor="middle" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#155e75">0.80</text>
+    </g>
+
+    <!-- HeavySnow: 0.95 → height 182, top y=32 -->
+    <g>
+      <rect x="736" y="32"  width="100" height="182" fill="#7dd3fc" stroke="#155e75"/>
+      <text x="786" y="232" text-anchor="middle" font-size="11" fill="#0c4a6e">HeavySnow</text>
+      <text x="786" y="27"  text-anchor="middle" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#0c4a6e">0.95</text>
+    </g>
+  </g>
+
+  <!-- ===== BOTTOM: smooth interpolation curve ===== -->
+  <g transform="translate(40, 320)">
+    <text x="0" y="0" font-weight="700" fill="#111827">Per-frame lerp: cloudCoverage += (target − cloudCoverage) · min(1, 0.3 · dt)</text>
+
+    <!-- Plot frame -->
+    <rect x="0" y="14" width="840" height="180" fill="#f9fafb" stroke="#9ca3af" stroke-width="1"/>
+
+    <!-- Plot inner: x=40..820, y=28..174 (146 high). t in [0, 30s], y in [0, 1] -->
+    <g font-family="ui-monospace, Consolas, monospace" font-size="10" fill="#6b7280">
+      <text x="34" y="32"  text-anchor="end">1.0</text>
+      <text x="34" y="105" text-anchor="end">0.5</text>
+      <text x="34" y="178" text-anchor="end">0</text>
+
+      <text x="40"  y="190" text-anchor="middle">0</text>
+      <text x="170" y="190" text-anchor="middle">5 s</text>
+      <text x="300" y="190" text-anchor="middle">10 s</text>
+      <text x="430" y="190" text-anchor="middle">15 s</text>
+      <text x="560" y="190" text-anchor="middle">20 s</text>
+      <text x="690" y="190" text-anchor="middle">25 s</text>
+      <text x="820" y="190" text-anchor="middle">30 s</text>
+    </g>
+    <line x1="40" y1="28"  x2="40" y2="174" stroke="#374151" stroke-width="1"/>
+    <line x1="40" y1="174" x2="820" y2="174" stroke="#374151" stroke-width="1"/>
+
+    <!-- Target line at coverage 0.9 (Overcast). y = 174 - 0.9*146 = 42.6 -->
+    <line x1="40" y1="43" x2="820" y2="43" stroke="#dc2626" stroke-width="1.4" stroke-dasharray="5,4"/>
+    <text x="816" y="38" text-anchor="end" font-size="10" font-weight="700" fill="#dc2626">target 0.90</text>
+
+    <!-- Starting at 0.1 (Sunny). y = 174 - 0.1*146 = 159.4. Approach 0.9 with time constant tau ~ 1/0.3 = 3.33s -->
+    <!-- cov(t) = 0.9 - 0.8 * exp(-t/3.33). At t=0, cov=0.1. At t=10s, cov ≈ 0.86. -->
+    <!-- Sample: t=0:0.10, 2:0.54, 4:0.74, 6:0.83, 8:0.87, 10:0.89, ... -->
+    <!-- Convert to plot coords: x = 40 + (t/30)*780, y = 174 - cov*146 -->
+    <!-- Points: (40,159.4), (92,95.2), (144,65.8), (196,52.4), (248,46.4), (300,43.7), then ~target -->
+    <path d="M 40 159
+             Q 80 110, 144 66
+             Q 220 50, 320 44
+             L 820 43"
+          fill="none" stroke="#1e3a8a" stroke-width="2.4"/>
+
+    <!-- Annotations on the curve -->
+    <circle cx="40"  cy="159" r="3" fill="#1e3a8a"/>
+    <text x="48" y="156" font-size="10" fill="#1e3a8a">start: cov = 0.10 (was Sunny)</text>
+
+    <circle cx="320" cy="44" r="3" fill="#1e3a8a"/>
+    <text x="328" y="60" font-size="10" fill="#1e3a8a">~10 s in, cov ≈ 0.89 (essentially Overcast)</text>
+
+    <text x="816" y="152" text-anchor="end" font-size="10" font-style="italic" fill="#6b7280">smooth approach</text>
+    <text x="816" y="166" text-anchor="end" font-size="10" font-style="italic" fill="#6b7280">τ ≈ 3.3 s</text>
+  </g>
+</svg>

@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 460" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="460" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Biome × Weather Matrix: Which Weathers Each Biome Allows</text>
+
+  <!-- Matrix layout:
+       biome col: x=20..160 (width 140)
+       7 weather cols: x=160, 268, 376, 484, 592, 700, 808 → width 108 each (7*108 = 756)
+       Total: 20..916 (896 wide). Fits in 920.
+       row height: 36
+       header row at y=60..96
+       6 data rows at y=96..312 (each 36) -->
+
+  <g transform="translate(0, 0)">
+    <!-- Column header backgrounds -->
+    <g>
+      <rect x="20"  y="60" width="140" height="36" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1"/>
+      <rect x="160" y="60" width="108" height="36" fill="#fef3c7" stroke="#9ca3af" stroke-width="1"/>
+      <rect x="268" y="60" width="108" height="36" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/>
+      <rect x="376" y="60" width="108" height="36" fill="#9ca3af" stroke="#374151" stroke-width="1"/>
+      <rect x="484" y="60" width="108" height="36" fill="#bfdbfe" stroke="#9ca3af" stroke-width="1"/>
+      <rect x="592" y="60" width="108" height="36" fill="#60a5fa" stroke="#9ca3af" stroke-width="1"/>
+      <rect x="700" y="60" width="108" height="36" fill="#e0f2fe" stroke="#9ca3af" stroke-width="1"/>
+      <rect x="808" y="60" width="108" height="36" fill="#7dd3fc" stroke="#9ca3af" stroke-width="1"/>
+    </g>
+
+    <!-- Header text -->
+    <g font-weight="700" text-anchor="middle">
+      <text x="90"  y="84" fill="#111827">Biome</text>
+      <text x="214" y="84" font-size="11" fill="#713f12">Sunny</text>
+      <text x="322" y="84" font-size="11" fill="#374151">Cloudy</text>
+      <text x="430" y="84" font-size="11" fill="#fff">Overcast</text>
+      <text x="538" y="84" font-size="11" fill="#1e3a8a">LightRain</text>
+      <text x="646" y="84" font-size="11" fill="#fff">HeavyRain</text>
+      <text x="754" y="84" font-size="11" fill="#155e75">LightSnow</text>
+      <text x="862" y="84" font-size="11" fill="#0c4a6e">HeavySnow</text>
+    </g>
+
+    <!-- Row backgrounds (alternating) -->
+    <g>
+      <rect x="20"  y="96"  width="140" height="36" fill="#f9fafb" stroke="#d1d5db" stroke-width="0.6"/>
+      <rect x="20"  y="132" width="140" height="36" fill="#fff"   stroke="#d1d5db" stroke-width="0.6"/>
+      <rect x="20"  y="168" width="140" height="36" fill="#f9fafb" stroke="#d1d5db" stroke-width="0.6"/>
+      <rect x="20"  y="204" width="140" height="36" fill="#fff"   stroke="#d1d5db" stroke-width="0.6"/>
+      <rect x="20"  y="240" width="140" height="36" fill="#f9fafb" stroke="#d1d5db" stroke-width="0.6"/>
+      <rect x="20"  y="276" width="140" height="36" fill="#fff"   stroke="#d1d5db" stroke-width="0.6"/>
+    </g>
+
+    <!-- Biome row labels -->
+    <g font-size="11" font-weight="700" fill="#111827">
+      <text x="32" y="118">None</text>
+      <text x="32" y="154">Desert</text>
+      <text x="32" y="190">GrassyPlains</text>
+      <text x="32" y="226">RockyMountains</text>
+      <text x="32" y="262">SnowyPlains</text>
+      <text x="32" y="298">SnowyMountains</text>
+    </g>
+
+    <!-- Cells: weight numbers where allowed, empty otherwise -->
+    <!-- Available pattern (weights):
+         None:           Sunny=5  Cloudy=4  Overcast=2  -        -        -        -
+         Desert:         Sunny=5  Cloudy=4  -           -        -        -        -
+         GrassyPlains:   Sunny=5  Cloudy=4  Overcast=2  Light=2  Heavy=1  -        -
+         RockyMountains: Sunny=5  Cloudy=4  Overcast=2  Light=2  Heavy=1  -        -
+         SnowyPlains:    Sunny=5  Cloudy=4  Overcast=2  -        -        Light=2  Heavy=1
+         SnowyMountains: Sunny=5  Cloudy=4  Overcast=2  -        -        Light=2  Heavy=1
+    -->
+
+    <!-- Cell backgrounds for "available" cells use a subtle fill in the column color, -->
+    <!-- Cell text shows the weight value (bold, dark) -->
+
+    <!-- 7 columns × 6 rows = 42 cells. Drawn explicitly for clarity. -->
+    <g font-family="ui-monospace, Consolas, monospace" font-weight="700" text-anchor="middle" font-size="13">
+
+      <!-- Row 0 (None) -->
+      <rect x="160" y="96"  width="108" height="36" fill="#fef3c7" stroke="#fde68a" stroke-width="0.6"/><text x="214" y="120" fill="#713f12">5</text>
+      <rect x="268" y="96"  width="108" height="36" fill="#e5e7eb" stroke="#d1d5db" stroke-width="0.6"/><text x="322" y="120" fill="#374151">4</text>
+      <rect x="376" y="96"  width="108" height="36" fill="#cbd5e1" stroke="#9ca3af" stroke-width="0.6"/><text x="430" y="120" fill="#111827">2</text>
+
+      <!-- Row 1 (Desert) -->
+      <rect x="160" y="132" width="108" height="36" fill="#fef3c7" stroke="#fde68a" stroke-width="0.6"/><text x="214" y="156" fill="#713f12">5</text>
+      <rect x="268" y="132" width="108" height="36" fill="#e5e7eb" stroke="#d1d5db" stroke-width="0.6"/><text x="322" y="156" fill="#374151">4</text>
+
+      <!-- Row 2 (GrassyPlains) -->
+      <rect x="160" y="168" width="108" height="36" fill="#fef3c7" stroke="#fde68a" stroke-width="0.6"/><text x="214" y="192" fill="#713f12">5</text>
+      <rect x="268" y="168" width="108" height="36" fill="#e5e7eb" stroke="#d1d5db" stroke-width="0.6"/><text x="322" y="192" fill="#374151">4</text>
+      <rect x="376" y="168" width="108" height="36" fill="#cbd5e1" stroke="#9ca3af" stroke-width="0.6"/><text x="430" y="192" fill="#111827">2</text>
+      <rect x="484" y="168" width="108" height="36" fill="#dbeafe" stroke="#bfdbfe" stroke-width="0.6"/><text x="538" y="192" fill="#1e3a8a">2</text>
+      <rect x="592" y="168" width="108" height="36" fill="#93c5fd" stroke="#60a5fa" stroke-width="0.6"/><text x="646" y="192" fill="#1e3a8a">1</text>
+
+      <!-- Row 3 (RockyMountains) -->
+      <rect x="160" y="204" width="108" height="36" fill="#fef3c7" stroke="#fde68a" stroke-width="0.6"/><text x="214" y="228" fill="#713f12">5</text>
+      <rect x="268" y="204" width="108" height="36" fill="#e5e7eb" stroke="#d1d5db" stroke-width="0.6"/><text x="322" y="228" fill="#374151">4</text>
+      <rect x="376" y="204" width="108" height="36" fill="#cbd5e1" stroke="#9ca3af" stroke-width="0.6"/><text x="430" y="228" fill="#111827">2</text>
+      <rect x="484" y="204" width="108" height="36" fill="#dbeafe" stroke="#bfdbfe" stroke-width="0.6"/><text x="538" y="228" fill="#1e3a8a">2</text>
+      <rect x="592" y="204" width="108" height="36" fill="#93c5fd" stroke="#60a5fa" stroke-width="0.6"/><text x="646" y="228" fill="#1e3a8a">1</text>
+
+      <!-- Row 4 (SnowyPlains) -->
+      <rect x="160" y="240" width="108" height="36" fill="#fef3c7" stroke="#fde68a" stroke-width="0.6"/><text x="214" y="264" fill="#713f12">5</text>
+      <rect x="268" y="240" width="108" height="36" fill="#e5e7eb" stroke="#d1d5db" stroke-width="0.6"/><text x="322" y="264" fill="#374151">4</text>
+      <rect x="376" y="240" width="108" height="36" fill="#cbd5e1" stroke="#9ca3af" stroke-width="0.6"/><text x="430" y="264" fill="#111827">2</text>
+      <rect x="700" y="240" width="108" height="36" fill="#e0f2fe" stroke="#bae6fd" stroke-width="0.6"/><text x="754" y="264" fill="#155e75">2</text>
+      <rect x="808" y="240" width="108" height="36" fill="#7dd3fc" stroke="#38bdf8" stroke-width="0.6"/><text x="862" y="264" fill="#0c4a6e">1</text>
+
+      <!-- Row 5 (SnowyMountains) -->
+      <rect x="160" y="276" width="108" height="36" fill="#fef3c7" stroke="#fde68a" stroke-width="0.6"/><text x="214" y="300" fill="#713f12">5</text>
+      <rect x="268" y="276" width="108" height="36" fill="#e5e7eb" stroke="#d1d5db" stroke-width="0.6"/><text x="322" y="300" fill="#374151">4</text>
+      <rect x="376" y="276" width="108" height="36" fill="#cbd5e1" stroke="#9ca3af" stroke-width="0.6"/><text x="430" y="300" fill="#111827">2</text>
+      <rect x="700" y="276" width="108" height="36" fill="#e0f2fe" stroke="#bae6fd" stroke-width="0.6"/><text x="754" y="300" fill="#155e75">2</text>
+      <rect x="808" y="276" width="108" height="36" fill="#7dd3fc" stroke="#38bdf8" stroke-width="0.6"/><text x="862" y="300" fill="#0c4a6e">1</text>
+    </g>
+  </g>
+
+  <!-- ===== Bottom legend ===== -->
+  <g transform="translate(20, 340)">
+    <rect width="880" height="100" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+    <text x="14" y="22" font-weight="700" fill="#111827">Cell value = selection weight  ·  blank cell = weather not allowed in that biome</text>
+    <text x="14" y="42" font-size="11" fill="#374151">Desert never sees Overcast or precipitation. Snowy biomes get snow instead of rain. All biomes can be Sunny.</text>
+    <text x="14" y="62" font-size="11" fill="#374151">For each biome, total weight = sum of cells in its row. Roll random in [0, total) and accumulate to pick.</text>
+    <text x="14" y="82" font-size="11" font-style="italic" fill="#6b7280">e.g. GrassyPlains: total = 5+4+2+2+1 = 14, so Sunny appears ~36 % of the time.</text>
+  </g>
+</svg>
