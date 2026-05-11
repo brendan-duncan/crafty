@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 440" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="680" height="440" fill="#ffffff"/>
+  <text x="340" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Tone-Mapping Operators</text>
+
+  <!-- Plot area: x = 80..620 (540 wide), y = 70..330 (260 tall) -->
+  <!-- HDR x-range 0..5 → x_pix = 80 + x*108 -->
+  <!-- LDR y-range 0..1 → y_pix = 330 - y*260 -->
+
+  <!-- Grid lines -->
+  <g stroke="#e5e7eb" stroke-width="1">
+    <line x1="80" y1="330" x2="620" y2="330"/> <!-- y=0 -->
+    <line x1="80" y1="265" x2="620" y2="265"/> <!-- y=0.25 -->
+    <line x1="80" y1="200" x2="620" y2="200"/> <!-- y=0.5 -->
+    <line x1="80" y1="135" x2="620" y2="135"/> <!-- y=0.75 -->
+    <line x1="80" y1="70"  x2="620" y2="70"/>  <!-- y=1.0 -->
+
+    <line x1="80"  y1="70" x2="80"  y2="330"/> <!-- x=0 -->
+    <line x1="188" y1="70" x2="188" y2="330"/> <!-- x=1 -->
+    <line x1="296" y1="70" x2="296" y2="330"/> <!-- x=2 -->
+    <line x1="404" y1="70" x2="404" y2="330"/> <!-- x=3 -->
+    <line x1="512" y1="70" x2="512" y2="330"/> <!-- x=4 -->
+    <line x1="620" y1="70" x2="620" y2="330"/> <!-- x=5 -->
+  </g>
+
+  <!-- Axes -->
+  <line x1="80" y1="330" x2="620" y2="330" stroke="#374151" stroke-width="1.5"/>
+  <line x1="80" y1="70"  x2="80"  y2="330" stroke="#374151" stroke-width="1.5"/>
+
+  <!-- y=1 reference dashed -->
+  <line x1="80" y1="70" x2="620" y2="70" stroke="#9ca3af" stroke-width="1" stroke-dasharray="4,3"/>
+
+  <!-- Y axis labels -->
+  <g font-size="11" fill="#6b7280" text-anchor="end">
+    <text x="74" y="334">0.0</text>
+    <text x="74" y="269">0.25</text>
+    <text x="74" y="204">0.50</text>
+    <text x="74" y="139">0.75</text>
+    <text x="74" y="74">1.00</text>
+  </g>
+
+  <!-- X axis labels -->
+  <g font-size="11" fill="#6b7280" text-anchor="middle">
+    <text x="80"  y="348">0</text>
+    <text x="188" y="348">1</text>
+    <text x="296" y="348">2</text>
+    <text x="404" y="348">3</text>
+    <text x="512" y="348">4</text>
+    <text x="620" y="348">5</text>
+  </g>
+
+  <!-- Axis titles -->
+  <text x="350" y="372" text-anchor="middle" font-size="12" fill="#374151" font-style="italic">HDR input (linear)</text>
+  <text x="22" y="200" text-anchor="middle" font-size="12" fill="#374151" font-style="italic" transform="rotate(-90, 22, 200)">LDR output [0, 1]</text>
+
+  <!-- Curves (recomputed for new scale: x_pix = 80 + x*108) -->
+
+  <!-- Hard clamp (red): (0,0)→(80,330)  (1,1)→(188,70)  (5,1)→(620,70) -->
+  <polyline points="80,330 188,70 620,70" fill="none" stroke="#dc2626" stroke-width="2.5"/>
+
+  <!-- Reinhard (green): y = x/(1+x). y_pix = 330 - 260*y -->
+  <!-- (0, 0.000) → (80, 330)
+       (0.5, 0.333) → (134, 243.3)
+       (1, 0.500) → (188, 200)
+       (1.5, 0.600) → (242, 174)
+       (2, 0.667) → (296, 156.6)
+       (2.5, 0.714) → (350, 144.3)
+       (3, 0.750) → (404, 135)
+       (3.5, 0.778) → (458, 127.8)
+       (4, 0.800) → (512, 122)
+       (4.5, 0.818) → (566, 117.3)
+       (5, 0.833) → (620, 113.3) -->
+  <polyline points="80,330 134,243 188,200 242,174 296,157 350,144 404,135 458,128 512,122 566,117 620,113" fill="none" stroke="#16a34a" stroke-width="2.5"/>
+
+  <!-- ACES (blue): per the in-shader formula -->
+  <!-- (0, 0)     → (80, 330)
+       (0.25, 0.421) → (107, 220.5)
+       (0.5, 0.616)  → (134, 169.8)
+       (0.75, 0.722) → (161, 142.3)
+       (1, 0.804)    → (188, 121)
+       (1.5, 0.882)  → (242, 100.7)
+       (2, 0.915)    → (296, 92.1)
+       (2.5, 0.939)  → (350, 85.9)
+       (3, 0.954)    → (404, 82)
+       (4, 0.973)    → (512, 76.9)
+       (5, 0.984)    → (620, 74.2) -->
+  <polyline points="80,330 107,221 134,170 161,142 188,121 242,101 296,92 350,86 404,82 458,79 512,77 566,75 620,74" fill="none" stroke="#2563eb" stroke-width="2.8"/>
+
+  <!-- Legend in lower-right corner of the plot — clear area below all curves -->
+  <g transform="translate(420, 240)">
+    <rect x="0" y="0" width="194" height="84" fill="#ffffff" stroke="#9ca3af" stroke-width="1" rx="4"/>
+
+    <line x1="14" y1="22" x2="44" y2="22" stroke="#dc2626" stroke-width="2.5"/>
+    <text x="52" y="26" font-size="12" fill="#374151"><tspan font-weight="600">Hard clamp</tspan></text>
+
+    <line x1="14" y1="44" x2="44" y2="44" stroke="#16a34a" stroke-width="2.5"/>
+    <text x="52" y="48" font-size="12" fill="#374151"><tspan font-weight="600">Reinhard</tspan></text>
+
+    <line x1="14" y1="66" x2="44" y2="66" stroke="#2563eb" stroke-width="2.8"/>
+    <text x="52" y="70" font-size="12" fill="#374151"><tspan font-weight="600">ACES</tspan> (Crafty)</text>
+  </g>
+
+  <!-- Bottom note -->
+  <text x="340" y="402" text-anchor="middle" font-size="11" fill="#6b7280" font-style="italic">ACES gives smooth highlight rolloff with cinematic contrast in the midtones.</text>
+  <text x="340" y="420" text-anchor="middle" font-size="11" fill="#6b7280" font-style="italic">Hard clamp clips abruptly; Reinhard desaturates the midtones too aggressively.</text>
+</svg>

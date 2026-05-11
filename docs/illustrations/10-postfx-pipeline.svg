@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 440" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="440" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Post-Processing Pipeline (HDR → Display)</text>
+
+  <defs>
+    <marker id="ppArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+    </marker>
+  </defs>
+
+  <!-- Top: G-buffer + Lighting → HDR target -->
+  <g transform="translate(40, 60)">
+    <rect width="160" height="56" fill="#f3f4f6" stroke="#374151" stroke-width="1.4" rx="4"/>
+    <text x="80" y="22" text-anchor="middle" font-weight="700" fill="#111827">G-buffer</text>
+    <text x="80" y="40" text-anchor="middle" font-size="11" font-style="italic" fill="#6b7280">albedo · normal · depth</text>
+  </g>
+  <line x1="200" y1="88" x2="240" y2="88" stroke="#374151" stroke-width="1.6" marker-end="url(#ppArr)"/>
+
+  <g transform="translate(240, 60)">
+    <rect width="160" height="56" fill="#fef3c7" stroke="#92400e" stroke-width="1.4" rx="4"/>
+    <text x="80" y="22" text-anchor="middle" font-weight="700" fill="#92400e">LightingPass</text>
+    <text x="80" y="40" text-anchor="middle" font-size="11" font-style="italic" fill="#92400e">+ shadows</text>
+  </g>
+  <line x1="400" y1="88" x2="440" y2="88" stroke="#374151" stroke-width="1.6" marker-end="url(#ppArr)"/>
+
+  <g transform="translate(440, 60)">
+    <rect width="160" height="56" fill="#fde68a" stroke="#92400e" stroke-width="2" rx="4"/>
+    <text x="80" y="22" text-anchor="middle" font-weight="700" fill="#92400e">HDR target</text>
+    <text x="80" y="40" text-anchor="middle" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#92400e">rgba16float</text>
+  </g>
+
+  <!-- Side input: SSAO/SSGI feed into lighting -->
+  <g transform="translate(240, 140)">
+    <rect width="160" height="40" fill="#dcfce7" stroke="#166534" stroke-width="1.2" rx="4"/>
+    <text x="80" y="16" text-anchor="middle" font-weight="600" fill="#166534" font-size="11">SSAO + SSGI</text>
+    <text x="80" y="32" text-anchor="middle" font-size="10" font-style="italic" fill="#166534">G-buffer → AO + GI</text>
+  </g>
+  <line x1="320" y1="140" x2="320" y2="116" stroke="#374151" stroke-width="1.4" marker-end="url(#ppArr)"/>
+
+  <!-- Vertical arrow down from HDR -->
+  <line x1="520" y1="116" x2="520" y2="200" stroke="#374151" stroke-width="2" marker-end="url(#ppArr)"/>
+
+  <!-- Middle row: 6 post-processing passes that feed back into HDR -->
+  <g transform="translate(40, 200)">
+    <text x="14" y="0" font-weight="600" fill="#374151" font-size="12">Post-FX chain (each modifies HDR in-place):</text>
+  </g>
+
+  <!-- 6 boxes in a row -->
+  <g font-size="12" text-anchor="middle">
+
+    <g transform="translate(40, 220)">
+      <rect width="130" height="64" fill="#dbeafe" stroke="#1e40af" stroke-width="1.4" rx="4"/>
+      <text x="65" y="22" font-weight="700" fill="#1e40af">TAA</text>
+      <text x="65" y="40" font-size="11" fill="#1e40af">jitter +</text>
+      <text x="65" y="54" font-size="11" fill="#1e40af">history blend</text>
+    </g>
+
+    <g transform="translate(180, 220)">
+      <rect width="130" height="64" fill="#fce7f3" stroke="#9d174d" stroke-width="1.4" rx="4"/>
+      <text x="65" y="22" font-weight="700" fill="#9d174d">DOF</text>
+      <text x="65" y="40" font-size="11" fill="#9d174d">CoC +</text>
+      <text x="65" y="54" font-size="11" fill="#9d174d">separable blur</text>
+    </g>
+
+    <g transform="translate(320, 220)">
+      <rect width="130" height="64" fill="#fef3c7" stroke="#92400e" stroke-width="1.4" rx="4"/>
+      <text x="65" y="22" font-weight="700" fill="#92400e">God rays</text>
+      <text x="65" y="40" font-size="11" fill="#92400e">radial samples</text>
+      <text x="65" y="54" font-size="11" fill="#92400e">from sun</text>
+    </g>
+
+    <g transform="translate(460, 220)">
+      <rect width="130" height="64" fill="#ede9fe" stroke="#5b21b6" stroke-width="1.4" rx="4"/>
+      <text x="65" y="22" font-weight="700" fill="#5b21b6">Bloom</text>
+      <text x="65" y="40" font-size="11" fill="#5b21b6">prefilter +</text>
+      <text x="65" y="54" font-size="11" fill="#5b21b6">Gaussian blur</text>
+    </g>
+
+    <g transform="translate(600, 220)">
+      <rect width="130" height="64" fill="#dcfce7" stroke="#166534" stroke-width="1.4" rx="4"/>
+      <text x="65" y="22" font-weight="700" fill="#166534">Auto-exposure</text>
+      <text x="65" y="40" font-size="11" fill="#166534">histogram +</text>
+      <text x="65" y="54" font-size="11" fill="#166534">temporal smooth</text>
+    </g>
+
+    <g transform="translate(740, 220)">
+      <rect width="140" height="64" fill="#f3f4f6" stroke="#374151" stroke-width="1.4" rx="4"/>
+      <text x="70" y="22" font-weight="700" fill="#111827">(others)</text>
+      <text x="70" y="40" font-size="11" fill="#374151">motion blur,</text>
+      <text x="70" y="54" font-size="11" fill="#374151">CA, vignette…</text>
+    </g>
+  </g>
+
+  <!-- Down arrow from final pre-composite to composite -->
+  <line x1="460" y1="284" x2="460" y2="320" stroke="#374151" stroke-width="2" marker-end="url(#ppArr)"/>
+
+  <!-- Composite pass -->
+  <g transform="translate(280, 320)">
+    <rect width="360" height="60" fill="#fce7f3" stroke="#9d174d" stroke-width="2" rx="6"/>
+    <text x="180" y="22" text-anchor="middle" font-weight="700" fill="#9d174d">CompositePass</text>
+    <text x="180" y="40" text-anchor="middle" font-size="11" fill="#9d174d">apply exposure · ACES tonemap · color grading (LUT)</text>
+    <text x="180" y="54" text-anchor="middle" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#9d174d">→ swap chain</text>
+  </g>
+
+  <!-- Final arrow → display -->
+  <line x1="640" y1="350" x2="700" y2="350" stroke="#374151" stroke-width="2" marker-end="url(#ppArr)"/>
+
+  <g transform="translate(700, 320)">
+    <rect width="180" height="60" fill="#1e293b" stroke="#374151" stroke-width="1.5" rx="4"/>
+    <text x="90" y="22" text-anchor="middle" font-weight="700" fill="#fef3c7">Display</text>
+    <text x="90" y="40" text-anchor="middle" font-size="11" fill="#fef3c7" font-style="italic">SDR or HDR</text>
+    <text x="90" y="54" text-anchor="middle" font-size="11" fill="#fef3c7" font-style="italic">monitor</text>
+  </g>
+
+  <!-- Side annotation: each pass reads & writes HDR -->
+  <text x="460" y="404" text-anchor="middle" font-size="11" fill="#6b7280" font-style="italic">All post-FX passes read from and write to the HDR target — composite is the only pass that produces SDR/swap-chain output.</text>
+</svg>

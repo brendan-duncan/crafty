@@ -10,7 +10,10 @@ The final step before presentation is **tone mapping** — converting HDR pixel 
 
 ### ACES Filmic Tone Mapping
 
-Crafty uses the **ACES** (Academy Color Encoding System) filmic tone mapping curve, which provides a natural, cinematic look with good highlight rolloff:
+Crafty uses the **ACES** (Academy Color Encoding System) filmic tone mapping curve, which provides a natural, cinematic look with good highlight rolloff. Compared to a hard clamp (which clips bright values) or Reinhard (which desaturates the midtones aggressively), ACES holds the midrange and rolls off smoothly:
+
+![Tone-mapping operator curves](../illustrations/10-tonemap-curves.svg)
+
 
 ```wgsl
 // ── from composite pass shader ──
@@ -45,7 +48,10 @@ For SDR output, the tone-mapped value is converted from linear to sRGB gamma spa
 
 ## 10.2 Bloom
 
-Bloom simulates the scattering of bright light in a camera lens, creating a soft glow around bright regions. Crafty's `BloomPass` follows a standard three-step process:
+Bloom simulates the scattering of bright light in a camera lens, creating a soft glow around bright regions. Crafty's `BloomPass` follows a standard three-step process — extract the bright pixels, blur them, and add the result back:
+
+![Bloom: prefilter → separable Gaussian → composite](../illustrations/10-bloom-pipeline.svg)
+
 
 **1. Prefilter.** Extract bright pixels from the HDR target, applying a knee curve that smoothly transitions from unbloomed to bloomed:
 
@@ -80,7 +86,10 @@ The bloom intensity and threshold are adjustable parameters exposed through the 
 
 ## 10.3 Temporal Anti-Aliasing (TAA)
 
-TAA `TAAPass` reduces aliasing by averaging the current frame with previous frames, using sub-pixel jitter to shift the sample pattern each frame.
+TAA `TAAPass` reduces aliasing by averaging the current frame with previous frames, using sub-pixel jitter to shift the sample pattern each frame. The Halton (2,3) sequence spreads samples evenly within a pixel, so accumulating ~8 frames approximates 8× supersampling:
+
+![TAA: sub-pixel jitter and temporal reprojection](../illustrations/10-taa-jitter.svg)
+
 
 ### Jitter
 
@@ -126,7 +135,10 @@ historyColor = clamp(historyColor, minColor, maxColor);
 
 ## 10.4 Screen-Space Ambient Occlusion (SSAO)
 
-SSAO estimates ambient light occlusion by sampling the depth buffer around each pixel. The `SSAOPass` (`src/renderer/passes/ssao_pass.ts`) computes an occlusion factor for each screen pixel.
+SSAO estimates ambient light occlusion by sampling the depth buffer around each pixel. The `SSAOPass` (`src/renderer/passes/ssao_pass.ts`) computes an occlusion factor for each screen pixel by sending sample rays into a hemisphere oriented to the surface normal:
+
+![SSAO: hemisphere of samples around the surface](../illustrations/10-ssao-hemisphere.svg)
+
 
 ### Algorithm
 
@@ -161,7 +173,10 @@ totalWeight += weight * gaussianWeight;
 
 ## 10.5 Depth of Field (DOF)
 
-The `DofPass` (`src/renderer/passes/dof_pass.ts`) simulates camera lens defocus blur. Objects at a specific focal distance are sharp; objects farther or closer become increasingly blurred.
+The `DofPass` (`src/renderer/passes/dof_pass.ts`) simulates camera lens defocus blur. Objects at a specific focal distance are sharp; objects farther or closer become increasingly blurred. Geometrically, off-focus points project to a disk on the sensor instead of a single point — that disk's diameter is the **circle of confusion**:
+
+![Depth of field: circle of confusion](../illustrations/10-dof-circle-of-confusion.svg)
+
 
 ### Circle of Confusion
 
@@ -187,7 +202,10 @@ The blur uses a Poisson-disk kernel where the number of samples is proportional 
 
 ## 10.6 God Rays (Crepuscular Rays)
 
-The `GodrayPass` (`src/renderer/passes/godray_pass.ts`) renders volumetric light shafts — rays of light that appear when sunlight filters through semitransparent occluders (clouds, tree leaves).
+The `GodrayPass` (`src/renderer/passes/godray_pass.ts`) renders volumetric light shafts — rays of light that appear when sunlight filters through semitransparent occluders (clouds, tree leaves). The trick is that we don't actually march through 3D space: we just sample the screen-space HDR image along a 1D ray pointing back toward the sun, accumulating luminance as we go:
+
+![God rays: radial sampling from the sun](../illustrations/10-godray-sampling.svg)
+
 
 ### Radial Blur from Light Source
 
@@ -216,7 +234,10 @@ The sun screen position, density, decay, and intensity are configurable paramete
 
 ## 10.7 Auto-Exposure
 
-The `AutoExposurePass` (`src/renderer/passes/auto_exposure_pass.ts`) computes a scene-adaptive exposure value using compute shaders. It adapts the overall brightness when the scene changes (e.g., walking from indoors to sunlight).
+The `AutoExposurePass` (`src/renderer/passes/auto_exposure_pass.ts`) computes a scene-adaptive exposure value using compute shaders. It adapts the overall brightness when the scene changes (e.g., walking from indoors to sunlight). The mechanism is a per-frame log-luminance histogram, smoothed temporally so that exposure tracks scene changes without snapping:
+
+![Auto-exposure histogram and adaptation](../illustrations/10-autoexposure-histogram.svg)
+
 
 ### Histogram Computation
 
@@ -259,7 +280,10 @@ When no LUT is active, the composite pass applies a simple contrast, saturation,
 
 ### Summary
 
-Post-processing transforms the raw HDR render into the final image:
+Post-processing transforms the raw HDR render into the final image. The diagram below shows how the passes chain together — every post-FX stage reads from and writes back to the HDR target until the composite pass produces SDR output for the swap chain:
+
+![Post-processing pipeline overview](../illustrations/10-postfx-pipeline.svg)
+
 
 | Pass | Input | Output | Purpose |
 |------|-------|--------|---------|

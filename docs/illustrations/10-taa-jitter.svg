@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 460" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="880" height="460" fill="#ffffff"/>
+  <text x="440" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">TAA: Sub-pixel Jitter + Temporal Reprojection</text>
+
+  <defs>
+    <marker id="taaArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+    </marker>
+  </defs>
+
+  <!-- ===== LEFT: jitter pattern within one pixel ===== -->
+  <g transform="translate(40, 60)">
+    <text x="180" y="6" text-anchor="middle" font-weight="700" fill="#111827">Halton (2,3) jitter — one pixel</text>
+    <text x="180" y="22" text-anchor="middle" font-size="11" font-style="italic" fill="#6b7280">8 consecutive frames sample the same pixel</text>
+
+    <!-- Pixel border -->
+    <rect x="40" y="42" width="280" height="280" fill="#f9fafb" stroke="#374151" stroke-width="1.5"/>
+
+    <!-- Center crosshair -->
+    <line x1="180" y1="42" x2="180" y2="322" stroke="#9ca3af" stroke-width="0.8" stroke-dasharray="4,3"/>
+    <line x1="40" y1="182" x2="320" y2="182" stroke="#9ca3af" stroke-width="0.8" stroke-dasharray="4,3"/>
+
+    <!-- Pixel corner labels (top-left and bottom-right) — kept outside the pixel -->
+    <text x="36"  y="36" text-anchor="end" font-size="10" fill="#6b7280">(−0.5, −0.5)</text>
+    <text x="324" y="338" font-size="10" fill="#6b7280">(+0.5, +0.5)</text>
+
+    <!-- 8 jitter samples — center 180,182, range ±140px -->
+    <!-- Halton (2,3): Frame i positions in [0,1]² mapped to [−0.5,+0.5]² then scaled to ±140 -->
+    <g font-family="ui-monospace, Consolas, monospace" font-size="10">
+      <circle cx="180" cy="135" r="6" fill="#dc2626" opacity="0.9"/>
+      <text x="190" y="139" fill="#dc2626">1</text>
+
+      <circle cx="110" cy="228" r="6" fill="#ea580c" opacity="0.85"/>
+      <text x="120" y="232" fill="#ea580c">2</text>
+
+      <circle cx="250" cy="89"  r="6" fill="#ca8a04" opacity="0.85"/>
+      <text x="260" y="93" fill="#ca8a04">3</text>
+
+      <circle cx="75"  cy="167" r="6" fill="#16a34a" opacity="0.85"/>
+      <text x="65"  y="171" text-anchor="end" fill="#16a34a">4</text>
+
+      <circle cx="215" cy="260" r="6" fill="#0891b2" opacity="0.85"/>
+      <text x="225" y="264" fill="#0891b2">5</text>
+
+      <circle cx="145" cy="120" r="6" fill="#2563eb" opacity="0.85"/>
+      <text x="135" y="124" text-anchor="end" fill="#2563eb">6</text>
+
+      <circle cx="285" cy="199" r="6" fill="#7c3aed" opacity="0.85"/>
+      <text x="295" y="203" fill="#7c3aed">7</text>
+
+      <circle cx="58"  cy="292" r="6" fill="#c026d3" opacity="0.85"/>
+      <text x="48"  y="296" text-anchor="end" fill="#c026d3">8</text>
+    </g>
+  </g>
+
+  <!-- ===== RIGHT: reprojection + history blend ===== -->
+  <g transform="translate(420, 60)">
+    <text x="220" y="6" text-anchor="middle" font-weight="700" fill="#111827">Per frame: blend with reprojected history</text>
+    <text x="220" y="22" text-anchor="middle" font-size="11" font-style="italic" fill="#6b7280">history is fetched along the motion vector</text>
+
+    <!-- Motion vector label ABOVE the boxes (in safe whitespace area) -->
+    <text x="220" y="48" text-anchor="middle" font-size="11" font-style="italic" fill="#374151">motion vector</text>
+    <!-- Curved arrow from currentUV up over the gap and down to historyUV (illustrative, no overlap with boxes) -->
+    <path d="M 320,82 C 320,52 120,52 120,82" fill="none" stroke="#374151" stroke-width="1.4" stroke-dasharray="4,3" marker-end="url(#taaArr)"/>
+
+    <!-- Frame N-1 (history) -->
+    <g transform="translate(0, 80)">
+      <rect width="180" height="120" fill="#dbeafe" stroke="#1e40af" stroke-width="1.4" rx="4"/>
+      <text x="90" y="22" text-anchor="middle" font-weight="700" fill="#1e40af">Frame N−1</text>
+      <text x="90" y="40" text-anchor="middle" font-size="11" fill="#1e40af" font-style="italic">history texture</text>
+
+      <circle cx="120" cy="80" r="6" fill="#1e40af"/>
+      <text x="116" y="100" text-anchor="end" font-size="11" fill="#1e40af" font-family="ui-monospace, Consolas, monospace">historyUV</text>
+    </g>
+
+    <!-- Frame N (current) -->
+    <g transform="translate(260, 80)">
+      <rect width="180" height="120" fill="#fce7f3" stroke="#9d174d" stroke-width="1.4" rx="4"/>
+      <text x="90" y="22" text-anchor="middle" font-weight="700" fill="#9d174d">Frame N</text>
+      <text x="90" y="40" text-anchor="middle" font-size="11" fill="#9d174d" font-style="italic">jittered current</text>
+
+      <circle cx="60" cy="80" r="6" fill="#9d174d"/>
+      <text x="68" y="100" font-size="11" fill="#9d174d" font-family="ui-monospace, Consolas, monospace">currentUV</text>
+    </g>
+
+    <!-- Output: blend (positioned below the boxes) -->
+    <g transform="translate(80, 230)">
+      <rect width="280" height="74" fill="#dcfce7" stroke="#166534" stroke-width="1.5" rx="6"/>
+      <text x="140" y="22" text-anchor="middle" font-weight="700" fill="#166534">Blend</text>
+      <text x="140" y="44" text-anchor="middle" font-family="ui-monospace, Consolas, monospace" font-size="11" fill="#166534">result = lerp(history, current, 0.1)</text>
+      <text x="140" y="62" text-anchor="middle" font-size="11" font-style="italic" fill="#166534">10% current + 90% reprojected history</text>
+    </g>
+
+    <!-- Arrows from each frame down into blend -->
+    <line x1="90"  y1="200" x2="160" y2="230" stroke="#374151" stroke-width="1.4" marker-end="url(#taaArr)"/>
+    <line x1="350" y1="200" x2="280" y2="230" stroke="#374151" stroke-width="1.4" marker-end="url(#taaArr)"/>
+
+    <!-- Neighbourhood clamp note -->
+    <g transform="translate(80, 320)">
+      <rect width="280" height="56" fill="#fef3c7" stroke="#92400e" stroke-width="1" rx="4"/>
+      <text x="14" y="20" font-weight="600" fill="#92400e">Neighbourhood clamp</text>
+      <text x="14" y="38" font-size="11" fill="#92400e">history color clamped to AABB of current</text>
+      <text x="14" y="50" font-size="11" fill="#92400e">3×3 neighbourhood → no ghosting</text>
+    </g>
+  </g>
+
+  <!-- Bottom note -->
+  <text x="440" y="446" text-anchor="middle" font-size="11" fill="#6b7280" font-style="italic">Each frame is rendered with a different sub-pixel offset; accumulating ~8 frames gives effective 8× supersampling.</text>
+</svg>

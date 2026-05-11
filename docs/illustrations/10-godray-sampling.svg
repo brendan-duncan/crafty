@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 420" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="760" height="420" fill="#ffffff"/>
+  <text x="380" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">God Rays: Radial Sampling from the Sun</text>
+
+  <defs>
+    <radialGradient id="sunGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#fef3c7" stop-opacity="1"/>
+      <stop offset="40%" stop-color="#fbbf24" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#fbbf24" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Screen-space view: a "screen" rectangle showing the scene -->
+  <g transform="translate(40, 60)">
+    <rect width="500" height="320" fill="#0f172a" stroke="#374151" stroke-width="1.5"/>
+
+    <!-- Sun glow at top-right (in screen space) -->
+    <circle cx="400" cy="60" r="80" fill="url(#sunGlow)"/>
+    <circle cx="400" cy="60" r="14" fill="#fef3c7"/>
+    <text x="400" y="32" text-anchor="middle" font-size="11" font-weight="700" fill="#fbbf24">sun (screen pos)</text>
+
+    <!-- Some occluders silhouetted against sky -->
+    <!-- Tree canopy 1 -->
+    <ellipse cx="120" cy="200" rx="40" ry="60" fill="#020617"/>
+    <rect x="115" y="240" width="10" height="60" fill="#020617"/>
+    <!-- Tree canopy 2 -->
+    <ellipse cx="220" cy="220" rx="35" ry="50" fill="#020617"/>
+    <rect x="216" y="250" width="8" height="50" fill="#020617"/>
+    <!-- Cloud silhouette -->
+    <path d="M 280,80 Q 300,60 320,80 Q 340,60 360,80 Q 380,80 380,100 Q 360,120 280,110 Q 260,100 280,80 Z" fill="#020617" opacity="0.85"/>
+
+    <!-- Ground -->
+    <rect x="0" y="280" width="500" height="40" fill="#1e293b"/>
+
+    <!-- Pixel under consideration (where we are computing the godray) -->
+    <circle cx="180" cy="300" r="5" fill="#dc2626"/>
+    <text x="190" y="304" font-size="11" fill="#fca5a5" font-weight="600">pixel</text>
+
+    <!-- Radial sample points along the ray from pixel to sun -->
+    <!-- Pixel: (180, 300), Sun: (400, 60). Direction normalized: dx=220, dy=-240, len=325. step ≈ (24, -27) -->
+    <g>
+      <line x1="180" y1="300" x2="400" y2="60" stroke="#fbbf24" stroke-width="1" stroke-dasharray="3,3" opacity="0.8"/>
+
+      <!-- 8 sample circles along the ray -->
+      <circle cx="207" cy="270" r="3" fill="#fbbf24"/>
+      <circle cx="234" cy="240" r="3" fill="#fbbf24"/>
+      <circle cx="261" cy="210" r="3" fill="#fbbf24"/>
+      <circle cx="288" cy="180" r="3" fill="#fbbf24"/>
+      <circle cx="315" cy="150" r="3" fill="#fbbf24"/>
+      <circle cx="342" cy="120" r="3" fill="#fbbf24"/>
+      <circle cx="369" cy="90"  r="3" fill="#fbbf24"/>
+    </g>
+
+    <!-- Label the ray -->
+    <text x="270" y="200" text-anchor="middle" font-size="11" fill="#fef3c7" font-style="italic" transform="rotate(-47, 270, 200)">samples toward sun</text>
+  </g>
+
+  <!-- Right-side legend -->
+  <g transform="translate(560, 60)">
+    <rect width="180" height="320" fill="#f9fafb" stroke="#9ca3af" rx="6"/>
+    <text x="14" y="22" font-weight="700" fill="#111827">Per pixel</text>
+
+    <text x="14" y="48" font-size="12" fill="#374151">1. ray = sunPos − pixelUV</text>
+
+    <text x="14" y="74" font-size="12" fill="#374151">2. step = ray / N samples</text>
+
+    <text x="14" y="100" font-size="12" fill="#374151">3. for i in 0..N:</text>
+    <text x="14" y="116" font-size="11" fill="#374151">    sample HDR at pixel +</text>
+    <text x="14" y="130" font-size="11" fill="#374151">    i · step</text>
+    <text x="14" y="146" font-size="11" fill="#374151">    accumulate luminance</text>
+
+    <text x="14" y="174" font-size="12" fill="#374151">4. multiply by decay</text>
+    <text x="14" y="190" font-size="12" fill="#374151">    + density</text>
+
+    <text x="14" y="218" font-size="12" font-style="italic" fill="#6b7280">Occluders show as dark</text>
+    <text x="14" y="234" font-size="12" font-style="italic" fill="#6b7280">samples — between them,</text>
+    <text x="14" y="250" font-size="12" font-style="italic" fill="#6b7280">bright sky leaks through,</text>
+    <text x="14" y="266" font-size="12" font-style="italic" fill="#6b7280">producing the shaft effect.</text>
+
+    <text x="14" y="294" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#dc2626">hdrColor +=</text>
+    <text x="14" y="308" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#dc2626">  godrayColor * intensity</text>
+  </g>
+
+  <text x="380" y="406" text-anchor="middle" font-size="11" fill="#6b7280" font-style="italic">A cheap radial blur of luminance — looks like volumetric scattering, costs only a 1D loop per pixel.</text>
+</svg>
