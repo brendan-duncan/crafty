@@ -151,8 +151,20 @@ export class TouchControls {
 
   private readonly _lookSensitivity: number;
 
+  private readonly _onGlobalTouchEnd: (e: TouchEvent) => void;
+  private readonly _onVisibilityChange: () => void;
+  private readonly _onWindowBlur: () => void;
+
   constructor(private _canvas: HTMLCanvasElement, private _opts: TouchControlsOptions) {
     this._lookSensitivity = _opts.lookSensitivity ?? LOOK_SENSITIVITY;
+
+    this._onGlobalTouchEnd   = (e) => this._reconcileTouches(e.touches);
+    this._onVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') {
+        this._releaseAllTouches();
+      }
+    };
+    this._onWindowBlur = () => this._releaseAllTouches();
 
     this._root = document.createElement('div');
     this._root.style.cssText = [
@@ -261,6 +273,15 @@ export class TouchControls {
     this._btnMenu.addEventListener('touchstart', (e) => { e.preventDefault(); this._btnMenu.style.filter = 'brightness(1.5)'; }, { passive: false });
     this._btnMenu.addEventListener('touchend',    onMenuTap, { passive: false });
     this._btnMenu.addEventListener('touchcancel', () => { this._btnMenu.style.filter = ''; }, { passive: false });
+
+    // iOS Safari occasionally drops touchend/touchcancel during system gestures
+    // (notifications, app-switcher peek, edge swipes), leaving _joyTouchId or
+    // _lookTouchId stuck and the controls unresponsive. Reconcile against the
+    // live touches list whenever any touch ends, and reset on visibility loss.
+    document.addEventListener('touchend',         this._onGlobalTouchEnd, { passive: true, capture: true });
+    document.addEventListener('touchcancel',      this._onGlobalTouchEnd, { passive: true, capture: true });
+    document.addEventListener('visibilitychange', this._onVisibilityChange);
+    window.addEventListener('blur',               this._onWindowBlur);
   }
 
   private _detachEvents(): void {
@@ -272,6 +293,55 @@ export class TouchControls {
     this._canvas.removeEventListener('touchmove',  this._onLookMove);
     this._canvas.removeEventListener('touchend',   this._onLookEnd);
     this._canvas.removeEventListener('touchcancel',this._onLookEnd);
+    document.removeEventListener('touchend',         this._onGlobalTouchEnd, true);
+    document.removeEventListener('touchcancel',      this._onGlobalTouchEnd, true);
+    document.removeEventListener('visibilitychange', this._onVisibilityChange);
+    window.removeEventListener('blur',               this._onWindowBlur);
+  }
+
+  /**
+   * Drops any tracked touch ID that no longer appears in the live `touches`
+   * list. Guards against iOS dropping touchend/touchcancel events.
+   */
+  private _reconcileTouches(active: TouchList): void {
+    const has = (id: number): boolean => {
+      for (let i = 0; i < active.length; i++) {
+        if (active[i].identifier === id) {
+          return true;
+        }
+      }
+      return false;
+    };
+    if (this._joyTouchId !== null && !has(this._joyTouchId)) {
+      this._joyTouchId = null;
+      this._setMovement(0, 0);
+      this._stick.style.transform = 'translate(0px, 0px)';
+    }
+    if (this._lookTouchId !== null && !has(this._lookTouchId)) {
+      this._lookTouchId = null;
+    }
+  }
+
+  /**
+   * Hard reset on visibility loss / window blur — backgrounding the page on iOS
+   * can leave any combination of touch state stuck.
+   */
+  private _releaseAllTouches(): void {
+    if (this._joyTouchId !== null) {
+      this._joyTouchId = null;
+      this._stick.style.transform = 'translate(0px, 0px)';
+    }
+    this._lookTouchId = null;
+    this._setMovement(0, 0);
+    this._setJump(false);
+    this._setSneak(false);
+    if (this._opts.blockInteraction) {
+      this._opts.blockInteraction.mouseHeld = -1;
+    }
+    this._btnJump.style.filter  = '';
+    this._btnSneak.style.filter = '';
+    this._btnMine.style.filter  = '';
+    this._btnPlace.style.filter = '';
   }
 
   private _bindHoldButton(el: HTMLDivElement, onDown: () => void, onUp: () => void): void {
@@ -315,6 +385,7 @@ export class TouchControls {
   // ── Joystick ─────────────────────────────────────────────────────────────
 
   private _onJoyStart = (e: TouchEvent): void => {
+    this._reconcileTouches(e.touches);
     if (this._joyTouchId !== null) {
       return;
     }
@@ -385,6 +456,7 @@ export class TouchControls {
   // ── Camera look (right-half drag) ────────────────────────────────────────
 
   private _onLookStart = (e: TouchEvent): void => {
+    this._reconcileTouches(e.touches);
     if (this._lookTouchId !== null) {
       return;
     }
