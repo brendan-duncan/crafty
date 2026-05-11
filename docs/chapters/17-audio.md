@@ -6,6 +6,8 @@ Audio in Crafty uses the Web Audio API for spatialised sound effects and backgro
 
 ## 17.1 Web Audio API Fundamentals
 
+![Two routes through the AudioContext: spatial SFX (Buffer → BufferSource → Panner → destination) and music (Buffer → BufferSource → Gain → destination), with the listener and bootstrap notes on the side](../illustrations/17-audio-graph.svg)
+
 The Web Audio API provides an `AudioContext` that manages all audio processing:
 
 ```typescript
@@ -24,6 +26,8 @@ async function loadSound(url: string): Promise<AudioBuffer> {
 ```
 
 ## 17.2 Spatial Audio
+
+![Top-down listener with three sources at different angles; HRTF panning produces per-ear gain values driven by the listener's orientation](../illustrations/17-spatial-panning.svg)
 
 Each `AudioSource` component creates a `PannerNode` that positions the sound in 3D space:
 
@@ -61,7 +65,11 @@ class AudioSource extends Component {
 
 The HRTF panning model provides realistic directional audio — sounds to the left of the camera are quieter in the right ear, and vice versa.
 
+![Inverse distance rolloff curve: gain stays at 1.0 inside refDistance (5 m), then falls off as 5/d, clamping at maxDistance (50 m, gain ≈ 0.1)](../illustrations/17-distance-rolloff.svg)
+
 ## 17.3 Sound Effect Triggers
+
+![Event flow: game events on the left feed AudioManager.playAt(), which spins up a one-shot BufferSource → Panner → destination chain that disposes itself on "ended"](../illustrations/17-event-flow.svg)
 
 Sounds are triggered by game events through a simple audio manager:
 

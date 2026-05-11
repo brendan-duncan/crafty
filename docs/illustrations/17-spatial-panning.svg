@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 460" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="460" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">HRTF Spatial Panning: Listener Orientation Decides Left/Right Mix</text>
+
+  <defs>
+    <marker id="spArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#1e3a8a"/>
+    </marker>
+  </defs>
+
+  <!-- ===== LEFT: top-down scene ===== -->
+  <g transform="translate(40, 60)">
+    <text x="220" y="0" text-anchor="middle" font-weight="700" fill="#111827">Top-down view (listener facing up)</text>
+
+    <rect x="0" y="14" width="440" height="320" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+
+    <!-- Listener at group center (220, 200) -->
+    <!-- Listener body: head circle with forward arrow -->
+    <g transform="translate(220, 200)">
+      <!-- Left ear (cyan) -->
+      <circle cx="-16" cy="0" r="6" fill="#67e8f9" stroke="#0891b2" stroke-width="1.4"/>
+      <text x="-16" y="22" text-anchor="middle" font-size="9" font-weight="700" fill="#155e75">L</text>
+      <!-- Right ear (magenta) -->
+      <circle cx="16" cy="0" r="6" fill="#f0abfc" stroke="#a21caf" stroke-width="1.4"/>
+      <text x="16" y="22" text-anchor="middle" font-size="9" font-weight="700" fill="#701a75">R</text>
+      <!-- Head -->
+      <circle cx="0" cy="0" r="14" fill="#cbd5e1" stroke="#374151" stroke-width="1.6"/>
+      <!-- Nose triangle indicating forward (up = -Y) -->
+      <polygon points="0,-14 -4,-22 4,-22" fill="#374151"/>
+      <!-- Forward arrow -->
+      <line x1="0" y1="-30" x2="0" y2="-60" stroke="#1e3a8a" stroke-width="1.6" marker-end="url(#spArr)"/>
+      <text x="14" y="-50" font-size="10" font-weight="700" fill="#1e3a8a">forward</text>
+    </g>
+
+    <!-- Source 1: directly to the left (loud in L, quiet in R) -->
+    <g transform="translate(80, 200)">
+      <circle cx="0" cy="0" r="9" fill="#67e8f9" stroke="#0891b2" stroke-width="1.4"/>
+      <text x="0" y="-16" text-anchor="middle" font-size="10" font-weight="700" fill="#155e75">A · "left"</text>
+      <text x="0" y="24" text-anchor="middle" font-size="9" fill="#155e75">L 0.95 · R 0.10</text>
+    </g>
+
+    <!-- Source 2: behind-right -->
+    <g transform="translate(310, 270)">
+      <circle cx="0" cy="0" r="9" fill="#fbcfe8" stroke="#a21caf" stroke-width="1.4"/>
+      <text x="0" y="-16" text-anchor="middle" font-size="10" font-weight="700" fill="#701a75">B · "back-right"</text>
+      <text x="0" y="24" text-anchor="middle" font-size="9" fill="#701a75">L 0.20 · R 0.70</text>
+    </g>
+
+    <!-- Source 3: in front, slightly right -->
+    <g transform="translate(280, 80)">
+      <circle cx="0" cy="0" r="9" fill="#e9d5ff" stroke="#7c3aed" stroke-width="1.4"/>
+      <text x="0" y="-12" text-anchor="middle" font-size="10" font-weight="700" fill="#4c1d95">C · "front-right"</text>
+      <text x="0" y="26" text-anchor="middle" font-size="9" fill="#4c1d95">L 0.30 · R 0.80</text>
+    </g>
+
+    <!-- Sub-caption -->
+    <text x="220" y="316" text-anchor="middle" font-size="11" font-style="italic" fill="#6b7280">HRTF also adds elevation cues + small inter-aural delay</text>
+  </g>
+
+  <!-- ===== RIGHT: PannerNode setup ===== -->
+  <g transform="translate(500, 60)">
+    <text x="200" y="0" text-anchor="middle" font-weight="700" fill="#111827">PannerNode configuration</text>
+
+    <rect x="0" y="14" width="400" height="320" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+
+    <g font-family="ui-monospace, Consolas, monospace" font-size="12" fill="#374151" transform="translate(14, 0)">
+      <text x="0" y="38" font-weight="700" fill="#111827">// AudioSource.start()</text>
+      <text x="0" y="58">panner.panningModel = 'HRTF';</text>
+      <text x="0" y="76">panner.distanceModel = 'inverse';</text>
+      <text x="0" y="94">panner.refDistance   = 5;</text>
+      <text x="0" y="112">panner.maxDistance   = 50;</text>
+      <text x="0" y="130">panner.rolloffFactor = 1;</text>
+
+      <text x="0" y="166" font-weight="700" fill="#111827">// each frame</text>
+      <text x="0" y="186">listener.positionX/Y/Z = camera.pos</text>
+      <text x="0" y="204">listener.forwardX/Y/Z = camera.fwd</text>
+      <text x="0" y="222">listener.upX/Y/Z      = camera.up</text>
+
+      <text x="0" y="254">panner.positionX/Y/Z = source.pos</text>
+    </g>
+
+    <text x="200" y="304" text-anchor="middle" font-size="10" font-style="italic" fill="#6b7280">browsers convolve with anatomical impulse responses</text>
+  </g>
+</svg>

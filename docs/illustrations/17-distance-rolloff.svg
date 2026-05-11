@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 460" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="460" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Inverse Distance Rolloff: gain = refDistance / (refDistance + (d − refDistance))</text>
+
+  <!-- ===== LEFT: gain vs distance plot ===== -->
+  <g transform="translate(40, 60)">
+    <text x="220" y="0" text-anchor="middle" font-weight="700" fill="#111827">Gain vs distance · refDistance = 5, maxDistance = 50</text>
+
+    <rect x="0" y="14" width="440" height="320" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+
+    <!-- Plot inner: x=40..420, y=30..280. Distance 0..60 mapped to x=40..420 (380 px → 6.33 px/block).
+         Gain 0..1 mapped to y=280..30 (250 px high, inverted). -->
+
+    <!-- Axes -->
+    <line x1="40" y1="280" x2="420" y2="280" stroke="#374151" stroke-width="1"/>
+    <line x1="40" y1="30"  x2="40"  y2="280" stroke="#374151" stroke-width="1"/>
+
+    <!-- Y axis labels -->
+    <g font-family="ui-monospace, Consolas, monospace" font-size="10" fill="#6b7280">
+      <text x="34" y="34"  text-anchor="end">1.0</text>
+      <text x="34" y="96"  text-anchor="end">0.75</text>
+      <text x="34" y="158" text-anchor="end">0.5</text>
+      <text x="34" y="220" text-anchor="end">0.25</text>
+      <text x="34" y="282" text-anchor="end">0</text>
+    </g>
+
+    <!-- X axis labels -->
+    <g font-family="ui-monospace, Consolas, monospace" font-size="10" fill="#6b7280" text-anchor="middle">
+      <text x="40"  y="296">0</text>
+      <text x="103" y="296">10</text>
+      <text x="167" y="296">20</text>
+      <text x="230" y="296">30</text>
+      <text x="293" y="296">40</text>
+      <text x="357" y="296">50</text>
+      <text x="420" y="296">60</text>
+    </g>
+    <text x="230" y="312" text-anchor="middle" font-size="11" font-style="italic" fill="#6b7280">distance (blocks)</text>
+
+    <!-- refDistance vertical line (d=5 → x=40 + 5/60*380 = 71.67) -->
+    <line x1="72" y1="30" x2="72" y2="280" stroke="#16a34a" stroke-width="1.4" stroke-dasharray="4,3"/>
+    <text x="74" y="42" font-size="10" font-weight="700" fill="#16a34a">refDistance</text>
+    <text x="74" y="56" font-size="10" fill="#16a34a">d = 5 → gain 1.0</text>
+
+    <!-- maxDistance vertical line (d=50 → x=40 + 50/60*380 = 356.67) -->
+    <line x1="357" y1="30" x2="357" y2="280" stroke="#dc2626" stroke-width="1.4" stroke-dasharray="4,3"/>
+    <text x="353" y="42" text-anchor="end" font-size="10" font-weight="700" fill="#dc2626">maxDistance</text>
+    <text x="353" y="56" text-anchor="end" font-size="10" fill="#dc2626">d = 50 → gain ~0.1</text>
+
+    <!-- Curve. gain(d) = ref / (ref + 1 * (d - ref)) for d >= ref, gain=1 for d < ref.
+         d=0..5: gain=1   → y=30
+         d=5: gain=1      → y=30
+         d=10: gain=5/10=0.5 → y=280-0.5*250=155
+         d=15: 5/15=0.333 → y=280-83=197
+         d=20: 5/20=0.25 → y=280-62.5=217.5
+         d=25: 5/25=0.2 → y=280-50=230
+         d=30: 5/30=0.167 → y=280-42=238
+         d=40: 5/40=0.125 → y=280-31=249
+         d=50: 5/50=0.1 → y=280-25=255
+         d=60: 5/60=0.083 → y=280-21=259
+
+         Plot x: 40 + d/60 * 380 -->
+    <!-- Plot points (d, x, y):
+         (0, 40, 30) (5, 72, 30) (10, 103, 155) (15, 135, 197) (20, 167, 217)
+         (25, 198, 230) (30, 230, 238) (40, 293, 249) (50, 357, 255) (60, 420, 259) -->
+    <path d="M 40 30 L 72 30
+             Q 80 100, 103 155
+             Q 124 195, 135 197
+             L 167 217 L 198 230 L 230 238 L 293 249 L 357 255 L 420 259"
+          fill="none" stroke="#1e3a8a" stroke-width="2.4"/>
+
+    <!-- Annotation point at refDistance -->
+    <circle cx="72" cy="30" r="4" fill="#16a34a"/>
+    <!-- Annotation point at maxDistance -->
+    <circle cx="357" cy="255" r="4" fill="#dc2626"/>
+  </g>
+
+  <!-- ===== RIGHT: parameters + interpretation ===== -->
+  <g transform="translate(500, 60)">
+    <text x="200" y="0" text-anchor="middle" font-weight="700" fill="#111827">Parameters and effect</text>
+
+    <rect x="0" y="14" width="400" height="320" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+
+    <g font-size="12" fill="#374151" transform="translate(14, 0)">
+      <text x="0" y="38" font-weight="700" fill="#111827">refDistance = 5 m</text>
+      <text x="0" y="56" font-size="11">closer than 5 → gain stays at 1.0</text>
+
+      <text x="0" y="86" font-weight="700" fill="#111827">maxDistance = 50 m</text>
+      <text x="0" y="104" font-size="11">further than 50 → gain stops dropping</text>
+      <text x="0" y="120" font-size="11">(does NOT mute — only clamps)</text>
+
+      <text x="0" y="150" font-weight="700" fill="#111827">rolloffFactor = 1</text>
+      <text x="0" y="168" font-size="11">controls slope. 0 = no falloff,</text>
+      <text x="0" y="184" font-size="11">2 = sharper, 0.5 = gentler</text>
+
+      <text x="0" y="216" font-weight="700" fill="#111827">distanceModel = 'inverse'</text>
+      <text x="0" y="234" font-size="11">alternatives: 'linear', 'exponential'</text>
+
+      <text x="0" y="270" fill="#dc2626" font-style="italic">why inverse?</text>
+      <text x="0" y="286" font-size="11" fill="#dc2626">matches real-world acoustics —</text>
+      <text x="0" y="302" font-size="11" fill="#dc2626">each doubling halves perceived volume.</text>
+    </g>
+  </g>
+</svg>

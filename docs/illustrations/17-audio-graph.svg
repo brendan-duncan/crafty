@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 460" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="460" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Web Audio Graph: Two Routes Through the AudioContext</text>
+
+  <defs>
+    <marker id="agArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+    </marker>
+  </defs>
+
+  <!-- ===== Top route: spatial SFX ===== -->
+  <g transform="translate(40, 70)">
+    <text x="0" y="0" font-weight="700" fill="#111827">Spatial SFX route — footsteps, block break, ambient sources</text>
+
+    <!-- Stage boxes 130×64, gap 30 — positions x = 0, 160, 320, 480, 640 -->
+
+    <!-- AudioBuffer -->
+    <g>
+      <rect x="0" y="20" width="130" height="64" fill="#dbeafe" stroke="#2563eb" stroke-width="1.4" rx="6"/>
+      <text x="65" y="44" text-anchor="middle" font-weight="700" fill="#1e3a8a">AudioBuffer</text>
+      <text x="65" y="62" text-anchor="middle" font-size="10" fill="#1e3a8a">decoded .wav</text>
+      <text x="65" y="76" text-anchor="middle" font-size="10" fill="#1e3a8a">(loaded once)</text>
+    </g>
+
+    <line x1="130" y1="52" x2="160" y2="52" stroke="#374151" stroke-width="1.4" marker-end="url(#agArr)"/>
+
+    <!-- BufferSource -->
+    <g>
+      <rect x="160" y="20" width="130" height="64" fill="#fef3c7" stroke="#a16207" stroke-width="1.4" rx="6"/>
+      <text x="225" y="44" text-anchor="middle" font-weight="700" fill="#713f12">BufferSourceNode</text>
+      <text x="225" y="62" text-anchor="middle" font-size="10" fill="#713f12">one-shot, throw-away</text>
+      <text x="225" y="76" text-anchor="middle" font-size="10" fill="#713f12">created per play()</text>
+    </g>
+
+    <line x1="290" y1="52" x2="320" y2="52" stroke="#374151" stroke-width="1.4" marker-end="url(#agArr)"/>
+
+    <!-- PannerNode -->
+    <g>
+      <rect x="320" y="20" width="130" height="64" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.4" rx="6"/>
+      <text x="385" y="44" text-anchor="middle" font-weight="700" fill="#4c1d95">PannerNode</text>
+      <text x="385" y="62" text-anchor="middle" font-size="10" fill="#4c1d95">HRTF + inverse</text>
+      <text x="385" y="76" text-anchor="middle" font-size="10" fill="#4c1d95">distance rolloff</text>
+    </g>
+
+    <line x1="450" y1="52" x2="480" y2="52" stroke="#374151" stroke-width="1.4" marker-end="url(#agArr)"/>
+
+    <!-- destination -->
+    <g>
+      <rect x="480" y="20" width="130" height="64" fill="#dcfce7" stroke="#15803d" stroke-width="1.4" rx="6"/>
+      <text x="545" y="44" text-anchor="middle" font-weight="700" fill="#14532d">destination</text>
+      <text x="545" y="62" text-anchor="middle" font-size="10" fill="#14532d">audioCtx.destination</text>
+      <text x="545" y="76" text-anchor="middle" font-size="10" fill="#14532d">→ speakers</text>
+    </g>
+
+    <!-- Per-frame position update annotation -->
+    <line x1="385" y1="100" x2="385" y2="118" stroke="#7c3aed" stroke-width="1" stroke-dasharray="3,2"/>
+    <text x="385" y="134" text-anchor="middle" font-size="10" font-style="italic" fill="#7c3aed">positionXYZ updated each frame</text>
+  </g>
+
+  <!-- ===== Bottom route: music ===== -->
+  <g transform="translate(40, 240)">
+    <text x="0" y="0" font-weight="700" fill="#111827">Music / UI route — non-spatial, volume-controlled</text>
+
+    <g>
+      <rect x="0" y="20" width="130" height="64" fill="#dbeafe" stroke="#2563eb" stroke-width="1.4" rx="6"/>
+      <text x="65" y="44" text-anchor="middle" font-weight="700" fill="#1e3a8a">AudioBuffer</text>
+      <text x="65" y="62" text-anchor="middle" font-size="10" fill="#1e3a8a">long looping</text>
+      <text x="65" y="76" text-anchor="middle" font-size="10" fill="#1e3a8a">music track</text>
+    </g>
+
+    <line x1="130" y1="52" x2="160" y2="52" stroke="#374151" stroke-width="1.4" marker-end="url(#agArr)"/>
+
+    <g>
+      <rect x="160" y="20" width="130" height="64" fill="#fef3c7" stroke="#a16207" stroke-width="1.4" rx="6"/>
+      <text x="225" y="44" text-anchor="middle" font-weight="700" fill="#713f12">BufferSourceNode</text>
+      <text x="225" y="62" text-anchor="middle" font-size="10" fill="#713f12">loop = true</text>
+      <text x="225" y="76" text-anchor="middle" font-size="10" fill="#713f12">held for the track</text>
+    </g>
+
+    <line x1="290" y1="52" x2="320" y2="52" stroke="#374151" stroke-width="1.4" marker-end="url(#agArr)"/>
+
+    <g>
+      <rect x="320" y="20" width="130" height="64" fill="#fee2e2" stroke="#dc2626" stroke-width="1.4" rx="6"/>
+      <text x="385" y="44" text-anchor="middle" font-weight="700" fill="#7f1d1d">GainNode</text>
+      <text x="385" y="62" text-anchor="middle" font-size="10" fill="#7f1d1d">volume + fades</text>
+      <text x="385" y="76" text-anchor="middle" font-size="10" fill="#7f1d1d">(no panning)</text>
+    </g>
+
+    <line x1="450" y1="52" x2="480" y2="52" stroke="#374151" stroke-width="1.4" marker-end="url(#agArr)"/>
+
+    <g>
+      <rect x="480" y="20" width="130" height="64" fill="#dcfce7" stroke="#15803d" stroke-width="1.4" rx="6"/>
+      <text x="545" y="44" text-anchor="middle" font-weight="700" fill="#14532d">destination</text>
+      <text x="545" y="62" text-anchor="middle" font-size="10" fill="#14532d">audioCtx.destination</text>
+      <text x="545" y="76" text-anchor="middle" font-size="10" fill="#14532d">→ speakers</text>
+    </g>
+
+    <!-- Fade annotation -->
+    <line x1="385" y1="100" x2="385" y2="118" stroke="#dc2626" stroke-width="1" stroke-dasharray="3,2"/>
+    <text x="385" y="134" text-anchor="middle" font-size="10" font-style="italic" fill="#dc2626">gain.linearRampToValueAtTime() for fades</text>
+  </g>
+
+  <!-- ===== AudioContext outer "envelope" indicator on the right ===== -->
+  <g transform="translate(680, 70)">
+    <rect width="200" height="320" fill="#f9fafb" stroke="#9ca3af" stroke-width="1.4" rx="6"/>
+    <text x="100" y="22" text-anchor="middle" font-weight="700" fill="#111827">AudioContext</text>
+
+    <g font-size="11" fill="#374151" transform="translate(14, 0)">
+      <text x="0" y="44">all nodes belong</text>
+      <text x="0" y="60">to one context</text>
+
+      <text x="0" y="92" font-weight="700" fill="#111827">Listener (player)</text>
+      <text x="0" y="110">positionXYZ</text>
+      <text x="0" y="126">forwardXYZ</text>
+      <text x="0" y="142">upXYZ</text>
+      <text x="0" y="160" font-style="italic" fill="#6b7280">updated each frame</text>
+
+      <text x="0" y="194" font-weight="700" fill="#111827">Bootstrap</text>
+      <text x="0" y="212">audioCtx must be</text>
+      <text x="0" y="228">resumed inside a</text>
+      <text x="0" y="244">user gesture (touch,</text>
+      <text x="0" y="260">click, keypress).</text>
+
+      <text x="0" y="294" fill="#dc2626" font-style="italic">browsers block</text>
+      <text x="0" y="310" fill="#dc2626" font-style="italic">autoplaying audio</text>
+    </g>
+  </g>
+</svg>

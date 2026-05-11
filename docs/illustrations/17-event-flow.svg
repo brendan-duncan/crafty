@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 460" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="460" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Event-Driven SFX: Game Event → AudioManager → One-Shot Spatial Source</text>
+
+  <defs>
+    <marker id="efArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+    </marker>
+  </defs>
+
+  <!-- ===== LEFT: game events ===== -->
+  <g transform="translate(40, 60)">
+    <text x="120" y="0" text-anchor="middle" font-weight="700" fill="#111827">Game events</text>
+
+    <rect x="0" y="14" width="240" height="280" fill="#eff6ff" stroke="#2563eb" stroke-width="1.4" rx="6"/>
+
+    <!-- 4 event chips stacked. Each 200×52, x=20, y=30, 92, 154, 216 -->
+    <g font-size="11" fill="#1e3a8a">
+      <!-- Footstep -->
+      <rect x="20" y="30" width="200" height="52" fill="#fff" stroke="#2563eb" stroke-width="1" rx="4"/>
+      <text x="120" y="50" text-anchor="middle" font-weight="700">footstep</text>
+      <text x="120" y="68" text-anchor="middle" font-size="10">surface = grass / stone / wood</text>
+
+      <!-- Break -->
+      <rect x="20" y="92" width="200" height="52" fill="#fff" stroke="#2563eb" stroke-width="1" rx="4"/>
+      <text x="120" y="112" text-anchor="middle" font-weight="700">block broken</text>
+      <text x="120" y="130" text-anchor="middle" font-size="10">at hit position</text>
+
+      <!-- Place -->
+      <rect x="20" y="154" width="200" height="52" fill="#fff" stroke="#2563eb" stroke-width="1" rx="4"/>
+      <text x="120" y="174" text-anchor="middle" font-weight="700">block placed</text>
+      <text x="120" y="192" text-anchor="middle" font-size="10">at new cell</text>
+
+      <!-- Land -->
+      <rect x="20" y="216" width="200" height="52" fill="#fff" stroke="#2563eb" stroke-width="1" rx="4"/>
+      <text x="120" y="236" text-anchor="middle" font-weight="700">player landed</text>
+      <text x="120" y="254" text-anchor="middle" font-size="10">surface + fall speed</text>
+    </g>
+  </g>
+
+  <!-- Arrow to AudioManager -->
+  <line x1="280" y1="200" x2="316" y2="200" stroke="#374151" stroke-width="1.6" marker-end="url(#efArr)"/>
+
+  <!-- ===== MIDDLE: AudioManager ===== -->
+  <g transform="translate(316, 60)">
+    <text x="140" y="0" text-anchor="middle" font-weight="700" fill="#111827">AudioManager</text>
+
+    <rect x="0" y="14" width="280" height="280" fill="#fef3c7" stroke="#a16207" stroke-width="1.4" rx="6"/>
+
+    <text x="14" y="38" font-size="11" font-weight="700" fill="#713f12">playAt(name, position, vol)</text>
+
+    <!-- Buffer lookup table -->
+    <g font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#713f12" transform="translate(14, 0)">
+      <text x="0" y="62" font-weight="700">_sounds: Map&lt;string, AudioBuffer&gt;</text>
+      <text x="0" y="84">  "step_grass"  → ◼</text>
+      <text x="0" y="100">  "step_stone"  → ◼</text>
+      <text x="0" y="116">  "step_wood"   → ◼</text>
+      <text x="0" y="132">  "break_block" → ◼</text>
+      <text x="0" y="148">  "place_block" → ◼</text>
+      <text x="0" y="164">  "land_thud"   → ◼</text>
+      <text x="0" y="186" font-style="italic" fill="#a16207">all preloaded at startup</text>
+    </g>
+
+    <!-- Steps performed -->
+    <g font-size="10" fill="#713f12" transform="translate(14, 200)">
+      <text x="0" y="0" font-weight="700">on each call:</text>
+      <text x="0" y="16">1. lookup buffer by name</text>
+      <text x="0" y="32">2. create new BufferSource + Panner</text>
+      <text x="0" y="48">3. set panner.position = position</text>
+      <text x="0" y="64">4. start; auto-disposed on ended</text>
+    </g>
+  </g>
+
+  <!-- Arrow to one-shot source -->
+  <line x1="596" y1="200" x2="632" y2="200" stroke="#374151" stroke-width="1.6" marker-end="url(#efArr)"/>
+
+  <!-- ===== RIGHT: one-shot spatial source ===== -->
+  <g transform="translate(632, 60)">
+    <text x="120" y="0" text-anchor="middle" font-weight="700" fill="#111827">One-shot source</text>
+
+    <rect x="0" y="14" width="240" height="280" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.4" rx="6"/>
+
+    <g font-family="ui-monospace, Consolas, monospace" font-size="11" fill="#4c1d95" transform="translate(14, 0)">
+      <text x="0" y="38" font-weight="700">BufferSource</text>
+      <text x="0" y="54" font-size="10">  buffer = sounds[name]</text>
+
+      <text x="0" y="84" font-weight="700">↓ connect</text>
+
+      <text x="0" y="114" font-weight="700">PannerNode</text>
+      <text x="0" y="130" font-size="10">  positionX/Y/Z = pos</text>
+      <text x="0" y="146" font-size="10">  HRTF + inverse rolloff</text>
+
+      <text x="0" y="176" font-weight="700">↓ connect</text>
+
+      <text x="0" y="206" font-weight="700">audioCtx.destination</text>
+
+      <text x="0" y="236" font-weight="700">source.start()</text>
+    </g>
+
+    <text x="120" y="278" text-anchor="middle" font-size="10" font-style="italic" fill="#7c3aed">graph released when "ended" fires</text>
+  </g>
+
+  <!-- ===== Bottom: example call ===== -->
+  <g transform="translate(40, 376)">
+    <rect width="840" height="60" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+    <text x="14" y="22" font-weight="700" fill="#111827">Example call from PlayerController.onStep()</text>
+    <g font-family="ui-monospace, Consolas, monospace" font-size="12" fill="#374151" transform="translate(14, 0)">
+      <text x="0" y="46">audio.playAt(`step_${surface}`, this.gameObject.position, 0.6);</text>
+    </g>
+  </g>
+</svg>
