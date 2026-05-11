@@ -2,6 +2,7 @@ import { NetworkClient, type ConnectResult } from '../game/network_client.js';
 import { WorldStorage, createSavedWorld, type SavedWorld } from '../game/world_storage.js';
 import type { WorldSummary } from '../../shared/net_protocol.js';
 import backgroundUrl from '../../assets/crafty.png?url';
+import craftyLogoUrl from '../../favicon.svg?url';
 
 /**
  * The user's choice from the start screen, returned by {@link showStartScreen}.
@@ -90,16 +91,26 @@ export async function showStartScreen(): Promise<StartChoice>
     ].join(';');
     overlay.appendChild(card);
 
+    const logoAndTitle = document.createElement('div');
+    logoAndTitle.style.cssText = 'display:flex;flex-direction:row;gap:8px';
+    card.appendChild(logoAndTitle);
+
+    // ── Logo ──────────────────────────────────────────────────────────── 
+    const logo = document.createElement('img');
+    logo.src = craftyLogoUrl;
+    logo.style.cssText = 'width:64px;height:64px;filter:drop-shadow(0 0 4px rgba(100,200,255,0.6))';
+    logoAndTitle.appendChild(logo);
+
     // ── Title ────────────────────────────────────────────────────────────
     const title = document.createElement('h1');
     title.textContent = 'CRAFTY';
     title.style.cssText = [
-      'margin:0 0 4px', 'text-align:center',
+      'margin:0 0 4px', 
       'font-size:clamp(28px,7vw,44px)', 'font-weight:900',
       'color:#fff', 'letter-spacing:0.14em',
       'text-shadow:0 0 32px rgba(100,200,255,0.4)',
     ].join(';');
-    card.appendChild(title);
+    logoAndTitle.appendChild(title);
 
     // ── Name field (above the tabs) ──────────────────────────────────────
     const nameRow = _createField('Player name', _input({
