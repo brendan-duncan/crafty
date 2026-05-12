@@ -13,27 +13,6 @@ import { CameraControls } from '../src/engine/camera_controls.js';
 import { PbrMaterial } from '../src/renderer/materials/pbr_material.js';
 import { Mesh } from '../src/assets/mesh.js';
 
-function createFallbackCubemap(device: GPUDevice): GPUTexture {
-  const texture = device.createTexture({
-    size: { width: 1, height: 1, depthOrArrayLayers: 6 },
-    format: 'rgba16float',
-    dimension: '2d',
-    usage: 0x04 | 0x02, // TEXTURE_BINDING | COPY_DST
-    mipLevelCount: 1,
-  });
-  // Moderate fallback - 0.5 in float16 (0x3800)
-  const data = new Uint16Array([0x3800, 0x3800, 0x3800, 0x3C00]); // rgb=0.5, a=1.0
-  for (let i = 0; i < 6; i++) {
-    device.queue.writeTexture(
-      { texture, origin: { x: 0, y: 0, z: i } },
-      data,
-      { bytesPerRow: 8 },
-      { width: 1, height: 1 }
-    );
-  }
-  return texture;
-}
-
 async function main() {
   const canvas = document.getElementById('canvas') as HTMLCanvasElement;
   const fpsElement = document.getElementById('fps')!;
@@ -53,19 +32,9 @@ async function main() {
   const planeMesh = Mesh.createPlane(device, 20, 20);
 
   // Create fallback textures
-  const irradianceTex = createFallbackCubemap(device);
-  const prefilterTex = createFallbackCubemap(device);
-  const brdfTex = device.createTexture({
-    size: { width: 1, height: 1 },
-    format: 'rgba16float',
-    usage: 0x04 | 0x02, // TEXTURE_BINDING | COPY_DST
-  });
-  device.queue.writeTexture(
-    { texture: brdfTex },
-    new Uint16Array([0x3C00, 0x0000, 0, 0]), // r=1.0, g=0.0
-    { bytesPerRow: 8 },
-    { width: 1, height: 1 }
-  );
+  const irradianceTex = renderContext.createDefaultCubemap();
+  const prefilterTex = renderContext.createDefaultCubemap();
+  const brdfTex = renderContext.createDefaultBrdfLUT();
 
   // Create materials
   const opaqueMaterial = new PbrMaterial({

@@ -15,7 +15,7 @@ const ALIGNMENT = 256;
 class ProceduralMaterial extends Material {
   readonly shaderId = 'procedural';
 
-  baseColor   = new Float32Array([0.15, 0.35, 0.75, 1.0]);
+  baseColor = new Float32Array([0.15, 0.35, 0.75, 1.0]);
   accentColor = new Float32Array([1.0, 0.3, 0.1, 1.0]);
   patternScale = 2.0;
   time = 0.0;
@@ -96,26 +96,6 @@ class ProceduralMaterial extends Material {
   }
 }
 
-function createFallbackCubemap(device: GPUDevice): GPUTexture {
-  const tex = device.createTexture({
-    size: { width: 1, height: 1, depthOrArrayLayers: 6 },
-    format: 'rgba16float',
-    dimension: '2d',
-    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
-    mipLevelCount: 1,
-  });
-  const data = new Uint16Array([0x3800, 0x3800, 0x3800, 0x3C00]);
-  for (let i = 0; i < 6; i++) {
-    device.queue.writeTexture(
-      { texture: tex, origin: { x: 0, y: 0, z: i } },
-      data,
-      { bytesPerRow: 8 },
-      { width: 1, height: 1 },
-    );
-  }
-  return tex;
-}
-
 async function main() {
   const canvas = document.getElementById('canvas') as HTMLCanvasElement;
   const fpsEl = document.getElementById('fps')!;
@@ -125,36 +105,6 @@ async function main() {
 
   const ctx = await RenderContext.create(canvas);
   const { device } = ctx;
-
-  // IBL fallback textures
-  const irradianceTex = createFallbackCubemap(device);
-  const prefilterTex = createFallbackCubemap(device);
-  const brdfTex = device.createTexture({
-    size: { width: 1, height: 1 },
-    format: 'rgba16float',
-    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
-  });
-  device.queue.writeTexture(
-    { texture: brdfTex },
-    new Uint16Array([0x3C00, 0x0000, 0, 0]),
-    { bytesPerRow: 8 },
-    { width: 1, height: 1 },
-  );
-
-  const iblTextures = {
-    irradiance: irradianceTex,
-    prefiltered: prefilterTex,
-    brdfLut: brdfTex,
-    irradianceView: irradianceTex.createView({ dimension: 'cube' }),
-    prefilteredView: prefilterTex.createView({ dimension: 'cube' }),
-    brdfLutView: brdfTex.createView(),
-    levels: 1,
-    destroy() {
-      irradianceTex.destroy();
-      prefilterTex.destroy();
-      brdfTex.destroy();
-    },
-  };
 
   // Meshes
   const planeMesh = Mesh.createPlane(device, 30, 30);
@@ -182,7 +132,7 @@ async function main() {
 
   // Forward pass + shadow pass
   const SHADOW_SIZE = 2048;
-  const forwardPass = ForwardPass.create(ctx, iblTextures);
+  const forwardPass = ForwardPass.create(ctx);
   const dirShadowTex = device.createTexture({
     label: 'DirShadowTex',
     size: { width: SHADOW_SIZE, height: SHADOW_SIZE },
@@ -194,7 +144,7 @@ async function main() {
 
   // Camera
   const camPos = new Vec3(0, 4, 12);
-  const cameraControls = new CameraControls(0, -0.25, 5, 0.002);
+  const cameraControls = new CameraControls(0, 0, 5, 0.002);
   cameraControls.attach(canvas);
 
   // Animation state

@@ -101,12 +101,30 @@ export class ForwardPass extends RenderPass {
      * unique `material.shaderId`.
      *
      * @param ctx Render context (provides device + framebuffer dimensions).
-     * @param iblTextures Image-based-lighting cubemaps and BRDF LUT bound to the
+     * @param iblTextures Optional image-based-lighting cubemaps and BRDF LUT bound to the
      *   environment slots.
      * @returns A configured `ForwardPass`.
      */
     static create(ctx, iblTextures) {
         const { device, width, height } = ctx;
+        if (!iblTextures) {
+            // Create fallback 1x1 white cubemaps for IBL if not provided
+            const defaultCubemap = ctx.createDefaultCubemap();
+            const defaultBrdfLut = ctx.createDefaultBrdfLUT();
+            iblTextures = {
+                irradiance: defaultCubemap,
+                prefiltered: defaultCubemap,
+                brdfLut: defaultBrdfLut,
+                irradianceView: defaultCubemap.createView({ dimension: 'cube' }),
+                prefilteredView: defaultCubemap.createView({ dimension: 'cube' }),
+                brdfLutView: defaultBrdfLut.createView(),
+                levels: 1,
+                destroy() {
+                    defaultCubemap.destroy();
+                    defaultBrdfLut.destroy();
+                },
+            };
+        }
         // Bind group layouts (max 4 groups per pipeline in WebGPU)
         const cameraBGL = device.createBindGroupLayout({
             label: 'ForwardCameraBGL',

@@ -226,4 +226,46 @@ export class RenderContext {
       }
     }
   }
+
+  /**
+   * Convenience method to create a 1x1 cubemap texture with a neutral grey color, used as a fallback when IBL textures fail to load.
+   */
+  createDefaultCubemap(): GPUTexture {
+    const tex = this.device.createTexture({
+      size: { width: 1, height: 1, depthOrArrayLayers: 6 },
+      format: 'rgba16float',
+      dimension: '2d',
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+      mipLevelCount: 1,
+    });
+    const data = new Uint16Array([0x3800, 0x3800, 0x3800, 0x3C00]);
+    for (let i = 0; i < 6; i++) {
+      this.queue.writeTexture(
+        { texture: tex, origin: { x: 0, y: 0, z: i } },
+        data,
+        { bytesPerRow: 8 },
+        { width: 1, height: 1 },
+      );
+    }
+    return tex;
+  }
+
+  /**
+   * Convenience method to create a 1x1 BRDF LUT texture with a neutral value, used as a fallback when IBL textures fail to load.
+   */
+  createDefaultBrdfLUT(): GPUTexture {
+    const tex = this.device.createTexture({
+      size: { width: 1, height: 1 },
+      format: 'rgba16float',
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+    });
+    const data = new Uint16Array([0x3800, 0x3800, 0x3800, 0x3C00]);
+    this.queue.writeTexture(
+      { texture: tex },
+      data,
+      { bytesPerRow: 8 },
+      { width: 1, height: 1 },
+    );
+    return tex;
+  }
 }
