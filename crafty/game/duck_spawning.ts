@@ -2,8 +2,8 @@ import { GameObject, Scene, MeshRenderer } from '../../src/engine/index.js';
 import { PbrMaterial } from '../../src/engine/materials/pbr_material.js';
 import { World, BiomeType, BlockType } from '../../src/block/index.js';
 import type { Mesh } from '../../src/assets/mesh.js';
-import { DuckAI } from '../../src/engine/components/duck_ai.js';
-import { DucklingAI } from '../../src/engine/components/duckling_ai.js';
+import { DuckAI } from './components/duck_ai.js';
+import { DucklingAI } from './components/duckling_ai.js';
 
 const DUCKLING_COUNT  = 5;
 const DUCKLING_SCALE  = 0.5;

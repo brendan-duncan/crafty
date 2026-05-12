@@ -22,7 +22,7 @@ import type { Chunk, ChunkMesh } from '../src/block/index.js';
 import type { DrawItem } from '../src/renderer/passes/geometry_pass.js';
 import { createDuckBodyMesh, createDuckHeadMesh, createDuckBillMesh } from '../src/assets/duck_mesh.js';
 import { createPigBodyMesh, createPigHeadMesh, createPigSnoutMesh } from '../src/assets/pig_mesh.js';
-import { DuckAI } from '../src/engine/components/duck_ai.js';
+import { DuckAI } from './game/components/duck_ai.js';
 import { MeshRenderer } from '../src/engine/index.js';
 import { PointLight } from '../src/engine/index.js';
 import { SpotLight } from '../src/engine/components/spot_light.js';

@@ -1,7 +1,7 @@
-import { Vec3 } from '../../math/index.js';
-import { Quaternion } from '../../math/quaternion.js';
-import { Component } from '../component.js';
-import type { World } from '../../block/world.js';
+import { Vec3 } from '../../../src/math/index.js';
+import { Quaternion } from '../../../src/math/quaternion.js';
+import { Component } from '../../../src/engine/component.js';
+import type { World } from '../../../src/block/world.js';
 
 type PigState = 'idle' | 'wander';
 
@@ -25,7 +25,7 @@ export class PigAI extends Component {
   private _velY = 0;
   private _yaw = 0;
 
-  private _headGO: import('../game_object.js').GameObject | null = null;
+  private _headGO: import('../../../src/engine/game_object.js').GameObject | null = null;
   private _headBaseY = 0;
   private _bobPhase: number;
 

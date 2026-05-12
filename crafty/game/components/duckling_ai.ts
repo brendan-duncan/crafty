@@ -1,8 +1,8 @@
-import { Vec3 } from '../../math/index.js';
-import { Quaternion } from '../../math/quaternion.js';
-import { Component } from '../component.js';
-import type { GameObject } from '../game_object.js';
-import type { World } from '../../block/world.js';
+import { Vec3 } from '../../../src/math/index.js';
+import { Quaternion } from '../../../src/math/quaternion.js';
+import { Component } from '../../../src/engine/component.js';
+import type { GameObject } from '../../../src/engine/game_object.js';
+import type { World } from '../../../src/block/world.js';
 
 const _Y_AXIS = new Vec3(0, 1, 0);
 

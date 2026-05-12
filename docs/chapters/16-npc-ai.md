@@ -107,7 +107,7 @@ Pigs are docile — they never flee and remain in the two-state cycle indefinite
 
 ![Concentric flee zones around the player (6-block trigger inside, 14-block safe ring outside) — the gap creates hysteresis so the duck doesn't flicker between flee and idle](../illustrations/16-duck-flee.svg)
 
-`DuckAI` (`src/engine/components/duck_ai.ts`) implements the full three-state machine. Ducks are amphibious — they walk on land and float on water:
+`DuckAI` (`crafty/game/components/duck_ai.ts`) implements the full three-state machine. Ducks are amphibious — they walk on land and float on water:
 
 ```typescript
 // If the block below is water, float on the surface
@@ -134,7 +134,7 @@ Player position is fed to ducks via a static field `DuckAI.playerPos`, written o
 
 ![Each duckling steers toward parent + polar offset; offsetAngle drifts at 0.25 rad/s so the brood gently swirls around the parent](../illustrations/16-duckling-follow.svg)
 
-`DucklingAI` (`src/engine/components/duckling_ai.ts`) implements a **follow** behaviour rather than the idle/wander/flee pattern. Each duckling tracks its parent duck's world position and maintains a personalised polar offset so the brood spreads naturally:
+`DucklingAI` (`crafty/game/components/duckling_ai.ts`) implements a **follow** behaviour rather than the idle/wander/flee pattern. Each duckling tracks its parent duck's world position and maintains a personalised polar offset so the brood spreads naturally:
 
 ```typescript
 constructor(parent: GameObject, world: World) {
@@ -164,7 +164,7 @@ Ducklings do not check for the player directly — they simply follow their pare
 
 ## 16.5 Pig AI
 
-`PigAI` (`src/engine/components/pig_ai.ts`) implements a simpler two-state machine (idle ↔ wander) with no flee response. Pigs are larger and slower than ducks:
+`PigAI` (`crafty/game/components/pig_ai.ts`) implements a simpler two-state machine (idle ↔ wander) with no flee response. Pigs are larger and slower than ducks:
 
 | Property | Duck | Duckling | Pig |
 |----------|------|----------|-----|
@@ -279,9 +279,9 @@ Future NPC types could include:
 Each new type follows the same pattern: a state machine + `Component.update()` + `World` queries, with visual variety provided by different meshes, animations, and parameter tuning.
 
 **Further reading:**
-- `src/engine/components/duck_ai.ts` — Duck AI (three-state + water float)
-- `src/engine/components/duckling_ai.ts` — Duckling AI (follow behaviour)
-- `src/engine/components/pig_ai.ts` — Pig AI (two-state wandering)
+- `crafty/game/components/duck_ai.ts` — Duck AI (three-state + water float)
+- `crafty/game/components/duckling_ai.ts` — Duckling AI (follow behaviour)
+- `crafty/game/components/pig_ai.ts` — Pig AI (two-state wandering)
 - `src/engine/components/animated_model.ts` — Skeletal animation playback
 - `src/engine/components/` — All component implementations
 - `src/engine/component.ts` — Base `Component` class

@@ -2,7 +2,7 @@ import { GameObject, Scene, MeshRenderer } from '../../src/engine/index.js';
 import { PbrMaterial } from '../../src/engine/materials/pbr_material.js';
 import { World, BiomeType } from '../../src/block/index.js';
 import type { Mesh } from '../../src/assets/mesh.js';
-import { PigAI } from '../../src/engine/components/pig_ai.js';
+import { PigAI } from './components/pig_ai.js';
 
 const PINK:       [number, number, number, number] = [0.96, 0.70, 0.72, 1];
 const SNOUT_PINK: [number, number, number, number] = [0.98, 0.76, 0.78, 1];
