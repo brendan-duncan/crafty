@@ -215,42 +215,23 @@ async function main() {
   torchLight.intensity = 8.0;
   torchLight.radius = 6.0;
   torchLight.castShadow = true;
-  const torchDebugMR = torchGO.addComponent(new MeshRenderer(debugSphereMesh, new PbrMaterial({
+  /*const torchDebugMR = torchGO.addComponent(new MeshRenderer(debugSphereMesh, new PbrMaterial({
     albedo: [1.0, 0.55, 0.15, 1.0], roughness: 0.3, metallic: 0.0,
   })));
-  torchDebugMR.castShadow = false;
+  torchDebugMR.castShadow = false;*/
   scene.add(torchGO);
 
   const spotGO = new GameObject('Spot');
-  spotGO.position.set(-2, 4, 0);
+  spotGO.position.set(-4, 6, 0);
   spotGO.rotation = Quaternion.fromAxisAngle(new Vec3(1, 0, 0), -Math.PI / 2);
   const spotLight = spotGO.addComponent(new SpotLight());
   spotLight.color.set(0.9, 0.95, 1.0);
-  spotLight.intensity = 25.0;
+  spotLight.intensity = 45.0;
   spotLight.range = 12.0;
   spotLight.innerAngle = 12;
   spotLight.outerAngle = 22;
   spotLight.castShadow = true;
   scene.add(spotGO);
-
-  // Debug cone: apex (+Y) at spotlight origin, base opening toward the light direction.
-  // R_X(+90°) maps cone +Y → +Z in spot-local space; spotGO.rotation takes +Z to the
-  // direction opposite the light (-Z local), so the base faces the light direction.
-  // The GO origin (base center, y=0) is placed coneHeight along the light direction so
-  // that adding the apex offset (height * apexWorldDir) lands back at spotGO.position.
-  const spotConeHeight = 1.5;
-  const spotConeRadius = Math.tan(spotLight.outerAngle * Math.PI / 180) * spotConeHeight;
-  const spotDebugMesh  = Mesh.createCone(device, spotConeRadius, spotConeHeight, 32);
-  const spotDebugGO    = new GameObject('SpotDebug');
-  const spotLightDir   = spotLight.worldDirection();
-  const spotBasePos    = spotGO.position.add(spotLightDir.scale(spotConeHeight));
-  spotDebugGO.position.set(spotBasePos.x, spotBasePos.y, spotBasePos.z);
-  spotDebugGO.rotation = spotGO.rotation.multiply(Quaternion.fromAxisAngle(new Vec3(1, 0, 0), Math.PI / 2));
-  const spotDebugMR = spotDebugGO.addComponent(new MeshRenderer(spotDebugMesh, new PbrMaterial({
-    albedo: [0.9, 0.95, 1.0, 1.0], roughness: 0.3, metallic: 0.0,
-  })));
-  spotDebugMR.castShadow = false;
-  scene.add(spotDebugGO);
 
   const cameraGO = new GameObject('Camera');
   cameraGO.position.set(0, 4, -8);
@@ -335,7 +316,7 @@ async function main() {
   const snowConfig: ParticleGraphConfig = {
     emitter: {
       maxParticles: 15000,
-      spawnRate: 2500,
+      spawnRate: 500,
       lifetime: [5.0, 8.0],
       shape: { kind: 'box', halfExtents: [35, 0.1, 35] },
       initialSpeed: [0, 0],
