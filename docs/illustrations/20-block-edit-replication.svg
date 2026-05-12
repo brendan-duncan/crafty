@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 480" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="480" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Block Edit Replication: Client Predicts, Server Validates, Peers Receive</text>
+
+  <defs>
+    <marker id="brArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+    </marker>
+  </defs>
+
+  <!-- ===== Sequence diagram with 3 lifelines ===== -->
+  <g transform="translate(40, 60)">
+    <!-- Lifelines headers -->
+    <g>
+      <rect x="0"   y="0" width="240" height="32" fill="#dbeafe" stroke="#2563eb" stroke-width="1.4" rx="4"/>
+      <text x="120" y="22" text-anchor="middle" font-weight="700" fill="#1e3a8a">player A (placer)</text>
+
+      <rect x="300" y="0" width="240" height="32" fill="#fee2e2" stroke="#dc2626" stroke-width="1.4" rx="4"/>
+      <text x="420" y="22" text-anchor="middle" font-weight="700" fill="#7f1d1d">server</text>
+
+      <rect x="600" y="0" width="240" height="32" fill="#dcfce7" stroke="#15803d" stroke-width="1.4" rx="4"/>
+      <text x="720" y="22" text-anchor="middle" font-weight="700" fill="#14532d">player B (peer)</text>
+    </g>
+
+    <!-- Lifelines (vertical dashed) -->
+    <g stroke-dasharray="4,3" stroke-width="1">
+      <line x1="120" y1="40" x2="120" y2="320" stroke="#2563eb"/>
+      <line x1="420" y1="40" x2="420" y2="320" stroke="#dc2626"/>
+      <line x1="720" y1="40" x2="720" y2="320" stroke="#15803d"/>
+    </g>
+
+    <!-- Step 1: A clicks → local prediction immediately -->
+    <g transform="translate(0, 56)">
+      <rect x="14" y="0" width="200" height="42" fill="#fff" stroke="#2563eb" stroke-width="1.2" rx="4"/>
+      <text x="114" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="#1e3a8a">1 · click → predict locally</text>
+      <text x="114" y="34" text-anchor="middle" font-size="10" fill="#1e3a8a">world.setBlock(x, y, z, type)</text>
+    </g>
+
+    <!-- Arrow A → server (block_edit) -->
+    <line x1="120" y1="118" x2="420" y2="118" stroke="#374151" stroke-width="1.4" marker-end="url(#brArr)"/>
+    <text x="270" y="110" text-anchor="middle" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#374151">block_edit { x, y, z, type }</text>
+
+    <!-- Server processing -->
+    <g transform="translate(310, 132)">
+      <rect x="0" y="0" width="220" height="42" fill="#fff" stroke="#dc2626" stroke-width="1.2" rx="4"/>
+      <text x="110" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="#7f1d1d">2 · validate &amp; apply</text>
+      <text x="110" y="34" text-anchor="middle" font-size="10" fill="#7f1d1d">isValidEdit() then setBlock()</text>
+    </g>
+
+    <!-- Server → B (block_update broadcast) -->
+    <line x1="420" y1="200" x2="720" y2="200" stroke="#374151" stroke-width="1.4" marker-end="url(#brArr)"/>
+    <text x="570" y="192" text-anchor="middle" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#374151">block_update { x, y, z, type, author }</text>
+
+    <!-- B applies update -->
+    <g transform="translate(610, 214)">
+      <rect x="14" y="0" width="200" height="42" fill="#fff" stroke="#15803d" stroke-width="1.2" rx="4"/>
+      <text x="114" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="#14532d">3 · apply remote edit</text>
+      <text x="114" y="34" text-anchor="middle" font-size="10" fill="#14532d">applyRemoteBlockEdit()</text>
+    </g>
+
+    <!-- Server → A (block_ack) -->
+    <line x1="420" y1="282" x2="120" y2="282" stroke="#374151" stroke-width="1.4" marker-end="url(#brArr)"/>
+    <text x="270" y="274" text-anchor="middle" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#374151">block_ack { seq }</text>
+
+    <!-- A confirms (no rollback needed) -->
+    <g transform="translate(0, 296)">
+      <rect x="14" y="0" width="200" height="34" fill="#dcfce7" stroke="#15803d" stroke-width="1.2" rx="4"/>
+      <text x="114" y="22" text-anchor="middle" font-size="11" font-weight="700" fill="#14532d">4 · confirm — keep prediction</text>
+    </g>
+  </g>
+
+  <!-- ===== Bottom: rejection path ===== -->
+  <g transform="translate(40, 410)">
+    <rect width="840" height="50" fill="#fef2f2" stroke="#dc2626" stroke-width="1" rx="6"/>
+    <text x="14" y="22" font-weight="700" fill="#7f1d1d">Rejection (out of reach, chunk not loaded, etc.)</text>
+    <text x="14" y="40" font-size="11" fill="#7f1d1d">no block_ack arrives → next snapshot still shows the original block → client undoes its prediction.</text>
+  </g>
+</svg>

@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 460" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="460" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Memory: Pre-Allocated Scratch + Grow-Only Pool, Never Free Per Frame</text>
+
+  <!-- ===== LEFT: bad pattern (alloc/free per frame) ===== -->
+  <g transform="translate(40, 60)">
+    <text x="200" y="0" text-anchor="middle" font-weight="700" fill="#dc2626">❌ Per-frame allocation</text>
+
+    <rect x="0" y="14" width="400" height="200" fill="#fef2f2" stroke="#dc2626" stroke-width="1.4" rx="6"/>
+
+    <g font-family="ui-monospace, Consolas, monospace" font-size="12" fill="#374151" transform="translate(14, 0)">
+      <text x="0" y="38">// each frame</text>
+      <text x="0" y="56">const data = new Float32Array(N);</text>
+      <text x="0" y="74">fillUniformData(data);</text>
+      <text x="0" y="92">queue.writeBuffer(buf, 0, data);</text>
+      <text x="0" y="110" fill="#6b7280" font-style="italic">// data is now garbage</text>
+    </g>
+
+    <text x="14" y="146" font-weight="700" fill="#dc2626">cost</text>
+    <g font-size="11" fill="#7f1d1d" transform="translate(14, 0)">
+      <text x="0" y="166">· allocator pressure (60 × per second)</text>
+      <text x="0" y="184">· GC pauses cause frame hitches</text>
+      <text x="0" y="202">· cache cold each frame</text>
+    </g>
+  </g>
+
+  <!-- ===== RIGHT: good pattern (pre-allocated) ===== -->
+  <g transform="translate(480, 60)">
+    <text x="200" y="0" text-anchor="middle" font-weight="700" fill="#16a34a">✓ Pre-allocated scratch</text>
+
+    <rect x="0" y="14" width="400" height="200" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.4" rx="6"/>
+
+    <g font-family="ui-monospace, Consolas, monospace" font-size="12" fill="#374151" transform="translate(14, 0)">
+      <text x="0" y="38">// once at construction</text>
+      <text x="0" y="56">private readonly _data =</text>
+      <text x="0" y="72">  new Float32Array(N);</text>
+
+      <text x="0" y="100">// each frame — reuse the same array</text>
+      <text x="0" y="118">fillUniformData(this._data);</text>
+      <text x="0" y="136">queue.writeBuffer(buf, 0, this._data);</text>
+    </g>
+
+    <text x="14" y="166" font-weight="700" fill="#16a34a">benefit</text>
+    <g font-size="11" fill="#14532d" transform="translate(14, 0)">
+      <text x="0" y="186">· zero garbage created</text>
+      <text x="0" y="202">· cache hot, predictable footprint</text>
+    </g>
+  </g>
+
+  <!-- ===== BOTTOM: grow-only pool ===== -->
+  <g transform="translate(40, 286)">
+    <text x="0" y="0" font-weight="700" fill="#111827">Grow-only pool (per-draw model uniform buffers)</text>
+
+    <rect x="0" y="14" width="840" height="160" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+
+    <!-- Show a row of buffer slots: some occupied, some free. Pool grows to highest demand seen. -->
+    <g transform="translate(20, 36)">
+      <text x="0" y="0" font-size="11" font-weight="700" fill="#111827">_modelBuffers: GPUBuffer[] (length = max draws ever needed)</text>
+
+      <!-- Row of 12 buffer slots, used vs reserved -->
+      <g transform="translate(0, 14)" font-size="10" font-family="ui-monospace, Consolas, monospace" text-anchor="middle">
+        <!-- Used this frame (8 buffers) — green -->
+        <g fill="#bbf7d0" stroke="#15803d" stroke-width="1">
+          <rect x="0"   y="0" width="60" height="32"/>
+          <rect x="64"  y="0" width="60" height="32"/>
+          <rect x="128" y="0" width="60" height="32"/>
+          <rect x="192" y="0" width="60" height="32"/>
+          <rect x="256" y="0" width="60" height="32"/>
+          <rect x="320" y="0" width="60" height="32"/>
+          <rect x="384" y="0" width="60" height="32"/>
+          <rect x="448" y="0" width="60" height="32"/>
+        </g>
+        <g fill="#14532d">
+          <text x="30"  y="20">draw 0</text>
+          <text x="94"  y="20">draw 1</text>
+          <text x="158" y="20">draw 2</text>
+          <text x="222" y="20">draw 3</text>
+          <text x="286" y="20">draw 4</text>
+          <text x="350" y="20">draw 5</text>
+          <text x="414" y="20">draw 6</text>
+          <text x="478" y="20">draw 7</text>
+        </g>
+
+        <!-- Reserved but unused this frame (4 buffers) — gray, dashed -->
+        <g fill="#f3f4f6" stroke="#9ca3af" stroke-width="1" stroke-dasharray="3,2">
+          <rect x="512" y="0" width="60" height="32"/>
+          <rect x="576" y="0" width="60" height="32"/>
+          <rect x="640" y="0" width="60" height="32"/>
+          <rect x="704" y="0" width="60" height="32"/>
+        </g>
+        <g fill="#9ca3af" font-style="italic">
+          <text x="542" y="20">idle</text>
+          <text x="606" y="20">idle</text>
+          <text x="670" y="20">idle</text>
+          <text x="734" y="20">idle</text>
+        </g>
+      </g>
+
+      <!-- Annotations -->
+      <text x="252" y="64" text-anchor="middle" font-size="10" fill="#15803d">in-use this frame (8 draws)</text>
+      <text x="638" y="64" text-anchor="middle" font-size="10" fill="#6b7280">spare capacity from a prior peak</text>
+
+      <text x="0" y="98" font-size="11" font-style="italic" fill="#374151">if next frame needs 10 draws, push 2 more buffers and never shrink — no churn</text>
+    </g>
+  </g>
+</svg>

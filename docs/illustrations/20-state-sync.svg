@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 460" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="460" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Player State Sync: 20 Hz Up, 20 Hz Down, Many Clients</text>
+
+  <defs>
+    <marker id="ssArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+    </marker>
+  </defs>
+
+  <!-- ===== LEFT: 3 clients ===== -->
+  <g transform="translate(40, 70)">
+    <text x="120" y="0" text-anchor="middle" font-weight="700" fill="#111827">Clients</text>
+
+    <!-- Client A -->
+    <g transform="translate(0, 14)">
+      <rect width="240" height="80" fill="#eff6ff" stroke="#2563eb" stroke-width="1.4" rx="6"/>
+      <text x="14" y="22" font-weight="700" fill="#1e3a8a">player A</text>
+      <text x="14" y="40" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#1e3a8a">input { seq, pos, yaw, pitch, vel }</text>
+      <text x="14" y="58" font-size="10" font-style="italic" fill="#6b7280">if (now − lastSend &lt; 50) return;</text>
+      <text x="14" y="74" font-size="10" font-style="italic" fill="#6b7280">// throttle to 20 Hz</text>
+    </g>
+
+    <!-- Client B -->
+    <g transform="translate(0, 110)">
+      <rect width="240" height="80" fill="#eff6ff" stroke="#2563eb" stroke-width="1.4" rx="6"/>
+      <text x="14" y="22" font-weight="700" fill="#1e3a8a">player B</text>
+      <text x="14" y="40" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#1e3a8a">input { seq, pos, yaw, pitch, vel }</text>
+      <text x="14" y="58" font-size="10" font-style="italic" fill="#6b7280">throttled, same shape</text>
+    </g>
+
+    <!-- Client C -->
+    <g transform="translate(0, 206)">
+      <rect width="240" height="80" fill="#eff6ff" stroke="#2563eb" stroke-width="1.4" rx="6"/>
+      <text x="14" y="22" font-weight="700" fill="#1e3a8a">player C</text>
+      <text x="14" y="40" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#1e3a8a">input { seq, pos, yaw, pitch, vel }</text>
+      <text x="14" y="58" font-size="10" font-style="italic" fill="#6b7280">throttled, same shape</text>
+    </g>
+  </g>
+
+  <!-- Up arrows from clients to server -->
+  <g stroke="#374151" stroke-width="1.4">
+    <line x1="280" y1="124" x2="340" y2="200" marker-end="url(#ssArr)"/>
+    <line x1="280" y1="220" x2="340" y2="220" marker-end="url(#ssArr)"/>
+    <line x1="280" y1="316" x2="340" y2="240" marker-end="url(#ssArr)"/>
+  </g>
+
+  <!-- ===== MIDDLE: server state table ===== -->
+  <g transform="translate(340, 80)">
+    <text x="120" y="0" text-anchor="middle" font-weight="700" fill="#111827">Server</text>
+
+    <rect x="0" y="14" width="240" height="280" fill="#fef2f2" stroke="#dc2626" stroke-width="1.4" rx="6"/>
+
+    <text x="14" y="36" font-weight="700" fill="#7f1d1d">PlayerConn.lastState</text>
+
+    <!-- Mini table -->
+    <g font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#7f1d1d" transform="translate(14, 0)">
+      <text x="0" y="60">id   seq  pos             yaw</text>
+      <line x1="-4" y1="66" x2="220" y2="66" stroke="#dc2626" stroke-width="0.6"/>
+      <text x="0" y="84">A    412  (12, 70, −8)   0.41</text>
+      <text x="0" y="102">B    389  (40, 72, 18)   2.13</text>
+      <text x="0" y="120">C    402  (−6, 68, 24)   1.04</text>
+    </g>
+
+    <text x="14" y="160" font-weight="700" fill="#7f1d1d">snapshot() @ 20 Hz</text>
+
+    <g font-size="11" fill="#7f1d1d" transform="translate(14, 0)">
+      <text x="0" y="184">{ players: [A, B, C],</text>
+      <text x="0" y="202">  blocks: pendingEdits }</text>
+    </g>
+
+    <text x="14" y="240" font-size="10" font-style="italic" fill="#6b7280">just stores latest input,</text>
+    <text x="14" y="256" font-size="10" font-style="italic" fill="#6b7280">no per-tick simulation</text>
+    <text x="14" y="272" font-size="10" font-style="italic" fill="#6b7280">except block validation</text>
+  </g>
+
+  <!-- Down (broadcast) arrows from server to clients -->
+  <g stroke="#dc2626" stroke-width="1.4">
+    <line x1="580" y1="200" x2="640" y2="124" marker-end="url(#ssArr)"/>
+    <line x1="580" y1="220" x2="640" y2="220" marker-end="url(#ssArr)"/>
+    <line x1="580" y1="240" x2="640" y2="316" marker-end="url(#ssArr)"/>
+  </g>
+
+  <!-- ===== RIGHT: snapshot consumers ===== -->
+  <g transform="translate(640, 70)">
+    <text x="120" y="0" text-anchor="middle" font-weight="700" fill="#111827">Clients receive snapshot</text>
+
+    <!-- Client A receives B + C in its snapshot -->
+    <g transform="translate(0, 14)">
+      <rect width="240" height="80" fill="#dcfce7" stroke="#15803d" stroke-width="1.4" rx="6"/>
+      <text x="14" y="22" font-weight="700" fill="#14532d">A's view: B, C as RemotePlayer</text>
+      <text x="14" y="40" font-size="10" fill="#14532d">interpolated 100 ms behind</text>
+      <text x="14" y="56" font-size="10" fill="#14532d">name labels projected to screen</text>
+      <text x="14" y="72" font-size="10" font-style="italic" fill="#6b7280">A's own slot is filtered out</text>
+    </g>
+
+    <g transform="translate(0, 110)">
+      <rect width="240" height="80" fill="#dcfce7" stroke="#15803d" stroke-width="1.4" rx="6"/>
+      <text x="14" y="22" font-weight="700" fill="#14532d">B's view: A, C as RemotePlayer</text>
+      <text x="14" y="40" font-size="10" fill="#14532d">same shape, different "self"</text>
+    </g>
+
+    <g transform="translate(0, 206)">
+      <rect width="240" height="80" fill="#dcfce7" stroke="#15803d" stroke-width="1.4" rx="6"/>
+      <text x="14" y="22" font-weight="700" fill="#14532d">C's view: A, B as RemotePlayer</text>
+      <text x="14" y="40" font-size="10" fill="#14532d">same shape, different "self"</text>
+    </g>
+  </g>
+
+  <!-- ===== Bottom note ===== -->
+  <g transform="translate(40, 386)">
+    <rect width="840" height="60" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+    <text x="14" y="22" font-weight="700" fill="#111827">Server is mostly a relay — it stores latest state per player and rebroadcasts the world view</text>
+    <text x="14" y="40" font-size="11" fill="#374151">Block edits go through extra validation (reach + adjacency); player movement is trusted client-side</text>
+    <text x="14" y="54" font-size="11" font-style="italic" fill="#6b7280">tradeoff: simple server, easy speedhack — fine for creative-mode play</text>
+  </g>
+</svg>

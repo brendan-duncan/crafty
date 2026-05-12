@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 460" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="460" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Server-Side Validation: Block Edits Pass Through Authority Checks</text>
+
+  <defs>
+    <marker id="saArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+    </marker>
+  </defs>
+
+  <!-- ===== Flow: Client → Validate → Apply / Reject ===== -->
+
+  <!-- Client edit -->
+  <g transform="translate(40, 80)">
+    <rect width="220" height="80" fill="#dbeafe" stroke="#2563eb" stroke-width="1.4" rx="6"/>
+    <text x="110" y="22" text-anchor="middle" font-weight="700" fill="#1e3a8a">client</text>
+    <text x="110" y="42" text-anchor="middle" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#1e3a8a">block_edit { x, y, z, type }</text>
+    <text x="110" y="62" text-anchor="middle" font-size="10" font-style="italic" fill="#1e3a8a">predicts locally · awaits ack</text>
+  </g>
+
+  <line x1="260" y1="120" x2="300" y2="120" stroke="#374151" stroke-width="1.6" marker-end="url(#saArr)"/>
+
+  <!-- Validation diamond -->
+  <g transform="translate(300, 70)">
+    <polygon points="160,0 320,50 160,100 0,50" fill="#fef3c7" stroke="#a16207" stroke-width="1.6"/>
+    <text x="160" y="40" text-anchor="middle" font-weight="700" fill="#713f12">isValidEdit(player, msg)</text>
+    <text x="160" y="60" text-anchor="middle" font-size="10" fill="#713f12">reach? · adjacent? · auth?</text>
+  </g>
+
+  <!-- Branch labels -->
+  <text x="540" y="100" font-size="11" font-weight="700" fill="#16a34a">YES</text>
+  <text x="540" y="180" font-size="11" font-weight="700" fill="#dc2626">NO</text>
+
+  <!-- Branch arrows -->
+  <line x1="528" y1="120" x2="660" y2="120" stroke="#16a34a" stroke-width="1.6" marker-end="url(#saArr)"/>
+  <line x1="460" y1="170" x2="460" y2="240" stroke="#dc2626" stroke-width="1.6" marker-end="url(#saArr)"/>
+
+  <!-- Apply (success branch) -->
+  <g transform="translate(660, 80)">
+    <rect width="220" height="80" fill="#dcfce7" stroke="#15803d" stroke-width="1.4" rx="6"/>
+    <text x="110" y="22" text-anchor="middle" font-weight="700" fill="#14532d">apply &amp; broadcast</text>
+    <text x="110" y="42" text-anchor="middle" font-size="11" fill="#14532d">world.setBlock(...)</text>
+    <text x="110" y="60" text-anchor="middle" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#14532d">→ block_update + block_ack</text>
+  </g>
+
+  <!-- Reject -->
+  <g transform="translate(360, 240)">
+    <rect width="200" height="68" fill="#fee2e2" stroke="#dc2626" stroke-width="1.4" rx="6"/>
+    <text x="100" y="22" text-anchor="middle" font-weight="700" fill="#7f1d1d">reject silently</text>
+    <text x="100" y="42" text-anchor="middle" font-size="11" fill="#7f1d1d">no broadcast,</text>
+    <text x="100" y="56" text-anchor="middle" font-size="11" fill="#7f1d1d">no ack to sender</text>
+  </g>
+
+  <!-- Note: client correction -->
+  <line x1="460" y1="308" x2="460" y2="340" stroke="#374151" stroke-width="1.4" stroke-dasharray="3,3" marker-end="url(#saArr)"/>
+
+  <g transform="translate(220, 340)">
+    <rect width="480" height="60" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+    <text x="240" y="22" text-anchor="middle" font-weight="700" fill="#111827">client reverts on next snapshot</text>
+    <text x="240" y="42" text-anchor="middle" font-size="11" fill="#374151">snapshot still shows the block intact → client undoes its prediction</text>
+  </g>
+
+  <!-- ===== RIGHT panel: validation rules ===== -->
+  <g transform="translate(40, 410)">
+    <rect width="840" height="40" fill="#fef9c3" stroke="#ca8a04" stroke-width="1" rx="6"/>
+    <text x="14" y="26" font-size="11" fill="#713f12">
+      <tspan font-weight="700">Validation rules:</tspan>
+      distance(player, target) ≤ reachRange (~6 blocks) · placement adjacent to existing block · target chunk loaded server-side
+    </text>
+  </g>
+</svg>

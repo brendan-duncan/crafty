@@ -6,6 +6,8 @@ Multiplayer gameplay adds state synchronisation, remote player rendering, and la
 
 ## 20.1 Player State Synchronisation
 
+![Multiple clients sending input frames up at 20 Hz to a central server, which broadcasts merged snapshots back down at 20 Hz to every client — fan-in / fan-out shape with sequence numbers on each frame](../illustrations/20-state-sync.svg)
+
 The client sends its player state to the server at a fixed rate (typically 20 Hz):
 
 ```typescript
@@ -52,6 +54,8 @@ class PlayerConn {
 ```
 
 ## 20.2 Snapshot Interpolation
+
+![Timeline showing snapshots arriving every 50 ms; the render cursor sits 100 ms behind real-time and lerps between the two bracketing snapshots so motion stays smooth even as packets arrive irregularly](../illustrations/20-snapshot-interpolation.svg)
 
 The client receives snapshots at 20 Hz but renders at 60+ Hz. Snapshot interpolation smooths the motion between received states:
 
@@ -107,6 +111,8 @@ class RemotePlayer {
 
 ## 20.4 Name Labels
 
+![A 3D world position above a remote player's head is multiplied by the camera's view-projection matrix, divided by w to get NDC, then mapped to canvas pixels — a DOM label is positioned at that pixel and hidden when z ≤ 0 (behind the camera)](../illustrations/20-name-label-projection.svg)
+
 Each remote player has a name label rendered as a DOM element positioned above the player's head. The label position is projected from 3D world space to 2D screen space:
 
 ```typescript
@@ -121,6 +127,8 @@ function updateNameLabel(label: HTMLElement, worldPos: Vec3, camera: Camera, can
 The label fades with distance and is hidden when behind the camera. Player names are sent once in the `hello` message and stored on the server; the name input is disabled after connecting to prevent confusion.
 
 ## 20.5 Block Edit Replication
+
+![Editor client predicts the change locally and ships block_edit to the server; server validates, applies to authoritative world, fans out block_update to all peers, and acks the originator with block_ack](../illustrations/20-block-edit-replication.svg)
 
 When a player places or breaks a block, the client sends a `block_edit` message and immediately applies the change locally (client-side prediction). The server validates the edit and broadcasts a `block_update` to all other clients:
 

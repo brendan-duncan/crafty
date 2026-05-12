@@ -6,6 +6,8 @@ This chapter covers the profiling, optimisation, and culling techniques used to 
 
 ## 21.1 GPU Timestamps and Profiling
 
+![Command encoder timeline: writeTimestamp brackets each render pass (shadow, opaque, transparent, post) and writes nanosecond counters into a query set; results are resolved into a buffer, mapped, and converted into per-pass milliseconds](../illustrations/21-gpu-timestamps.svg)
+
 Crafty uses WebGPU timestamp queries to measure per-pass GPU execution time:
 
 ```typescript
@@ -54,6 +56,8 @@ For materials that are always visible, pipelines can be compiled eagerly during 
 
 ## 21.3 Frustum Culling
 
+![Top-down view of the camera frustum sweeping across a grid of chunks; chunks fully outside any of the six view planes are culled, chunks intersecting are kept, with the AABB positive-vertex test highlighted](../illustrations/21-frustum-culling.svg)
+
 Every chunk and mesh is tested against the camera frustum before rendering. The test uses the six planes of the view-projection frustum:
 
 ```typescript
@@ -75,6 +79,8 @@ function isVisible(aabb: AABB, frustum: Plane[]): boolean {
 Frustum culling for chunks uses the chunk's axis-aligned bounding box (16×256×16 blocks). Mesh objects use their local AABB transformed to world space.
 
 ## 21.4 Occlusion Culling
+
+![Side view: camera, a near occluder wall, and a candidate chunk hidden behind it; the candidate's bounding box is tested against a low-resolution depth buffer of occluders, and if every sample is closer the draw call is skipped](../illustrations/21-occlusion-culling.svg)
 
 Occlusion culling determines whether an object is hidden behind other objects (not just outside the frustum). Crafty uses a simple **temporal occlusion culling** approach:
 
@@ -102,6 +108,8 @@ struct DrawArraysIndirect {
 A compute shader performs frustum culling on the GPU and packs visible chunks into the indirect buffer. This eliminates CPU-GPU round trips for chunk culling.
 
 ## 21.6 Memory Management
+
+![Side-by-side comparison: bad pattern allocates and frees per frame (sawtooth GC pressure); good pattern keeps a pre-allocated scratch array plus a grow-only buffer pool that is reused frame-to-frame and never freed during gameplay](../illustrations/21-buffer-pooling.svg)
 
 ### Pre-Allocated Staging Arrays
 

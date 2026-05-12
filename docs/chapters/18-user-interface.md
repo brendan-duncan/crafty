@@ -6,6 +6,8 @@ Crafty uses a hybrid UI approach: HTML/DOM for the menus and HUD, in-game overla
 
 ## 18.1 DOM-Based UI vs. In-Game UI
 
+![Exploded layers showing the WebGPU canvas at the bottom (3D scene + crosshair/highlight overlays) with the HTML/DOM layer (HUD, hotbar, chat, menus) stacked on top — pointer-events let clicks pass through transparent regions](../illustrations/18-ui-layers.svg)
+
 **DOM-based UI** is used for:
 - Start screen (world selection, network connect)
 - Settings panel (graphics, audio, controls)
@@ -19,6 +21,8 @@ Crafty uses a hybrid UI approach: HTML/DOM for the menus and HUD, in-game overla
 The DOM approach gives us accessibility (screen readers, browser zoom) and familiar styling via CSS. The in-game approach ensures the crosshair and block highlight are correctly aligned with the 3D scene without latency.
 
 ## 18.2 The HUD
+
+![Screen mockup showing the HUD's anchored regions: crosshair centred, hotbar bottom-centre, stats bottom-left, debug overlay top-left, chat bottom-left — each region is a DOM element positioned with CSS, transparent to mouse events](../illustrations/18-hud-layout.svg)
 
 The HUD (`crafty/ui/hud.ts`) is a DOM overlay with:
 
@@ -90,6 +94,8 @@ interface Settings {
 Quality presets control shadow resolution, SSAO samples, bloom intensity, and particle counts.
 
 ## 18.5 The Block Manager
+
+![Categorised grid of block thumbnails (Natural, Stone, Wood, etc.) with the selected block flowing down into a hotbar slot — clicking a tile assigns that block type to the active slot](../illustrations/18-block-manager.svg)
 
 The block manager UI (`crafty/ui/block_manager.ts`) allows the player to select which block type to place. It shows a grid of available blocks with their textures, organized by category.
 

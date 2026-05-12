@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 460" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="460" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Occlusion Culling: Hidden Behind a Closer Wall? Skip the Draw.</text>
+
+  <!-- ===== LEFT: side view of camera + occluder + occluded thing ===== -->
+  <g transform="translate(40, 60)">
+    <text x="220" y="0" text-anchor="middle" font-weight="700" fill="#111827">Side view</text>
+
+    <rect x="0" y="14" width="440" height="280" fill="#f0fdf4" stroke="#9ca3af" stroke-width="1" rx="6"/>
+
+    <!-- Camera at left -->
+    <g transform="translate(40, 154)">
+      <polygon points="-12,-10 12,-10 14,4 -14,4" fill="#60a5fa" stroke="#1e3a8a" stroke-width="1.4"/>
+      <ellipse cx="0" cy="6" rx="10" ry="3" fill="#fef3c7" stroke="#1e3a8a" stroke-width="1"/>
+      <text x="0" y="-22" text-anchor="middle" font-size="10" font-weight="700" fill="#1e3a8a">camera</text>
+    </g>
+
+    <!-- Occluder (big chunk close to camera) -->
+    <rect x="160" y="80" width="80" height="180" fill="#a16207" stroke="#7c2d12" stroke-width="1.4"/>
+    <text x="200" y="180" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">occluder</text>
+    <text x="200" y="196" text-anchor="middle" font-size="10" fill="#fff">close, opaque</text>
+
+    <!-- Occluded chunk (behind occluder, drawn faded) -->
+    <g opacity="0.55">
+      <rect x="320" y="120" width="80" height="100" fill="#16a34a" stroke="#14532d" stroke-width="1.4" stroke-dasharray="4,3"/>
+      <text x="360" y="170" text-anchor="middle" font-size="11" font-weight="700" fill="#14532d">hidden</text>
+      <text x="360" y="186" text-anchor="middle" font-size="10" fill="#14532d">cull this</text>
+    </g>
+
+    <!-- Visible chunk (above occluder, not hidden) -->
+    <rect x="320" y="40" width="80" height="60" fill="#bbf7d0" stroke="#15803d" stroke-width="1.4"/>
+    <text x="360" y="74" text-anchor="middle" font-size="11" font-weight="700" fill="#14532d">visible</text>
+
+    <!-- Sight rays from camera -->
+    <g stroke="#fbbf24" stroke-width="1.2" stroke-dasharray="3,3" opacity="0.7">
+      <line x1="56" y1="160" x2="160" y2="120"/>
+      <line x1="56" y1="160" x2="160" y2="240"/>
+      <line x1="56" y1="160" x2="320" y2="60"/>
+      <line x1="56" y1="160" x2="320" y2="100"/>
+    </g>
+
+    <text x="220" y="316" text-anchor="middle" font-size="11" font-style="italic" fill="#6b7280">behind the occluder = inside its depth shadow</text>
+  </g>
+
+  <!-- ===== RIGHT: depth-buffer test ===== -->
+  <g transform="translate(500, 60)">
+    <text x="200" y="0" text-anchor="middle" font-weight="700" fill="#111827">Two-stage HiZ-style test</text>
+
+    <rect x="0" y="14" width="400" height="280" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+
+    <g font-size="12" fill="#374151" transform="translate(14, 0)">
+      <text x="0" y="40" font-weight="700" fill="#111827">1. Render coarse depth pyramid</text>
+      <text x="0" y="58" font-size="11">cheap depth-only pass at low res,</text>
+      <text x="0" y="74" font-size="11">downsampled to a mip chain.</text>
+
+      <text x="0" y="106" font-weight="700" fill="#111827">2. Per chunk: project AABB</text>
+      <text x="0" y="124" font-size="11">find screen-space bounds + min depth</text>
+      <text x="0" y="140" font-size="11">at the chunk's nearest face.</text>
+
+      <text x="0" y="172" font-weight="700" fill="#111827">3. Sample HiZ at matching mip</text>
+      <text x="0" y="190" font-size="11">if hizDepth &lt; chunkMinDepth → fully</text>
+      <text x="0" y="206" font-size="11">occluded → drop from indirect draw.</text>
+
+      <text x="0" y="240" font-weight="700" fill="#dc2626">caveat:</text>
+      <text x="0" y="258" font-size="11" fill="#dc2626">depth from previous frame, so chunks</text>
+      <text x="0" y="274" font-size="11" fill="#dc2626">just-uncovered may pop in for one frame.</text>
+    </g>
+  </g>
+
+  <!-- ===== Bottom: combined effect ===== -->
+  <g transform="translate(40, 380)">
+    <rect width="840" height="60" fill="#eff6ff" stroke="#2563eb" stroke-width="1" rx="6"/>
+    <text x="14" y="22" font-weight="700" fill="#1e3a8a">Frustum culling → occlusion culling → indirect draw</text>
+    <text x="14" y="40" font-size="11" fill="#1e3a8a">Two cheap GPU passes shrink "all chunks" to "actually-visible chunks", written into the indirect buffer.</text>
+    <text x="14" y="54" font-size="11" font-style="italic" fill="#6b7280">No CPU readback, no per-chunk submit cost.</text>
+  </g>
+</svg>

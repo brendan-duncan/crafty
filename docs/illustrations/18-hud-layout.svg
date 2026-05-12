@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 480" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="480" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">HUD Layout: DOM Overlay Anchored to Screen Edges</text>
+
+  <!-- ===== Screen mockup ===== -->
+  <g transform="translate(80, 60)">
+    <!-- Game canvas (dark sky) -->
+    <rect x="0" y="0" width="760" height="380" fill="#0f172a" stroke="#374151" stroke-width="2"/>
+
+    <!-- Mock terrain horizon -->
+    <rect x="0" y="240" width="760" height="140" fill="#1c1917"/>
+    <polygon points="0,260 200,240 400,250 600,242 760,260 760,380 0,380" fill="#0c4a6e" opacity="0.6"/>
+
+    <!-- Top-left: debug overlay -->
+    <g>
+      <rect x="14" y="14" width="200" height="86" fill="#000" fill-opacity="0.65" rx="4"/>
+      <text x="22" y="32" font-size="11" font-family="ui-monospace, Consolas, monospace" font-weight="700" fill="#bbf7d0">FPS: 144</text>
+      <text x="22" y="48" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#cbd5e1">pos: 128.3, 72.5, -42.1</text>
+      <text x="22" y="64" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#cbd5e1">biome: GrassyPlains</text>
+      <text x="22" y="80" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#cbd5e1">chunks: 412 vis / 1024</text>
+      <text x="22" y="96" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#fde68a">weather: Light Rain</text>
+    </g>
+    <text x="14" y="116" font-size="10" fill="#94a3b8">debug overlay (X)</text>
+
+    <!-- Top-right: menu icon -->
+    <g transform="translate(720, 22)">
+      <rect x="0" y="0" width="28" height="28" fill="#000" fill-opacity="0.65" rx="4"/>
+      <line x1="6" y1="9"  x2="22" y2="9"  stroke="#fff" stroke-width="2"/>
+      <line x1="6" y1="14" x2="22" y2="14" stroke="#fff" stroke-width="2"/>
+      <line x1="6" y1="19" x2="22" y2="19" stroke="#fff" stroke-width="2"/>
+    </g>
+    <text x="746" y="66" text-anchor="end" font-size="10" fill="#94a3b8">menu (Esc)</text>
+
+    <!-- Center: crosshair -->
+    <g transform="translate(380, 190)">
+      <line x1="-9" y1="0" x2="9" y2="0" stroke="#fff" stroke-width="2"/>
+      <line x1="0" y1="-9" x2="0" y2="9" stroke="#fff" stroke-width="2"/>
+    </g>
+    <text x="395" y="184" font-size="10" fill="#94a3b8">crosshair</text>
+
+    <!-- Center: targeted block highlight (drawn by GPU pass — show as wireframe) -->
+    <g transform="translate(360, 215)" stroke="#fde68a" stroke-width="1.4" fill="none">
+      <polygon points="0,12 24,0 48,12 24,24"/>
+      <polygon points="0,12 0,30 24,42 24,24"/>
+      <polygon points="48,12 48,30 24,42 24,24"/>
+    </g>
+    <text x="426" y="240" font-size="10" fill="#fde68a">block highlight (GPU)</text>
+
+    <!-- Bottom-center: hotbar (9 slots) -->
+    <g transform="translate(208, 332)">
+      <!-- Row of 9 slots, each 36x36 with 4px gap → 9*36 + 8*4 = 356 wide -->
+      <g>
+        <rect x="0"   y="0" width="36" height="36" fill="#1f2937" stroke="#475569" stroke-width="1"/>
+        <rect x="40"  y="0" width="36" height="36" fill="#1f2937" stroke="#475569" stroke-width="1"/>
+        <rect x="80"  y="0" width="36" height="36" fill="#1f2937" stroke="#475569" stroke-width="1"/>
+        <!-- selected slot 4 (highlighted) -->
+        <rect x="120" y="0" width="36" height="36" fill="#374151" stroke="#fde68a" stroke-width="2.4"/>
+        <rect x="160" y="0" width="36" height="36" fill="#1f2937" stroke="#475569" stroke-width="1"/>
+        <rect x="200" y="0" width="36" height="36" fill="#1f2937" stroke="#475569" stroke-width="1"/>
+        <rect x="240" y="0" width="36" height="36" fill="#1f2937" stroke="#475569" stroke-width="1"/>
+        <rect x="280" y="0" width="36" height="36" fill="#1f2937" stroke="#475569" stroke-width="1"/>
+        <rect x="320" y="0" width="36" height="36" fill="#1f2937" stroke="#475569" stroke-width="1"/>
+      </g>
+      <!-- Block icons inside slots (small colored squares) -->
+      <g>
+        <rect x="6"   y="6" width="24" height="24" fill="#84cc16"/>
+        <rect x="46"  y="6" width="24" height="24" fill="#a16207"/>
+        <rect x="86"  y="6" width="24" height="24" fill="#a1a1aa"/>
+        <rect x="126" y="6" width="24" height="24" fill="#dc2626"/>
+        <rect x="166" y="6" width="24" height="24" fill="#0891b2"/>
+        <rect x="206" y="6" width="24" height="24" fill="#7c3aed"/>
+        <rect x="246" y="6" width="24" height="24" fill="#fde68a"/>
+        <rect x="286" y="6" width="24" height="24" fill="#f3f4f6"/>
+        <rect x="326" y="6" width="24" height="24" fill="#22c55e"/>
+      </g>
+      <!-- Slot numbers 1-9 above slots -->
+      <g font-size="9" font-family="ui-monospace, Consolas, monospace" text-anchor="middle" fill="#94a3b8">
+        <text x="18"  y="-4">1</text>
+        <text x="58"  y="-4">2</text>
+        <text x="98"  y="-4">3</text>
+        <text x="138" y="-4" fill="#fde68a" font-weight="700">4</text>
+        <text x="178" y="-4">5</text>
+        <text x="218" y="-4">6</text>
+        <text x="258" y="-4">7</text>
+        <text x="298" y="-4">8</text>
+        <text x="338" y="-4">9</text>
+      </g>
+    </g>
+    <text x="386" y="378" text-anchor="middle" font-size="10" fill="#fde68a">hotbar (1–9)</text>
+
+    <!-- Bottom-left: chat scrollback -->
+    <g transform="translate(14, 290)">
+      <rect x="0" y="0" width="220" height="74" fill="#000" fill-opacity="0.55" rx="4"/>
+      <text x="8" y="18" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#bbf7d0">&lt;Alex&gt; gg, that build is wild</text>
+      <text x="8" y="34" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#cbd5e1">&lt;Sam&gt;  brb afk 2 min</text>
+      <text x="8" y="50" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#fde68a">&lt;you&gt;  thanks!</text>
+      <text x="8" y="66" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#94a3b8" font-style="italic">press T to type…</text>
+    </g>
+  </g>
+
+  <!-- ===== Side annotations (right) ===== -->
+  <g transform="translate(20, 460)">
+    <rect width="880" height="0" fill="none"/>
+  </g>
+</svg>

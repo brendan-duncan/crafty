@@ -28,6 +28,8 @@ class NetworkClient {
 
 ## 19.2 Message Protocol Design
 
+![Eight typed JSON frames split into client-to-server (hello, input, block_edit, chat) and server-to-client (welcome, snapshot, block_update, chat) — each frame is a small example payload showing the `type` discriminator and its fields](../illustrations/19-message-protocol.svg)
+
 Messages are JSON objects with a `type` field and type-specific payload. All messages are one of:
 
 | Direction | Type | Payload | Purpose |
@@ -57,6 +59,8 @@ Client                    Server
 ```
 
 ## 19.4 The Server Architecture
+
+![One Node.js Server process holding a Map of WorldRooms; each room owns its own simulation loop, world state, and player connection list, with incoming sockets routed from a Lobby into a named room](../illustrations/19-server-rooms.svg)
 
 The server (`server/src/server.ts`) manages multiple world rooms:
 
@@ -100,6 +104,8 @@ class WorldRoom {
 ```
 
 ### Server-Side Authorisation
+
+![Block edit message flowing through three server-side checks — within reach distance, target block exists / placement is adjacent, edit rate sane — before being applied to the authoritative world and broadcast to peers](../illustrations/19-server-authoritative.svg)
 
 Block edits are validated on the server to prevent cheating. The server checks that the block being broken is within the player's reach distance and that the block being placed is adjacent to an existing block and within reach.
 

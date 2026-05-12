@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 480" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="480" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Message Protocol: Eight Typed JSON Frames Across the WebSocket</text>
+
+  <defs>
+    <marker id="mpArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+    </marker>
+  </defs>
+
+  <!-- ===== TWO endpoint columns + arrow rows ===== -->
+  <g transform="translate(40, 60)">
+    <!-- Client column header -->
+    <rect x="0" y="0" width="200" height="32" fill="#dbeafe" stroke="#2563eb" stroke-width="1.4" rx="4"/>
+    <text x="100" y="22" text-anchor="middle" font-weight="700" fill="#1e3a8a">Client (browser)</text>
+
+    <!-- Server column header -->
+    <rect x="640" y="0" width="200" height="32" fill="#fee2e2" stroke="#dc2626" stroke-width="1.4" rx="4"/>
+    <text x="740" y="22" text-anchor="middle" font-weight="700" fill="#7f1d1d">Server (Node.js)</text>
+
+    <!-- Vertical "lifelines" -->
+    <line x1="100" y1="40"  x2="100" y2="370" stroke="#2563eb" stroke-width="1" stroke-dasharray="4,3"/>
+    <line x1="740" y1="40"  x2="740" y2="370" stroke="#dc2626" stroke-width="1" stroke-dasharray="4,3"/>
+
+    <!-- Each row is a message: y positions 56, 96, 136, 176, 216, 256, 296, 336 -->
+
+    <!-- 1: hello (C2S) -->
+    <line x1="100" y1="56" x2="740" y2="56" stroke="#374151" stroke-width="1.4" marker-end="url(#mpArr)"/>
+    <rect x="280" y="44" width="280" height="22" fill="#fff" stroke="#1e3a8a" stroke-width="1" rx="3"/>
+    <text x="420" y="60" text-anchor="middle" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#1e3a8a">hello { name }</text>
+
+    <!-- 2: welcome (S2C) -->
+    <line x1="740" y1="96" x2="100" y2="96" stroke="#374151" stroke-width="1.4" marker-end="url(#mpArr)"/>
+    <rect x="280" y="84" width="280" height="22" fill="#fff" stroke="#7f1d1d" stroke-width="1" rx="3"/>
+    <text x="420" y="100" text-anchor="middle" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#7f1d1d">welcome { id, world }</text>
+
+    <!-- 3: input (C2S) — repeating -->
+    <line x1="100" y1="136" x2="740" y2="136" stroke="#374151" stroke-width="1.4" marker-end="url(#mpArr)"/>
+    <rect x="280" y="124" width="280" height="22" fill="#fff" stroke="#1e3a8a" stroke-width="1" rx="3"/>
+    <text x="420" y="140" text-anchor="middle" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#1e3a8a">input { seq, pos, yaw, pitch, vel }</text>
+    <text x="568" y="140" font-size="9" font-style="italic" fill="#6b7280">20 Hz</text>
+
+    <!-- 4: snapshot (S2C) — repeating -->
+    <line x1="740" y1="176" x2="100" y2="176" stroke="#374151" stroke-width="1.4" marker-end="url(#mpArr)"/>
+    <rect x="280" y="164" width="280" height="22" fill="#fff" stroke="#7f1d1d" stroke-width="1" rx="3"/>
+    <text x="420" y="180" text-anchor="middle" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#7f1d1d">snapshot { seq, players, blocks }</text>
+    <text x="568" y="180" font-size="9" font-style="italic" fill="#6b7280">20 Hz</text>
+
+    <!-- 5: block_edit (C2S) — event-driven -->
+    <line x1="100" y1="216" x2="740" y2="216" stroke="#374151" stroke-width="1.4" marker-end="url(#mpArr)"/>
+    <rect x="280" y="204" width="280" height="22" fill="#fff" stroke="#1e3a8a" stroke-width="1" rx="3"/>
+    <text x="420" y="220" text-anchor="middle" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#1e3a8a">block_edit { action, x, y, z, type }</text>
+
+    <!-- 6: block_update (S2C) — broadcast -->
+    <line x1="740" y1="256" x2="100" y2="256" stroke="#374151" stroke-width="1.4" marker-end="url(#mpArr)"/>
+    <rect x="280" y="244" width="280" height="22" fill="#fff" stroke="#7f1d1d" stroke-width="1" rx="3"/>
+    <text x="420" y="260" text-anchor="middle" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#7f1d1d">block_update { x, y, z, type, author }</text>
+
+    <!-- 7: chat (C2S) -->
+    <line x1="100" y1="296" x2="740" y2="296" stroke="#374151" stroke-width="1.4" marker-end="url(#mpArr)"/>
+    <rect x="280" y="284" width="280" height="22" fill="#fff" stroke="#1e3a8a" stroke-width="1" rx="3"/>
+    <text x="420" y="300" text-anchor="middle" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#1e3a8a">chat { message }</text>
+
+    <!-- 8: chat (S2C broadcast) -->
+    <line x1="740" y1="336" x2="100" y2="336" stroke="#374151" stroke-width="1.4" marker-end="url(#mpArr)"/>
+    <rect x="280" y="324" width="280" height="22" fill="#fff" stroke="#7f1d1d" stroke-width="1" rx="3"/>
+    <text x="420" y="340" text-anchor="middle" font-size="11" font-family="ui-monospace, Consolas, monospace" fill="#7f1d1d">chat { from, message }</text>
+  </g>
+
+  <!-- ===== Bottom note ===== -->
+  <g transform="translate(40, 416)">
+    <rect width="840" height="50" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+    <text x="14" y="22" font-weight="700" fill="#111827">All frames are JSON with a "type" discriminator — easy to debug, easy to extend</text>
+    <text x="14" y="40" font-size="11" fill="#374151">Binary upgrade path: same wire shape, just swap JSON.stringify for a typed encoder.</text>
+  </g>
+</svg>

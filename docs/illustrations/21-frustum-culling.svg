@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 460" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="460" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Frustum Culling: Test Each Chunk's AABB Against the Six View Planes</text>
+
+  <!-- ===== LEFT: top-down view of camera + chunks ===== -->
+  <g transform="translate(40, 60)">
+    <text x="220" y="0" text-anchor="middle" font-weight="700" fill="#111827">Top-down view</text>
+
+    <rect x="0" y="14" width="440" height="320" fill="#f0fdf4" stroke="#9ca3af" stroke-width="1" rx="6"/>
+
+    <!-- Camera at left center -->
+    <g transform="translate(60, 174)">
+      <polygon points="-12,-10 12,-10 14,4 -14,4" fill="#60a5fa" stroke="#1e3a8a" stroke-width="1.4"/>
+      <ellipse cx="0" cy="6" rx="10" ry="3" fill="#fef3c7" stroke="#1e3a8a" stroke-width="1"/>
+      <text x="0" y="-22" text-anchor="middle" font-size="10" font-weight="700" fill="#1e3a8a">camera</text>
+    </g>
+
+    <!-- Frustum (cone going right, opening 60°) -->
+    <polygon points="60,180 420,40 420,320" fill="#fbbf24" fill-opacity="0.16" stroke="#a16207" stroke-width="1.4" stroke-dasharray="4,3"/>
+
+    <!-- Chunks: 5x4 grid of 16x16 cells. Each chunk drawn as a 64×64 square -->
+    <!-- Position 4 chunks inside frustum (visible/green), 4 outside (gray) -->
+
+    <g font-size="10" font-family="ui-monospace, Consolas, monospace" text-anchor="middle">
+      <!-- Visible chunks (inside frustum) — green -->
+      <g fill="#bbf7d0" stroke="#15803d" stroke-width="1.4">
+        <rect x="160" y="146" width="60" height="60"/>
+        <rect x="240" y="106" width="60" height="60"/>
+        <rect x="240" y="206" width="60" height="60"/>
+        <rect x="320" y="80"  width="60" height="60"/>
+        <rect x="320" y="240" width="60" height="60"/>
+      </g>
+      <g fill="#14532d">
+        <text x="190" y="180">✓</text>
+        <text x="270" y="140">✓</text>
+        <text x="270" y="240">✓</text>
+        <text x="350" y="114">✓</text>
+        <text x="350" y="274">✓</text>
+      </g>
+
+      <!-- Culled chunks (outside frustum) — gray -->
+      <g fill="#e5e7eb" stroke="#9ca3af" stroke-width="1" stroke-dasharray="3,2">
+        <rect x="60"  y="60"  width="60" height="60"/>
+        <rect x="60"  y="240" width="60" height="60"/>
+        <rect x="160" y="40"  width="60" height="60"/>
+        <rect x="160" y="240" width="60" height="60"/>
+      </g>
+      <g fill="#9ca3af">
+        <text x="90"  y="94">×</text>
+        <text x="90"  y="274">×</text>
+        <text x="190" y="74">×</text>
+        <text x="190" y="274">×</text>
+      </g>
+    </g>
+
+    <!-- Frustum plane labels -->
+    <text x="240" y="60" text-anchor="middle" font-size="10" font-style="italic" fill="#a16207">left plane</text>
+    <text x="240" y="316" text-anchor="middle" font-size="10" font-style="italic" fill="#a16207">right plane</text>
+
+    <!-- Sub-caption -->
+    <text x="220" y="350" text-anchor="middle" font-size="11" font-style="italic" fill="#6b7280">5 of 9 chunks pass · 4 culled before draw</text>
+  </g>
+
+  <!-- ===== RIGHT: AABB-vs-plane test ===== -->
+  <g transform="translate(500, 60)">
+    <text x="200" y="0" text-anchor="middle" font-weight="700" fill="#111827">AABB-vs-plane: positive vertex test</text>
+
+    <rect x="0" y="14" width="400" height="320" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+
+    <g font-family="ui-monospace, Consolas, monospace" font-size="12" fill="#374151" transform="translate(14, 0)">
+      <text x="0" y="38" font-weight="700" fill="#111827">// for each of 6 planes</text>
+      <text x="0" y="56">px = plane.normal.x &gt; 0 ? aabb.max.x : aabb.min.x;</text>
+      <text x="0" y="74">py = plane.normal.y &gt; 0 ? aabb.max.y : aabb.min.y;</text>
+      <text x="0" y="92">pz = plane.normal.z &gt; 0 ? aabb.max.z : aabb.min.z;</text>
+
+      <text x="0" y="124">if (dot(plane.normal, p) + plane.distance &lt; 0)</text>
+      <text x="0" y="142">  return false;   <tspan fill="#dc2626">// fully outside this plane</tspan></text>
+    </g>
+
+    <text x="14" y="184" font-weight="700" fill="#111827">Why "positive vertex"?</text>
+    <g font-size="11" fill="#374151" transform="translate(14, 0)">
+      <text x="0" y="206">Pick the corner of the AABB that's</text>
+      <text x="0" y="222">furthest along the plane normal.</text>
+      <text x="0" y="244">If even THAT corner is on the wrong side</text>
+      <text x="0" y="260">of the plane, the whole box is outside.</text>
+    </g>
+
+    <text x="14" y="294" font-style="italic" fill="#dc2626" font-size="11">conservative: false positives possible</text>
+    <text x="14" y="310" font-style="italic" fill="#dc2626" font-size="11">(box overlaps frustum corner) — but cheap</text>
+  </g>
+</svg>

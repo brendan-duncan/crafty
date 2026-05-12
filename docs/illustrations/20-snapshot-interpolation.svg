@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 480" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="480" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Snapshot Interpolation: Render 100 ms Behind, Lerp Between Two Snapshots</text>
+
+  <defs>
+    <marker id="siArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+    </marker>
+  </defs>
+
+  <!-- ===== Timeline ===== -->
+  <g transform="translate(40, 70)">
+    <text x="0" y="0" font-weight="700" fill="#111827">Timeline · top axis = real time, bottom = render time (delayed 100 ms)</text>
+
+    <!-- Real time axis -->
+    <text x="0" y="40" font-size="11" font-weight="700" fill="#374151">real time (ms)</text>
+    <line x1="0" y1="56" x2="840" y2="56" stroke="#374151" stroke-width="1"/>
+
+    <!-- Snapshot tick marks at every 50 ms (20 Hz) over 0..400ms → x = 0, 105, 210, 315, 420, 525, 630, 735, 840 -->
+    <g>
+      <g stroke="#2563eb" stroke-width="1.6">
+        <line x1="0"   y1="48" x2="0"   y2="64"/>
+        <line x1="105" y1="48" x2="105" y2="64"/>
+        <line x1="210" y1="48" x2="210" y2="64"/>
+        <line x1="315" y1="48" x2="315" y2="64"/>
+        <line x1="420" y1="48" x2="420" y2="64"/>
+        <line x1="525" y1="48" x2="525" y2="64"/>
+        <line x1="630" y1="48" x2="630" y2="64"/>
+        <line x1="735" y1="48" x2="735" y2="64"/>
+        <line x1="840" y1="48" x2="840" y2="64"/>
+      </g>
+      <g font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#1e3a8a" text-anchor="middle">
+        <text x="0"   y="80">S₀</text>
+        <text x="105" y="80">S₁</text>
+        <text x="210" y="80">S₂</text>
+        <text x="315" y="80">S₃</text>
+        <text x="420" y="80">S₄</text>
+        <text x="525" y="80">S₅</text>
+        <text x="630" y="80">S₆</text>
+        <text x="735" y="80">S₇</text>
+        <text x="840" y="80">S₈</text>
+      </g>
+      <g font-size="9" font-family="ui-monospace, Consolas, monospace" fill="#6b7280" text-anchor="middle">
+        <text x="0"   y="36">0</text>
+        <text x="210" y="36">100</text>
+        <text x="420" y="36">200</text>
+        <text x="630" y="36">300</text>
+        <text x="840" y="36">400</text>
+      </g>
+    </g>
+
+    <!-- "Now" marker (real time) -->
+    <line x1="600" y1="40" x2="600" y2="80" stroke="#dc2626" stroke-width="2"/>
+    <text x="600" y="20" text-anchor="middle" font-size="10" font-weight="700" fill="#dc2626">now (t = 285 ms)</text>
+
+    <!-- Render time axis -->
+    <text x="0" y="166" font-size="11" font-weight="700" fill="#374151">render time = now − 100 ms (purple)</text>
+    <line x1="0" y1="180" x2="840" y2="180" stroke="#7c3aed" stroke-width="1"/>
+
+    <!-- Render time marker at t=185 ms → x = 388.5 -->
+    <line x1="388" y1="170" x2="388" y2="200" stroke="#7c3aed" stroke-width="2"/>
+    <text x="388" y="218" text-anchor="middle" font-size="10" font-weight="700" fill="#7c3aed">render = 185 ms</text>
+
+    <!-- Bracketing snapshots S2 (210/100ms) and S3 (315/150ms): wait those are at 100 and 150 ms.
+         At render time 185 ms, bracket is between snapshot at 150 ms (S3, x=315) and 200 ms (S4, x=420).
+         Let me recompute the snapshot timing.
+
+         Each snapshot is 50 ms apart. So S0 = 0, S1 = 50, S2 = 100, S3 = 150, S4 = 200, ..., S8 = 400.
+         Real time x positions: 0, 105, 210, 315, 420, 525, 630, 735, 840 → maps to time 0, 50, 100, 150, 200, 250, 300, 350, 400.
+         Now at t=285ms → x = 285/400 * 840 = 598.5 (~600).
+         Render at t=185ms → x = 185/400 * 840 = 388.5 (~388).
+         Bracket: S3 (t=150, x=315) and S4 (t=200, x=420).
+         Lerp t = (185-150)/(200-150) = 0.7 -->
+
+    <!-- Highlight bracket pair (S3, S4) on real time axis -->
+    <g>
+      <circle cx="315" cy="56" r="6" fill="#7c3aed" stroke="#fff" stroke-width="1.4"/>
+      <circle cx="420" cy="56" r="6" fill="#7c3aed" stroke="#fff" stroke-width="1.4"/>
+    </g>
+
+    <!-- Connect bracket pair to render marker via dashed lines -->
+    <g stroke="#7c3aed" stroke-width="1" stroke-dasharray="3,2">
+      <line x1="315" y1="56" x2="388" y2="180"/>
+      <line x1="420" y1="56" x2="388" y2="180"/>
+    </g>
+
+    <text x="350" y="130" font-size="10" font-style="italic" fill="#7c3aed">lerp(S₃, S₄, t=0.7)</text>
+  </g>
+
+  <!-- ===== Bottom: insight blocks ===== -->
+  <g transform="translate(40, 320)">
+    <text x="0" y="0" font-weight="700" fill="#111827">What 100 ms buys you</text>
+
+    <!-- 3 insight cards -->
+    <g transform="translate(0, 14)">
+      <rect x="0" y="0" width="270" height="100" fill="#dbeafe" stroke="#2563eb" stroke-width="1" rx="6"/>
+      <text x="14" y="22" font-weight="700" fill="#1e3a8a">smooths jitter</text>
+      <text x="14" y="42" font-size="11" fill="#1e3a8a">a late snapshot can still arrive</text>
+      <text x="14" y="58" font-size="11" fill="#1e3a8a">before the render time crosses it</text>
+      <text x="14" y="78" font-size="10" font-style="italic" fill="#6b7280">no need to extrapolate forward</text>
+    </g>
+
+    <g transform="translate(285, 14)">
+      <rect x="0" y="0" width="270" height="100" fill="#fef3c7" stroke="#a16207" stroke-width="1" rx="6"/>
+      <text x="14" y="22" font-weight="700" fill="#713f12">hides packet loss</text>
+      <text x="14" y="42" font-size="11" fill="#713f12">one missed snapshot just widens</text>
+      <text x="14" y="58" font-size="11" fill="#713f12">the bracket — keep on lerping</text>
+      <text x="14" y="78" font-size="10" font-style="italic" fill="#6b7280">degrades gracefully</text>
+    </g>
+
+    <g transform="translate(570, 14)">
+      <rect x="0" y="0" width="270" height="100" fill="#fee2e2" stroke="#dc2626" stroke-width="1" rx="6"/>
+      <text x="14" y="22" font-weight="700" fill="#7f1d1d">cost: input lag</text>
+      <text x="14" y="42" font-size="11" fill="#7f1d1d">remote players appear 100 ms in</text>
+      <text x="14" y="58" font-size="11" fill="#7f1d1d">the past — fine for casual play</text>
+      <text x="14" y="78" font-size="10" font-style="italic" fill="#6b7280">FPS shooters tune lower</text>
+    </g>
+  </g>
+</svg>

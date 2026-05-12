@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 460" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="460" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">UI Layers: DOM Overlay on Top of the WebGPU Canvas</text>
+
+  <!-- ===== Stacked layers (isometric exploded view) ===== -->
+  <g transform="translate(60, 70)">
+    <text x="200" y="0" text-anchor="middle" font-weight="700" fill="#111827">Render stack (top to bottom)</text>
+
+    <!-- Layer 1: top — DOM UI -->
+    <g transform="translate(0, 30)">
+      <rect x="0" y="0" width="400" height="60" fill="#dbeafe" stroke="#2563eb" stroke-width="1.6" rx="6"/>
+      <text x="14" y="22" font-weight="700" fill="#1e3a8a">DOM UI · z-index 100</text>
+      <text x="14" y="40" font-size="11" fill="#1e3a8a">start screen · settings · chat input · block manager</text>
+      <text x="14" y="54" font-size="10" font-style="italic" fill="#1e3a8a">CSS-styled, accessible, blocks game input when modal</text>
+    </g>
+
+    <!-- Layer 2: HUD overlay (DOM, transparent to clicks) -->
+    <g transform="translate(0, 110)">
+      <rect x="0" y="0" width="400" height="60" fill="#dcfce7" stroke="#15803d" stroke-width="1.6" rx="6"/>
+      <text x="14" y="22" font-weight="700" fill="#14532d">HUD overlay · z-index 50</text>
+      <text x="14" y="40" font-size="11" fill="#14532d">crosshair · hotbar · stats · debug · chat scroll</text>
+      <text x="14" y="54" font-size="10" font-style="italic" fill="#14532d">pointer-events: none (children opt back in)</text>
+    </g>
+
+    <!-- Layer 3: GPU overlay passes -->
+    <g transform="translate(0, 190)">
+      <rect x="0" y="0" width="400" height="60" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.6" rx="6"/>
+      <text x="14" y="22" font-weight="700" fill="#4c1d95">GPU overlay passes</text>
+      <text x="14" y="40" font-size="11" fill="#4c1d95">BlockHighlightPass · DebugLightPass</text>
+      <text x="14" y="54" font-size="10" font-style="italic" fill="#4c1d95">drawn into HDR target alongside the world geometry</text>
+    </g>
+
+    <!-- Layer 4: WebGPU canvas (3D scene) -->
+    <g transform="translate(0, 270)">
+      <rect x="0" y="0" width="400" height="60" fill="#fef3c7" stroke="#a16207" stroke-width="1.6" rx="6"/>
+      <text x="14" y="22" font-weight="700" fill="#713f12">WebGPU canvas · the 3D scene</text>
+      <text x="14" y="40" font-size="11" fill="#713f12">geometry · lighting · post-fx · composite</text>
+      <text x="14" y="54" font-size="10" font-style="italic" fill="#713f12">covers the entire viewport</text>
+    </g>
+  </g>
+
+  <!-- ===== RIGHT: trade-off table ===== -->
+  <g transform="translate(500, 70)">
+    <text x="200" y="0" text-anchor="middle" font-weight="700" fill="#111827">Why hybrid?</text>
+
+    <rect x="0" y="14" width="400" height="316" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+
+    <text x="14" y="38" font-weight="700" fill="#1e3a8a">DOM is best for:</text>
+    <g font-size="11" fill="#374151">
+      <text x="14" y="58">· menus and forms (a11y, screen readers)</text>
+      <text x="14" y="74">· text-heavy panels (browser zoom, copy)</text>
+      <text x="14" y="90">· settings UI (CSS already styled)</text>
+      <text x="14" y="106">· chat input (DOM keyboard handling)</text>
+    </g>
+
+    <text x="14" y="142" font-weight="700" fill="#7c3aed">GPU is best for:</text>
+    <g font-size="11" fill="#374151">
+      <text x="14" y="162">· anything aligned with the 3D scene</text>
+      <text x="14" y="178">· targeted block outline (depth-tested)</text>
+      <text x="14" y="194">· crosshair (zero latency to camera)</text>
+      <text x="14" y="210">· effects that compose with HDR (bloom)</text>
+    </g>
+
+    <text x="14" y="246" font-weight="700" fill="#dc2626">Avoid:</text>
+    <g font-size="11" fill="#374151">
+      <text x="14" y="266">· pumping per-frame text into DOM nodes</text>
+      <text x="14" y="282" font-style="italic" fill="#6b7280">(layout thrash) — rate-limit debug overlay</text>
+      <text x="14" y="302">· DOM elements behind the canvas</text>
+    </g>
+  </g>
+</svg>
