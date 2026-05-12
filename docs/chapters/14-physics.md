@@ -1,12 +1,12 @@
-# Chapter 15: Physics and Interaction
+# Chapter 14: Physics and Interaction
 
-[Contents](../crafty.md) | [14-Game Engine](14-game-engine.md) | [16-NPC AI](16-npc-ai.md)
+[Contents](../crafty.md) | [13-Game Engine](13-game-engine.md) | [15-NPC AI](15-npc-ai.md)
 
 Crafty implements a minimal physics system focused on player movement and block interaction. There is no general-purpose physics engine — only what the gameplay requires.
 
-## 15.1 Collision Detection (AABB)
+## 14.1 Collision Detection (AABB)
 
-![Player AABB on a voxel grid: only the cells that overlap the box (≤ 2 × 2 × 2) need to be tested for solidity](../illustrations/15-aabb-collision.svg)
+![Player AABB on a voxel grid: only the cells that overlap the box (≤ 2 × 2 × 2) need to be tested for solidity](../illustrations/14-aabb-collision.svg)
 
 The player's collision volume is an axis-aligned bounding box (AABB). Collision detection tests the player's AABB against solid blocks in the world:
 
@@ -22,9 +22,9 @@ class AABB {
 
 The **sweep test** moves the AABB along the velocity vector and finds the first collision. This allows the player to slide along walls — if the velocity has an X component that causes collision, the X component is zeroed and the remaining Y/Z sweep continues.
 
-## 15.2 Player Movement and Gravity
+## 14.2 Player Movement and Gravity
 
-![Collide-and-slide: subtract the velocity component along the wall normal so the tangential motion (v_slide) survives](../illustrations/15-collide-and-slide.svg)
+![Collide-and-slide: subtract the velocity component along the wall normal so the tangential motion (v_slide) survives](../illustrations/14-collide-and-slide.svg)
 
 The player controller implements a simplified **collide-and-slide** algorithm:
 
@@ -36,9 +36,9 @@ The player controller implements a simplified **collide-and-slide** algorithm:
 
 Gravity is constant at `-20 m/s²` (slightly higher than Earth's `-9.8` for a more responsive feel). Ground friction slows horizontal movement when the player is standing on a block.
 
-## 15.3 Block Ray Casting
+## 14.3 Block Ray Casting
 
-![DDA stepping through voxels (cells 1 → 6) until hitting a solid block, returning both the block coords and the face normal](../illustrations/15-block-raycast.svg)
+![DDA stepping through voxels (cells 1 → 6) until hitting a solid block, returning both the block coords and the face normal](../illustrations/14-block-raycast.svg)
 
 To determine which block the player is looking at, a ray is cast from the camera through the crosshair. The DDA (Digital Differential Analyzer) algorithm traverses the voxel grid efficiently:
 
@@ -66,9 +66,9 @@ function raycastVoxels(origin: Vec3, dir: Vec3, world: World, maxDist: number): 
 
 The return value includes the block position and the face normal (which side was hit), used for placing new blocks adjacent to the hit face.
 
-## 15.4 Block Interaction
+## 14.4 Block Interaction
 
-![Progressive crack stages 0 → 9 over breakTime ms, then setBlock(Air); placement uses hit + normal to find the adjacent empty cell](../illustrations/15-block-interaction.svg)
+![Progressive crack stages 0 → 9 over breakTime ms, then setBlock(Air); placement uses hit + normal to find the adjacent empty cell](../illustrations/14-block-interaction.svg)
 
 Block breaking uses a **progressive crack animation** — holding the mouse button on a block gradually breaks it:
 
@@ -105,4 +105,4 @@ function placeBlock(hit: BlockHit, blockType: BlockType) {
 
 
 ----
-[Contents](../crafty.md) | [14-Game Engine](14-game-engine.md) | [16-NPC AI](16-npc-ai.md)
+[Contents](../crafty.md) | [13-Game Engine](13-game-engine.md) | [15-NPC AI](15-npc-ai.md)

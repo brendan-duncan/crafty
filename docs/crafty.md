@@ -195,53 +195,53 @@ This book is a work in progress.  Chapters are added as the engine evolves.
     - House placement
     - House template
 
-- [Chapter 12: Weather System](chapters/12-weather-system.md)
-  - 12.1 Weather types
-  - 12.2 Biome weather tables
-  - 12.3 Dynamic weather transitions
-  - 12.4 Cloud coverage mapping
-  - 12.5 Precipitation control
-  - 12.6 Integration in the frame loop
-  - 12.7 Debug overlay display
-
-- [Chapter 13: Post-Processing](chapters/13-post-processing.md)
-  - 13.1 Tone mapping and HDR display
-  - 13.2 Bloom
-  - 13.3 Temporal anti-aliasing (TAA)
-  - 13.4 Screen-space ambient occlusion (SSAO)
-  - 13.5 Depth of field (DOF)
-  - 13.6 God rays (crepuscular rays)
-  - 13.7 Auto-exposure
-  - 13.8 Color grading
+- [Chapter 12: Post-Processing](chapters/12-post-processing.md)
+  - 12.1 Tone mapping and HDR display
+  - 12.2 Bloom
+  - 12.3 Temporal anti-aliasing (TAA)
+  - 12.4 Screen-space ambient occlusion (SSAO)
+  - 12.5 Depth of field (DOF)
+  - 12.6 God rays (crepuscular rays)
+  - 12.7 Auto-exposure
+  - 12.8 Color grading
 
 ## III — Game Engine
 
-- [Chapter 14: Game Engine Design](chapters/14-game-engine.md)
-  - 14.1 The component/entity system
-  - 14.2 GameObject and Component
-  - 14.3 The Scene graph
-  - 14.4 The game loop
-  - 14.5 Input handling (keyboard, mouse, touch)
-  - 14.6 Camera controls
-  - 14.7 The player controller
-  - 14.8 Touch Controls (Mobile)
+- [Chapter 13: Game Engine Design](chapters/13-game-engine.md)
+  - 13.1 The component/entity system
+  - 13.2 GameObject and Component
+  - 13.3 The Scene graph
+  - 13.4 The game loop
+  - 13.5 Input handling (keyboard, mouse, touch)
+  - 13.6 Camera controls
+  - 13.7 The player controller
+  - 13.8 Touch Controls (Mobile)
 
-- [Chapter 15: Physics and Interaction](chapters/15-physics.md)
-  - 15.1 Collision detection (AABB)
-  - 15.2 Player movement and gravity
-  - 15.3 Block ray casting
-  - 15.4 Block interaction (placement, breaking)
+- [Chapter 14: Physics and Interaction](chapters/14-physics.md)
+  - 14.1 Collision detection (AABB)
+  - 14.2 Player movement and gravity
+  - 14.3 Block ray casting
+  - 14.4 Block interaction (placement, breaking)
 
-- [Chapter 16: NPC AI](chapters/16-npc-ai.md)
-  - 16.1 NPC Architecture
-  - 16.2 The AI State Machine
-  - 16.3 Duck AI — Three-State Behaviour
-  - 16.4 Duckling AI — Follow Behaviour
-  - 16.5 Pig AI — Two-State Wandering
-  - 16.6 Gravity and Ground Collision
-  - 16.7 Head Bob Animation
-  - 16.8 Animated Models and Skeletal Animation
-  - 16.9 Extending the NPC System
+- [Chapter 15: NPC AI](chapters/15-npc-ai.md)
+  - 15.1 NPC Architecture
+  - 15.2 The AI State Machine
+  - 15.3 Duck AI — Three-State Behaviour
+  - 15.4 Duckling AI — Follow Behaviour
+  - 15.5 Pig AI — Two-State Wandering
+  - 15.6 Gravity and Ground Collision
+  - 15.7 Head Bob Animation
+  - 15.8 Animated Models and Skeletal Animation
+  - 15.9 Extending the NPC System
+
+- [Chapter 16: Weather System](chapters/16-weather-system.md)
+  - 16.1 Weather types
+  - 16.2 Biome weather tables
+  - 16.3 Dynamic weather transitions
+  - 16.4 Cloud coverage mapping
+  - 16.5 Precipitation control
+  - 16.6 Integration in the frame loop
+  - 16.7 Debug overlay display
 
 - [Chapter 17: Audio](chapters/17-audio.md)
   - 17.1 Web Audio API fundamentals

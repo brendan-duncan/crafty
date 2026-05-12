@@ -1,6 +1,6 @@
 # Chapter 11: Terrain and Voxel World
 
-[Contents](../crafty.md) | [10-Sky / Atmosphere](10-sky-atmosphere.md) | [12-Weather System](12-weather-system.md)
+[Contents](../crafty.md) | [10-Sky / Atmosphere](10-sky-atmosphere.md) | [12-Post-Processing](12-post-processing.md)
 
 The voxel world is what distinguishes Crafty from a generic rendering demo. This chapter covers the data structures, generation, and rendering of a block-based terrain.
 
@@ -386,4 +386,4 @@ Currently, all houses use `SPRUCE_PLANKS` for structure and `GLASS` for windows.
 - `src/shaders/chunk_geometry.wgsl` — Chunk G-buffer shader
 
 ----
-[Contents](../crafty.md) | [10-Sky / Atmosphere](10-sky-atmosphere.md) | [12-Weather System](12-weather-system.md)
+[Contents](../crafty.md) | [10-Sky / Atmosphere](10-sky-atmosphere.md) | [12-Post-Processing](12-post-processing.md)
