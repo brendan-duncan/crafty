@@ -82,7 +82,7 @@ this._yaw = Math.atan2(-(dx / dist), -(dz / dist));
 
 The yaw is updated each frame so the NPC's model faces the direction of travel. When the NPC arrives within 0.5 blocks of the target, or when a wander timer expires, it returns to `idle`.
 
-### Flee (Ducks Only)
+### Flee
 
 Ducks flee from the player when within detection range (6 blocks). The flee behaviour moves the duck directly away from the player at a higher speed (4.0 m/s vs 1.5 m/s wander). Once the distance exceeds 14 blocks, the duck returns to `idle`:
 
