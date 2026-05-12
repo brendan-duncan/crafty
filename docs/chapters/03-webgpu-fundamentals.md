@@ -84,8 +84,15 @@ try {
     colorSpace: 'display-p3',
     toneMapping: { mode: 'extended' },
   });
-  format = 'rgba16float';
-  hdr = true;
+  const config = context.getConfiguration();
+  // Verify that we actually got an HDR display.
+  if (config.toneMapping.mode === "extended") {
+    format = 'rgba16float';
+    hdr = true;
+  } else {
+    // The display doesn't support HDR, get the format used by the canvas.
+    format = navigator.gpu.getPreferredCanvasFormat();
+  }
 } catch {
   // Fallback to preferred SDR format
   format = navigator.gpu.getPreferredCanvasFormat();
