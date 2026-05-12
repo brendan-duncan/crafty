@@ -521,7 +521,7 @@ async function main(): Promise<void> {
   menu.card.appendChild(invPanel);
 
   const setPanel = document.createElement('div');
-  setPanel.style.cssText = 'display:none;flex-direction:column;align-items:center;gap:10px;width:100%';
+  setPanel.style.cssText = 'display:none;flex-direction:column;align-items:center;gap:10px;width:100%;margin-top:12px';
   menu.card.appendChild(setPanel);
 
   function switchTab(tab: 'inv' | 'set'): void {
@@ -581,6 +581,11 @@ async function main(): Promise<void> {
     }
     if (key === 'clouds') {
       await rebuildRenderTargets();
+      return;
+    }
+    if (key === 'debug_info') {
+      _showDebug = effects.debug_info;
+      _updateDebugOverlay();
       return;
     }
     await rebuildRenderTargets();

@@ -12,6 +12,7 @@ export const DEFAULT_EFFECTS = {
   chunk_dbg: false,
   hdr: true,
   auto_exp: false,
+  debug_info: false,
   rain: true,
   clouds: true,
 };
