@@ -45,6 +45,7 @@ import { AudioManager } from './game/audio_manager.js';
 import { WeatherType, getWeatherCloudCoverage, getWeatherEnvironmentEffect, getWeatherSpawnRate, getWeatherName, pickRandomWeather, getWeatherChangeInterval } from './game/weather_system.js';
 import { updateTorchFlicker, updateMagmaFlicker } from './game/lights.js';
 import { setupAnimalSpawning } from './game/animal_spawner.js';
+import { setupVillageGeneration } from './game/village_gen.js';
 import { HeightmapManager } from './game/heightmap.js';
 import { NetworkClient, type ConnectResult } from './game/network_client.js';
 import { RemotePlayer, createRemotePlayerMeshes } from './game/remote_player.js';
@@ -271,6 +272,8 @@ async function main(): Promise<void> {
     creeperBody:  createCreeperBodyMesh(device),
     creeperHead:  createCreeperHeadMesh(device),
   });
+
+  setupVillageGeneration(world);
 
   // ── Multiplayer wiring ────────────────────────────────────────────────────
   // Server-authoritative block edits arrive as a list at welcome time + a
