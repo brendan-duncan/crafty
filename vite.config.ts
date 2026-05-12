@@ -1,5 +1,4 @@
 import { defineConfig } from 'vite';
-import path from 'path';
 
 export default defineConfig({
   base: './',
@@ -8,12 +7,13 @@ export default defineConfig({
     port: 5173,
   },
   build: {
-    outDir: '../dist',
+    outDir: './dist',
     emptyOutDir: true,
     rollupOptions: {
       input: {
         main: 'crafty/index.html',
-        directory: 'index.html',
+        index: 'index.html',
+        samples: 'samples/index.html',
         cube_test: 'samples/cube_test.html',
         cloud_test: 'samples/cloud_test.html',
         cascade_shadow_test: 'samples/cascade_shadow_test.html',
