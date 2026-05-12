@@ -3,6 +3,15 @@ import type { World } from '../../src/block/index.js';
 const HM_RES = 128;
 const HM_EXTENT = 40.0;  // half-size in blocks
 
+/**
+ * Manages terrain heightmap values centered around the camera, updated as the camera moves.
+ *
+ * The heightmap is a square region of size HM_EXTENT*2, sampled at HM_RES*HM_RES points.
+ * Each pixel stores the world height of the top block at that point.
+ * The heightmap is updated whenever the camera moves more than 2 blocks from the center of the current heightmap.
+ * The heightmap is used by the particle system for terrain collisions, and for effects like water waves that need
+ * to interact with the terrain height.
+ */
 export class HeightmapManager {
   readonly data = new Float32Array(HM_RES * HM_RES);
   readonly resolution = HM_RES;
