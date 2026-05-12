@@ -312,6 +312,8 @@ let fresnel_r = min(0.02 + 0.98 * pow(1.0 - VdotN, 5.0), 0.6);  // capped at 0.6
 let world_color = mix(tinted, reflection, fresnel_r);
 ```
 
+![Fresnel blend: viewing angle effect (looking down vs grazing) and Schlick formula with 0.6 cap](../illustrations/12-fresnel-blend.svg)
+
 Reflection is minimal when looking straight down (high V·N), rising towards grazing angles. The 0.6 cap prevents bright HDR sky values from washing out the water at shallow viewing angles.
 
 ## 12.11 Village Generation
