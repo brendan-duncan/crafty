@@ -85,3 +85,8 @@ npm run preview    # serves the built bundle locally
 npm test           # vitest in watch mode
 npm run test:run   # one-shot, suitable for CI
 ```
+
+
+### Thanks
+
+Block textures are courtousy of: https://minecraftrtx.net
