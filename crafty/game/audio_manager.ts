@@ -55,7 +55,6 @@ export class AudioManager {
   // Music
   private _musicGain   : GainNode | null = null;
   private _musicSource : AudioBufferSourceNode | null = null;
-  private _musicBuffer : AudioBuffer | null = null;
 
   /** Global master volume (0–1) applied to all sounds including music. */
   masterVolume = 0.5;
@@ -248,7 +247,7 @@ export class AudioManager {
    * Plays a landing sound. `fallSpeed` is the downward velocity magnitude
    * just before landing — uses `fallbig` for hard landings.
    */
-  playLand(surface: SurfaceGroup, pos: Vec3, fallSpeed: number): void {
+  playLand(_surface: SurfaceGroup, pos: Vec3, fallSpeed: number): void {
     const name = fallSpeed > 15 ? 'fallbig' : 'fallsmall';
     const buf = this._fallBuffers.get(name);
     if (!buf) {
@@ -313,8 +312,6 @@ export class AudioManager {
     if (!buf) {
       return;
     }
-    this._musicBuffer = buf;
-
     if (!this._musicGain) {
       this._musicGain = ctx.createGain();
       this._musicGain.connect(ctx.destination);
@@ -342,7 +339,6 @@ export class AudioManager {
       this._musicSource.disconnect();
       this._musicSource = null;
     }
-    this._musicBuffer = null;
   }
 
   fadeOutMusic(duration = 2): Promise<void> {
@@ -388,11 +384,11 @@ class OneShot {
   private _src  : AudioBufferSourceNode;
   private _gain : GainNode;
   private _panner: PannerNode;
-  private _ctx  : AudioContext;
+  //private _ctx  : AudioContext;
   private _finished = false;
 
   constructor(ctx: AudioContext, buffer: AudioBuffer, pos: Vec3, volume: number, pitch: number) {
-    this._ctx = ctx;
+    //this._ctx = ctx;
 
     this._gain = ctx.createGain();
     this._gain.gain.value = volume;

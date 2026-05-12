@@ -15,7 +15,6 @@ import type { World, Chunk, ChunkMesh } from '../src/block/index.js';
 import { EnvironmentEffect } from '../src/block/index.js';
 import type { Mat4 } from '../src/math/index.js';
 import { rainConfig, snowConfig, blockBreakConfig, explosionConfig } from './config/particle_configs.js';
-import { BlockShadowPass, BlockShadowPass } from '../src/renderer/passes/block_shadow_pass.js';
 
 export interface RenderPasses {
   shadowPass: ShadowPass;

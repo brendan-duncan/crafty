@@ -42,7 +42,7 @@ import { createBlockInteractionState, setupBlockInteractionHandlers, updateBlock
 import { loadBlockColors, getBlockColor } from './game/block_colors.js';
 import { setupTouchControlsLazy, isTouchDevice } from './game/touch_controls.js';
 import { AudioManager } from './game/audio_manager.js';
-import { WeatherType, getWeatherCloudCoverage, getWeatherEnvironmentEffect, getWeatherSpawnRate, getWeatherName, pickRandomWeather, getWeatherChangeInterval } from './game/weather_system.js';
+import { getWeatherCloudCoverage, getWeatherEnvironmentEffect, getWeatherSpawnRate, getWeatherName, pickRandomWeather, getWeatherChangeInterval } from './game/weather_system.js';
 import { updateTorchFlicker, updateMagmaFlicker } from './game/lights.js';
 import { setupAnimalSpawning } from './game/animal_spawner.js';
 import { setupVillageGeneration } from './game/village_gen.js';
@@ -145,7 +145,7 @@ async function main(): Promise<void> {
 
   // Setup player and camera
   const playerSetup = setupPlayer(canvas, scene, world, ctx.width, ctx.height, flashlightTexture.gpuTexture, hud.reticle, hotbar.element);
-  const { cameraGO, camera, player, freeCamera, flashlight } = playerSetup;
+  const { cameraGO, camera, player, freeCamera } = playerSetup;
 
   // Wire audio to player footsteps / landing.
   player.onStep = (surface) => {

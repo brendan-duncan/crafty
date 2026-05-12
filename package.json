@@ -16,6 +16,7 @@
     "server:install": "npm --prefix server install"
   },
   "devDependencies": {
+    "@types/node": "^25.7.0",
     "@vitest/ui": "^4.1.5",
     "@webgpu/types": "^0.1.69",
     "typescript": "^5.4.5",

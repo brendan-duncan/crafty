@@ -6,7 +6,7 @@ import {
   type S2C,
   type SavedPosition,
   type WorldSummary,
-} from '../../shared/net_protocol.ts';
+} from '../../shared/net_protocol.js';
 
 export interface ConnectResult {
   playerId: number;

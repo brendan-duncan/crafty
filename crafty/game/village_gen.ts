@@ -97,7 +97,7 @@ function _hasWaterUnderHouse(world: World, hx: number, hy: number, hz: number): 
   return false;
 }
 
-function _isFlatEnough(world: World, baseX: number, baseZ: number, refY: number): boolean {
+/*function _isFlatEnough(world: World, baseX: number, baseZ: number, refY: number): boolean {
   for (let dx = 0; dx < CHUNK_SIZE; dx += 4) {
     for (let dz = 0; dz < CHUNK_SIZE; dz += 4) {
       const y = world.getTopBlockY(baseX + dx, baseZ + dz, 200);
@@ -107,7 +107,7 @@ function _isFlatEnough(world: World, baseX: number, baseZ: number, refY: number)
     }
   }
   return true;
-}
+}*/
 
 function _chunkSeed(worldSeed: number, cx: number, cz: number): number {
   const A = 73856093;
