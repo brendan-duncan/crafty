@@ -421,7 +421,7 @@ Key WGSL features visible here:
 
 ### Shader Compilation
 
-Shader modules are compiled from WGSL source code at runtime:
+Shader modules are created from WGSL source code at runtime:
 
 ```typescript
 const shaderModule = device.createShaderModule({
@@ -430,7 +430,7 @@ const shaderModule = device.createShaderModule({
 });
 ```
 
-WebGPU compiles WGSL to native GPU instructions as part of `createShaderModule()`. Compilation errors are reported through `getCompilationInfo()`:
+WebGPU validates WGSL to native GPU instructions as part of `createShaderModule()`. Compilation errors are reported through `getCompilationInfo()`:
 
 ```typescript
 const info = shaderModule.getCompilationInfo();
@@ -440,6 +440,8 @@ for (const msg of info.messages) {
   }
 }
 ```
+
+But note that WebGPU doesn't actually compile the shader for the GPU backend (D3D, Vulkan, Metal) until a Pipeline object is created using the ShaderModule. This is because the other state information provided by the Pipeline can affect the shader that is compiled for the GPU backend. Because of this, you will find that creating Pipeline objects is significantly more time consuming than createShaderModule.
 
 Crafty loads shaders at module scope via Vite's `?raw` import syntax:
 
