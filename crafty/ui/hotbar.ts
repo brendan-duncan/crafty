@@ -21,9 +21,11 @@ export interface Hotbar {
   setOnSelectionChanged: (cb: () => void) => void;
   slots: BlockType[];
   element: HTMLDivElement;
+  flashlightButton: HTMLButtonElement;
+  setFlashlightState: (on: boolean) => void;
 }
 
-export function createHotbar(atlasUrl: string): Hotbar {
+export function createHotbar(atlasUrl: string, onFlashlightToggle?: () => void): Hotbar {
   const N = HOTBAR_SLOTS.length;
   let selected = 0;
 
@@ -147,12 +149,50 @@ export function createHotbar(atlasUrl: string): Hotbar {
     updateSelection();
   }, { passive: true });
 
-  // Re-position highlight whenever the window resizes (resolution change,
-  // orientation change) — the bar auto-centers via CSS, but the highlight
-  // overlay position is computed from getBoundingClientRect.
-  window.addEventListener('resize', updateSelection);
+  // ── Flashlight toggle button (hidden by default; shown by main.ts when not mobile) ──
+  const flashlightBtn = document.createElement('button');
+  flashlightBtn.textContent = '💡(F)';
+  flashlightBtn.title = 'Toggle Flashlight (F)';
+  const FL_ON  = '#ff5';
+  const FL_OFF = '#a0a0a0';
+  flashlightBtn.style.cssText = [
+    'position:fixed', 'bottom:12px',
+    'width:45px', 'height:32px', 'padding:0',
+    'background:#1a1a2e', 'border:1px solid ' + FL_OFF,
+    'border-radius:4px',
+    'font-family:ui-monospace,monospace', 'font-size:13px', 'font-weight:bold',
+    'color:' + FL_OFF,
+    'cursor:pointer', 'z-index:10',
+    'line-height:32px', 'text-align:center',
+    'user-select:none',
+  ].join(';');
+  let _flashlightOn = false;
+
+  function refreshFlashlight() {
+    flashlightBtn.style.color = _flashlightOn ? FL_ON : FL_OFF;
+    flashlightBtn.style.borderColor = _flashlightOn ? FL_ON : FL_OFF;
+  }
+
+  function updateFlashlightPos() {
+    const barRect = bar.getBoundingClientRect();
+    flashlightBtn.style.left = (barRect.right + 8) + 'px';
+  }
+
+  flashlightBtn.addEventListener('click', () => {
+    onFlashlightToggle?.();
+  });
+  document.body.appendChild(flashlightBtn);
+
+  // Re-position highlight & flashlight whenever the window resizes
+  window.addEventListener('resize', () => {
+    updateSelection();
+    updateFlashlightPos();
+  });
   // Delay first position update until bar is laid out
-  requestAnimationFrame(updateSelection);
+  requestAnimationFrame(() => {
+    updateSelection();
+    updateFlashlightPos();
+  });
 
   return {
     getSelected: () => HOTBAR_SLOTS[selected],
@@ -162,5 +202,10 @@ export function createHotbar(atlasUrl: string): Hotbar {
     setOnSelectionChanged: (cb: () => void) => { _onSelectionChanged = cb; },
     slots: HOTBAR_SLOTS,
     element: bar,
+    flashlightButton: flashlightBtn,
+    setFlashlightState: (on: boolean) => {
+      _flashlightOn = on;
+      refreshFlashlight();
+    },
   };
 }

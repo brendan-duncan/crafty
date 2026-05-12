@@ -36,7 +36,7 @@ export function setupPlayer(
   const flashlight = flashlightGO.addComponent(new SpotLight());
   flashlight.color = new Vec3(1.0, 0.95, 0.9);
   flashlight.intensity = 0.0;
-  flashlight.range = 40.0;
+  flashlight.range = 80.0;
   flashlight.innerAngle = 12;
   flashlight.outerAngle = 25;
   flashlight.castShadow = false;
