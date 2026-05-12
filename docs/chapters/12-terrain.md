@@ -215,6 +215,8 @@ Water is a transparent block type rendered through the `WaterPass` (`src/rendere
 
 ### Screen-Space Refraction
 
+![Screen-space refraction: 3-step pipeline (render → copy → distort) and UV distortion visual](../illustrations/12-screen-space-refraction.svg)
+
 Before rendering water, the current HDR scene is copied to a `refractionTex`. During water shading, the scene behind the water is sampled with UV distortion driven by an animated DUDV normal map:
 
 ```wgsl
