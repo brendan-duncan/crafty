@@ -16,11 +16,11 @@
 
   <g transform="translate(240, 220)">
     <!-- +Z toward viewer (down-left) -->
-    <line x1="0" y1="0" x2="-100" y2="62" stroke="#2563eb" stroke-width="2.5" marker-end="url(#arrB)"/>
+    <line x1="0" y1="0" x2="-100" y2="62" stroke="#2563eb" stroke-width="2.5" stroke-dasharray="5,4" marker-end="url(#arrB)"/>
     <text x="-118" y="80" fill="#2563eb" font-weight="600">+Z</text>
 
     <!-- -Z forward (into scene, up-right), dashed -->
-    <line x1="0" y1="0" x2="100" y2="-62" stroke="#2563eb" stroke-width="2.5" stroke-dasharray="5,4" marker-end="url(#arrB)"/>
+    <line x1="0" y1="0" x2="100" y2="-62" stroke="#2563eb" stroke-width="2.5" marker-end="url(#arrB)"/>
     <text x="105" y="-68" fill="#2563eb" font-weight="600">−Z (forward)</text>
 
     <!-- +X right -->
