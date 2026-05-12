@@ -4,7 +4,7 @@ import { World } from '../../src/block/index.js';
 import type { Mesh } from '../../src/assets/mesh.js';
 import { CreeperAI } from './components/creeper_ai.js';
 
-const CREEPER_GREEN: [number, number, number, number] = [0.37, 0.62, 0.22, 1];
+const CREEPER_GREEN: [number, number, number, number] = [0.37, 0.82, 0.22, 1];
 
 export function spawnCreeper(
   wx: number,

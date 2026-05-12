@@ -9,7 +9,7 @@ import { spawnCreeper } from './creeper_spawning.js';
 const CHUNK_SIZE     = 16;
 const DUCK_CHANCE    = 0.15;
 const PIG_CHANCE     = 0.20;
-const CREEPER_CHANCE = 0.08;
+const CREEPER_CHANCE = 0.01;
 const DUCKLING_CHANCE = 0.25;
 const DUCKLING_COUNT  = 5;
 const BABY_PIG_CHANCE = 0.25;
