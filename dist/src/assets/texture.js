@@ -63,7 +63,7 @@ export class Texture {
     /**
      * Fetches an image URL and uploads it as a 2D GPU texture.
      *
-     * Use `srgb=true` for albedo/colour maps; keep `false` for normal/ORM maps.
+     * Use `srgb=true` for albedo/color maps; keep `false` for normal/ORM maps.
      *
      * @param device - The WebGPU device.
      * @param url - URL to fetch the image from.

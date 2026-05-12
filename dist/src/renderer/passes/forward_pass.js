@@ -24,7 +24,7 @@ export { MAX_POINT_LIGHTS, MAX_SPOT_LIGHTS };
  * `material.shaderId` (separately for the opaque and transparent variants), so
  * many materials sharing a shader share a single pipeline. Reads the camera,
  * light, IBL and shadow bind groups owned by the pass; writes an HDR
- * `rgba16float` colour target (`outputView`, or the swapchain when its format
+ * `rgba16float` color target (`outputView`, or the swapchain when its format
  * matches) and an internal `depth32float` depth attachment. Opaque items are
  * drawn first, then alpha-blended transparents with depth-write disabled.
  */
@@ -249,7 +249,7 @@ export class ForwardPass extends RenderPass {
         const outputView = outputTexture.createView();
         return new ForwardPass(cameraBGL, modelBGL, lightingIblBGL, cameraBuffer, cameraBindGroup, lightingBuffer, directionalLightBuffer, pointLightsBuffer, spotLightsBuffer, lightingIblBindGroup, shadowMapArray, pointShadowCubeArray, depthTexture, depthView, outputTexture, outputView);
     }
-    /** Default view of the internal HDR colour target written by the pass. */
+    /** Default view of the internal HDR color target written by the pass. */
     get outputView() {
         return this._outputView;
     }
@@ -268,7 +268,7 @@ export class ForwardPass extends RenderPass {
         return this._pointShadowCubeArray;
     }
     /**
-     * Recreate the colour and depth render targets for a new framebuffer size.
+     * Recreate the color and depth render targets for a new framebuffer size.
      *
      * Existing HDR / depth textures are destroyed and replaced; bind groups that
      * reference them must be regenerated externally.
@@ -476,7 +476,7 @@ export class ForwardPass extends RenderPass {
         }
     }
     /**
-     * Encode the forward render pass: clears the colour and depth attachments,
+     * Encode the forward render pass: clears the color and depth attachments,
      * draws all opaque items with the opaque pipeline variant for each material's
      * shader, then all transparents with the alpha-blended variant.
      *
@@ -485,7 +485,7 @@ export class ForwardPass extends RenderPass {
      *
      * @param encoder Command encoder to record into.
      * @param ctx Render context (provides device + current swapchain texture).
-     * @param outputView Optional override colour attachment.
+     * @param outputView Optional override color attachment.
      * @param depthView Optional override depth attachment.
      */
     execute(encoder, ctx, outputView, depthView) {

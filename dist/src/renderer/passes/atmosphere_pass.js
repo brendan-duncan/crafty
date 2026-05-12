@@ -8,7 +8,7 @@ const UNIFORM_SIZE = 96;
  *
  * Uses a full-screen triangle and reconstructs view rays via the inverse view-projection
  * matrix; the atmosphere shader evaluates a procedural sky model from the camera position
- * and the toward-sun vector. Typically the first colour-writing pass — clears the HDR target.
+ * and the toward-sun vector. Typically the first color-writing pass — clears the HDR target.
  */
 export class AtmospherePass extends RenderPass {
     name = 'AtmospherePass';
@@ -29,7 +29,7 @@ export class AtmospherePass extends RenderPass {
      * targets the supplied HDR view (`HDR_FORMAT` — `rgba16float`).
      *
      * @param ctx Render context providing the GPU device.
-     * @param hdrView HDR colour attachment the sky is drawn into.
+     * @param hdrView HDR color attachment the sky is drawn into.
      * @returns A ready-to-use `AtmospherePass`.
      */
     static create(ctx, hdrView) {

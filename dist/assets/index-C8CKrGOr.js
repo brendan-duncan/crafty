@@ -66,7 +66,7 @@ fn atm_optical_depth(pos: vec3<f32>, dir: vec3<f32>) -> vec2<f32> {
   return od;
 }
 
-// Simplified scatter for fog colour (6 main steps).
+// Simplified scatter for fog color (6 main steps).
 fn atm_scatter(ro: vec3<f32>, rd: vec3<f32>, sun_dir: vec3<f32>) -> vec3<f32> {
   let ta = atm_ray_sphere(ro, rd, ATM_R_A); let tMin = max(ta.x, 0.0);
   if (ta.y < 0.0) { return vec3<f32>(0.0); }
@@ -126,10 +126,10 @@ fn apply_aerial_perspective(geo_color: vec3<f32>, world_pos: vec3<f32>,
   let tau   = (ATM_BETA_R * od_R + vec3<f32>(ATM_BETA_M * od_M)) * ATM_FOG_SCALE;
   let geo_T = exp(-tau);
 
-  // Sample fog colour using only the horizontal component of the ray direction.
+  // Sample fog color using only the horizontal component of the ray direction.
   // Using the true ray direction creates a visible line at camera height where
-  // the sky-scatter colour changes as the downward angle exceeds any clamp value.
-  // Projecting to horizontal makes fog colour a function of azimuth only (sun angle),
+  // the sky-scatter color changes as the downward angle exceeds any clamp value.
+  // Projecting to horizontal makes fog color a function of azimuth only (sun angle),
   // matching the sky at the true horizon with no altitude-dependent discontinuity.
   let h2   = vec3<f32>(ray_dir.x, 0.0, ray_dir.z);
   let len2 = dot(h2, h2);
@@ -416,7 +416,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         let tc = clamp(vec2<i32>(uv * sm_size),
                        vec2<i32>(0), vec2<i32>(sm_size) - vec2<i32>(1));
         let d = textureLoad(shadowMap, tc, i32(ci), 0);
-        // 2-pixel border in the cascade's debug colour
+        // 2-pixel border in the cascade's debug color
         let border = 2.0;
         if (px.x < x0 + border || px.y < y0 + border || px.y > y0 + thumb - border) {
           switch ci {
@@ -901,7 +901,7 @@ fn fs_edge() -> @location(0) vec4<f32> {
 }
 `,fo=80;class or extends Pe{constructor(e,t,n,o,i,a){super();s(this,"name","BlockHighlightPass");s(this,"_facePipeline");s(this,"_edgePipeline");s(this,"_uniformBuf");s(this,"_bg");s(this,"_hdrView");s(this,"_depthView");s(this,"_active",!1);s(this,"_crackStage",0);s(this,"_scratch",new Float32Array(fo/4));this._facePipeline=e,this._edgePipeline=t,this._uniformBuf=n,this._bg=o,this._hdrView=i,this._depthView=a}static create(e,t,n,o){const{device:i}=e,a=i.createBuffer({label:"BlockHighlightUniform",size:fo,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST}),l=i.createSampler({label:"BlockHighlightCrackSampler",magFilter:"nearest",minFilter:"nearest",mipmapFilter:"nearest",addressModeU:"clamp-to-edge",addressModeV:"clamp-to-edge"}),c=i.createBindGroupLayout({label:"BlockHighlightBGL",entries:[{binding:0,visibility:GPUShaderStage.VERTEX|GPUShaderStage.FRAGMENT,buffer:{type:"uniform"}},{binding:1,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:2,visibility:GPUShaderStage.FRAGMENT,sampler:{type:"filtering"}}]}),d=i.createBindGroup({label:"BlockHighlightBG",layout:c,entries:[{binding:0,resource:{buffer:a}},{binding:1,resource:o.view},{binding:2,resource:l}]}),f=i.createShaderModule({label:"BlockHighlightShader",code:Ca}),p=i.createPipelineLayout({bindGroupLayouts:[c]}),h={format:"depth32float",depthWriteEnabled:!1,depthCompare:"less-equal"},_={color:{srcFactor:"src-alpha",dstFactor:"one-minus-src-alpha",operation:"add"},alpha:{srcFactor:"one",dstFactor:"one-minus-src-alpha",operation:"add"}},m=i.createRenderPipeline({label:"BlockHighlightFacePipeline",layout:p,vertex:{module:f,entryPoint:"vs_face"},fragment:{module:f,entryPoint:"fs_face",targets:[{format:de,blend:_}]},primitive:{topology:"triangle-list",cullMode:"none"},depthStencil:h}),y=i.createRenderPipeline({label:"BlockHighlightEdgePipeline",layout:p,vertex:{module:f,entryPoint:"vs_edge"},fragment:{module:f,entryPoint:"fs_edge",targets:[{format:de,blend:_}]},primitive:{topology:"triangle-list",cullMode:"none"},depthStencil:h});return new or(m,y,a,d,t,n)}setCrackStage(e){this._crackStage=Math.max(0,Math.min(9,Math.floor(e)))}update(e,t,n){if(!n){this._active=!1;return}this._active=!0;const o=this._scratch;o.set(t.data,0),o[16]=n.x,o[17]=n.y,o[18]=n.z,o[19]=this._crackStage,e.queue.writeBuffer(this._uniformBuf,0,o.buffer)}execute(e,t){if(!this._active)return;const n=e.beginRenderPass({label:"BlockHighlightPass",colorAttachments:[{view:this._hdrView,loadOp:"load",storeOp:"store"}],depthStencilAttachment:{view:this._depthView,depthLoadOp:"load",depthStoreOp:"store"}});n.setBindGroup(0,this._bg),n.setPipeline(this._facePipeline),n.draw(36),n.setPipeline(this._edgePipeline),n.draw(144),n.end()}destroy(){this._uniformBuf.destroy()}}const La=`// Cloud + sky pass — fullscreen triangle.
 // Raymarches through a cloud slab with Beer's law transmittance and self-shadow
-// light marching.  Sky colour is computed with the same Rayleigh+Mie model as
+// light marching.  Sky color is computed with the same Rayleigh+Mie model as
 // atmosphere.wgsl so no sky texture is needed.
 
 const PI: f32 = 3.14159265358979323846;
@@ -943,7 +943,7 @@ struct LightUniforms {
 @group(3) @binding(1) var          detail_noise: texture_3d<f32>;
 @group(3) @binding(2) var          noise_samp  : sampler;
 
-// ---- Atmosphere (Rayleigh + Mie) for sky colour ------------------------------
+// ---- Atmosphere (Rayleigh + Mie) for sky color ------------------------------
 
 const R_E            : f32       = 6360000.0;
 const R_A            : f32       = 6420000.0;
@@ -2469,7 +2469,7 @@ fn compute_coc(lin_depth: f32) -> f32 {
   ) * dof.bokeh_radius;
 }
 
-// Prefilter: 4-tap 2x downsample; RGB = colour, A = signed CoC (texels, half-res).
+// Prefilter: 4-tap 2x downsample; RGB = color, A = signed CoC (texels, half-res).
 // Negative CoC = in front of focus plane.
 @fragment
 fn fs_prefilter(in: VertexOutput) -> @location(0) vec4<f32> {
@@ -3015,7 +3015,7 @@ fn sky_uv(d: vec3<f32>) -> vec2<f32> {
 
 // Screen-space reflection: ray-march the reflected ray in view space, sampling
 // refraction_tex (the pre-water HDR copy) for radiance at each hit.
-// Returns vec4(colour, confidence) — confidence fades to 0 near screen edges or on a miss.
+// Returns vec4(color, confidence) — confidence fades to 0 near screen edges or on a miss.
 fn ssr(world_pos: vec3<f32>, normal: vec3<f32>, view_dir: vec3<f32>) -> vec4<f32> {
   let reflect_dir = reflect(-view_dir, normal);
   // Transform reflected direction and surface origin to view space.
@@ -3103,7 +3103,7 @@ fn fs_main(in: VertOut) -> @location(0) vec4<f32> {
   let reflection = mix(sky_color, ssr_result.rgb, ssr_result.a);
 
   // Depth-based water tint via gradient map, with murkiness blend (Litecraft approach).
-  // Shallow water is transparent refraction; deep water takes the gradient map colour.
+  // Shallow water is transparent refraction; deep water takes the gradient map color.
   const MURKY_DEPTH: f32 = 4.0;
   let murk_factor = clamp(water_depth / MURKY_DEPTH, 0.0, 1.0);
   let inv_depth   = clamp(1.0 - murk_factor, 0.1, 0.99);
@@ -4052,8 +4052,8 @@ fn fs_snow(in: VertexOutput) -> @location(0) vec4<f32> {
 }
 
 // Hard square pixel — no radial falloff, no discard. Suits chunky debris that
-// should read as a solid coloured pixel rather than a soft glow. Skips
-// EMIT_SCALE so the output matches the source colour after tonemapping.
+// should read as a solid colored pixel rather than a soft glow. Skips
+// EMIT_SCALE so the output matches the source color after tonemapping.
 @fragment
 fn fs_pixel(in: VertexOutput) -> @location(0) vec4<f32> {
   return vec4<f32>(in.color.rgb, in.color.a);
@@ -4795,7 +4795,7 @@ fn fs_main(in: VertexOutput) -> FragmentOutput {
   // Tile within the mesh surface, then map into the atlas tile region
   let atlas_uv = fract(in.uv * material.uvTile) * material.uvScale + material.uvOffset;
 
-  // Albedo: texture rgb × material colour
+  // Albedo: texture rgb × material color
   let tex_albedo = textureSample(albedo_map, mat_samp, atlas_uv);
   let albedo     = tex_albedo.rgb * material.albedo.rgb;
 

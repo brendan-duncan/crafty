@@ -44,7 +44,7 @@ fn compute_coc(lin_depth: f32) -> f32 {
   ) * dof.bokeh_radius;
 }
 
-// Prefilter: 4-tap 2x downsample; RGB = colour, A = signed CoC (texels, half-res).
+// Prefilter: 4-tap 2x downsample; RGB = color, A = signed CoC (texels, half-res).
 // Negative CoC = in front of focus plane.
 @fragment
 fn fs_prefilter(in: VertexOutput) -> @location(0) vec4<f32> {

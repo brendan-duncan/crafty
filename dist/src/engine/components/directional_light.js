@@ -3,7 +3,7 @@ import { Component } from '../component.js';
 /**
  * Directional light component representing the sun.
  *
- * Provides direction/colour/intensity for the deferred lighting pass and
+ * Provides direction/color/intensity for the deferred lighting pass and
  * computes cascade shadow-map matrices for the cascade shadow render pass.
  * Only one DirectionalLight is typically active per scene (selected via
  * {@link Scene.findDirectionalLight}).
@@ -11,15 +11,15 @@ import { Component } from '../component.js';
 export class DirectionalLight extends Component {
     /** Light direction in world space (normalised on construction). */
     direction;
-    /** Linear RGB colour multiplier. */
+    /** Linear RGB color multiplier. */
     color;
-    /** Scalar intensity multiplier applied to colour. */
+    /** Scalar intensity multiplier applied to color. */
     intensity;
     /** Number of cascade splits used for shadow mapping. */
     numCascades;
     /**
      * @param direction - World-space light direction (will be normalised).
-     * @param color - Linear RGB colour.
+     * @param color - Linear RGB color.
      * @param intensity - Scalar intensity multiplier.
      * @param numCascades - Number of shadow cascades to fit.
      */

@@ -1,7 +1,7 @@
 import { RenderPass } from '../render_pass.js';
 import lightingWgsl from '../../shaders/lighting.wgsl?raw';
 /**
- * Pixel format used for the HDR colour target the lighting pass writes into and
+ * Pixel format used for the HDR color target the lighting pass writes into and
  * that downstream tonemap / post passes read from.
  */
 export const HDR_FORMAT = 'rgba16float';
@@ -13,7 +13,7 @@ const CAMERA_SIZE = 64 * 4 + 16 + 16;
 const LIGHT_SIZE = 368;
 /**
  * Deferred lighting pass: samples the G-buffer, cascade shadow maps, AO/SSGI,
- * cloud transmittance and IBL textures, then writes shaded HDR colour into
+ * cloud transmittance and IBL textures, then writes shaded HDR color into
  * `hdrTexture`.
  *
  * Runs as a fullscreen triangle. Camera and directional-light uniforms are
@@ -22,7 +22,7 @@ const LIGHT_SIZE = 368;
  */
 export class DeferredLightingPass extends RenderPass {
     name = 'DeferredLightingPass';
-    /** HDR colour target written by the lighting pass. */
+    /** HDR color target written by the lighting pass. */
     hdrTexture;
     /** Default view of `hdrTexture`. */
     hdrView;
@@ -293,7 +293,7 @@ export class DeferredLightingPass extends RenderPass {
      *
      * @param ctx Render context for queue access.
      * @param dir Normalised direction the light travels in (world-space).
-     * @param color Linear RGB light colour.
+     * @param color Linear RGB light color.
      * @param intensity Scalar light intensity multiplier.
      * @param cascades Up to 4 shadow cascades (extra entries are ignored).
      * @param shadowsEnabled When `false`, the shader skips shadow sampling.

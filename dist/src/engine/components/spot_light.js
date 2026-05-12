@@ -9,7 +9,7 @@ import { Component } from '../component.js';
  * shadow pass.
  */
 export class SpotLight extends Component {
-    /** Linear RGB colour multiplier. */
+    /** Linear RGB color multiplier. */
     color = Vec3.one();
     /** Scalar intensity multiplier. */
     intensity = 1.0;

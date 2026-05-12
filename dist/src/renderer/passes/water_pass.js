@@ -67,7 +67,7 @@ export class WaterPass extends RenderPass {
      * @param depthView GBuffer depth (depth32float) used for the in-shader manual depth test.
      * @param skyTexture Equirectangular HDR sky panorama used as SSR reflection fallback.
      * @param dudvTexture DUDV ripple/distortion map driving wave normals and screen-space distortion.
-     * @param gradientTexture Colour gradient sampled by water depth to produce the murky tint.
+     * @param gradientTexture Color gradient sampled by water depth to produce the murky tint.
      * @returns A ready-to-use WaterPass instance.
      */
     static create(ctx, hdrTexture, hdrView, depthView, skyTexture, dudvTexture, gradientTexture) {

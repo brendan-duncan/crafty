@@ -75,7 +75,7 @@ fn fs_main(in: VertexOutput) -> FragmentOutput {
   // Tile within the mesh surface, then map into the atlas tile region
   let atlas_uv = fract(in.uv * material.uvTile) * material.uvScale + material.uvOffset;
 
-  // Albedo: texture rgb × material colour
+  // Albedo: texture rgb × material color
   let tex_albedo = textureSample(albedo_map, mat_samp, atlas_uv);
   let albedo     = tex_albedo.rgb * material.albedo.rgb;
 

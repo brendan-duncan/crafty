@@ -50,7 +50,7 @@ export class PbrMaterial extends Material {
         this._merMap = options.merMap;
         this.transparent = options.transparent ?? false;
     }
-    /** RGB multiplied with albedo colour; sRGB recommended. */
+    /** RGB multiplied with albedo color; sRGB recommended. */
     get albedoMap() {
         return this._albedoMap;
     }

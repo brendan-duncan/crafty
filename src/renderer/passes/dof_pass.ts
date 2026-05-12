@@ -8,12 +8,12 @@ const UNIFORM_SIZE = 32;
 
 /**
  * Two-stage depth-of-field post-process: a half-resolution prefilter writes
- * scene colour and signed circle-of-confusion into the alpha channel, then a
+ * scene color and signed circle-of-confusion into the alpha channel, then a
  * full-resolution composite blurs the half-res buffer and blends it with the
  * sharp source.
  *
  * Inputs sampled:
- *  - `hdrView`: full-res HDR colour (typically the TAA resolved output)
+ *  - `hdrView`: full-res HDR color (typically the TAA resolved output)
  *  - `depthView`: GBuffer depth32float used to compute the CoC
  *
  * Output: a full-res HDR texture exposed as {@link resultView}, intended as
@@ -70,7 +70,7 @@ export class DofPass extends RenderPass {
    * pipelines (prefilter + composite) and their bind groups.
    *
    * @param ctx - Active render context (provides device and target dimensions).
-   * @param hdrView - Full-res HDR colour to read (e.g. TAA resolved rgba16float).
+   * @param hdrView - Full-res HDR color to read (e.g. TAA resolved rgba16float).
    * @param depthView - Full-res GBuffer depth32float view.
    * @returns A configured DOF pass instance.
    */
@@ -125,7 +125,7 @@ export class DofPass extends RenderPass {
       ],
     });
 
-    // Group 1 for composite: half_tex (prefiltered CoC + colour)
+    // Group 1 for composite: half_tex (prefiltered CoC + color)
     const bgl1 = device.createBindGroupLayout({
       label: 'DofBGL1',
       entries: [
@@ -214,7 +214,7 @@ export class DofPass extends RenderPass {
   }
 
   /**
-   * Encodes both DOF render passes: a half-res prefilter that packs colour
+   * Encodes both DOF render passes: a half-res prefilter that packs color
    * and signed circle-of-confusion, followed by a full-res composite that
    * blurs the half-res image and mixes it with the sharp source.
    *
@@ -222,7 +222,7 @@ export class DofPass extends RenderPass {
    * @param _ctx - Active render context (unused).
    */
   execute(encoder: GPUCommandEncoder, _ctx: RenderContext): void {
-    // 1. Prefilter: full-res HDR + depth → half-res (RGB=colour, A=signed CoC)
+    // 1. Prefilter: full-res HDR + depth → half-res (RGB=color, A=signed CoC)
     {
       const pass = encoder.beginRenderPass({
         label: 'DofPrefilter',

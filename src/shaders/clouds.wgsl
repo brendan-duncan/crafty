@@ -1,6 +1,6 @@
 // Cloud + sky pass — fullscreen triangle.
 // Raymarches through a cloud slab with Beer's law transmittance and self-shadow
-// light marching.  Sky colour is computed with the same Rayleigh+Mie model as
+// light marching.  Sky color is computed with the same Rayleigh+Mie model as
 // atmosphere.wgsl so no sky texture is needed.
 
 const PI: f32 = 3.14159265358979323846;
@@ -42,7 +42,7 @@ struct LightUniforms {
 @group(3) @binding(1) var          detail_noise: texture_3d<f32>;
 @group(3) @binding(2) var          noise_samp  : sampler;
 
-// ---- Atmosphere (Rayleigh + Mie) for sky colour ------------------------------
+// ---- Atmosphere (Rayleigh + Mie) for sky color ------------------------------
 
 const R_E            : f32       = 6360000.0;
 const R_A            : f32       = 6420000.0;

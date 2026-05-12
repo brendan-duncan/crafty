@@ -250,7 +250,7 @@ The winding is counter-clockwise when viewed from outside the sphere, which matc
 - **32×32** — 4,194 vertices, the default — smooth enough for most uses.
 - **64×64** — 16,514 vertices, used when the sphere fills a large portion of the screen.
 
-The sphere is used for debug light markers (showing point/spot light positions and colours) and for any procedural object requiring a round shape.
+The sphere is used for debug light markers (showing point/spot light positions and colors) and for any procedural object requiring a round shape.
 
 ### Cone
 

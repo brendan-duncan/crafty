@@ -150,14 +150,14 @@ Crafty uses a **deferred shading** pipeline for its main geometry. The core idea
 Frame N:
   ┌─────────────────────────────────────────────────────────────┐
   │ 1. Shadow passes  ───►  depth / VSM textures               │
-  │ 2. Sky pass        ───►  HDR colour target (background)    │
+  │ 2. Sky pass        ───►  HDR color target (background)    │
   │ 3. Geometry pass   ───►  G-buffer (albedo, normal, depth)  │
   │ 4. World geom pass ───►  G-buffer (appends to above)       │
   │ 5. SSAO pass       ───►  AO texture                        │
   │ 6. SSGI pass       ───►  Indirect light buffer              │
-  │ 7. Lighting pass   ───►  HDR colour (fullscreen quad)      │
-  │ 8. Point/Spot pass ───►  HDR colour (additive blend)       │
-  │ 9. Post-processing  ───►  HDR colour (TAA, DOF, bloom)     │
+  │ 7. Lighting pass   ───►  HDR color (fullscreen quad)      │
+  │ 8. Point/Spot pass ───►  HDR color (additive blend)       │
+  │ 9. Post-processing  ───►  HDR color (TAA, DOF, bloom)     │
   │10. Composite pass  ───►  Swap chain (tonemapped)           │
   └─────────────────────────────────────────────────────────────┘
 ```
@@ -180,7 +180,7 @@ Crafty renders in **HDR** (high dynamic range) throughout the lighting and post-
 
 ### The HDR Target
 
-The lighting pass creates an HDR colour texture:
+The lighting pass creates an HDR color texture:
 
 ```typescript
 export const HDR_FORMAT: GPUTextureFormat = 'rgba16float';
@@ -278,7 +278,7 @@ The terminal pass of the render graph reads the current swap chain texture and w
 execute(encoder: GPUCommandEncoder, ctx: RenderContext): void {
   const swapChainTexture = ctx.getCurrentTexture();
   const swapChainView = swapChainTexture.createView();
-  // ... render pass using swapChainView as the colour attachment ...
+  // ... render pass using swapChainView as the color attachment ...
 }
 ```
 

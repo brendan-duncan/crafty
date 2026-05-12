@@ -56,7 +56,7 @@ export function spawnDuck(
  * Spawns a single duckling that follows {@link parentDuck}.
  *
  * The duckling is placed within 1.5 blocks of the parent's current position.
- * It uses a 0.5-scale version of the duck meshes and is coloured yellow to
+ * It uses a 0.5-scale version of the duck meshes and is colored yellow to
  * distinguish it from the adult.
  */
 export function spawnDuckling(

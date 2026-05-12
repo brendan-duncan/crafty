@@ -76,7 +76,7 @@ let albedo = textureSample(albedo_map, mat_samp, uv);
 
 ## 6.3 Textures in the GBuffer
 
-The deferred G-buffer writes two colour textures that encode surface properties for the lighting pass:
+The deferred G-buffer writes two color textures that encode surface properties for the lighting pass:
 
 **Albedo + Roughness** (`rgba8unorm`):
 ```
@@ -149,7 +149,7 @@ The material uniform struct contains PBR parameters:
 
 ```wgsl
 struct MaterialUniforms {
-  albedo   : vec4<f32>,     // RGBA base colour (+ padding)
+  albedo   : vec4<f32>,     // RGBA base color (+ padding)
   roughness: f32,
   metallic : f32,
   uvOffset : vec2<f32>,     // Atlas tile offset

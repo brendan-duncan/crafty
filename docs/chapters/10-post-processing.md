@@ -109,7 +109,7 @@ proj[9] += jitterY / height;  // column 2, row 1
 
 ### Reprojection
 
-Each frame, the previous frame's colour is reprojected into the current frame using the motion vector (the difference in clip-space position between frames):
+Each frame, the previous frame's color is reprojected into the current frame using the motion vector (the difference in clip-space position between frames):
 
 ```wgsl
 // Sample history using motion vector
@@ -273,7 +273,7 @@ This provides a smooth, automatic transition between lighting conditions.
 
 ## 10.8 Color Grading
 
-The `CompositePass` optionally applies colour grading via a **lookup table (LUT)**. A 3D LUT texture maps input colours to graded output colours, enabling cinematic colour grading:
+The `CompositePass` optionally applies color grading via a **lookup table (LUT)**. A 3D LUT texture maps input colors to graded output colors, enabling cinematic color grading:
 
 ```wgsl
 let gradedColor = textureSampleLevel(colorGradingLut, lutSampler,

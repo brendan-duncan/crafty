@@ -24,12 +24,12 @@ const STAR_UNI_SIZE = 96; // mat4(64) + vec3+pad(16) + vec3+pad(16)
  * stars, the underwater effect and tonemapping into the swap-chain target.
  *
  * Inputs sampled:
- *  - `hdrView`: post-bloom (or DOF/TAA) HDR colour
+ *  - `hdrView`: post-bloom (or DOF/TAA) HDR color
  *  - `aoView`: SSAO occlusion (used for the debug-AO output mode)
  *  - `depthView`: GBuffer depth32float (for fog reconstruction and stars)
  *  - shared camera, light and auto-exposure buffers
  *
- * Output: writes LDR/HDR colour to the swap-chain texture acquired from the
+ * Output: writes LDR/HDR color to the swap-chain texture acquired from the
  * render context.
  *
  * Shader: `composite.wgsl`. Replaces the legacy fog + underwater + tonemap

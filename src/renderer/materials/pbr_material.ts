@@ -11,7 +11,7 @@ const MATERIAL_UNIFORM_SIZE = 48; // vec4 albedo + f32 roughness + f32 metallic 
  * Construction options for {@link PbrMaterial}.
  */
 export interface PbrMaterialOptions {
-  /** Base colour with alpha (linear RGBA, 0–1). */
+  /** Base color with alpha (linear RGBA, 0–1). */
   albedo?: [number, number, number, number];
   /** Surface roughness 0 (smooth) – 1 (rough). */
   roughness?: number;
@@ -23,7 +23,7 @@ export interface PbrMaterialOptions {
   uvScale?: [number, number];
   /** Tile repeat count across the mesh. Defaults to [1,1]. */
   uvTile?: [number, number];
-  /** RGB multiplied with albedo colour; sRGB format recommended. */
+  /** RGB multiplied with albedo color; sRGB format recommended. */
   albedoMap?: Texture;
   /** Tangent-space normal map (rgb, linear). */
   normalMap?: Texture;
@@ -86,7 +86,7 @@ export class PbrMaterial extends Material {
     this.transparent = options.transparent ?? false;
   }
 
-  /** RGB multiplied with albedo colour; sRGB recommended. */
+  /** RGB multiplied with albedo color; sRGB recommended. */
   get albedoMap(): Texture | undefined {
     return this._albedoMap;
   }

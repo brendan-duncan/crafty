@@ -10,8 +10,8 @@ const UNIFORM_SIZE = 80;
  * on top of the lit scene.
  *
  * Inputs: depth-tested against the GBuffer depth view; the active mesh is
- * supplied via {@link setMesh} and its MVP/colour via {@link update}.
- * Output: appends colour to the supplied HDR texture (load + store, no
+ * supplied via {@link setMesh} and its MVP/color via {@link update}.
+ * Output: appends color to the supplied HDR texture (load + store, no
  * depth writes).
  *
  * Shader: `debug_light.wgsl`.
@@ -38,7 +38,7 @@ export class DebugLightPass extends RenderPass {
      * Allocates the pipeline, uniform buffer and bind group for the debug pass.
      *
      * @param ctx - Active render context providing the GPU device.
-     * @param hdrView - Target HDR colour texture written to with load+store.
+     * @param hdrView - Target HDR color texture written to with load+store.
      * @param depthView - GBuffer depth view used for depth testing (read-only).
      * @returns A configured debug light pass instance.
      */
@@ -98,7 +98,7 @@ export class DebugLightPass extends RenderPass {
         this._mesh = mesh;
     }
     /**
-     * Uploads the per-frame MVP matrix and tint colour for the debug marker.
+     * Uploads the per-frame MVP matrix and tint color for the debug marker.
      *
      * @param ctx - Active render context providing the GPU queue.
      * @param viewProj - Current camera view-projection matrix.

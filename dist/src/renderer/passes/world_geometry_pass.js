@@ -63,7 +63,7 @@ export class WorldGeometryPass extends RenderPass {
      *
      * @param ctx Render context (provides the GPU device).
      * @param gbuffer Target G-buffer whose attachments will be loaded and written.
-     * @param blockTexture Block atlas (colour, normal, MER) sampled by chunk pixels.
+     * @param blockTexture Block atlas (color, normal, MER) sampled by chunk pixels.
      * @returns A configured `WorldGeometryPass`.
      */
     static create(ctx, gbuffer, blockTexture) {
@@ -301,11 +301,11 @@ export class WorldGeometryPass extends RenderPass {
         p[23] = m[15] - m[14];
     }
     /**
-     * Toggle per-chunk debug colourisation. When enabled, each chunk is shaded
-     * with a deterministic colour derived from its world position to make chunk
+     * Toggle per-chunk debug colorisation. When enabled, each chunk is shaded
+     * with a deterministic color derived from its world position to make chunk
      * boundaries visible. Re-uploads every tracked chunk's uniforms.
      *
-     * @param enabled Whether the debug colour overlay is on.
+     * @param enabled Whether the debug color overlay is on.
      */
     setDebugChunks(enabled) {
         if (this._debugChunks === enabled) {
