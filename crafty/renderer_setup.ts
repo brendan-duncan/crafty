@@ -14,7 +14,7 @@ import type { Texture } from '../src/assets/texture.js';
 import type { World, Chunk, ChunkMesh } from '../src/block/index.js';
 import { EnvironmentEffect } from '../src/block/index.js';
 import type { Mat4 } from '../src/math/index.js';
-import { rainConfig, snowConfig, blockBreakConfig } from './config/particle_configs.js';
+import { rainConfig, snowConfig, blockBreakConfig, explosionConfig } from './config/particle_configs.js';
 
 export interface RenderPasses {
   shadowPass: ShadowPass;
@@ -34,6 +34,7 @@ export interface RenderPasses {
   bloomPass: BloomPass | null;
   rainPass: ParticlePass | null;
   blockBreakPass: ParticlePass;
+  explosionPass: ParticlePass;
   godrayPass: GodrayPass | null;
   cloudPass: CloudPass | null;
   cloudShadowPass: CloudShadowPass | null;
@@ -178,6 +179,9 @@ export async function buildRenderTargets(
   // Always-on burst-only particle pass for block-break debris.
   const blockBreakPass = ParticlePass.create(ctx, blockBreakConfig, gbuffer, lightingPass.hdrView);
 
+  // Always-on burst-only particle pass for creeper explosions.
+  const explosionPass = ParticlePass.create(ctx, explosionConfig, gbuffer, lightingPass.hdrView);
+
   // Build graph
   const { RenderGraph } = await import('../src/renderer/index.js');
   const graph = new RenderGraph();
@@ -206,6 +210,7 @@ export async function buildRenderTargets(
     graph.addPass(rainPass);
   }
   graph.addPass(blockBreakPass);
+  graph.addPass(explosionPass);
   graph.addPass(taaPass);
   if (dofPass) {
     graph.addPass(dofPass);
@@ -235,6 +240,7 @@ export async function buildRenderTargets(
     bloomPass,
     rainPass,
     blockBreakPass,
+    explosionPass,
     godrayPass,
     cloudPass,
     cloudShadowPass,

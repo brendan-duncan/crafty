@@ -40,6 +40,27 @@ export const blockBreakConfig: ParticleGraphConfig = {
   renderer: { type: 'sprites', blendMode: 'alpha', billboard: 'camera', shape: 'pixel', renderTarget: 'hdr' },
 };
 
+export const explosionConfig: ParticleGraphConfig = {
+  emitter: {
+    maxParticles: 512,
+    spawnRate: 0,
+    lifetime: [0.3, 0.8],
+    shape: { kind: 'sphere', radius: 0.5, solidAngle: Math.PI },
+    initialSpeed: [4.0, 10.0],
+    initialColor: [1, 0.6, 0.1, 1],
+    initialSize: [0.05, 0.15],
+    roughness: 0.5,
+    metallic: 0.0,
+  },
+  modifiers: [
+    { type: 'gravity', strength: 4.0 },
+    { type: 'drag', coefficient: 0.4 },
+    { type: 'color_over_lifetime', startColor: [1, 0.6, 0.1, 1], endColor: [0.2, 0.05, 0.0, 0] },
+    { type: 'size_over_lifetime', start: 0.15, end: 0.02 },
+  ],
+  renderer: { type: 'sprites', blendMode: 'alpha', billboard: 'camera', shape: 'soft', renderTarget: 'hdr' },
+};
+
 export const snowConfig: ParticleGraphConfig = {
   emitter: {
     maxParticles: 80000,

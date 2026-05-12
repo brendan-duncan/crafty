@@ -166,19 +166,111 @@ Ducklings do not check for the player directly — they simply follow their pare
 
 `PigAI` (`crafty/game/components/pig_ai.ts`) implements a simpler two-state machine (idle ↔ wander) with no flee response. Pigs are larger and slower than ducks:
 
-| Property | Duck | Duckling | Pig |
-|----------|------|----------|-----|
-| States | idle/wander/flee | follow | idle/wander |
-| Wander speed | 1.5 m/s | 1.8–3.5 m/s | 1.2 m/s |
-| Idle head bob | 0.008 @ 2 Hz | 0.004 @ 2 Hz | 0.005 @ 1.5 Hz |
-| Wander head bob | 0.018 @ 6 Hz | 0.012 @ 7 Hz | 0.014 @ 4 Hz |
-| Water support | Yes (float) | No* | No |
+| Property | Duck | Duckling | Pig | Creeper |
+|----------|------|----------|-----|---------|
+| States | idle/wander/flee | follow | idle/wander | idle/wander/chase/detonate |
+| Wander speed | 1.5 m/s | 1.8–3.5 m/s | 1.2 m/s | 1.0 m/s |
+| Idle head bob | 0.008 @ 2 Hz | 0.004 @ 2 Hz | 0.005 @ 1.5 Hz | — |
+| Wander head bob | 0.018 @ 6 Hz | 0.012 @ 7 Hz | 0.014 @ 4 Hz | — |
+| Water support | Yes (float) | No* | No | No |
 
 *Ducklings use ground collision only — they do not float on water.
 
 The pig's wander behaviour is identical in structure to the duck's but uses slightly different parameters: slower speed, longer wander distances, and a different head bob signature.
 
-## 16.6 Gravity and Ground Collision
+## 16.6 Creeper AI
+
+![Four creeper states with transitions: idle ↔ wander, both preempted by chase when the player is within 8 blocks; chase → detonate at 1.8 blocks; detonate → idle if the player retreats beyond 6 blocks, otherwise → explode after 2.5 seconds](../illustrations/16-creeper-states.svg)
+
+`CreeperAI` (`crafty/game/components/creeper_ai.ts`) implements a hostile four-state machine that introduces the first truly threatening NPC in Crafty. Creepers spawn in any biome (unlike passive mobs which are restricted to GrassyPlains) and are distinguished by their tall green silhouette and explosive demise.
+
+| Property | Value |
+|----------|-------|
+| States | idle / wander / chase / detonate |
+| Wander speed | 1.0 m/s |
+| Chase speed | 1.8 m/s |
+| Detect radius | 8 blocks |
+| Lose radius | 12 blocks (hysteresis) |
+| Touch radius | 1.8 blocks (triggers detonate) |
+| Detonate cancel radius | 6 blocks |
+| Detonate fuse | 2.5 seconds |
+| Explosion radius | 4 blocks (spherical) |
+| Biome | Any |
+
+### Four-State Machine
+
+**Idle → Wander.** The creeper stands still or wanders aimlessly at 1.0 m/s, using the same timer-based target selection as pigs. Both states preemptively transition to `chase` if the player comes within the detect radius (8 blocks).
+
+**Chase.** The creeper moves toward the player at 1.8 m/s. If the player moves beyond 12 blocks the creeper loses interest and returns to `idle`. If the player comes within touching distance (1.8 blocks), the creeper enters the `detonate` state.
+
+**Detonate.** The creeper stops moving and begins flashing between green and white at an accelerating rate — the flash interval starts at 0.5 s and decreases by 0.18 s per second elapsed, capped at 0.08 s:
+
+```typescript
+const flashInterval = Math.max(0.08, 0.5 - this._detonateElapsed * 0.18);
+```
+
+While detonating, the creeper checks whether the player has retreated beyond the cancel radius (6 blocks). If so, it restores its green colour and returns to `idle` with a short cooldown timer:
+
+```typescript
+if (playerDist2 > DETONATE_CANCEL_RADIUS_SQ) {
+  this._exitDetonate();
+  break;
+}
+```
+
+If the full 2.5-second fuse elapses without the player escaping, the creeper explodes.
+
+### Explosion
+
+The explosion has two phases:
+
+1. **Particle burst** — a `static onExplode` callback fires at the creeper's position, triggering an 80-particle burst via the game's `explosionPass`. The explosion config uses fire-coloured particles with `color_over_lifetime` (orange → dark transparent) and `size_over_lifetime` (grow → shrink) modifiers.
+
+2. **Block destruction** — all blocks within a 4-block spherical radius are destroyed via `world.mineBlock()`. For each destroyed block, a `static onBlockDestroyed` callback fires, routing the edit through the game's persistence and synchronisation system:
+
+```
+                ┌─ Local mode → dedup against savedWorld.edits[]
+CreeperAI       │                → push to edit log
+  └─ mineBlock ─┤                → stash for chunk re-entry
+  └─ onBlockDestroyed ─┤         → mark save dirty
+                       └─ Network mode → stash + sendBlockBreak to server
+```
+
+This ensures creeper explosions are persisted in local saves and replicated to all players in multiplayer games. The explosion respects the `break→place` dedup rule — if a player placed a block and a creeper later destroys it, both edits remain in the log so replay clears the placed block first.
+
+### Flash Visual
+
+The color change is applied directly to the child `MeshRenderer` materials at runtime:
+
+```typescript
+private _setColor(color: [number, number, number, number]): void {
+  for (const child of go.children) {
+    const renderer = child.getComponent(MeshRenderer);
+    if (renderer && renderer.material instanceof PbrMaterial) {
+      renderer.material.albedo = color;
+      renderer.material.markDirty();
+    }
+  }
+}
+```
+
+The creeper uses a single `CREEPER_GREEN` colour for both body and head (unlike earlier NPCs which use different colours for different body parts).
+
+### Spawning
+
+Creepers spawn during chunk generation with an 8% probability per XZ chunk column, using the same `AnimalMeshes` interface as passive mobs. Unlike ducks and pigs, they have **no biome filter** — they can appear in any biome:
+
+```typescript
+if (Math.random() < CREEPER_CHANCE) {
+  const wx = Math.floor(baseX + Math.random() * CHUNK_SIZE);
+  const wz = Math.floor(baseZ + Math.random() * CHUNK_SIZE);
+  spawnCreeper(wx, wz, world, scene, meshes.creeperBody, meshes.creeperHead);
+}
+```
+
+The mesh stands twice as tall as a pig, with a body half-height of 0.60 and leg half-height of 0.20, giving the creeper its distinctive towering silhouette.
+
+## 16.7 Gravity and Ground Collision
 
 All NPC components share the same gravity and ground collision logic:
 
@@ -202,7 +294,7 @@ The +4 offset in `getTopBlockY` provides a search range above the NPC's current 
 
 Ducks extend this with a water check — if the block directly below is `BlockType.WATER`, the duck floats at the water's surface instead of sinking.
 
-## 16.7 Head Bob Animation
+## 16.8 Head Bob Animation
 
 ![Six waveforms: each NPC has its own amplitude/frequency in idle and wander, giving each a distinct gait without skeletal animation](../illustrations/16-head-bob.svg)
 
@@ -222,7 +314,7 @@ onAttach(): void {
 
 The bob is a simple sine wave whose frequency and amplitude vary by state — faster and larger when the NPC is moving, slower and subtler when idle. This gives each NPC a distinctive gait without requiring skeletal animation.
 
-## 16.8 Animated Models and Skeletal Animation
+## 16.9 Animated Models and Skeletal Animation
 
 ![AnimatedModel pipeline: sample clip at time t into per-joint TRS arrays, walk the skeleton to compute joint matrices, upload to GPU for skinned vertex transformation](../illustrations/16-skeletal-animation.svg)
 
@@ -261,7 +353,7 @@ update(dt: number): void {
 
 The joint matrices are consumed by the skinned variant of the world geometry pass, which renders the animated mesh with GPU skinning. NPCs that need full-body animation (e.g. a character walking, waving, or performing actions) use `AnimatedModel` instead of the simple head-bob approach.
 
-## 16.9 Extending the NPC System
+## 16.10 Extending the NPC System
 
 The component-based architecture makes it straightforward to add new NPC types:
 
@@ -282,6 +374,7 @@ Each new type follows the same pattern: a state machine + `Component.update()` +
 - `crafty/game/components/duck_ai.ts` — Duck AI (three-state + water float)
 - `crafty/game/components/duckling_ai.ts` — Duckling AI (follow behaviour)
 - `crafty/game/components/pig_ai.ts` — Pig AI (two-state wandering)
+- `crafty/game/components/creeper_ai.ts` — Creeper AI (four-state hostile + explosion)
 - `src/engine/components/animated_model.ts` — Skeletal animation playback
 - `src/engine/components/` — All component implementations
 - `src/engine/component.ts` — Base `Component` class

@@ -4,11 +4,13 @@ import type { Scene } from '../../src/engine/index.js';
 import type { Mesh } from '../../src/assets/mesh.js';
 import { spawnDuck, spawnDuckling } from './duck_spawning.js';
 import { spawnPig } from './pig_spawning.js';
+import { spawnCreeper } from './creeper_spawning.js';
 
 const CHUNK_SIZE     = 16;
-const DUCK_CHANCE    = 0.15; // per grassy-plains chunk column
+const DUCK_CHANCE    = 0.15;
 const PIG_CHANCE     = 0.20;
-const DUCKLING_CHANCE = 0.25; // fraction of adult ducks that get a brood
+const CREEPER_CHANCE = 0.08;
+const DUCKLING_CHANCE = 0.25;
 const DUCKLING_COUNT  = 5;
 const BABY_PIG_CHANCE = 0.25;
 
@@ -17,6 +19,7 @@ export interface AnimalMeshes {
   ducklingBody: Mesh; ducklingHead: Mesh; ducklingBill: Mesh;
   pigBody: Mesh;     pigHead: Mesh;     pigSnout: Mesh;
   babyPigBody: Mesh; babyPigHead: Mesh; babyPigSnout: Mesh;
+  creeperBody: Mesh; creeperHead: Mesh;
 }
 
 /**
@@ -81,5 +84,11 @@ function _spawnInColumn(cx: number, cz: number, world: World, scene: Scene, mesh
         spawnPig(wx, wz, world, scene, meshes.pigBody, meshes.pigHead, meshes.pigSnout, 1.0);
       }
     }
+  }
+
+  if (Math.random() < CREEPER_CHANCE) {
+    const wx = Math.floor(baseX + Math.random() * CHUNK_SIZE);
+    const wz = Math.floor(baseZ + Math.random() * CHUNK_SIZE);
+    spawnCreeper(wx, wz, world, scene, meshes.creeperBody, meshes.creeperHead);
   }
 }

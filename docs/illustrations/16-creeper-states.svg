@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 520" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+    </marker>
+    <marker id="arrow-red" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#c0392b"/>
+    </marker>
+    <marker id="arrow-green" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#27ae60"/>
+    </marker>
+    <linearGradient id="idleGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e8f5e9"/>
+      <stop offset="100%" stop-color="#c8e6c9"/>
+    </linearGradient>
+    <linearGradient id="wanderGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fff3e0"/>
+      <stop offset="100%" stop-color="#ffe0b2"/>
+    </linearGradient>
+    <linearGradient id="chaseGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffebee"/>
+      <stop offset="100%" stop-color="#ffcdd2"/>
+    </linearGradient>
+    <linearGradient id="detonateGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fce4ec"/>
+      <stop offset="100%" stop-color="#f8bbd0"/>
+    </linearGradient>
+    <filter id="shadow" x="-4" y="-4" width="12" height="12">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="720" height="520" fill="#fafafa" rx="8"/>
+
+  <!-- Title -->
+  <text x="360" y="30" text-anchor="middle" font-size="16" font-weight="bold" fill="#333">Creeper State Machine</text>
+
+  <!-- === IDLE (top-left) === -->
+  <rect x="50" y="60" width="170" height="90" rx="14" fill="url(#idleGrad)" stroke="#4caf50" stroke-width="2" filter="url(#shadow)"/>
+  <text x="135" y="92" text-anchor="middle" font-size="15" font-weight="bold" fill="#2e7d32">Idle</text>
+  <text x="135" y="110" text-anchor="middle" font-size="11" fill="#555">Stands still</text>
+  <text x="135" y="126" text-anchor="middle" font-size="11" fill="#555">Timer: 2–6 s</text>
+
+  <!-- === WANDER (top-right) === -->
+  <rect x="500" y="60" width="170" height="90" rx="14" fill="url(#wanderGrad)" stroke="#ff9800" stroke-width="2" filter="url(#shadow)"/>
+  <text x="585" y="92" text-anchor="middle" font-size="15" font-weight="bold" fill="#e65100">Wander</text>
+  <text x="585" y="110" text-anchor="middle" font-size="11" fill="#555">Moves randomly</text>
+  <text x="585" y="126" text-anchor="middle" font-size="11" fill="#555">Speed: 1.0 m/s</text>
+
+  <!-- === CHASE (bottom-left) === -->
+  <rect x="50" y="340" width="170" height="90" rx="14" fill="url(#chaseGrad)" stroke="#e53935" stroke-width="2" filter="url(#shadow)"/>
+  <text x="135" y="372" text-anchor="middle" font-size="15" font-weight="bold" fill="#c62828">Chase</text>
+  <text x="135" y="390" text-anchor="middle" font-size="11" fill="#555">Moves toward player</text>
+  <text x="135" y="406" text-anchor="middle" font-size="11" fill="#555">Speed: 1.8 m/s</text>
+
+  <!-- === DETONATE (bottom-right) === -->
+  <rect x="500" y="340" width="170" height="90" rx="14" fill="url(#detonateGrad)" stroke="#e91e63" stroke-width="2" filter="url(#shadow)"/>
+  <text x="585" y="372" text-anchor="middle" font-size="15" font-weight="bold" fill="#880e4f">Detonate</text>
+  <text x="585" y="390" text-anchor="middle" font-size="11" fill="#555">Stopped, flashing</text>
+  <text x="585" y="406" text-anchor="middle" font-size="11" fill="#555">Fuse: 2.5 s</text>
+
+  <!-- Transitions IDLE → WANDER -->
+  <path d="M220,105 C280,105 340,105 440,105 470,105 475,100 500,100" fill="none" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="360" y="93" text-anchor="middle" font-size="10" fill="#666">timer expired</text>
+
+  <!-- Transitions WANDER → IDLE -->
+  <path d="M500,120 C460,135 420,145 380,145 320,145 280,130 240,120" fill="none" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="360" y="150" text-anchor="middle" font-size="10" fill="#666">arrived / timer expired</text>
+
+  <!-- IDLE → CHASE -->
+  <path d="M135,150 C135,210 135,280 135,335" fill="none" stroke="#c0392b" stroke-width="1.8" marker-end="url(#arrow-red)"/>
+  <text x="150" y="248" font-size="10" fill="#c0392b">player &lt; 8 blocks</text>
+
+  <!-- WANDER → CHASE (curving around) -->
+  <path d="M580,150 C640,180 680,220 680,270 680,310 640,330 225,380" fill="none" stroke="#c0392b" stroke-width="1.8" marker-end="url(#arrow-red)"/>
+  <text x="640" y="245" text-anchor="middle" font-size="10" fill="#c0392b" transform="rotate(-90,640,245)">player &lt; 8 blocks</text>
+
+  <!-- CHASE → IDLE -->
+  <path d="M50,380 C30,380 25,370 25,340 25,250 25,200 25,180 25,150 30,140 50,140" fill="none" stroke="#27ae60" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+  <text x="12" y="255" font-size="10" fill="#27ae60" transform="rotate(-90,12,255)">player &gt; 12 blocks</text>
+
+  <!-- CHASE → DETONATE -->
+  <path d="M220,385 C300,385 380,385 460,385 490,385 495,390 500,390" fill="none" stroke="#c0392b" stroke-width="1.8" marker-end="url(#arrow-red)"/>
+  <text x="360" y="373" text-anchor="middle" font-size="10" fill="#c0392b">player &lt; 1.8 blocks</text>
+
+  <!-- DETONATE → IDLE -->
+  <path d="M585,340 C585,280 585,220 585,180 585,165 580,160 220,155" fill="none" stroke="#27ae60" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#arrow-green)"/>
+  <text x="600" y="248" font-size="10" fill="#27ae60">player &gt; 6 blocks</text>
+
+  <!-- DETONATE → EXPLOSION -->
+  <rect x="500" y="460" width="170" height="40" rx="20" fill="#b71c1c" filter="url(#shadow)"/>
+  <text x="585" y="485" text-anchor="middle" font-size="14" font-weight="bold" fill="#fff">💥 EXPLOSION</text>
+  <path d="M585,430 C585,440 585,450 585,458" fill="none" stroke="#b71c1c" stroke-width="2" marker-end="url(#arrow-red)"/>
+  <text x="605" y="448" font-size="10" fill="#b71c1c">2.5 s elapsed</text>
+
+  <!-- Legend -->
+  <rect x="55" y="470" width="10" height="10" rx="2" fill="#c0392b"/>
+  <text x="70" y="479" font-size="10" fill="#555">Player proximity trigger</text>
+  <rect x="250" y="470" width="10" height="10" rx="2" fill="#27ae60"/>
+  <text x="265" y="479" font-size="10" fill="#555">Player escape / lost</text>
+  <rect x="430" y="470" width="10" height="10" rx="2" fill="#666"/>
+  <text x="445" y="479" font-size="10" fill="#555">Timer / condition</text>
+</svg>

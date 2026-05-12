@@ -22,7 +22,9 @@ import type { Chunk, ChunkMesh } from '../src/block/index.js';
 import type { DrawItem } from '../src/renderer/passes/geometry_pass.js';
 import { createDuckBodyMesh, createDuckHeadMesh, createDuckBillMesh } from '../src/assets/duck_mesh.js';
 import { createPigBodyMesh, createPigHeadMesh, createPigSnoutMesh } from '../src/assets/pig_mesh.js';
+import { createCreeperBodyMesh, createCreeperHeadMesh } from '../src/assets/creeper_mesh.js';
 import { DuckAI } from './game/components/duck_ai.js';
+import { CreeperAI } from './game/components/creeper_ai.js';
 import { MeshRenderer } from '../src/engine/index.js';
 import { PointLight } from '../src/engine/index.js';
 import { SpotLight } from '../src/engine/components/spot_light.js';
@@ -230,6 +232,9 @@ async function main(): Promise<void> {
     );
     passes = newPasses;
     camera.aspect = ctx.width / ctx.height;
+    CreeperAI.onExplode = (x, y, z) => {
+      passes.explosionPass?.burst({ x, y, z }, [1, 0.4, 0.05, 1], 80);
+    };
   }
 
   await rebuildRenderTargets();
@@ -263,6 +268,8 @@ async function main(): Promise<void> {
     babyPigBody:  createPigBodyMesh(device, 0.55),
     babyPigHead:  createPigHeadMesh(device, 0.55),
     babyPigSnout: createPigSnoutMesh(device, 0.55),
+    creeperBody:  createCreeperBodyMesh(device),
+    creeperHead:  createCreeperHeadMesh(device),
   });
 
   // ── Multiplayer wiring ────────────────────────────────────────────────────
@@ -415,6 +422,10 @@ async function main(): Promise<void> {
         network.sendBlockBreak(edit.x, edit.y, edit.z);
       }
     };
+    CreeperAI.onBlockDestroyed = (x, y, z) => {
+      _stashEdit({ kind: 'break', x, y, z, blockType: 0 });
+      network.sendBlockBreak(x, y, z);
+    };
   } else if (savedWorld !== null) {
     // Local mode: append every edit to the saved world's edit log so it
     // survives a save tick, and mark the world dirty.
@@ -429,6 +440,21 @@ async function main(): Promise<void> {
       for (let i = savedWorld.edits.length - 1; i >= 0; i--) {
         const [ex, ey, ez] = _placedCoords(savedWorld.edits[i]);
         if (ex === px && ey === py && ez === pz) {
+          if (_supersedesPrior(wireEdit, savedWorld.edits[i])) {
+            savedWorld.edits.splice(i, 1);
+          }
+          break;
+        }
+      }
+      savedWorld.edits.push(wireEdit);
+      _stashEdit(wireEdit);
+      saveDirty = true;
+    };
+    CreeperAI.onBlockDestroyed = (x, y, z) => {
+      const wireEdit: BlockEdit = { kind: 'break', x, y, z, blockType: 0 };
+      for (let i = savedWorld.edits.length - 1; i >= 0; i--) {
+        const [ex, ey, ez] = _placedCoords(savedWorld.edits[i]);
+        if (ex === x && ey === y && ez === z) {
           if (_supersedesPrior(wireEdit, savedWorld.edits[i])) {
             savedWorld.edits.splice(i, 1);
           }
@@ -821,6 +847,9 @@ async function main(): Promise<void> {
     DuckAI.playerPos.x = camPos.x;
     DuckAI.playerPos.y = camPos.y;
     DuckAI.playerPos.z = camPos.z;
+    CreeperAI.playerPos.x = camPos.x;
+    CreeperAI.playerPos.y = camPos.y;
+    CreeperAI.playerPos.z = camPos.z;
 
     if (network !== null && network.connected) {
       network.sendTransform(camPos.x, camPos.y, camPos.z, player.yaw, player.pitch);
@@ -958,6 +987,9 @@ async function main(): Promise<void> {
     // Block-break debris pass: continuous emitter is off; the per-frame update
     // still drives simulation so any in-flight burst particles age, fall, and shrink.
     passes.blockBreakPass?.update(ctx, dt, view, proj, vp, invVP, camPos, camera.near, camera.far, _rainMat);
+
+    // Creeper explosion particles (burst-only, same pattern).
+    passes.explosionPass?.update(ctx, dt, view, proj, vp, invVP, camPos, camera.near, camera.far, _rainMat);
 
     passes.dofPass?.updateParams(ctx, 8.0, 75.0, 3.0, camera.near, camera.far);
     passes.godrayPass?.updateParams(ctx);
