@@ -25,7 +25,7 @@ const skyTexture = device.createTexture({
 });
 ```
 
-Cube textures are sampled in WGSL with `texture_cube<f32>`:
+Cube textures are sampled in WGSL with `texture_cube<f32>` using a direction vector, which can be thought of as a ray from the center of the cube that intersects through a particular texel of a side of the cube:
 
 ```wgsl
 @group(3) @binding(0) var sky_cube: texture_cube<f32>;
@@ -33,7 +33,15 @@ Cube textures are sampled in WGSL with `texture_cube<f32>`:
 let skyColor = textureSample(sky_cube, sampler, direction);
 ```
 
-**3D textures** are used for volumetric data like cloud noise. They have a depth dimension in addition to width and height.
+**3D textures** are used for volumetric data like cloud noise. They have a depth dimension in addition to width and height. They are sampled in WGSL with a `texture_3d<f32>` using a normalized 3d coordinate in the range **0.0** to **1.0**.
+
+```wgsl
+@group(0) @binding(0) var volumeSampler: sampler;
+@group(0) @binding(1) var volumeTexture3D: texture_3d<f32>;
+// ...
+let volumeCoords = vec3<f32>(0.5, 0.5, 0.5); // sample the center of the volume
+let color: vec4<f32> = textureSample(volumeTexture3D, mySvolumeSamplerampler, volumeCoords);
+```
 
 ## 6.2 Texture Loading
 
