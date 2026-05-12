@@ -1,4 +1,4 @@
-import { Mesh } from './mesh.js';
+import { Mesh } from '../../../src/assets/mesh.js';
 
 function _addBox(
   verts: number[], indices: number[],

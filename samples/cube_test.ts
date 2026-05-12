@@ -123,7 +123,6 @@ async function main() {
 
   const blockTex = await BlockTexture.load(device, colorAtlasUrl, normalAtlasUrl, merAtlasUrl, heightAtlasUrl);
   const coneMesh = Mesh.createCone(device, 0.25, 0.6, 16);
-  const debugSphereMesh = Mesh.createSphere(device, 0.15, 8, 8);
 
   // --- Scene setup ---
   const scene = new Scene();

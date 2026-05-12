@@ -21,7 +21,9 @@ const _digGlob = import.meta.glob('../../assets/sounds/player/dig/*.wav', {
  */
 function _parseStepPath(path: string): { surface: string; variant: number } | null {
   const m = path.match(/step\/(\w+?)(\d+)\.wav$/);
-  if (!m) { return null; }
+  if (!m) {
+    return null;
+  }
   return { surface: m[1], variant: parseInt(m[2], 10) };
 }
 
@@ -97,9 +99,13 @@ export class AudioManager {
     const bySurface = new Map<string, AudioBuffer[]>();
     for (const [_path, url] of Object.entries(_stepGlob)) {
       const parsed = _parseStepPath(_path);
-      if (!parsed) { continue; }
+      if (!parsed) {
+        continue;
+      }
       const buf = await this._fetchDecode(url);
-      if (!buf) { continue; }
+      if (!buf) {
+        continue;
+      }
       let list = bySurface.get(parsed.surface);
       if (!list) {
         list = [];
@@ -117,7 +123,9 @@ export class AudioManager {
   private async _loadFallSounds(): Promise<void> {
     for (const [_path, url] of Object.entries(_fallGlob)) {
       const name = _parseFallPath(_path);
-      if (!name) { continue; }
+      if (!name) { 
+        continue;
+      }
       const buf = await this._fetchDecode(url);
       if (buf) {
         this._fallBuffers.set(name, buf);
@@ -129,9 +137,13 @@ export class AudioManager {
     const bySurface = new Map<string, AudioBuffer[]>();
     for (const [_path, url] of Object.entries(_digGlob)) {
       const parsed = _parseStepPath(_path); // dig/ uses the same naming pattern
-      if (!parsed) { continue; }
+      if (!parsed) {
+        continue;
+      }
       const buf = await this._fetchDecode(url);
-      if (!buf) { continue; }
+      if (!buf) {
+        continue;
+      }
       let list = bySurface.get(parsed.surface);
       if (!list) {
         list = [];
@@ -171,7 +183,9 @@ export class AudioManager {
    */
   updateListener(position: Vec3, forward: Vec3, up: Vec3): void {
     const ctx = this._ctx;
-    if (!ctx || ctx.state !== 'running') { return; }
+    if (!ctx || ctx.state !== 'running') {
+      return;
+    }
 
     const l = ctx.listener;
     l.positionX.value = position.x;
@@ -205,10 +219,14 @@ export class AudioManager {
    */
   playBufferAt(buffer: AudioBuffer, pos: Vec3, volume = 1, pitch = 1): void {
     const ctx = this._ctx;
-    if (!ctx || ctx.state !== 'running') { return; }
+    if (!ctx || ctx.state !== 'running') {
+      return;
+    }
 
     const vol = volume * this.sfxVolume * this.masterVolume;
-    if (vol <= 0) { return; }
+    if (vol <= 0) {
+      return;
+    }
 
     const oneShot = new OneShot(ctx, buffer, pos, vol, pitch);
     this._oneShots.push(oneShot);
@@ -219,7 +237,9 @@ export class AudioManager {
    */
   playStep(surface: SurfaceGroup, pos: Vec3, volume = 1, pitch = 1): void {
     const list = this._stepBuffers.get(surface);
-    if (!list || list.length === 0) { return; }
+    if (!list || list.length === 0) {
+      return;
+    }
     const buf = list[Math.floor(Math.random() * list.length)];
     this.playBufferAt(buf, pos, volume, pitch);
   }
@@ -231,7 +251,9 @@ export class AudioManager {
   playLand(surface: SurfaceGroup, pos: Vec3, fallSpeed: number): void {
     const name = fallSpeed > 15 ? 'fallbig' : 'fallsmall';
     const buf = this._fallBuffers.get(name);
-    if (!buf) { return; }
+    if (!buf) {
+      return;
+    }
     // Landings are always at the player's feet position; distance attenuation
     // is minimal since it's the player who lands.
     this.playBufferAt(buf, pos, 0.6 + Math.min(fallSpeed / 30, 0.4));
@@ -242,7 +264,9 @@ export class AudioManager {
    */
   playDig(surface: SurfaceGroup, pos: Vec3): void {
     const list = this._digBuffers.get(surface);
-    if (!list || list.length === 0) { return; }
+    if (!list || list.length === 0) {
+      return;
+    }
     const buf = list[Math.floor(Math.random() * list.length)];
     this.playBufferAt(buf, pos, 0.8);
   }
@@ -252,16 +276,23 @@ export class AudioManager {
    */
   playUI(buffer: AudioBuffer, volume = 1): void {
     const ctx = this._ctx;
-    if (!ctx || ctx.state !== 'running') { return; }
+    if (!ctx || ctx.state !== 'running') {
+      return;
+    }
     const vol = volume * this.sfxVolume * this.masterVolume;
-    if (vol <= 0) { return; }
+    if (vol <= 0) { 
+      return;
+    }
     const src = ctx.createBufferSource();
     src.buffer = buffer;
     const gain = ctx.createGain();
     gain.gain.value = vol;
     src.connect(gain).connect(ctx.destination);
     src.start();
-    src.onended = () => { src.disconnect(); gain.disconnect(); };
+    src.onended = () => {
+      src.disconnect();
+      gain.disconnect();
+    };
   }
 
   // ── Music ───────────────────────────────────────────────────────────────
@@ -272,12 +303,16 @@ export class AudioManager {
    */
   async playMusic(url: string, volume?: number): Promise<void> {
     const ctx = this._ctx;
-    if (!ctx) { return; }
+    if (!ctx) {
+      return;
+    }
 
     this.stopMusic();
 
     const buf = await this._fetchDecode(url);
-    if (!buf) { return; }
+    if (!buf) {
+      return;
+    }
     this._musicBuffer = buf;
 
     if (!this._musicGain) {
