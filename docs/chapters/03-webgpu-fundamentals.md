@@ -184,7 +184,7 @@ WebGPU imposes alignment requirements on buffer bindings:
 - **Uniform buffers**: `minUniformBufferOffsetAlignment`, typically 256 bytes.
 - **Storage buffers**: `minStorageBufferOffsetAlignment`, typically 16 bytes.
 
-Crafty uses dynamic offset uniform buffers in `WorldGeometryPass` to fit per-chunk data into a single large buffer, where each chunk gets a 256-byte aligned slot.
+Crafty uses dynamic offset uniform buffers in `BlockGeometryPass` to fit per-chunk data into a single large buffer, where each chunk gets a 256-byte aligned slot.
 
 ## 3.4 GPUTexture
 
@@ -608,7 +608,7 @@ const pass = encoder.beginRenderPass({
 });
 ```
 
-The `loadOp` controls whether the attachment is cleared at the start of the pass (`'clear'`) or preserves existing contents (`'load'`). Subsequent passes that write to the same G-buffer (e.g., `WorldGeometryPass`) use `loadOp: 'load'` to append to the already-filled G-buffer.
+The `loadOp` controls whether the attachment is cleared at the start of the pass (`'clear'`) or preserves existing contents (`'load'`). Subsequent passes that write to the same G-buffer (e.g., `BlockGeometryPass`) use `loadOp: 'load'` to append to the already-filled G-buffer.
 
 ### Draw Calls
 

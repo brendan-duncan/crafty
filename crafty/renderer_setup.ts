@@ -4,7 +4,7 @@ import {
   ShadowPass, GeometryPass, DeferredLightingPass, SSAOPass, SSGIPass,
   TAAPass, DofPass, BloomPass, AtmospherePass, CompositePass,
   AutoExposurePass, PointSpotShadowPass, PointSpotLightPass,
-  WorldGeometryPass, WaterPass, WorldShadowPass, BlockHighlightPass,
+  BlockGeometryPass, WaterPass, BlockShadowPass, BlockHighlightPass,
   ParticlePass, CloudPass, CloudShadowPass, GodrayPass,
 } from '../src/renderer/index.js';
 import type { IblTextures } from '../src/assets/ibl.js';
@@ -15,13 +15,14 @@ import type { World, Chunk, ChunkMesh } from '../src/block/index.js';
 import { EnvironmentEffect } from '../src/block/index.js';
 import type { Mat4 } from '../src/math/index.js';
 import { rainConfig, snowConfig, blockBreakConfig, explosionConfig } from './config/particle_configs.js';
+import { BlockShadowPass, BlockShadowPass } from '../src/renderer/passes/block_shadow_pass.js';
 
 export interface RenderPasses {
   shadowPass: ShadowPass;
   gbuffer: GBuffer;
   geometryPass: GeometryPass;
-  worldGeometryPass: WorldGeometryPass;
-  worldShadowPass: WorldShadowPass;
+  blockGeometryPass: BlockGeometryPass;
+  blockShadowPass: BlockShadowPass;
   waterPass: WaterPass;
   ssaoPass: SSAOPass;
   ssgiPass: SSGIPass;
@@ -64,23 +65,23 @@ export async function buildRenderTargets(
   // 2. Destroying them causes "used in submit while destroyed" errors
   // 3. They'll be garbage collected automatically when references are replaced
 
-  // WorldGeometryPass / WaterPass / WorldShadowPass: persistent across resizes
+  // BlockGeometryPass / WaterPass / BlockShadowPass: persistent across resizes
   let gbuffer: GBuffer;
-  let worldGeometryPass: WorldGeometryPass;
-  let worldShadowPass: WorldShadowPass;
+  let blockGeometryPass: BlockGeometryPass;
+  let blockShadowPass: BlockShadowPass;
   let waterPass: WaterPass;
 
-  if (passes.worldGeometryPass) {
+  if (passes.blockGeometryPass) {
     const newGbuf = GBuffer.create(ctx);
-    passes.worldGeometryPass.updateGBuffer(newGbuf);
+    passes.blockGeometryPass.updateGBuffer(newGbuf);
     gbuffer = newGbuf;
-    worldGeometryPass = passes.worldGeometryPass;
-    worldShadowPass = passes.worldShadowPass!;
+    blockGeometryPass = passes.blockGeometryPass;
+    blockShadowPass = passes.blockShadowPass!;
     waterPass = passes.waterPass!;
   } else {
     gbuffer = GBuffer.create(ctx);
-    worldGeometryPass = WorldGeometryPass.create(ctx, gbuffer, blockTexture);
-    worldShadowPass = WorldShadowPass.create(ctx, passes.shadowPass!.shadowMapArrayViews, 3, blockTexture);
+    blockGeometryPass = BlockGeometryPass.create(ctx, gbuffer, blockTexture);
+    blockShadowPass = BlockShadowPass.create(ctx, passes.shadowPass!.shadowMapArrayViews, 3, blockTexture);
 
     // Create dummy textures to initialize waterPass (will be updated later with real targets)
     const dummyHdrTex = ctx.device.createTexture({
@@ -101,20 +102,20 @@ export async function buildRenderTargets(
 
     const onAdded = (chunk: Chunk, mesh: ChunkMesh) => {
       chunkMeshCache.set(chunk, mesh);
-      worldGeometryPass.addChunk(chunk, mesh);
-      worldShadowPass.addChunk(chunk, mesh);
+      blockGeometryPass.addChunk(chunk, mesh);
+      blockShadowPass.addChunk(chunk, mesh);
       waterPass.addChunk(chunk, mesh);
     };
     const onUpdated = (chunk: Chunk, mesh: ChunkMesh) => {
       chunkMeshCache.set(chunk, mesh);
-      worldGeometryPass.updateChunk(chunk, mesh);
-      worldShadowPass.updateChunk(chunk, mesh);
+      blockGeometryPass.updateChunk(chunk, mesh);
+      blockShadowPass.updateChunk(chunk, mesh);
       waterPass.updateChunk(chunk, mesh);
     };
     const onRemoved = (chunk: Chunk) => {
       chunkMeshCache.delete(chunk);
-      worldGeometryPass.removeChunk(chunk);
-      worldShadowPass.removeChunk(chunk);
+      blockGeometryPass.removeChunk(chunk);
+      blockShadowPass.removeChunk(chunk);
       waterPass.removeChunk(chunk);
     };
     world.onChunkAdded = onAdded;
@@ -189,10 +190,10 @@ export async function buildRenderTargets(
   if (cloudShadowPass) {
     graph.addPass(cloudShadowPass);
   }
-  graph.addPass(worldShadowPass);
+  graph.addPass(blockShadowPass);
   graph.addPass(pointSpotShadowPass);
   graph.addPass(geometryPass);
-  graph.addPass(worldGeometryPass);
+  graph.addPass(blockGeometryPass);
   graph.addPass(ssaoPass);
   graph.addPass(ssgiPass);
   if (cloudPass) {
@@ -226,8 +227,8 @@ export async function buildRenderTargets(
     shadowPass: passes.shadowPass!,
     gbuffer,
     geometryPass,
-    worldGeometryPass,
-    worldShadowPass,
+    blockGeometryPass,
+    blockShadowPass,
     waterPass,
     ssaoPass,
     ssgiPass,

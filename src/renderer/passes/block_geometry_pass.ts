@@ -40,8 +40,8 @@ interface ChunkGpu {
  * planes extracted from the view-projection matrix. Tracks `drawCalls` and
  * `triangles` for HUD / debug overlays.
  */
-export class WorldGeometryPass extends RenderPass {
-  readonly name = 'WorldGeometryPass';
+export class BlockGeometryPass extends RenderPass {
+  readonly name = 'BlockGeometryPass';
 
   private _gbuffer           : GBuffer;
   private _device            : GPUDevice;
@@ -101,9 +101,9 @@ export class WorldGeometryPass extends RenderPass {
    * @param ctx Render context (provides the GPU device).
    * @param gbuffer Target G-buffer whose attachments will be loaded and written.
    * @param blockTexture Block atlas (color, normal, MER) sampled by chunk pixels.
-   * @returns A configured `WorldGeometryPass`.
+   * @returns A configured `BlockGeometryPass`.
    */
-  static create(ctx: RenderContext, gbuffer: GBuffer, blockTexture: BlockTexture): WorldGeometryPass {
+  static create(ctx: RenderContext, gbuffer: GBuffer, blockTexture: BlockTexture): BlockGeometryPass {
     const { device } = ctx;
 
     const cameraBGL = device.createBindGroupLayout({
@@ -231,7 +231,7 @@ export class WorldGeometryPass extends RenderPass {
       entries: [{ binding: 0, resource: { buffer: chunkUniformBuffer, size: 32 } }],
     });
 
-    return new WorldGeometryPass(device, gbuffer, opaquePipeline, transparentPipeline, propPipeline, cameraBuffer, cameraBindGroup, sharedBindGroup, chunkUniformBuffer, chunkBindGroup);
+    return new BlockGeometryPass(device, gbuffer, opaquePipeline, transparentPipeline, propPipeline, cameraBuffer, cameraBindGroup, sharedBindGroup, chunkUniformBuffer, chunkBindGroup);
   }
 
   /**
@@ -384,7 +384,7 @@ export class WorldGeometryPass extends RenderPass {
    */
   execute(encoder: GPUCommandEncoder, _ctx: RenderContext): void {
     const pass = encoder.beginRenderPass({
-      label: 'WorldGeometryPass',
+      label: 'BlockGeometryPass',
       colorAttachments: [
         { view: this._gbuffer.albedoRoughnessView, loadOp: 'load', storeOp: 'store' },
         { view: this._gbuffer.normalMetallicView,  loadOp: 'load', storeOp: 'store' },

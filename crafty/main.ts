@@ -599,7 +599,7 @@ async function main(): Promise<void> {
       return;
     }
     if (key === 'chunk_dbg') {
-      passes.worldGeometryPass!.setDebugChunks(effects.chunk_dbg);
+      passes.blockGeometryPass!.setDebugChunks(effects.chunk_dbg);
       return;
     }
     if (key === 'hdr') {
@@ -893,8 +893,8 @@ async function main(): Promise<void> {
 
     if (updateHud) {
       hud.fps.textContent = `${smoothFps.toFixed(0)} fps`;
-      const kTris = (passes.worldGeometryPass!.triangles / 1000).toFixed(1);
-      hud.stats.textContent = `${passes.worldGeometryPass!.drawCalls} draws  ${kTris}k tris\n${world.chunkCount} chunks  ${world.pendingChunks} pending`;
+      const kTris = (passes.blockGeometryPass!.triangles / 1000).toFixed(1);
+      hud.stats.textContent = `${passes.blockGeometryPass!.drawCalls} draws  ${kTris}k tris\n${world.chunkCount} chunks  ${world.pendingChunks} pending`;
       hud.biome.textContent = BiomeType[biome];
       hud.weather.textContent = `${getWeatherName(currentWeather)}\nclouds: ${cloudCoverage.toFixed(2)}\nnext: ${weatherTimer.toFixed(0)}s`;
       hud.pos.textContent = `X: ${camPos.x.toFixed(1)}  Y: ${camPos.y.toFixed(1)}  Z: ${camPos.z.toFixed(1)}`;
@@ -922,8 +922,8 @@ async function main(): Promise<void> {
 
     shadowPass.setSceneSnapshot(shadowItems);
     shadowPass.updateScene(scene, camera, sun, 128);
-    passes.worldShadowPass!.enabled = sun.intensity > 0;
-    passes.worldShadowPass!.update(ctx, cascades, camPos.x, camPos.z);
+    passes.blockShadowPass!.enabled = sun.intensity > 0;
+    passes.blockShadowPass!.update(ctx, cascades, camPos.x, camPos.z);
 
     const dayT = Math.max(0, elev);
     const cloudAmbient: [number, number, number] = [0.02 + 0.38 * dayT, 0.03 + 0.52 * dayT, 0.05 + 0.65 * dayT];
@@ -951,7 +951,7 @@ async function main(): Promise<void> {
     passes.atmospherePass!.update(ctx, invVP, camPos, sun.direction);
     passes.geometryPass!.setDrawItems(drawItems);
     passes.geometryPass!.updateCamera(ctx, view, proj, jitVP, invVP, camPos, camera.near, camera.far);
-    passes.worldGeometryPass!.updateCamera(ctx, view, proj, jitVP, invVP, camPos, camera.near, camera.far);
+    passes.blockGeometryPass!.updateCamera(ctx, view, proj, jitVP, invVP, camPos, camera.near, camera.far);
     passes.waterPass!.updateCamera(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far);
     passes.waterPass!.updateTime(ctx, waterTime, Math.max(0.01, dayT));
     passes.lightingPass!.updateCamera(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far);

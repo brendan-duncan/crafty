@@ -1,6 +1,6 @@
 // Water pass — forward-rendered on top of the deferred-lit HDR buffer.
 // Vertex format: [x, y, z] (3 floats, chunk-local).
-// Group 0: camera uniforms (matches WorldGeometryPass layout — 4 mat4 + vec3 pos + near + far)
+// Group 0: camera uniforms (matches BlockGeometryPass layout — 4 mat4 + vec3 pos + near + far)
 // Group 1: per-frame water uniforms (time)
 // Group 2: per-chunk offset
 // Group 3: scene textures (refraction copy, depth, dudv, gradient, sky)

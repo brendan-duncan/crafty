@@ -11,7 +11,7 @@ const MAX_CASCADES = 4;
  * each cascade is computed by {@link DirectionalLight.computeCascadeMatrices} based on
  * the active camera. The resulting `shadowMapView` is sampled by the deferred
  * lighting pass; per-cascade `shadowMapArrayViews` are reused as render targets here
- * and by {@link WorldShadowPass} for voxel chunks.
+ * and by {@link BlockShadowPass} for voxel chunks.
  */
 export class ShadowPass extends RenderPass {
     name = 'ShadowPass';

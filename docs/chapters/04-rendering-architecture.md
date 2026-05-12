@@ -38,18 +38,18 @@ The key design decisions are:
 
 **Single command encoder per frame.** Every pass appends commands to the same `GPUCommandEncoder`. This means the GPU sees the entire frame's work as one atomic submission. There is no per-pass command buffer overhead, and the driver can optimise across passes (e.g., merge adjacent draw calls or eliminate redundant resource barriers).
 
-**Passes are responsible for their own resource management.** The render graph does not track which textures or buffers a pass reads or writes. Passes must agree on texture `loadOp` and `storeOp` conventions. For example, the `WorldGeometryPass` uses `depthLoadOp: 'load'` because it runs after `GeometryPass` and must preserve the depth buffer from the first pass.
+**Passes are responsible for their own resource management.** The render graph does not track which textures or buffers a pass reads or writes. Passes must agree on texture `loadOp` and `storeOp` conventions. For example, the `BlockGeometryPass` uses `depthLoadOp: 'load'` because it runs after `GeometryPass` and must preserve the depth buffer from the first pass.
 
 **The graph is the frame.** The order of `addPass()` calls determines the order of GPU work. Crafty's main renderer setup typically registers passes in this order:
 
 ```
 1. ShadowPass             — CSM depth
-2. WorldShadowPass        — chunk shadow cascades (appends)
+2. BlockShadowPass        — chunk shadow cascades (appends)
 3. PointSpotShadowPass    — VSM for point/spot lights
 4. CloudShadowPass        — top-down cloud shadow
 5. SkyTexturePass         — HDR sky background
 6. GeometryPass           — mesh G-buffer
-7. WorldGeometryPass      — chunk G-buffer (appends)
+7. BlockGeometryPass      — chunk G-buffer (appends)
 8. SkinnedGeometryPass    — skinned mesh G-buffer (appends)
 9. SSAOPass               — screen-space ambient occlusion
 10. SSGIPass              — screen-space global illumination
@@ -252,7 +252,7 @@ The G-buffer is allocated once per canvas size and re-created on resize. It is s
 Multiple passes write into the same G-buffer attachments:
 
 1. **GeometryPass** — renders opaque mesh objects. Clears all three attachments.
-2. **WorldGeometryPass** — renders voxel chunks. Uses `loadOp: 'load'` to append to the existing G-buffer.
+2. **BlockGeometryPass** — renders voxel chunks. Uses `loadOp: 'load'` to append to the existing G-buffer.
 3. **SkinnedGeometryPass** — renders animated skinned meshes. Also appends.
 
 This layering allows the pipeline to separate concerns — mesh geometry, voxel geometry, and animated geometry all have different shaders and vertex formats, but they all write the same G-buffer structure.

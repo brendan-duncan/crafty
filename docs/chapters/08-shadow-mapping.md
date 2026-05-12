@@ -282,7 +282,7 @@ shadow = mix(shadowCascade, shadowNextCascade, blend);
 
 **Further reading:**
 - `src/renderer/passes/shadow_pass.ts` — CSM for directional light
-- `src/renderer/passes/world_shadow_pass.ts` — Chunk shadow maps (appends to CSM)
+- `src/renderer/passes/block_shadow_pass.ts` — Chunk shadow maps (appends to CSM)
 - `src/renderer/passes/point_shadow_pass.ts` — Point light cube shadows
 - `src/renderer/passes/spot_shadow_pass.ts` — Spot light depth shadows
 - `src/renderer/passes/point_spot_shadow_pass.ts` — VSM for point + spot lights

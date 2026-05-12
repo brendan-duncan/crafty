@@ -23,7 +23,7 @@
       <text x="60"  y="35" text-anchor="middle" font-size="9" fill="#9ca3af">CSM</text>
 
       <rect x="128" y="6"  width="120" height="36" fill="#fff" stroke="#dc2626" stroke-width="1"/>
-      <text x="188" y="22" text-anchor="middle">WorldShadowPass</text>
+      <text x="188" y="22" text-anchor="middle">BlockShadowPass</text>
       <text x="188" y="35" text-anchor="middle" font-size="9" fill="#9ca3af">chunks</text>
 
       <rect x="256" y="6"  width="120" height="36" fill="#fff" stroke="#dc2626" stroke-width="1"/>
@@ -71,7 +71,7 @@
       <text x="80"  y="35" text-anchor="middle" font-size="9" fill="#9ca3af">clears G-buffer</text>
 
       <rect x="172" y="6" width="160" height="36" fill="#fff" stroke="#15803d" stroke-width="1"/>
-      <text x="252" y="22" text-anchor="middle">WorldGeometryPass</text>
+      <text x="252" y="22" text-anchor="middle">BlockGeometryPass</text>
       <text x="252" y="35" text-anchor="middle" font-size="9" fill="#9ca3af">load + append</text>
 
       <rect x="344" y="6" width="160" height="36" fill="#fff" stroke="#15803d" stroke-width="1"/>

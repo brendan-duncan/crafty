@@ -380,7 +380,7 @@ Currently, all houses use `SPRUCE_PLANKS` for structure and `GLASS` for windows.
 - `src/block/mesher.ts` — Greedy meshing algorithm
 - `src/block/generator.ts` — Terrain generation
 - `crafty/game/village_gen.ts` — Village and house placement
-- `src/renderer/passes/world_geometry_pass.ts` — Chunk G-buffer rendering
+- `src/renderer/passes/block_geometry_pass.ts` — Block G-buffer rendering
 - `src/renderer/passes/water_pass.ts` — Water surface rendering
 - `src/shaders/water.wgsl` — Water shader (SSR, refraction, depth tinting)
 - `src/shaders/chunk_geometry.wgsl` — Chunk G-buffer shader

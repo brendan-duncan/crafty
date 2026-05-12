@@ -1,7 +1,7 @@
 import { RenderPass } from '../render_pass.js';
 import { HDR_FORMAT } from './deferred_lighting_pass.js';
 import waterWgsl from '../../shaders/water.wgsl?raw';
-// Matches WorldGeometryPass camera uniform layout: 4×mat4 + vec3 + near + far + pad×3 = 288 bytes
+// Matches BlockGeometryPass camera uniform layout: 4×mat4 + vec3 + near + far + pad×3 = 288 bytes
 const CAMERA_UNIFORM_SIZE = 64 * 4 + 16 + 16;
 const WATER_UNIFORM_SIZE = 16; // time + pad×3
 const CHUNK_UNIFORM_SIZE = 16; // vec3f offset + f32 pad
