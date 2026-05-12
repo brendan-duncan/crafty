@@ -90,9 +90,9 @@
     <rect width="760" height="60" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
     <g font-family="ui-monospace, Consolas, monospace" font-size="12" transform="translate(14, 0)">
       <text x="0" y="22"><tspan fill="#1e40af">let albedo = textureSample(albedo_map, samp, uv).rgb;</tspan></text>
-      <text x="0" y="38"><tspan fill="#7c3aed">let normal = textureSample(normal_map, samp, uv).xyz * 2.0 − 1.0;</tspan></text>
+      <text x="0" y="38"><tspan fill="#7c3aed">let normal = textureSample(normal_map, samp, uv).xyz * 2.0 - 1.0;</tspan></text>
       <text x="380" y="22"><tspan fill="#9d174d">let mer = textureSample(mer_map, samp, uv).rgb;</tspan></text>
-      <text x="380" y="38"><tspan fill="#374151">let h = textureSample(height_map, samp, uv).r;</tspan></text>
+      <text x="440" y="38"><tspan fill="#374151">let h = textureSample(height_map, samp, uv).r;</tspan></text>
     </g>
   </g>
 </svg>
