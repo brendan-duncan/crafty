@@ -7,7 +7,7 @@ import dudvUrl from '../assets/water/waterDUDV.png?url';
 import gradientUrl from '../assets/water/gradient_map.png?url';
 import flashlightUrl from '../assets/flashlight.jpg?url';
 import { Mat4, Vec3 } from '../src/math/index.js';
-import { GameObject, Scene, DirectionalLight } from '../src/engine/index.js';
+import { GameObject, Scene, DirectionalLight, blockTypeToSurface } from '../src/engine/index.js';
 import type { CascadeData } from '../src/engine/index.js';
 import { RenderContext, ShadowPass } from '../src/renderer/index.js';
 import { createCloudNoiseTextures } from '../src/assets/cloud_noise.js';
@@ -252,6 +252,8 @@ async function main(): Promise<void> {
   blockInteraction.onBlockBroken = (x, y, z, blockType) => {
     const [r, g, b] = getBlockColor(blockType);
     passes.blockBreakPass?.burst({ x: x + 0.5, y: y + 0.5, z: z + 0.5 }, [r, g, b, 1], 14);
+    const surface = blockTypeToSurface(blockType);
+    audio.playDig(surface, new Vec3(x + 0.5, y + 0.5, z + 0.5));
   };
 
   // Register animal spawning on chunk load — must happen before world.update

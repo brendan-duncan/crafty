@@ -47,6 +47,17 @@ const _ROOF: number[][] = [
 ];
 
 function _placeHouse(cx: number, groundY: number, cz: number, world: World): void {
+  for (let dz = 0; dz < 5; dz++) {
+    for (let dx = 0; dx < 7; dx++) {
+      const topY = world.getTopBlockY(cx + dx, cz + dz, 200);
+      if (topY > groundY) {
+        for (let clearY = groundY + 1; clearY <= topY; clearY++) {
+          world.setBlockType(cx + dx, clearY, cz + dz, BlockType.NONE);
+        }
+      }
+    }
+  }
+
   const layers = [_FLOOR, _WALL_L1, _WALL_L2, _ROOF];
   for (let dy = 0; dy < layers.length; dy++) {
     const layer = layers[dy];
