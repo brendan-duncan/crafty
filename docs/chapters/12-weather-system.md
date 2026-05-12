@@ -241,3 +241,5 @@ export interface HudElements {
 | `src/renderer/passes/particle_pass.ts` | `setSpawnRate()` for dynamic particle rate changes |
 | `crafty/ui/hud.ts` | `weather` debug overlay element |
 | `crafty/config/particle_configs.ts` | Rain and snow particle configs consumed by `ParticlePass` |
+
+[Contents](../crafty.md) | [11-Terrain](11-terrain.md) | [13-Post-Processing](13-post-processing.md)
