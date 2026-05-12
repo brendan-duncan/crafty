@@ -180,14 +180,30 @@ This book is a work in progress.  Chapters are added as the engine evolves.
 - [Chapter 12: Terrain and Voxel World](chapters/12-terrain.md)
   - 12.1 Voxel data structure
   - 12.2 Chunk management
-  - 12.3 Procedural world generation (noise, biomes)
-  - 12.4 Village generation
-  - 12.5 Greedy meshing
-  - 12.6 Level-of-detail (LOD)
-  - 12.7 Block interaction (place, break)
-  - 12.8 Erosion simulation
-  - 12.9 Water propogation
-  - 12.10 Water rendering
+    - Frustum culling
+  - 12.3 Procedural world generation
+    - Noise based terrain
+    - Biomes
+    - Ores and caves
+  - 12.4 Greedy meshing
+  - 12.5 Level-of-detail (LOD)
+  - 12.6 Block interaction
+    - Ray casting
+    - Block placement and breaking
+  - 12.7 Erosion simulation
+  - 12.8 Water propogation
+    - Flow rules
+    - Performance optimizations
+  - 12.9 Water rendering
+    - Screen space refraction
+    - Depth based attenuation
+  - 12.10 Screen space reflection
+    - Confidence blending
+    - Fresnel blend
+  - 12.11 Village generation
+    - Site selection
+    - House placement
+    - House template
 
 - [Chapter 13: Weather System](chapters/13-weather-system.md)
   - 13.1 Weather types
