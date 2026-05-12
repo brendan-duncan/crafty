@@ -1,12 +1,12 @@
-# Chapter 13: Weather System
+# Chapter 12: Weather System
 
-[Contents](../crafty.md) | [12-Terrain](12-terrain.md) | [14-Game Engine](14-game-engine.md)
+[Contents](../crafty.md) | [11-Terrain](11-terrain.md) | [13-Post-Processing](13-post-processing.md)
 
 Weather is what makes a landscape feel alive. A static blue sky is technically correct but emotionally flat — the world should cloud over, rain should sweep across the terrain, and snow should dust the peaks. This chapter covers Crafty's dynamic weather system: a lightweight state machine that transitions between weather types over time, driven by the player's current biome.
 
-## 13.1 Weather Types
+## 12.1 Weather Types
 
-![Seven weather types with their cloud-coverage targets and selection weights, plus the timer-driven random transition loop](../illustrations/13-weather-state-machine.svg)
+![Seven weather types with their cloud-coverage targets and selection weights, plus the timer-driven random transition loop](../illustrations/12-weather-state-machine.svg)
 
 The `WeatherType` enum in `crafty/game/weather_system.ts` defines seven weather states:
 
@@ -26,9 +26,9 @@ Each weather type carries three derived properties:
 - **Environment effect** — maps to `EnvironmentEffect.None / Rain / Snow`, which controls whether the particle system is active.
 - **Spawn rate** — the per-second particle spawn rate used when rain or snow is active (see §13.5).
 
-## 13.2 Biome Weather Tables
+## 12.2 Biome Weather Tables
 
-![Biome × weather matrix: cell value is the selection weight; blank cells mean the weather is not allowed in that biome](../illustrations/13-biome-weather-matrix.svg)
+![Biome × weather matrix: cell value is the selection weight; blank cells mean the weather is not allowed in that biome](../illustrations/12-biome-weather-matrix.svg)
 
 Different biomes have different weather patterns — you will not see snow in the desert. The `BIOME_WEATHERS` table defines which weather types are valid for each biome:
 
@@ -74,7 +74,7 @@ export function pickRandomWeather(biome: BiomeType): WeatherType {
 }
 ```
 
-## 13.3 Dynamic Weather Transitions
+## 12.3 Dynamic Weather Transitions
 
 Weather changes automatically over time. A per-frame timer counts down — when it reaches zero, a new weather state is chosen and the timer resets:
 
@@ -109,9 +109,9 @@ When the weather type changes, two things happen:
 1. **Environment effect check** — if the new weather switches between `None`, `Rain`, or `Snow`, the full render graph is rebuilt via `rebuildRenderTargets()` so the particle system is created or destroyed.
 2. **Spawn rate update** — if the weather intensity changes within the same effect (e.g. LightRain → HeavyRain), the particle pass adjusts its spawn rate dynamically without a rebuild, thanks to `ParticlePass.setSpawnRate()`.
 
-## 13.4 Cloud Coverage Mapping
+## 12.4 Cloud Coverage Mapping
 
-![Per-weather target coverage and the smooth per-frame lerp that approaches it with τ ≈ 3.3 s](../illustrations/13-cloud-coverage.svg)
+![Per-weather target coverage and the smooth per-frame lerp that approaches it with τ ≈ 3.3 s](../illustrations/12-cloud-coverage.svg)
 
 Each weather type dictates a target cloud coverage that the renderer lerps toward:
 
@@ -136,11 +136,11 @@ const targetCloudCoverage = getWeatherCloudCoverage(currentWeather);
 cloudCoverage += (targetCloudCoverage - cloudCoverage) * Math.min(1, 0.3 * dt);
 ```
 
-This feeds into `CloudSettings.coverage`, which controls the density of the volumetric cloud rendering (§11.3) and the cloud shadow map. The smooth interpolation prevents jarring visual jumps when the weather transitions.
+This feeds into `CloudSettings.coverage`, which controls the density of the volumetric cloud rendering (§10.3) and the cloud shadow map. The smooth interpolation prevents jarring visual jumps when the weather transitions.
 
-## 13.5 Precipitation Control
+## 12.5 Precipitation Control
 
-![Decision flow: effect change forces a full render-graph rebuild (~tens of ms); intensity change just calls setSpawnRate (<1 µs)](../illustrations/13-precipitation-control.svg)
+![Decision flow: effect change forces a full render-graph rebuild (~tens of ms); intensity change just calls setSpawnRate (<1 µs)](../illustrations/12-precipitation-control.svg)
 
 Rain and snow are rendered by `ParticlePass` with separate configurations (`rainConfig` and `snowConfig` in `crafty/config/particle_configs.ts`). The weather system maps each weather type to an `EnvironmentEffect` and a spawn rate:
 
@@ -179,9 +179,9 @@ setSpawnRate(rate: number): void {
 
 This is a key performance optimisation — rebuilding the render graph is expensive (it destroys and recreates every pass), so we only do it when the particle system type changes. Intensity changes within the same type are handled by a simple property write.
 
-## 13.6 Integration in the Frame Loop
+## 12.6 Integration in the Frame Loop
 
-![5-minute timeline of weather changes in GrassyPlains, with cheap vs REBUILD transitions and the cloud-coverage trace lagging behind](../illustrations/13-weather-timeline.svg)
+![5-minute timeline of weather changes in GrassyPlains, with cheap vs REBUILD transitions and the cloud-coverage trace lagging behind](../illustrations/12-weather-timeline.svg)
 
 The weather system integrates at four points in the main loop (`crafty/main.ts`):
 
@@ -205,7 +205,7 @@ hud.weather.textContent = `${getWeatherName(currentWeather)}\nclouds: ${cloudCov
 
 The `weather` debug element is positioned at the top-right of the screen, below the FPS and stats counters. It is hidden by default and toggled with the X key, following the same pattern as the other debug overlays.
 
-## 13.7 Debug Overlay Display
+## 12.7 Debug Overlay Display
 
 When the X key is pressed, the debug overlay reveals a dedicated weather panel showing:
 

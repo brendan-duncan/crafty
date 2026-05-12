@@ -1,6 +1,6 @@
 # Chapter 14: Game Engine Design
 
-[Contents](../crafty.md) | [12-Terrain](12-terrain.md) | [15-Physics](15-physics.md)
+[Contents](../crafty.md) | [13-Post-Processing](13-post-processing.md) | [15-Physics](15-physics.md)
 
 The game engine provides the structure for placing objects in the world, updating them each frame, and responding to user input.
 
@@ -247,4 +247,4 @@ The action buttons are positioned with a `HOTBAR_CLEARANCE` of 70px from the bot
 - `crafty/main.ts` — Touch control initialisation and audio context bootstrap
 
 ----
-[Contents](../crafty.md) | [12-Terrain](12-terrain.md) | [15-Physics](15-physics.md)
+[Contents](../crafty.md) | [13-Post-Processing](13-post-processing.md) | [15-Physics](15-physics.md)

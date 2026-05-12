@@ -1,6 +1,6 @@
 # Chapter 9: GPU Particle System
 
-[Contents](../crafty.md) | [08-Shadow Mapping](08-shadow-mapping.md) | [10-Post-Processing](10-post-processing.md)
+[Contents](../crafty.md) | [08-Shadow Mapping](08-shadow-mapping.md) | [10-Sky Atmosphere](10-sky-atmosphere.md)
 
 Particle effects bring a scene to life — rain streaking past the player, snow drifting through the air, smoke rising from an explosion, sparks flying from a mining pick. Crafty implements a **fully GPU-driven particle system** where every phase (spawn, update, compaction, render) runs on the GPU via compute shaders. There is no CPU readback of particle state and no per-particle CPU work at runtime.
 
@@ -472,4 +472,4 @@ Snow uses camera-facing billboards (soft discs), very slow fall speed (gravity 1
 - `crafty/game/weather_system.ts` — Weather integration with particle passes
 
 ----
-[Contents](../crafty.md) | [08-Shadow Mapping](08-shadow-mapping.md) | [10-Post-Processing](10-post-processing.md)
+[Contents](../crafty.md) | [08-Shadow Mapping](08-shadow-mapping.md) | [10-Sky Atmosphere](10-sky-atmosphere.md)

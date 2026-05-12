@@ -160,59 +160,59 @@ This book is a work in progress.  Chapters are added as the engine evolves.
   - 9.10 Runtime Spawn Rate Adjustment
   - 9.11 Rain and Snow Configurations
 
-- [Chapter 10: Post-Processing](chapters/10-post-processing.md)
-  - 10.1 Tone mapping and HDR display
-  - 10.2 Bloom
-  - 10.3 Temporal anti-aliasing (TAA)
-  - 10.4 Screen-space ambient occlusion (SSAO)
-  - 10.5 Depth of field (DOF)
-  - 10.6 God rays (crepuscular rays)
-  - 10.7 Auto-exposure
-  - 10.8 Color grading
+- [Chapter 10: Sky and Atmosphere](chapters/10-sky-atmosphere.md)
+  - 10.1 HDR environment maps
+  - 10.2 Sky texture pass
+  - 10.3 Cloud rendering
+  - 10.4 Volumetric fog
+  - 10.5 Cloud shadows
 
-- [Chapter 11: Sky and Atmosphere](chapters/11-sky-atmosphere.md)
-  - 11.1 HDR environment maps
-  - 11.2 Sky texture pass
-  - 11.3 Cloud rendering
-  - 11.4 Volumetric fog
-  - 11.5 Cloud shadows
-
-- [Chapter 12: Terrain and Voxel World](chapters/12-terrain.md)
-  - 12.1 Voxel data structure
-  - 12.2 Chunk management
+- [Chapter 11: Terrain and Voxel World](chapters/11-terrain.md)
+  - 11.1 Voxel data structure
+  - 11.2 Chunk management
     - Frustum culling
-  - 12.3 Procedural world generation
+  - 11.3 Procedural world generation
     - Noise based terrain
     - Biomes
     - Ores and caves
-  - 12.4 Greedy meshing
-  - 12.5 Level-of-detail (LOD)
-  - 12.6 Block interaction
+  - 11.4 Greedy meshing
+  - 11.5 Level-of-detail (LOD)
+  - 11.6 Block interaction
     - Ray casting
     - Block placement and breaking
-  - 12.7 Erosion simulation
-  - 12.8 Water propogation
+  - 11.7 Erosion simulation
+  - 11.8 Water propogation
     - Flow rules
     - Performance optimizations
-  - 12.9 Water rendering
+  - 11.9 Water rendering
     - Screen space refraction
     - Depth based attenuation
-  - 12.10 Screen space reflection
+  - 11.10 Screen space reflection
     - Confidence blending
     - Fresnel blend
-  - 12.11 Village generation
+  - 11.11 Village generation
     - Site selection
     - House placement
     - House template
 
-- [Chapter 13: Weather System](chapters/13-weather-system.md)
-  - 13.1 Weather types
-  - 13.2 Biome weather tables
-  - 13.3 Dynamic weather transitions
-  - 13.4 Cloud coverage mapping
-  - 13.5 Precipitation control
-  - 13.6 Integration in the frame loop
-  - 13.7 Debug overlay display
+- [Chapter 12: Weather System](chapters/12-weather-system.md)
+  - 12.1 Weather types
+  - 12.2 Biome weather tables
+  - 12.3 Dynamic weather transitions
+  - 12.4 Cloud coverage mapping
+  - 12.5 Precipitation control
+  - 12.6 Integration in the frame loop
+  - 12.7 Debug overlay display
+
+- [Chapter 13: Post-Processing](chapters/13-post-processing.md)
+  - 13.1 Tone mapping and HDR display
+  - 13.2 Bloom
+  - 13.3 Temporal anti-aliasing (TAA)
+  - 13.4 Screen-space ambient occlusion (SSAO)
+  - 13.5 Depth of field (DOF)
+  - 13.6 God rays (crepuscular rays)
+  - 13.7 Auto-exposure
+  - 13.8 Color grading
 
 ## III — Game Engine
 

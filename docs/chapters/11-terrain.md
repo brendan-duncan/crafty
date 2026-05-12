@@ -1,14 +1,14 @@
-# Chapter 12: Terrain and Voxel World
+# Chapter 11: Terrain and Voxel World
 
-[Contents](../crafty.md) | [11-Sky / Atmosphere](11-sky-atmosphere.md) | [14-Game Engine](14-game-engine.md)
+[Contents](../crafty.md) | [10-Sky / Atmosphere](10-sky-atmosphere.md) | [12-Weather System](12-weather-system.md)
 
 The voxel world is what distinguishes Crafty from a generic rendering demo. This chapter covers the data structures, generation, and rendering of a block-based terrain.
 
-## 12.1 Voxel Data Structure
+## 11.1 Voxel Data Structure
 
 The world is divided into **chunks** — fixed-size 3D arrays of block IDs. Each chunk is a 16×256×16 volume (X, Y, Z):
 
-![Chunk structure: 16 × 256 × 16 = 65,536 blocks](../illustrations/12-chunk-structure.svg)
+![Chunk structure: 16 × 256 × 16 = 65,536 blocks](../illustrations/11-chunk-structure.svg)
 
 
 ```typescript
@@ -24,7 +24,7 @@ class Chunk {
 
 Block types are stored as small integers (0 = air, 1 = grass, 2 = dirt, etc.). The `BlockType` enum maps to material and rendering properties: color, texture atlas tile, opacity, hardness, and so on.
 
-## 12.2 Chunk Management
+## 11.2 Chunk Management
 
 Chunks are loaded and unloaded based on distance from the player. The `World` class maintains a map of loaded chunks:
 
@@ -50,7 +50,7 @@ function worldToChunkCoord(worldX: number, worldZ: number): [number, number] {
 
 Before rendering, each chunk is tested against the camera frustum. Only chunks that intersect the view frustum are submitted to the GPU. This culling is performed on the CPU each frame.
 
-## 12.3 Procedural World Generation
+## 11.3 Procedural World Generation
 
 ### Noise-Based Terrain
 
@@ -72,7 +72,7 @@ function generateHeight(worldX: number, worldZ: number): number {
 
 Biomes are determined by a secondary noise layer that encodes temperature and humidity. Each block of world space gets two independent noise values, and where it lands in temperature × humidity space picks the biome:
 
-![Biome map: temperature × humidity classification](../illustrations/12-biome-map.svg)
+![Biome map: temperature × humidity classification](../illustrations/11-biome-map.svg)
 
 
 ```typescript
@@ -89,11 +89,11 @@ Each biome has its own surface block type, tree generation rules, and color pale
 
 Underground features are generated using additional noise passes. Caves use a cellular/Perlin threshold that defines underground voids. Ore veins use clustered noise with biome-specific depth distributions.
 
-## 12.4 Greedy Meshing
+## 11.4 Greedy Meshing
 
 Rendering each visible block face as two triangles creates millions of quads — far too many for real-time performance. **Greedy meshing** solves this by merging adjacent faces of the same block type into larger quads:
 
-![Greedy meshing: naive vs merged](../illustrations/12-greedy-meshing.svg)
+![Greedy meshing: naive vs merged](../illustrations/11-greedy-meshing.svg)
 
 
 ### Algorithm
@@ -119,11 +119,11 @@ class ChunkMesh {
 
 Each chunk produces two meshes: one for opaque blocks (dirt, stone, etc.) and one for transparent/translucent blocks (water, leaves, glass). The opaque mesh writes depth and G-buffer normally. The transparent mesh uses alpha blending in the forward pass.
 
-## 12.5 Level-of-Detail (LOD)
+## 11.5 Level-of-Detail (LOD)
 
 Distant chunks use a simplified mesh to reduce triangle count. LOD levels merge 2×2×2 or 4×4×4 blocks into single blocks, reducing geometric detail where the player cannot perceive it. Concentric distance bands around the player select which LOD each chunk uses:
 
-![LOD distance bands around the player](../illustrations/12-lod-distance.svg)
+![LOD distance bands around the player](../illustrations/11-lod-distance.svg)
 
 
 ```typescript
@@ -136,13 +136,13 @@ enum LODLevel {
 
 LOD selection is based on distance from the camera. Transitions between LOD levels use a slight mesh overlap with alpha dithering to hide pop-in.
 
-## 12.6 Block Interaction
+## 11.6 Block Interaction
 
 ### Ray Casting
 
 The player interacts with blocks by aiming at them. A ray is cast from the camera through the crosshair, and the voxel traversal uses a **DDA (digital differential analyzer)** algorithm — at each step it advances to whichever grid line is closer along the ray, visiting cells in exact order:
 
-![DDA voxel ray cast](../illustrations/12-dda-raycast.svg)
+![DDA voxel ray cast](../illustrations/11-dda-raycast.svg)
 
 
 ```typescript
@@ -162,7 +162,7 @@ When a block is broken or placed:
 
 Breaking blocks uses a gradual animation — the block shows cracks at progressive stages (mined over ~0.75 seconds for stone, instant for dirt).
 
-## 12.7 Erosion Simulation
+## 11.7 Erosion Simulation
 
 Crafty includes an optional erosion simulation for more realistic terrain. A compute shader simulates water flow and sediment transport:
 
@@ -172,11 +172,11 @@ Crafty includes an optional erosion simulation for more realistic terrain. A com
 
 The simulation runs as a background compute pass and updates the terrain height map, which is sampled during chunk generation.
 
-## 12.8 Water Propagation
+## 11.8 Water Propagation
 
 When water blocks are placed or generated in the world, they spread according to a simple cellular automaton run on the CPU each tick. The algorithm lives in `World._tickWater()` in `src/block/world.ts`.
 
-![Water propagation: flow priority rules](../illustrations/12-water-flow.svg)
+![Water propagation: flow priority rules](../illustrations/11-water-flow.svg)
 
 ### Flow Rules
 
@@ -207,17 +207,17 @@ private _flowWater(wx: number, wy: number, wz: number): void {
 - **Early skip for chunks.** Chunks track their `waterBlocks` count — if zero, the chunk is skipped during scanning.
 - **Batched re-meshing.** Instead of regenerating a chunk's mesh every time a single water block changes, changes are accumulated in a `_dirtyChunks` set and re-meshed exactly once per tick.
 
-## 12.9 Water Rendering
+## 11.9 Water Rendering
 
 Water is a transparent block type rendered through the `WaterPass` (`src/renderer/passes/water_pass.ts`), a forward pass that runs after deferred lighting. It composites over the HDR buffer using `src-alpha` blending, combining screen-space refraction, depth-based murkiness, and screen-space reflections.
 
-![Water rendering: screen-space refraction with DUDV distortion, and depth-based attenuation](../illustrations/12-water-rendering.svg)
+![Water rendering: screen-space refraction with DUDV distortion, and depth-based attenuation](../illustrations/11-water-rendering.svg)
 
 ### Screen-Space Refraction
 
 Before rendering water, the current HDR scene is copied to a `refractionTex`. During water shading, the scene behind the water is sampled with UV distortion driven by an animated DUDV normal map:
 
-![Screen-space refraction: 3-step pipeline (render → copy → distort) and UV distortion visual](../illustrations/12-screen-space-refraction.svg)
+![Screen-space refraction: 3-step pipeline (render → copy → distort) and UV distortion visual](../illustrations/11-screen-space-refraction.svg)
 
 ```wgsl
 // Animated DUDV distortion — two-pass stacked sampling for complex ripples
@@ -254,9 +254,9 @@ Reflections use a hybrid approach:
 1. **Screen-space reflection (SSR)** ray-marches the reflected view direction in view space, sampling the refraction texture (pre-water HDR scene).
 2. **HDR sky panorama** is used as a fallback for rays that miss scene geometry or leave the screen bounds.
 
-## 12.10 Screen-Space Reflection Rendering
+## 11.10 Screen-Space Reflection Rendering
 
-![Screen-space reflection: view-space ray march, depth hit test, and equirectangular sky fallback](../illustrations/12-ssr.svg)
+![Screen-space reflection: view-space ray march, depth hit test, and equirectangular sky fallback](../illustrations/11-ssr.svg)
 
 The SSR implementation in `water.wgsl` uses a view-space ray march with 32 steps:
 
@@ -312,15 +312,15 @@ let fresnel_r = min(0.02 + 0.98 * pow(1.0 - VdotN, 5.0), 0.6);  // capped at 0.6
 let world_color = mix(tinted, reflection, fresnel_r);
 ```
 
-![Fresnel blend: viewing angle effect (looking down vs grazing) and Schlick formula with 0.6 cap](../illustrations/12-fresnel-blend.svg)
+![Fresnel blend: viewing angle effect (looking down vs grazing) and Schlick formula with 0.6 cap](../illustrations/11-fresnel-blend.svg)
 
 Reflection is minimal when looking straight down (high V·N), rising towards grazing angles. The 0.6 cap prevents bright HDR sky values from washing out the water at shallow viewing angles.
 
-## 12.11 Village Generation
+## 11.11 Village Generation
 
 Villages are generated procedurally when chunks load, in `crafty/game/village_gen.ts`. The system hooks into the chunk load event and places clusters of houses under the right conditions.
 
-![Village generation: site selection and house placement](../illustrations/12-village-gen.svg)
+![Village generation: site selection and house placement](../illustrations/11-village-gen.svg)
 
 ### Site Selection
 
@@ -386,4 +386,4 @@ Currently, all houses use `SPRUCE_PLANKS` for structure and `GLASS` for windows.
 - `src/shaders/chunk_geometry.wgsl` — Chunk G-buffer shader
 
 ----
-[Contents](../crafty.md) | [11-Sky / Atmosphere](11-sky-atmosphere.md) | [14-Game Engine](14-game-engine.md)
+[Contents](../crafty.md) | [10-Sky / Atmosphere](10-sky-atmosphere.md) | [12-Weather System](12-weather-system.md)

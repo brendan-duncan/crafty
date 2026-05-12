@@ -1,10 +1,10 @@
-# Chapter 10: Post-Processing
+# Chapter 13: Post-Processing
 
-[Contents](../crafty.md) | [08-Shadow Mapping](08-shadow-mapping.md) | [11-Sky Atmosphere](11-sky-atmosphere.md)
+[Contents](../crafty.md) | [12-Weather System](12-weather-system.md) | [14-Game Engine](14-game-engine.md)
 
 After the scene is rendered into the HDR target, a series of post-processing passes refines the image. This chapter covers tonemapping, bloom, temporal anti-aliasing, screen-space ambient occlusion, depth of field, and god rays.
 
-## 10.1 Tone Mapping and HDR Display
+## 13.1 Tone Mapping and HDR Display
 
 The final step before presentation is **tone mapping** — converting HDR pixel values to the SDR (or HDR) display range. Crafty's `CompositePass` performs this as the last operation before the swap chain.
 
@@ -12,7 +12,7 @@ The final step before presentation is **tone mapping** — converting HDR pixel 
 
 Crafty uses the **ACES** (Academy Color Encoding System) filmic tone mapping curve, which provides a natural, cinematic look with good highlight rolloff. Compared to a hard clamp (which clips bright values) or Reinhard (which desaturates the midtones aggressively), ACES holds the midrange and rolls off smoothly:
 
-![Tone-mapping operator curves](../illustrations/10-tonemap-curves.svg)
+![Tone-mapping operator curves](../illustrations/13-tonemap-curves.svg)
 
 
 ```wgsl
@@ -50,11 +50,11 @@ For SDR output, the tone-mapped value is converted from linear to sRGB gamma spa
 return vec4<f32>(pow(max(ldr, vec3<f32>(0.0)), vec3<f32>(1.0 / 2.2)), 1.0);
 ```
 
-## 10.2 Bloom
+## 13.2 Bloom
 
 Bloom simulates the scattering of bright light in a camera lens, creating a soft glow around bright regions. Crafty's `BloomPass` follows a standard three-step process — extract the bright pixels, blur them, and add the result back:
 
-![Bloom: prefilter → separable Gaussian → composite](../illustrations/10-bloom-pipeline.svg)
+![Bloom: prefilter → separable Gaussian → composite](../illustrations/13-bloom-pipeline.svg)
 
 
 **1. Prefilter.** Extract bright pixels from the HDR target, applying a knee curve that smoothly transitions from unbloomed to bloomed:
@@ -88,11 +88,11 @@ hdrColor += bloomColor * bloomIntensity;
 
 The bloom intensity and threshold are adjustable parameters exposed through the settings UI.
 
-## 10.3 Temporal Anti-Aliasing (TAA)
+## 13.3 Temporal Anti-Aliasing (TAA)
 
 TAA `TAAPass` reduces aliasing by averaging the current frame with previous frames, using sub-pixel jitter to shift the sample pattern each frame. The Halton (2,3) sequence spreads samples evenly within a pixel, so accumulating ~8 frames approximates 8× supersampling:
 
-![TAA: sub-pixel jitter and temporal reprojection](../illustrations/10-taa-jitter.svg)
+![TAA: sub-pixel jitter and temporal reprojection](../illustrations/13-taa-jitter.svg)
 
 
 ### Jitter
@@ -137,11 +137,11 @@ let maxColor = max(neighbourhood);
 historyColor = clamp(historyColor, minColor, maxColor);
 ```
 
-## 10.4 Screen-Space Ambient Occlusion (SSAO)
+## 13.4 Screen-Space Ambient Occlusion (SSAO)
 
 SSAO estimates ambient light occlusion by sampling the depth buffer around each pixel. The `SSAOPass` (`src/renderer/passes/ssao_pass.ts`) computes an occlusion factor for each screen pixel by sending sample rays into a hemisphere oriented to the surface normal:
 
-![SSAO: hemisphere of samples around the surface](../illustrations/10-ssao-hemisphere.svg)
+![SSAO: hemisphere of samples around the surface](../illustrations/13-ssao-hemisphere.svg)
 
 
 ### Algorithm
@@ -175,11 +175,11 @@ blurred += neighbourValue * weight * gaussianWeight;
 totalWeight += weight * gaussianWeight;
 ```
 
-## 10.5 Depth of Field (DOF)
+## 13.5 Depth of Field (DOF)
 
 The `DofPass` (`src/renderer/passes/dof_pass.ts`) simulates camera lens defocus blur. Objects at a specific focal distance are sharp; objects farther or closer become increasingly blurred. Geometrically, off-focus points project to a disk on the sensor instead of a single point — that disk's diameter is the **circle of confusion**:
 
-![Depth of field: circle of confusion](../illustrations/10-dof-circle-of-confusion.svg)
+![Depth of field: circle of confusion](../illustrations/13-dof-circle-of-confusion.svg)
 
 
 ### Circle of Confusion
@@ -204,11 +204,11 @@ The DOF pass renders at half resolution for performance:
 
 The blur uses a Poisson-disk kernel where the number of samples is proportional to the CoC radius, capped at `maxCocRadius` (typically 8-16 texels).
 
-## 10.6 God Rays (Crepuscular Rays)
+## 13.6 God Rays (Crepuscular Rays)
 
 The `GodrayPass` (`src/renderer/passes/godray_pass.ts`) renders volumetric light shafts — rays of light that appear when sunlight filters through semitransparent occluders (clouds, tree leaves). The trick is that we don't actually march through 3D space: we just sample the screen-space HDR image along a 1D ray pointing back toward the sun, accumulating luminance as we go:
 
-![God rays: radial sampling from the sun](../illustrations/10-godray-sampling.svg)
+![God rays: radial sampling from the sun](../illustrations/13-godray-sampling.svg)
 
 
 ### Radial Blur from Light Source
@@ -236,11 +236,11 @@ hdrColor += godrayColor * intensity;
 
 The sun screen position, density, decay, and intensity are configurable parameters that produce different godray effects — from subtle shafts to dramatic crepuscular rays.
 
-## 10.7 Auto-Exposure
+## 13.7 Auto-Exposure
 
 The `AutoExposurePass` (`src/renderer/passes/auto_exposure_pass.ts`) computes a scene-adaptive exposure value using compute shaders. It adapts the overall brightness when the scene changes (e.g., walking from indoors to sunlight). The mechanism is a per-frame log-luminance histogram, smoothed temporally so that exposure tracks scene changes without snapping:
 
-![Auto-exposure histogram and adaptation](../illustrations/10-autoexposure-histogram.svg)
+![Auto-exposure histogram and adaptation](../illustrations/13-autoexposure-histogram.svg)
 
 
 ### Histogram Computation
@@ -271,7 +271,7 @@ hdrColor *= exposure;
 
 This provides a smooth, automatic transition between lighting conditions.
 
-## 10.8 Color Grading
+## 13.8 Color Grading
 
 The `CompositePass` optionally applies color grading via a **lookup table (LUT)**. A 3D LUT texture maps input colors to graded output colors, enabling cinematic color grading:
 
@@ -286,7 +286,7 @@ When no LUT is active, the composite pass applies a simple contrast, saturation,
 
 Post-processing transforms the raw HDR render into the final image. The diagram below shows how the passes chain together — every post-FX stage reads from and writes back to the HDR target until the composite pass produces SDR output for the swap chain:
 
-![Post-processing pipeline overview](../illustrations/10-postfx-pipeline.svg)
+![Post-processing pipeline overview](../illustrations/13-postfx-pipeline.svg)
 
 
 | Pass | Input | Output | Purpose |
@@ -312,4 +312,4 @@ Post-processing transforms the raw HDR render into the final image. The diagram 
 - `src/shaders/composite.wgsl` — Composite shader
 
 ----
-[Contents](../crafty.md) | [08-Shadow Mapping](08-shadow-mapping.md) | [11-Sky Atmosphere](11-sky-atmosphere.md)
+[Contents](../crafty.md) | [12-Weather System](12-weather-system.md) | [14-Game Engine](14-game-engine.md)
