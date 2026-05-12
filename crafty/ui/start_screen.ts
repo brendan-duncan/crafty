@@ -631,7 +631,7 @@ function _savedWorldRow(world: SavedWorld, onLoad: () => void, onDelete: () => v
         document.removeEventListener('click', disarm, true);
       };
       // Defer registration so this same click doesn't disarm immediately.
-      setTimeout(() => document.addEventListener('click', disarm, true), 0);
+      setTimeout(() => document.addEventListener('click', disarm, false), 0);
       return;
     }
     onDelete();
