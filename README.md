@@ -35,7 +35,7 @@ npm install
 npm run dev
 ```
 
-Vite serves the game at `http://localhost:5173`. The launcher opens with a **Local** tab where you can pick a world seed and click *Start*.
+Vite serves the game at `http://localhost:5173/crafty/`. The launcher opens with a **Local** tab where you can pick a world seed and click *Start*.
 
 ### Run multiplayer
 
@@ -83,7 +83,6 @@ npm run preview    # serves the built bundle locally
 npm test           # vitest in watch mode
 npm run test:run   # one-shot, suitable for CI
 ```
-
 
 ### Thanks
 
