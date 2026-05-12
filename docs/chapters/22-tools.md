@@ -6,10 +6,10 @@ Crafty includes several tools and conventions for development, testing, and debu
 
 ## 22.1 The Sample Framework
 
-Self-contained samples in `crafty/samples/` demonstrate individual features in isolation. Each sample has an HTML file and a TypeScript entry point:
+Self-contained samples in `samples/` demonstrate individual features in isolation. Each sample has an HTML file and a TypeScript entry point:
 
 ```
-crafty/samples/
+samples/
 ├── forward_pass.html
 ├── forward_pass_sample.ts      — Forward+ renderer demo
 ├── cube_test.html
@@ -146,7 +146,7 @@ The CI pipeline does not run visual tests (no WebGPU in CI environments). Visual
 **Further reading:**
 - `tests/` — Unit test directory
 - `scripts/` — Build and asset processing scripts
-- `crafty/samples/` — Self-contained demos
+- `samples/` — Self-contained demos
 
 ----
 [Contents](../crafty.md) | [21-Performance](21-performance.md) | [23-Road Ahead](23-road-ahead.md)

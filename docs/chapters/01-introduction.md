@@ -93,7 +93,9 @@ Start the development server:
 npm run dev
 ```
 
-This launches Vite on `http://localhost:5173`. Open it in your browser and you should see the Crafty start screen.
+This launches Vite on `http://localhost:5173`. Open it in your browser and you should see a screen letting you open Crafty or one of the Samples.
+
+Crafty can be opened at `http://localhost:5173/crafty/`.
 
 The project uses the following toolchain:
 
@@ -121,7 +123,7 @@ The full `package.json` at `package.json` defines all available scripts:
 | `npm run test:coverage` | Run tests with coverage |
 | `npm run server` | Start the multiplayer server |
 
-There are also self-contained sample pages in `crafty/samples/`. Each sample pairs an HTML file with a TypeScript entry point. To view a sample, navigate to its HTML path, e.g. `http://localhost:5173/samples/forward_pass.html`.
+There are also self-contained sample pages in `samples/`. Each sample pairs an HTML file with a TypeScript entry point. To view a sample, navigate to its HTML path, e.g. `http://localhost:5173/samples/forward_pass.html`.
 
 ## 1.6 The Crafty Codebase at a Glance
 
