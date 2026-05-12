@@ -2,7 +2,7 @@ import { World, BlockType, BiomeType, isBlockWater } from '../../src/block/index
 import type { Chunk, ChunkMesh } from '../../src/block/index.js';
 
 const CHUNK_SIZE = 16;
-const VILLAGE_CHANCE = 0.025;
+const VILLAGE_CHANCE = 0.25;
 
 const W = BlockType.SPRUCE_PLANKS;
 const G = BlockType.GLASS;

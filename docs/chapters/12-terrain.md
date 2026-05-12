@@ -172,7 +172,42 @@ Crafty includes an optional erosion simulation for more realistic terrain. A com
 
 The simulation runs as a background compute pass and updates the terrain height map, which is sampled during chunk generation.
 
-## 12.8 Water Rendering
+## 12.8 Water Propagation
+
+When water blocks are placed or generated in the world, they spread according to a simple cellular automaton run on the CPU each tick. The algorithm lives in `World._tickWater()` in `src/block/world.ts`.
+
+![Water propagation: flow priority rules](../illustrations/12-water-flow.svg)
+
+### Flow Rules
+
+Water spreads in a fixed priority order:
+
+1. **Flow down first.** Water always attempts to flow downward first before spreading horizontally. If the block below is air or a prop, the water block moves down and the original position becomes air.
+
+2. **Support check.** Horizontal spreading only occurs when the water has "support" — defined as a solid block within 4 blocks vertically below it. Without support, water behaves as "fountain" water and can still spread 1 block horizontally.
+
+3. **Horizontal spread.** If supported, water spreads to adjacent empty cells in the four horizontal directions (N, S, E, W). Only one direction is filled per tick to prevent instant flooding.
+
+```typescript
+// In src/block/world.ts
+private _flowWater(wx: number, wy: number, wz: number): void {
+  const below = this.getBlockType(wx, wy - 1, wz);
+  if (below === BlockType.NONE || isBlockProp(below)) {
+    this.setBlockType(wx, wy - 1, wz, BlockType.WATER);
+    this.setBlockType(wx, wy, wz, BlockType.NONE);
+    return;
+  }
+  // ... then horizontal spreading logic
+}
+```
+
+### Performance Optimizations
+
+- **Scanning radius.** Only water blocks within a fixed radius around the player are ticked (determined by the view distance). This saves scanning the entire loaded world.
+- **Early skip for chunks.** Chunks track their `waterBlocks` count — if zero, the chunk is skipped during scanning.
+- **Batched re-meshing.** Instead of regenerating a chunk's mesh every time a single water block changes, changes are accumulated in a `_dirtyChunks` set and re-meshed exactly once per tick.
+
+## 12.9 Water Rendering
 
 Water is a transparent block type rendered through the `WaterPass` (`src/renderer/passes/water_pass.ts`). It uses **screen-space refraction** — the scene behind the water is sampled with an offset based on a DUDV normal map:
 
@@ -189,11 +224,70 @@ The water surface combines:
 - **Fresnel blend** — mix between refraction and reflection based on viewing angle.
 - **Subsurface scattering** — light absorbing and scattering through the water volume (blue tint).
 
+## 12.10 Village Generation
+
+Villages are generated procedurally when chunks load, in `crafty/game/village_gen.ts`. The system hooks into the chunk load event and places clusters of houses under the right conditions.
+
+![Village generation: site selection and house placement](../illustrations/12-village-gen.svg)
+
+### Site Selection
+
+Villages only spawn in the `GrassyPlains` biome. When a chunk loads, the generator checks:
+
+1. **Water check.** No water blocks under the candidate chunk (sampled at 9 grid points).
+2. **Flatness check.** Terrain height varies by ≤ 1.5 blocks across the chunk.
+3. **Probability roll.** 25% chance if all other conditions pass.
+
+```typescript
+const VILLAGE_CHANCE = 0.25;
+
+function _isFlatEnough(world: World, baseX: number, baseZ: number, refY: number): boolean {
+  for (let dx = 0; dx < CHUNK_SIZE; dx += 4) {
+    for (let dz = 0; dz < CHUNK_SIZE; dz += 4) {
+      const y = world.getTopBlockY(baseX + dx, baseZ + dz, 200);
+      if (y <= 0 || Math.abs(y - refY) > 1.5) return false;
+    }
+  }
+  return true;
+}
+```
+
+### House Placement
+
+When a village is selected, 2–4 houses are placed in a cluster around the chunk center. Each house position:
+
+- Uses polar coordinates (random angle + random distance 4–10 blocks from center)
+- Validates that the house footprint sits on ground (not water)
+- Places the house only if the local terrain elevation is within 1.5 blocks of the village reference height
+
+### House Template
+
+Houses are simple 7×5×4 structures defined as layered arrays:
+
+| Layer | Purpose |
+|-------|---------|
+| y=0 | Solid plank floor |
+| y=1–2 | Walls with door opening (front) and glass window (back) |
+| y=3 | Flat plank roof |
+
+```typescript
+const _WALL_L1: number[][] = [
+  [1,1,1,2,1,1,1],  // z=0: back wall, glass at center x=3
+  [1,0,0,0,0,0,1],
+  [1,0,0,0,0,0,1],
+  [1,0,0,0,0,0,1],
+  [1,1,1,0,1,1,1],  // z=4: front wall, door opening at x=3
+];
+```
+
+Currently, all houses use `SPRUCE_PLANKS` for structure and `GLASS` for windows.
+
 **Further reading:**
 - `src/block/` — Block types, chunk, world classes
 - `src/block/chunk.ts` — Chunk data structure
 - `src/block/mesher.ts` — Greedy meshing algorithm
 - `src/block/generator.ts` — Terrain generation
+- `crafty/game/village_gen.ts` — Village and house placement
 - `src/renderer/passes/world_geometry_pass.ts` — Chunk G-buffer rendering
 - `src/renderer/passes/water_pass.ts` — Water surface rendering
 - `src/shaders/chunk_geometry.wgsl` — Chunk G-buffer shader

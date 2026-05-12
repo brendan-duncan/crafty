@@ -181,11 +181,13 @@ This book is a work in progress.  Chapters are added as the engine evolves.
   - 12.1 Voxel data structure
   - 12.2 Chunk management
   - 12.3 Procedural world generation (noise, biomes)
-  - 12.4 Greedy meshing
-  - 12.5 Level-of-detail (LOD)
-  - 12.6 Block interaction (place, break)
-  - 12.7 Erosion simulation
-  - 12.8 Water rendering
+  - 12.4 Village generation
+  - 12.5 Greedy meshing
+  - 12.6 Level-of-detail (LOD)
+  - 12.7 Block interaction (place, break)
+  - 12.8 Erosion simulation
+  - 12.9 Water propogation
+  - 12.10 Water rendering
 
 - [Chapter 13: Weather System](chapters/13-weather-system.md)
   - 13.1 Weather types
