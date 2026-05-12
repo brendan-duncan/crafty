@@ -34,8 +34,10 @@ The three NPC types implement one of two state-machine patterns:
 
 | Pattern | States | Used by |
 |---------|--------|---------|
+| Single-state | `follow` | Ducklings |
 | Two-state | `idle` ↔ `wander` | Pigs |
 | Three-state | `idle` ↔ `wander` ↔ `flee` | Ducks |
+| Four-state | `idle` ↔ `wander` → `chase` → `detonate` | Creepers |
 
 ### Idle
 
@@ -102,6 +104,66 @@ case 'flee': {
 ```
 
 Pigs are docile — they never flee and remain in the two-state cycle indefinitely.
+
+### Follow
+
+Ducklings use a single-state `follow` behaviour instead of the idle/wander pattern. Rather than selecting random targets, each duckling tracks its parent duck's position and maintains a polar offset so the brood spreads naturally around the parent:
+
+```typescript
+case 'follow': {
+  this._offsetAngle += dt * 0.25;
+  const tx = this._parent.position.x + Math.cos(this._offsetAngle) * this._followDist;
+  const tz = this._parent.position.z + Math.sin(this._offsetAngle) * this._followDist;
+  // steer toward target position
+  const dx = tx - go.position.x;
+  const dz = tz - go.position.z;
+  const dist = Math.sqrt(dx * dx + dz * dz);
+  const speed = dist > 2.5 ? 3.5 : 1.8;
+  go.position.x += (dx / dist) * speed * dt;
+  go.position.z += (dz / dist) * speed * dt;
+  break;
+}
+```
+
+The duckling does not check player distance directly — it inherits the parent's flee behaviour automatically by following the parent.
+
+### Chase
+
+Creepers (and future hostile mobs) add a `chase` state that preempts idle and wander when the player enters the detect radius (8 blocks). The creeper moves toward the player at a higher speed (1.8 m/s) and faces the player directly:
+
+```typescript
+case 'chase': {
+  const dx = playerPos.x - go.position.x;
+  const dz = playerPos.z - go.position.z;
+  const dist = Math.sqrt(dx * dx + dz * dz);
+  if (dist > 12) { this._state = 'idle'; break; }           // lose interest
+  if (dist < 1.8) { this._state = 'detonate'; break; }       // close enough
+  go.position.x += (dx / dist) * 1.8 * dt;
+  go.position.z += (dz / dist) * 1.8 * dt;
+  this._yaw = Math.atan2(-dx / dist, -dz / dist);
+  break;
+}
+```
+
+Hysteresis between the detect radius (8 blocks) and lose radius (12 blocks) prevents the creeper from rapidly flickering between chase and idle when the player is at the boundary.
+
+### Detonate
+
+When the creeper reaches touching distance (1.8 blocks), it enters `detonate` — it stops moving and begins a 2.5-second fuse countdown. The creeper's body flashes between green and white at an accelerating rate:
+
+```typescript
+case 'detonate': {
+  this._detonateElapsed += dt;
+  if (playerDist2 > 36) { this._exitDetonate(); break; }     // player escaped
+  if (this._detonateElapsed >= 2.5) { this._explode(); break; }
+  const flashInterval = Math.max(0.08, 0.5 - this._detonateElapsed * 0.18);
+  const on = Math.floor(this._detonateElapsed / flashInterval) % 2 === 0;
+  this._setColor(on ? CREEKER_GREEN : WHITE);
+  break;
+}
+```
+
+If the player retreats beyond 6 blocks during the fuse, the creeper cancels detonation and returns to `idle`. If the full 2.5 seconds elapse, the creeper explodes — destroying blocks within a 4-block spherical radius and emitting an 80-particle fire burst. See §15.6 for the full explosion mechanics.
 
 ## 15.3 Duck AI
 
