@@ -3,7 +3,7 @@ import type { Chunk, ChunkMesh } from '../../src/block/index.js';
 import { Random } from '../../src/math/index.js';
 
 const CHUNK_SIZE = 16;
-const VILLAGE_CHANCE = 0.25;
+const VILLAGE_CHANCE = 0.10; // Chance for a village to generate in a given chunk column
 
 const W = BlockType.SPRUCE_PLANKS;
 const G = BlockType.GLASS;
