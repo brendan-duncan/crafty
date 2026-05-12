@@ -1,5 +1,5 @@
 import { RenderPass } from '../render_pass.js';
-import { HDR_FORMAT } from './lighting_pass.js';
+import { HDR_FORMAT } from './deferred_lighting_pass.js';
 import ssgiWgsl from '../../shaders/ssgi.wgsl?raw';
 import ssgiTemporalWgsl from '../../shaders/ssgi_temporal.wgsl?raw';
 // 5×mat4(320) + camPos(12) + numRays+numSteps+radius+thickness+strength+frameIndex(24) = 356 → padded to 368

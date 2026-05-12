@@ -43,7 +43,7 @@
 
     <!-- Pass 3 block -->
     <rect x="320" y="50" width="380" height="20" fill="#ede9fe" stroke="#7c3aed" stroke-width="1"/>
-    <text x="510" y="64" text-anchor="middle" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#4c1d95">LightingPass</text>
+    <text x="510" y="64" text-anchor="middle" font-size="10" font-family="ui-monospace, Consolas, monospace" fill="#4c1d95">DeferredLightingPass</text>
     <!-- Timestamp 3 -->
     <g>
       <line x1="700" y1="48" x2="700" y2="72" stroke="#dc2626" stroke-width="1.4"/>
@@ -104,12 +104,12 @@
       <g font-family="ui-monospace, Consolas, monospace">
         <text x="0" y="64">ShadowPass         0.6      14 %</text>
         <text x="0" y="82">GeometryPass       1.0      24 %</text>
-        <text x="0" y="100" fill="#dc2626">LightingPass       1.9      45 %  ◀ heaviest</text>
+        <text x="0" y="100" fill="#dc2626">DeferredLightingPass       1.9      45 %  ◀ heaviest</text>
         <text x="0" y="118">CompositePass      0.7      17 %</text>
       </g>
 
       <text x="0" y="158" font-weight="700" fill="#16a34a">action items</text>
-      <text x="0" y="176" font-size="11">· profile LightingPass shader</text>
+      <text x="0" y="176" font-size="11">· profile DeferredLightingPass shader</text>
       <text x="0" y="192" font-size="11">· consider lower SSGI sample count</text>
     </g>
   </g>

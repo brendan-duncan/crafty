@@ -49,8 +49,8 @@ function generateNoise(): Uint8Array {
 export class SSAOPass extends RenderPass {
   readonly name = 'SSAOPass';
 
-  /** Blurred AO texture view, intended to be bound by LightingPass. */
-  // Blurred AO texture — bound by LightingPass as group 3.
+  /** Blurred AO texture view, intended to be bound by DeferredLightingPass. */
+  // Blurred AO texture — bound by DeferredLightingPass as group 3.
   readonly aoView: GPUTextureView;
 
   private _raw    : GPUTexture;
@@ -277,7 +277,7 @@ export class SSAOPass extends RenderPass {
       pass.end();
     }
 
-    // 2. Blur: raw → blurred (the aoView that LightingPass reads)
+    // 2. Blur: raw → blurred (the aoView that DeferredLightingPass reads)
     {
       const pass = encoder.beginRenderPass({
         label: 'SSAOBlur',

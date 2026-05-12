@@ -7,10 +7,10 @@ import type { SpotLight as EngineSpotLight } from '../../engine/components/spot_
 import type { SpotLight } from '../spot_light.js';
 import type { PointSpotShadowPass } from './point_spot_shadow_pass.js';
 import { MAX_POINT_LIGHTS, MAX_SPOT_LIGHTS, MAX_SHADOW_POINT_LIGHTS, MAX_SHADOW_SPOT_LIGHTS } from './point_spot_shadow_pass.js';
-import { HDR_FORMAT } from './lighting_pass.js';
+import { HDR_FORMAT } from './deferred_lighting_pass.js';
 import lightingWgsl from '../../shaders/point_spot_lighting.wgsl?raw';
 
-// CameraUniforms: same layout as LightingPass (288 bytes)
+// CameraUniforms: same layout as DeferredLightingPass (288 bytes)
 const CAMERA_SIZE = 64 * 4 + 16 + 16;
 
 // LightCounts: numPoint(4) + numSpot(4) = 8 bytes
@@ -27,7 +27,7 @@ const SPOT_STRIDE  = 128;  // matches SpotLightGpu in shader
  * Reads the GBuffer (albedo+roughness, normal+metallic, depth) and the VSM/projection
  * texture arrays produced by {@link PointSpotShadowPass}, applies a PBR shading model,
  * and additively blends the result on top of the HDR target previously written by the
- * directional {@link LightingPass} and {@link SkyTexturePass}.
+ * directional {@link DeferredLightingPass} and {@link SkyTexturePass}.
  */
 export class PointSpotLightPass extends RenderPass {
   readonly name = 'PointSpotLightPass';

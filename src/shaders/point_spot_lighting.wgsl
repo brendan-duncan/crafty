@@ -1,5 +1,5 @@
 // Additive deferred pass for point and spot lights.
-// Runs after LightingPass (which handles directional + IBL) with loadOp:'load'
+// Runs after DeferredLightingPass (which handles directional + IBL) with loadOp:'load'
 // and srcFactor:'one' dstFactor:'one' so results accumulate on the HDR texture.
 
 const PI: f32 = 3.14159265358979323846;

@@ -2,7 +2,7 @@ import { RenderPass } from '../render_pass.js';
 import type { RenderContext } from '../render_context.js';
 import type { Mat4 } from '../../math/mat4.js';
 import type { CloudNoiseTextures } from '../../assets/cloud_noise.js';
-import { HDR_FORMAT } from './lighting_pass.js';
+import { HDR_FORMAT } from './deferred_lighting_pass.js';
 import cloudsWgsl from '../../shaders/clouds.wgsl?raw';
 
 // CameraUniforms: invViewProj(64) + position vec3(12) + near(4) + far(4) + pad(12) = 96 bytes

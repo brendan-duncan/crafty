@@ -4,7 +4,7 @@ import type { GBuffer } from '../gbuffer.js';
 import type { ShadowPass } from './shadow_pass.js';
 import type { CloudNoiseTextures } from '../../assets/cloud_noise.js';
 import type { CloudSettings } from './cloud_pass.js';
-import { HDR_FORMAT } from './lighting_pass.js';
+import { HDR_FORMAT } from './deferred_lighting_pass.js';
 import godrayMarchWgsl from '../../shaders/godray_march.wgsl?raw';
 import godrayCompositeWgsl from '../../shaders/godray_composite.wgsl?raw';
 

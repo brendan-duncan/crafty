@@ -2,7 +2,7 @@ import { RenderPass } from '../render_pass.js';
 import type { RenderContext } from '../render_context.js';
 import type { GBuffer } from '../gbuffer.js';
 import type { Mat4 } from '../../math/mat4.js';
-import { HDR_FORMAT } from './lighting_pass.js';
+import { HDR_FORMAT } from './deferred_lighting_pass.js';
 import ssgiWgsl from '../../shaders/ssgi.wgsl?raw';
 import ssgiTemporalWgsl from '../../shaders/ssgi_temporal.wgsl?raw';
 

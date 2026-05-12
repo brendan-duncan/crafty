@@ -13,7 +13,7 @@ import foxUrl from '../assets/fox.glb?url';
 import { Mat4, Vec3, Quaternion } from '../src/math/index.js';
 import { GameObject, Scene, Camera, MeshRenderer, CameraControls, AnimatedModel, PointLight, SpotLight } from '../src/engine/index.js';
 import { PbrMaterial } from '../src/engine/materials/pbr_material.js';
-import { RenderContext, RenderGraph, GBuffer, ShadowPass, SkyPass, GeometryPass, SkinnedGeometryPass, LightingPass, TAAPass, SSAOPass, SSGIPass, DofPass, BloomPass, CompositePass, DebugLightPass, ParticlePass, CloudPass, CloudShadowPass, AutoExposurePass, PointSpotShadowPass, PointSpotLightPass } from '../src/renderer/index.js';
+import { RenderContext, RenderGraph, GBuffer, ShadowPass, SkyPass, GeometryPass, SkinnedGeometryPass, DeferredLightingPass, TAAPass, SSAOPass, SSGIPass, DofPass, BloomPass, CompositePass, DebugLightPass, ParticlePass, CloudPass, CloudShadowPass, AutoExposurePass, PointSpotShadowPass, PointSpotLightPass } from '../src/renderer/index.js';
 import { Mesh, BlockTexture, GltfLoader, createCloudNoiseTextures } from '../src/assets/index.js';
 import { parseHdr, createHdrTexture } from '../src/assets/hdr_loader.js';
 import { computeIblGpu } from '../src/assets/ibl.js';
@@ -361,11 +361,11 @@ async function main() {
         ssaoPass = SSAOPass.create(ctx, gbuffer);
         if (effects.clouds) {
             cloudShadowPass = CloudShadowPass.create(ctx, cloudNoises);
-            lightingPass = LightingPass.create(ctx, gbuffer, shadowPass, ssaoPass.aoView, cloudShadowPass.shadowView, ibl);
+            lightingPass = DeferredLightingPass.create(ctx, gbuffer, shadowPass, ssaoPass.aoView, cloudShadowPass.shadowView, ibl);
             cloudPass = CloudPass.create(ctx, lightingPass.hdrView, gbuffer.depthView, cloudNoises);
         }
         else {
-            lightingPass = LightingPass.create(ctx, gbuffer, shadowPass, ssaoPass.aoView, undefined, ibl);
+            lightingPass = DeferredLightingPass.create(ctx, gbuffer, shadowPass, ssaoPass.aoView, undefined, ibl);
             skyPass = SkyPass.create(ctx, lightingPass.hdrView, skyTexture);
         }
         pointSpotShadowPass = PointSpotShadowPass.create(ctx);

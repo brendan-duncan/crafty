@@ -1,6 +1,6 @@
 import { RenderPass } from '../render_pass.js';
 import type { RenderContext } from '../render_context.js';
-import { HDR_FORMAT } from './lighting_pass.js';
+import { HDR_FORMAT } from './deferred_lighting_pass.js';
 import bloomWgsl from '../../shaders/bloom.wgsl?raw';
 import bloomCompositeWgsl from '../../shaders/bloom_composite.wgsl?raw';
 

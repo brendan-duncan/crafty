@@ -1,9 +1,9 @@
 import { RenderPass } from '../render_pass.js';
 import type { RenderContext } from '../render_context.js';
-import type { LightingPass } from './lighting_pass.js';
+import type { DeferredLightingPass } from './deferred_lighting_pass.js';
 import type { GBuffer } from '../gbuffer.js';
 import type { Mat4 } from '../../math/mat4.js';
-import { HDR_FORMAT } from './lighting_pass.js';
+import { HDR_FORMAT } from './deferred_lighting_pass.js';
 import taaWgsl from '../../shaders/taa.wgsl?raw';
 
 // invViewProj (mat4) + prevViewProj (mat4) = 128 bytes
@@ -73,7 +73,7 @@ export class TAAPass extends RenderPass {
    * @param gbuffer G-buffer providing the depth view for reprojection.
    * @returns Configured TAAPass instance.
    */
-  static create(ctx: RenderContext, lightingPass: LightingPass, gbuffer: GBuffer): TAAPass {
+  static create(ctx: RenderContext, lightingPass: DeferredLightingPass, gbuffer: GBuffer): TAAPass {
     const { device, width, height } = ctx;
 
     const resolved = device.createTexture({

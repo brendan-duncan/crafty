@@ -8,7 +8,7 @@ import { CameraControls } from '../src/engine/camera_controls.js';
 import { PbrMaterial } from '../src/engine/materials/pbr_material.js';
 import {
   RenderContext, RenderGraph, GBuffer, ShadowPass,
-  GeometryPass, LightingPass, AtmospherePass,
+  GeometryPass, DeferredLightingPass, AtmospherePass,
   CloudPass, CloudShadowPass, GodrayPass, CompositePass,
 } from '../src/renderer/index.js';
 import type { CloudSettings } from '../src/renderer/index.js';
@@ -152,7 +152,7 @@ async function main() {
   const geometryPass = GeometryPass.create(renderContext, gbuffer);
   const cloudShadowPass = CloudShadowPass.create(renderContext, cloudNoises);
 
-  const lightingPass = LightingPass.create(
+  const lightingPass = DeferredLightingPass.create(
     renderContext, gbuffer, shadowPass, aoView, cloudShadowPass.shadowView,
   );
 

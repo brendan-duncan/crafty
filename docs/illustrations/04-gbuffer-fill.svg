@@ -93,7 +93,7 @@
     <text x="14" y="22" font-weight="700" fill="#111827">Downstream consumers</text>
 
     <g font-size="11" fill="#374151" transform="translate(14, 0)">
-      <text x="0" y="46">SSAOPass · SSGIPass · LightingPass · PointSpotLightPass · TAAPass · DofPass · GodrayPass · CompositePass (fog)</text>
+      <text x="0" y="46">SSAOPass · SSGIPass · DeferredLightingPass · PointSpotLightPass · TAAPass · DofPass · GodrayPass · CompositePass (fog)</text>
       <text x="0" y="64" font-style="italic" fill="#6b7280">all bind G-buffer textures via TEXTURE_BINDING — never ping-pong, never copy.</text>
     </g>
   </g>

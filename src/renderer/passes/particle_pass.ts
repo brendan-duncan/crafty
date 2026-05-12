@@ -7,7 +7,7 @@ import type { Mat4 } from '../../math/mat4.js';
 import compactWgsl from '../../shaders/particles/particle_compact.wgsl?raw';
 import renderWgsl from '../../shaders/particles/particle_render.wgsl?raw';
 import renderForwardWgsl from '../../shaders/particles/particle_render_forward.wgsl?raw';
-import { HDR_FORMAT } from './lighting_pass.js';
+import { HDR_FORMAT } from './deferred_lighting_pass.js';
 
 const PARTICLE_STRIDE   = 64;
 const COMPUTE_UNI_SIZE  = 80;   // ComputeUniforms: 20 × f32

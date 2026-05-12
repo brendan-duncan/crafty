@@ -1,5 +1,5 @@
 import { RenderPass } from '../render_pass.js';
-import { HDR_FORMAT } from './lighting_pass.js';
+import { HDR_FORMAT } from './deferred_lighting_pass.js';
 import godrayMarchWgsl from '../../shaders/godray_march.wgsl?raw';
 import godrayCompositeWgsl from '../../shaders/godray_composite.wgsl?raw';
 const FOG_FORMAT = HDR_FORMAT;

@@ -29,8 +29,8 @@ const LIGHT_SIZE = 368;
  * exposed as `cameraBuffer` / `lightBuffer` so other passes (e.g. godrays)
  * can read the same per-frame state without duplicate uploads.
  */
-export class LightingPass extends RenderPass {
-  readonly name = 'LightingPass';
+export class DeferredLightingPass extends RenderPass {
+  readonly name = 'DeferredLightingPass';
 
   /** HDR colour target written by the lighting pass. */
   readonly hdrTexture   : GPUTexture;
@@ -117,9 +117,9 @@ export class LightingPass extends RenderPass {
    *   omitted a 1×1 white texture is bound (no cloud occlusion).
    * @param iblTextures Optional IBL set (irradiance cube, pre-filtered cube,
    *   BRDF LUT). When omitted, 1×1 black fallbacks are used.
-   * @returns A configured `LightingPass`.
+   * @returns A configured `DeferredLightingPass`.
    */
-  static create(ctx: RenderContext, gbuffer: GBuffer, shadowPass: ShadowPass, aoView: GPUTextureView, cloudShadowView?: GPUTextureView, iblTextures?: IblTextures): LightingPass {
+  static create(ctx: RenderContext, gbuffer: GBuffer, shadowPass: ShadowPass, aoView: GPUTextureView, cloudShadowView?: GPUTextureView, iblTextures?: IblTextures): DeferredLightingPass {
     const { device, width, height } = ctx;
 
     const hdrTexture = device.createTexture({
@@ -286,7 +286,7 @@ export class LightingPass extends RenderPass {
       primitive: { topology: 'triangle-list' },
     });
 
-    return new LightingPass(
+    return new DeferredLightingPass(
       hdrTexture, hdrView, pipeline,
       sceneBindGroup, gbufferBindGroup, aoBindGroup, iblBindGroup,
       cameraBuffer, lightBuffer,
@@ -422,7 +422,7 @@ export class LightingPass extends RenderPass {
    */
   execute(encoder: GPUCommandEncoder, _ctx: RenderContext): void {
     const pass = encoder.beginRenderPass({
-      label: 'LightingPass',
+      label: 'DeferredLightingPass',
       colorAttachments: [
         { view: this.hdrView, loadOp: 'load', storeOp: 'store' },
       ],

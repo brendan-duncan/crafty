@@ -1,6 +1,6 @@
 import { RenderPass } from '../render_pass.js';
 import { VERTEX_ATTRIBUTES, VERTEX_STRIDE } from '../../assets/mesh.js';
-import { HDR_FORMAT } from './lighting_pass.js';
+import { HDR_FORMAT } from './deferred_lighting_pass.js';
 import debugLightWgsl from '../../shaders/debug_light.wgsl?raw';
 // mvp mat4 (64) + color vec4 (16) = 80 bytes
 const UNIFORM_SIZE = 80;

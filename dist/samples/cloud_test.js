@@ -6,7 +6,7 @@ import { DirectionalLight } from '../src/engine/components/directional_light.js'
 import { MeshRenderer } from '../src/engine/components/mesh_renderer.js';
 import { CameraControls } from '../src/engine/camera_controls.js';
 import { PbrMaterial } from '../src/engine/materials/pbr_material.js';
-import { RenderContext, RenderGraph, GBuffer, ShadowPass, GeometryPass, LightingPass, AtmospherePass, CloudPass, CloudShadowPass, GodrayPass, CompositePass, } from '../src/renderer/index.js';
+import { RenderContext, RenderGraph, GBuffer, ShadowPass, GeometryPass, DeferredLightingPass, AtmospherePass, CloudPass, CloudShadowPass, GodrayPass, CompositePass, } from '../src/renderer/index.js';
 import { Mesh, createCloudNoiseTextures } from '../src/assets/index.js';
 function createAOTexture(device, width, height) {
     const texture = device.createTexture({
@@ -120,7 +120,7 @@ async function main() {
     const shadowPass = ShadowPass.create(renderContext, 3);
     const geometryPass = GeometryPass.create(renderContext, gbuffer);
     const cloudShadowPass = CloudShadowPass.create(renderContext, cloudNoises);
-    const lightingPass = LightingPass.create(renderContext, gbuffer, shadowPass, aoView, cloudShadowPass.shadowView);
+    const lightingPass = DeferredLightingPass.create(renderContext, gbuffer, shadowPass, aoView, cloudShadowPass.shadowView);
     const cloudPass = CloudPass.create(renderContext, lightingPass.hdrView, gbuffer.depthView, cloudNoises);
     const atmospherePass = AtmospherePass.create(renderContext, lightingPass.hdrView);
     const godrayPass = GodrayPass.create(renderContext, gbuffer, shadowPass, lightingPass.hdrView, lightingPass.cameraBuffer, lightingPass.lightBuffer, cloudNoises);

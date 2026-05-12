@@ -1,6 +1,6 @@
 import { RenderPass } from '../render_pass.js';
 import type { RenderContext } from '../render_context.js';
-import { HDR_FORMAT } from './lighting_pass.js';
+import { HDR_FORMAT } from './deferred_lighting_pass.js';
 import dofWgsl from '../../shaders/dof.wgsl?raw';
 
 // focus_distance, focus_range, bokeh_radius, near, far, _pad×3  →  8 × f32 = 32 bytes

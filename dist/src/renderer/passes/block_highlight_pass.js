@@ -1,5 +1,5 @@
 import { RenderPass } from '../render_pass.js';
-import { HDR_FORMAT } from './lighting_pass.js';
+import { HDR_FORMAT } from './deferred_lighting_pass.js';
 import blockHighlightWgsl from '../../shaders/block_highlight.wgsl?raw';
 // viewProj(64) + blockPos(12) + pad(4) = 80 bytes
 const UNIFORM_SIZE = 80;

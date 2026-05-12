@@ -1,5 +1,5 @@
 import { RenderPass } from '../render_pass.js';
-import { HDR_FORMAT } from './lighting_pass.js';
+import { HDR_FORMAT } from './deferred_lighting_pass.js';
 import taaWgsl from '../../shaders/taa.wgsl?raw';
 // invViewProj (mat4) + prevViewProj (mat4) = 128 bytes
 const TAA_UNIFORM_SIZE = 128;

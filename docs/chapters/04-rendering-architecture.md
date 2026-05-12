@@ -53,7 +53,7 @@ The key design decisions are:
 8. SkinnedGeometryPass    — skinned mesh G-buffer (appends)
 9. SSAOPass               — screen-space ambient occlusion
 10. SSGIPass              — screen-space global illumination
-11. LightingPass          — deferred HDR lighting
+11. DeferredLightingPass  — deferred HDR lighting
 12. PointSpotLightPass    — additive point/spot lighting
 13. TAAPass               — temporal anti-aliasing
 14. DofPass               — depth of field
@@ -189,7 +189,7 @@ export const HDR_FORMAT: GPUTextureFormat = 'rgba16float';
 This 16-bit-per-channel floating-point texture is the central framebuffer for the second half of the pipeline:
 
 ```
-LightingPass  ──►  HDR Texture (rgba16float)
+DeferredLightingPass  ──►  HDR Texture (rgba16float)
                       │
                       ├──► TAAPass (temporal resolve)
                       ├──► DofPass (depth-of-field blur)

@@ -14,7 +14,7 @@
   <!-- ===== Lighting pass (writes HDR initially) ===== -->
   <g transform="translate(310, 56)">
     <rect x="0" y="0" width="300" height="50" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.4" rx="6"/>
-    <text x="150" y="22" text-anchor="middle" font-weight="700" fill="#4c1d95">LightingPass + PointSpotLightPass</text>
+    <text x="150" y="22" text-anchor="middle" font-weight="700" fill="#4c1d95">DeferredLightingPass + PointSpotLightPass</text>
     <text x="150" y="40" text-anchor="middle" font-size="10" fill="#4c1d95">deferred lighting reads G-buffer · writes HDR</text>
   </g>
 

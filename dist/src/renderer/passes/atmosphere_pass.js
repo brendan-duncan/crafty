@@ -1,5 +1,5 @@
 import { RenderPass } from '../render_pass.js';
-import { HDR_FORMAT } from './lighting_pass.js';
+import { HDR_FORMAT } from './deferred_lighting_pass.js';
 import atmosphereWgsl from '../../shaders/atmosphere.wgsl?raw';
 // invViewProj(64) + cameraPos+pad(16) + sunDir+pad(16) = 96 bytes
 const UNIFORM_SIZE = 96;

@@ -1,5 +1,5 @@
 import { RenderPass } from '../render_pass.js';
-import { HDR_FORMAT } from './lighting_pass.js';
+import { HDR_FORMAT } from './deferred_lighting_pass.js';
 import cloudsWgsl from '../../shaders/clouds.wgsl?raw';
 // CameraUniforms: invViewProj(64) + position vec3(12) + near(4) + far(4) + pad(12) = 96 bytes
 const CLOUD_CAMERA_UNIFORM_SIZE = 96;

@@ -1,7 +1,7 @@
 import type { RenderContext, RenderGraph } from '../src/renderer/index.js';
 import { GBuffer } from '../src/renderer/index.js';
 import {
-  ShadowPass, GeometryPass, LightingPass, SSAOPass, SSGIPass,
+  ShadowPass, GeometryPass, DeferredLightingPass, SSAOPass, SSGIPass,
   TAAPass, DofPass, BloomPass, AtmospherePass, CompositePass,
   AutoExposurePass, PointSpotShadowPass, PointSpotLightPass,
   WorldGeometryPass, WaterPass, WorldShadowPass, BlockHighlightPass,
@@ -25,7 +25,7 @@ export interface RenderPasses {
   waterPass: WaterPass;
   ssaoPass: SSAOPass;
   ssgiPass: SSGIPass;
-  lightingPass: LightingPass;
+  lightingPass: DeferredLightingPass;
   atmospherePass: AtmospherePass;
   pointSpotShadowPass: PointSpotShadowPass;
   pointSpotLightPass: PointSpotLightPass;
@@ -133,7 +133,7 @@ export async function buildRenderTargets(
   const ssaoPass = SSAOPass.create(ctx, gbuffer);
 
   const cloudShadowPass = effects.clouds ? CloudShadowPass.create(ctx, cloudNoises) : null;
-  const lightingPass = LightingPass.create(ctx, gbuffer, passes.shadowPass!, ssaoPass.aoView, cloudShadowPass?.shadowView, iblTextures);
+  const lightingPass = DeferredLightingPass.create(ctx, gbuffer, passes.shadowPass!, ssaoPass.aoView, cloudShadowPass?.shadowView, iblTextures);
   const godrayPass = effects.godrays ? GodrayPass.create(ctx, gbuffer, passes.shadowPass!, lightingPass.hdrView, lightingPass.cameraBuffer, lightingPass.lightBuffer, cloudNoises) : null;
   const atmospherePass = AtmospherePass.create(ctx, lightingPass.hdrView);
   const cloudPass = effects.clouds ? CloudPass.create(ctx, lightingPass.hdrView, gbuffer.depthView, cloudNoises) : null;

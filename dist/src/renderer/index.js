@@ -24,7 +24,7 @@ export { TonemapPass } from './passes/tonemap_pass.js';
 export { GeometryPass } from './passes/geometry_pass.js';
 export { WorldGeometryPass } from './passes/world_geometry_pass.js';
 export { SkinnedGeometryPass } from './passes/skinned_geometry_pass.js';
-export { LightingPass } from './passes/lighting_pass.js';
+export { DeferredLightingPass as DeferredLightingPass } from './passes/deferred_lighting_pass.js';
 export { DofPass } from './passes/dof_pass.js';
 export { SSAOPass } from './passes/ssao_pass.js';
 export { SSGIPass } from './passes/ssgi_pass.js';

@@ -2,7 +2,7 @@ import { RenderPass } from '../render_pass.js';
 import type { RenderContext } from '../render_context.js';
 import type { Texture } from '../../assets/texture.js';
 import type { Mat4 } from '../../math/mat4.js';
-import { HDR_FORMAT } from './lighting_pass.js';
+import { HDR_FORMAT } from './deferred_lighting_pass.js';
 import skyWgsl from '../../shaders/sky.wgsl?raw';
 
 // invViewProj (mat4x4 = 64 bytes) + cameraPos (vec3 = 12 bytes) + pad (4 bytes) = 80 bytes

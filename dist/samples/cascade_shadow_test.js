@@ -3,7 +3,7 @@ import { Vec3 } from '../src/math/vec3.js';
 import { RenderContext } from '../src/renderer/render_context.js';
 import { RenderGraph } from '../src/renderer/render_graph.js';
 import { ShadowPass } from '../src/renderer/passes/shadow_pass.js';
-import { LightingPass } from '../src/renderer/passes/lighting_pass.js';
+import { DeferredLightingPass } from '../src/renderer/passes/deferred_lighting_pass.js';
 import { GeometryPass } from '../src/renderer/passes/geometry_pass.js';
 import { SkyTexturePass } from '../src/renderer/passes/sky_texture_pass.js';
 import { TonemapPass } from '../src/renderer/passes/tonemap_pass.js';
@@ -101,7 +101,7 @@ async function main() {
     // Create render passes
     const shadowPass = ShadowPass.create(renderContext, 3); // 3 cascades
     const geometryPass = GeometryPass.create(renderContext, gbuffer);
-    const lightingPass = LightingPass.create(renderContext, gbuffer, shadowPass, aoView, undefined, iblTextures);
+    const lightingPass = DeferredLightingPass.create(renderContext, gbuffer, shadowPass, aoView, undefined, iblTextures);
     const tonemapPass = TonemapPass.create(renderContext, lightingPass.hdrView);
     // Create sky texture pass for HDR sky rendering
     const skyTexturePass = SkyTexturePass.create(renderContext, lightingPass.hdrView, skyTexture);

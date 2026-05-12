@@ -2,7 +2,7 @@ import { RenderPass } from '../render_pass.js';
 import type { RenderContext } from '../render_context.js';
 import type { Chunk, ChunkMesh } from '../../block/chunk.js';
 import type { Texture } from '../../assets/texture.js';
-import { HDR_FORMAT } from './lighting_pass.js';
+import { HDR_FORMAT } from './deferred_lighting_pass.js';
 import type { Mat4 } from '../../math/mat4.js';
 import waterWgsl from '../../shaders/water.wgsl?raw';
 

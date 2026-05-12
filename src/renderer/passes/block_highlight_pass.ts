@@ -1,7 +1,7 @@
 import { RenderPass } from '../render_pass.js';
 import type { RenderContext } from '../render_context.js';
 import type { Vec3 } from '../../math/vec3.js';
-import { HDR_FORMAT } from './lighting_pass.js';
+import { HDR_FORMAT } from './deferred_lighting_pass.js';
 import blockHighlightWgsl from '../../shaders/block_highlight.wgsl?raw';
 
 /** Subset of {@link BlockTexture} we actually need at the binding point. */

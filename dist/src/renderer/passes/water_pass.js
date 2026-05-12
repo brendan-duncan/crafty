@@ -1,5 +1,5 @@
 import { RenderPass } from '../render_pass.js';
-import { HDR_FORMAT } from './lighting_pass.js';
+import { HDR_FORMAT } from './deferred_lighting_pass.js';
 import waterWgsl from '../../shaders/water.wgsl?raw';
 // Matches WorldGeometryPass camera uniform layout: 4×mat4 + vec3 + near + far + pad×3 = 288 bytes
 const CAMERA_UNIFORM_SIZE = 64 * 4 + 16 + 16;

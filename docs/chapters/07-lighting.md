@@ -282,10 +282,10 @@ The `computeDirectLight` function composes the three terms and returns the final
 
 ## 7.7 The Deferred Lighting Pass
 
-The `LightingPass` (`src/renderer/passes/lighting_pass.ts`) is the core of the deferred renderer. It renders a fullscreen triangle that samples the G-buffer and all shadow/lighting inputs:
+The `DeferredLightingPass` (`src/renderer/passes/deferred_lighting_pass.ts`) is the core of the deferred renderer. It renders a fullscreen triangle that samples the G-buffer and all shadow/lighting inputs:
 
 ```typescript
-export class LightingPass extends RenderPass {
+export class DeferredLightingPass extends RenderPass {
   readonly hdrTexture: GPUTexture;      // Output: HDR colour target
   readonly cameraBuffer: GPUBuffer;     // Shared with other passes
   readonly lightBuffer: GPUBuffer;      // Directional light + cascade data
@@ -340,10 +340,10 @@ Lighting is a composition of several systems:
 
 | System | Pass | Purpose |
 |--------|------|---------|
-| Directional (sun) | `LightingPass` | Main light, CSM shadows |
+| Directional (sun) | `DeferredLightingPass` | Main light, CSM shadows |
 | Point lights | `PointSpotLightPass` | Additive deferred, cube shadow maps |
 | Spot lights | `PointSpotLightPass` | Additive deferred, 2D shadow maps |
-| IBL | `LightingPass` | Environment-based ambient + specular |
+| IBL | `DeferredLightingPass` | Environment-based ambient + specular |
 | Forward transparency | `ForwardPass` | PBR for transparent surfaces |
 
 All paths share the same PBR BRDF functions, ensuring consistent appearance regardless of rendering path.
@@ -352,7 +352,7 @@ All paths share the same PBR BRDF functions, ensuring consistent appearance rega
 - `src/shaders/lighting.wgsl` — Deferred lighting shader (full PBR evaluation)
 - `src/shaders/forward_pbr.wgsl` — Forward PBR shader
 - `src/shaders/ibl.wgsl` — IBL sampling functions
-- `src/renderer/passes/lighting_pass.ts` — Deferred lighting pass
+- `src/renderer/passes/deferred_lighting_pass.ts` — Deferred lighting pass
 - `src/renderer/passes/forward_pass.ts` — Forward lighting pass
 - `src/renderer/passes/point_spot_light_pass.ts` — Additive point/spot pass
 
