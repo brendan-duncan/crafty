@@ -1,5 +1,5 @@
 import { GameObject, Scene, MeshRenderer } from '../../src/engine/index.js';
-import { PbrMaterial } from '../../src/engine/materials/pbr_material.js';
+import { PbrMaterial } from '../../src/renderer/materials/pbr_material.js';
 import { World, BiomeType, BlockType } from '../../src/block/index.js';
 import type { Mesh } from '../../src/assets/mesh.js';
 import { DuckAI } from './components/duck_ai.js';

@@ -17,7 +17,7 @@ import { GBuffer } from '../src/renderer/gbuffer.js';
 import { parseHdr, createHdrTexture } from '../src/assets/hdr_loader.js';
 import { computeIblGpu } from '../src/assets/ibl.js';
 import { Mesh } from '../src/assets/mesh.js';
-import { PbrMaterial } from '../src/engine/materials/pbr_material.js';
+import { PbrMaterial } from '../src/renderer/materials/pbr_material.js';
 // Create fallback textures
 function createAOTexture(device, width, height) {
     const texture = device.createTexture({

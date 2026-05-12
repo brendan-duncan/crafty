@@ -1,6 +1,6 @@
 import { GameObject, Scene, MeshRenderer } from '../../src/engine/index.js';
-import { PbrMaterial } from '../../src/engine/materials/pbr_material.js';
-import { World, BlockType } from '../../src/block/index.js';
+import { PbrMaterial } from '../../src/renderer/materials/pbr_material.js';
+import { World } from '../../src/block/index.js';
 import type { Mesh } from '../../src/assets/mesh.js';
 import { CreeperAI } from './components/creeper_ai.js';
 

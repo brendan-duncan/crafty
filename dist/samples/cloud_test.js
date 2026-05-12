@@ -5,7 +5,7 @@ import { Camera } from '../src/engine/components/camera.js';
 import { DirectionalLight } from '../src/engine/components/directional_light.js';
 import { MeshRenderer } from '../src/engine/components/mesh_renderer.js';
 import { CameraControls } from '../src/engine/camera_controls.js';
-import { PbrMaterial } from '../src/engine/materials/pbr_material.js';
+import { PbrMaterial } from '../src/renderer/materials/pbr_material.js';
 import { RenderContext, RenderGraph, GBuffer, ShadowPass, GeometryPass, DeferredLightingPass, AtmospherePass, CloudPass, CloudShadowPass, GodrayPass, CompositePass, } from '../src/renderer/index.js';
 import { Mesh, createCloudNoiseTextures } from '../src/assets/index.js';
 function createAOTexture(device, width, height) {

@@ -1,7 +1,7 @@
 import { Texture } from './texture.js';
 import { SkinnedMesh } from './skinned_mesh.js';
 import { Skeleton } from '../engine/skeleton.js';
-import { PbrMaterial } from '../engine/materials/pbr_material.js';
+import { PbrMaterial } from '../renderer/materials/pbr_material.js';
 // ---- Element counts per accessor type --------------------------------------
 const TYPE_COUNT = {
     SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4,

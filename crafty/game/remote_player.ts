@@ -1,5 +1,5 @@
 import { GameObject, Scene, MeshRenderer } from '../../src/engine/index.js';
-import { PbrMaterial } from '../../src/engine/materials/pbr_material.js';
+import { PbrMaterial } from '../../src/renderer/materials/pbr_material.js';
 import { Mesh } from '../../src/assets/mesh.js';
 import { Quaternion, Vec3 } from '../../src/math/index.js';
 

@@ -2,8 +2,8 @@ import { Texture } from './texture.js';
 import { SkinnedMesh } from './skinned_mesh.js';
 import { Skeleton } from '../engine/skeleton.js';
 import type { AnimationClip, AnimationChannel, Interpolation } from '../engine/animation.js';
-import { Material } from '../engine/material.js';
-import { PbrMaterial } from '../engine/materials/pbr_material.js';
+import { Material } from '../renderer/material.js';
+import { PbrMaterial } from '../renderer/materials/pbr_material.js';
 
 // ---- GLTF JSON types --------------------------------------------------------
 

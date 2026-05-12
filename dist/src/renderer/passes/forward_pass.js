@@ -1,6 +1,6 @@
 import { RenderPass } from '../render_pass.js';
 import { VERTEX_ATTRIBUTES, VERTEX_STRIDE } from '../../assets/mesh.js';
-import { MaterialPassType } from '../../engine/material.js';
+import { MaterialPassType } from '../material.js';
 const CAMERA_UNIFORM_SIZE = 64 * 4 + 16 + 16;
 const MODEL_UNIFORM_SIZE = 128;
 const LIGHTING_UNIFORM_SIZE = 16;

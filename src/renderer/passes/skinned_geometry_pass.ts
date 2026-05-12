@@ -4,7 +4,7 @@ import type { GBuffer } from '../gbuffer.js';
 import { SKINNED_VERTEX_ATTRIBUTES, SKINNED_VERTEX_STRIDE } from '../../assets/skinned_mesh.js';
 import type { SkinnedMesh } from '../../assets/skinned_mesh.js';
 import type { Mat4 } from '../../math/mat4.js';
-import { Material, MaterialPassType } from '../../engine/material.js';
+import { Material, MaterialPassType } from '../material.js';
 
 const CAMERA_UNIFORM_SIZE = 64 * 4 + 16 + 16;
 const MODEL_UNIFORM_SIZE  = 128;

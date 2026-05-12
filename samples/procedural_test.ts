@@ -1,6 +1,6 @@
 import { Mat4, Vec3 } from '../src/math/index.js';
-import { Material } from '../src/engine/material.js';
-import type { MaterialPassType } from '../src/engine/material.js';
+import { Material } from '../src/renderer/material.js';
+import type { MaterialPassType } from '../src/renderer/material.js';
 import { ForwardPass } from '../src/renderer/passes/forward_pass.js';
 import type { ForwardDrawItem } from '../src/renderer/passes/forward_pass.js';
 import { DirectionalShadowPass } from '../src/renderer/passes/directional_shadow_pass.js';

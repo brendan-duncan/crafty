@@ -12,7 +12,7 @@ import heightAtlasUrl from '../assets/cube_textures/simple_block_atlas_heightmap
 import foxUrl         from '../assets/fox.glb?url';
 import { Mat4, Vec3, Quaternion } from '../src/math/index.js';
 import { GameObject, Scene, Camera, DirectionalLight, MeshRenderer, CameraControls, AnimatedModel, PointLight, SpotLight } from '../src/engine/index.js';
-import { PbrMaterial } from '../src/engine/materials/pbr_material.js';
+import { PbrMaterial } from '../src/renderer/materials/pbr_material.js';
 import { RenderContext, RenderGraph, GBuffer, ShadowPass, SkyPass, GeometryPass, SkinnedGeometryPass, DeferredLightingPass, TAAPass, SSAOPass, SSGIPass, DofPass, BloomPass, CompositePass, DebugLightPass, ParticlePass, CloudPass, CloudShadowPass, AutoExposurePass, PointSpotShadowPass, PointSpotLightPass } from '../src/renderer/index.js';
 import type { CloudSettings } from '../src/renderer/index.js';
 import type { ParticleGraphConfig } from '../src/particles/index.js';

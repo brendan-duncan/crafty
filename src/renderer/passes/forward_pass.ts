@@ -4,7 +4,7 @@ import { VERTEX_ATTRIBUTES, VERTEX_STRIDE } from '../../assets/mesh.js';
 import type { Mesh } from '../../assets/mesh.js';
 import type { Mat4 } from '../../math/mat4.js';
 import type { Vec3 } from '../../math/vec3.js';
-import { Material, MaterialPassType } from '../../engine/material.js';
+import { Material, MaterialPassType } from '../material.js';
 import type { IblTextures } from '../../assets/ibl.js';
 import type { SpotLight } from '../spot_light.js';
 import type { DirectionalLight } from '../directional_light.js';

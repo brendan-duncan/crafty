@@ -1,8 +1,8 @@
 import { Component } from '../component.js';
 import type { Mesh } from '../../assets/mesh.js';
-import { Material } from '../material.js';
+import { Material } from '../../renderer/material.js';
 
-export { Material } from '../material.js';
+export { Material } from '../../renderer/material.js';
 
 /**
  * Component that draws a {@link Mesh} with a {@link Material}.

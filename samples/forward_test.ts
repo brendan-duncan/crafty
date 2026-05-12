@@ -10,7 +10,7 @@ import { PointShadowPass } from '../src/renderer/passes/point_shadow_pass.js';
 import { RenderContext } from '../src/renderer/render_context.js';
 import { RenderGraph } from '../src/renderer/render_graph.js';
 import { CameraControls } from '../src/engine/camera_controls.js';
-import { PbrMaterial } from '../src/engine/materials/pbr_material.js';
+import { PbrMaterial } from '../src/renderer/materials/pbr_material.js';
 import { Mesh } from '../src/assets/mesh.js';
 
 function createFallbackCubemap(device: GPUDevice): GPUTexture {

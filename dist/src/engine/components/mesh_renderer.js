@@ -1,5 +1,5 @@
 import { Component } from '../component.js';
-export { Material } from '../material.js';
+export { Material } from '../../renderer/material.js';
 /**
  * Component that draws a {@link Mesh} with a {@link Material}.
  *

@@ -4,7 +4,7 @@ import type { GBuffer } from '../gbuffer.js';
 import { VERTEX_ATTRIBUTES, VERTEX_STRIDE } from '../../assets/mesh.js';
 import type { Mesh } from '../../assets/mesh.js';
 import type { Mat4 } from '../../math/mat4.js';
-import { Material, MaterialPassType } from '../../engine/material.js';
+import { Material, MaterialPassType } from '../material.js';
 
 const CAMERA_UNIFORM_SIZE = 64 * 4 + 16 + 16; // 4 mat4 + vec3+f32 + vec3+f32
 const MODEL_UNIFORM_SIZE = 128;                 // 2 mat4

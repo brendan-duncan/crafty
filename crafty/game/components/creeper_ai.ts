@@ -3,7 +3,7 @@ import { Quaternion } from '../../../src/math/quaternion.js';
 import { Component } from '../../../src/engine/component.js';
 import { Scene } from '../../../src/engine/scene.js';
 import { MeshRenderer } from '../../../src/engine/components/mesh_renderer.js';
-import { PbrMaterial } from '../../../src/engine/materials/pbr_material.js';
+import { PbrMaterial } from '../../../src/renderer/materials/pbr_material.js';
 import type { World } from '../../../src/block/world.js';
 
 type CreeperState = 'idle' | 'wander' | 'chase' | 'detonate';
