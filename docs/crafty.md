@@ -61,7 +61,7 @@ crafty/
 ├── crafty/                # Game application
 │   ├── game/              # Multiplayer, player, interactions
 │   ├── ui/                # HUD, hotbar, start screen
-│   └── samples/           # Self-contained demos
+├── samples/               # Self-contained demos
 └── server/                # Multiplayer server
 ```
 
