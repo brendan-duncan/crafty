@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="800" height="400" fill="#ffffff"/>
+  <text x="400" y="28" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Water Rendering: Refraction + Depth Attenuation</text>
+
+  <!-- ===== LEFT: Refraction Copy + DUDV Distortion ===== -->
+  <g transform="translate(30, 55)">
+    <text x="110" y="0" text-anchor="middle" font-weight="700" fill="#0369a1">Screen-Space Refraction</text>
+    
+    <g transform="translate(0, 20)">
+      <!-- Step 1: Copy HDR to refractionTex -->
+      <g>
+        <rect x="0" y="0" width="220" height="72" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.4" rx="4"/>
+        <text x="12" y="16" font-weight="600" fill="#1e40af" font-size="11">1. Copy HDR → refractionTex</text>
+        <text x="12" y="32" font-size="9" fill="#1e3a8a">Before rendering water, copy the full</text>
+        <text x="12" y="45" font-size="9" fill="#1e3a8a">lit HDR scene into a separate texture</text>
+        <text x="12" y="62" font-size="8.5" font-family="ui-monospace, Consolas, monospace" fill="#3730a3">copyTextureToTexture(hdr, refractionTex)</text>
+      </g>
+      
+      <g stroke="#9ca3af" stroke-width="1.2" fill="none" transform="translate(110, 78)">
+        <line x1="0" y1="0" x2="0" y2="10"/>
+        <path d="M 0 10 L -4 5 M 0 10 L 4 5"/>
+      </g>
+      
+      <!-- Step 2: DUDV distortion -->
+      <g transform="translate(0, 93)">
+        <rect x="0" y="0" width="220" height="118" fill="#ecfdf5" stroke="#10b981" stroke-width="1.4" rx="4"/>
+        <text x="12" y="16" font-weight="600" fill="#065f46" font-size="11">2. DUDV Distortion (2-pass)</text>
+        <text x="12" y="32" font-size="9" fill="#047857">Sample DUDV map twice, different speeds:</text>
+        <text x="12" y="48" font-size="8" font-family="ui-monospace, Consolas, monospace" fill="#065f46">d1 = sample(dudv, base_uv + (t*0.02, 0))</text>
+        <text x="12" y="62" font-size="8" font-family="ui-monospace, Consolas, monospace" fill="#065f46">d2_uv = d1 + (d1.x, d1.y + t*0.02)</text>
+        <text x="12" y="76" font-size="8" font-family="ui-monospace, Consolas, monospace" fill="#065f46">distortion = (sample(dudv, d2_uv)*2-1) * 0.02</text>
+        <text x="12" y="92" font-size="9" fill="#065f46">ref_uv = screen_uv + distortion</text>
+        <text x="12" y="108" font-size="8.5" fill="#059669">refraction = sample(refractionTex, ref_uv)</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- Divider -->
+  <line x1="280" y1="55" x2="280" y2="360" stroke="#d1d5db" stroke-width="1" stroke-dasharray="4,3"/>
+
+  <!-- ===== RIGHT: Depth-Based Attenuation ===== -->
+  <g transform="translate(320, 55)">
+    <text x="220" y="0" text-anchor="middle" font-weight="700" fill="#7c3aed">Depth-Based Attenuation</text>
+    
+    <g transform="translate(0, 20)">
+      <!-- Side view diagram -->
+      <g>
+        <rect x="0" y="0" width="440" height="155" fill="#faf5ff" stroke="#a78bfa" stroke-width="1.4" rx="4"/>
+        
+        <!-- Water surface line -->
+        <line x1="20" y1="50" x2="420" y2="50" stroke="#3b82f6" stroke-width="2"/>
+        <text x="20" y="44" font-size="9" font-weight="600" fill="#1d4ed8">water surface</text>
+        
+        <!-- Camera -->
+        <circle cx="220" cy="20" r="8" fill="#f59e0b"/>
+        <text x="220" y="12" text-anchor="middle" font-size="9" fill="#92400e">camera</text>
+        
+        <!-- Ray to shallow water -->
+        <g stroke="#16a34a" stroke-width="1.5">
+          <line x1="220" y1="28" x2="120" y2="50"/>
+          <circle cx="120" cy="50" r="3" fill="#16a34a"/>
+          <line x1="120" y1="50" x2="120" y2="70" stroke-dasharray="3,2"/>
+          <g stroke-width="0.5">
+            <text x="120" y="85" text-anchor="middle" font-size="8" fill="#166534">shallow</text>
+            <text x="120" y="98" text-anchor="middle" font-size="8" fill="#065f46">depth ≈ 0.5</text>
+            <text x="120" y="111" text-anchor="middle" font-size="8" fill="#065f46">murk=0.125</text>
+            <text x="120" y="124" text-anchor="middle" font-size="8" fill="#059669">mostly refraction</text>
+          </g>
+        </g>
+        
+        <!-- Ray to deep water -->
+        <g stroke="#dc2626" stroke-width="1.5">
+          <line x1="220" y1="28" x2="350" y2="50"/>
+          <circle cx="350" cy="50" r="3" fill="#dc2626"/>
+          <line x1="350" y1="50" x2="350" y2="80" stroke-dasharray="3,2"/>
+          <g stroke-width="0.5">
+            <text x="350" y="85" text-anchor="middle" font-size="8" fill="#991b1b">deep</text>
+            <text x="350" y="98" text-anchor="middle" font-size="8" fill="#b91c1c">depth ≈ 5.0</text>
+            <text x="350" y="111" text-anchor="middle" font-size="8" fill="#b91c1c">murk=1.0</text>
+            <text x="350" y="124" text-anchor="middle" font-size="8" fill="#ef4444">water tint</text>
+          </g>
+        </g>
+        
+        <!-- Ground -->
+        <line x1="95" y1="70" x2="145" y2="70" stroke="#92400e" stroke-width="3"/>
+        <line x1="330" y1="130" x2="370" y2="130" stroke="#92400e" stroke-width="3"/>
+        <text x="120" y="145" text-anchor="middle" font-size="9" fill="#92400e">ground</text>
+      </g>
+      
+      <!-- Gradient map box -->
+      <g transform="translate(0, 170)">
+        <rect x="0" y="0" width="440" height="52" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.2" rx="4"/>
+        <text x="12" y="14" font-weight="600" fill="#92400e" font-size="11">Gradient Map for Depth Tinting</text>
+        <text x="12" y="30" font-size="9" fill="#b45309">inv_depth = 1.0 - clamp(depth/4.0, 0, 1)  →  sample gradient at (inv_depth, 0.5)</text>
+        <text x="12" y="44" font-size="8.5" fill="#b45309">Left (shallow): near-transparent blue  ·  Right (deep): murky green</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- ===== BOTTOM: Fresnel Summary ===== -->
+  <g transform="translate(30, 355)">
+    <rect width="740" height="32" fill="#f0f9ff" stroke="#0ea5e9" stroke-width="1" rx="4"/>
+    <text x="16" y="14" font-size="9.5" fill="#0369a1">
+      <tspan font-weight="600">Final Blend:</tspan>
+      <tspan>  tinted = mix(refraction, water_color, murk_factor)  ·  fresnel = min(0.02 + 0.98*pow(1-VdotN,5), 0.6)</tspan>
+    </text>
+    <text x="16" y="28" font-size="9.5" fill="#0369a1">
+      <tspan>  output = mix(tinted, reflection, fresnel)  ·  alpha = smoothstep based on depth</tspan>
+    </text>
+  </g>
+</svg>

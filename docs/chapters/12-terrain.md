@@ -209,22 +209,110 @@ private _flowWater(wx: number, wy: number, wz: number): void {
 
 ## 12.9 Water Rendering
 
-Water is a transparent block type rendered through the `WaterPass` (`src/renderer/passes/water_pass.ts`). It uses **screen-space refraction** — the scene behind the water is sampled with an offset based on a DUDV normal map:
+Water is a transparent block type rendered through the `WaterPass` (`src/renderer/passes/water_pass.ts`), a forward pass that runs after deferred lighting. It composites over the HDR buffer using `src-alpha` blending, combining screen-space refraction, depth-based murkiness, and screen-space reflections.
+
+![Water rendering: screen-space refraction with DUDV distortion, and depth-based attenuation](../illustrations/12-water-rendering.svg)
+
+### Screen-Space Refraction
+
+Before rendering water, the current HDR scene is copied to a `refractionTex`. During water shading, the scene behind the water is sampled with UV distortion driven by an animated DUDV normal map:
 
 ```wgsl
-let normal = textureSample(waterNormalMap, sampler, uv + time * flowSpeed).rgb * 2.0 - 1.0;
-let refractionUV = screenUV + normal.xy * refractionStrength;
-let background = textureSample(hdrTexture, sampler, refractionUV).rgb;
+// Animated DUDV distortion — two-pass stacked sampling for complex ripples
+let base_uv = vec2<f32>(world_pos.x, world_pos.z) * (1.0 / 8.0);
+let d1 = textureSample(dudv_tex, samp, vec2<f32>(base_uv.x + water.time * 0.02, base_uv.y)).rg;
+let d2_uv = d1 + vec2<f32>(d1.x, d1.y + water.time * 0.02);
+let distortion = (textureSample(dudv_tex, samp, d2_uv).rg * 2.0 - 1.0) * 0.02;
+
+let ref_uv = clamp(screen_uv + distortion, vec2<f32>(0.001), vec2<f32>(0.999));
+let refraction = textureSample(refraction_tex, samp, ref_uv).rgb;
 ```
 
-The water surface combines:
+The DUDV map is sampled twice with different time offsets to create a more complex wave pattern than a single scroll.
 
-- **Refracted background** — the scene behind the water (distorted).
-- **Specular reflection** — the sky and sun reflected on the water surface.
-- **Fresnel blend** — mix between refraction and reflection based on viewing angle.
-- **Subsurface scattering** — light absorbing and scattering through the water volume (blue tint).
+### Depth-Based Attenuation
 
-## 12.10 Village Generation
+Water opacity and tint are determined by the **water depth** — the distance from the water surface to the solid geometry below, computed by linearizing the G-buffer depth and comparing it to the water fragment's depth:
+
+```wgsl
+let water_depth = floor_lin - water_lin;
+const MURKY_DEPTH: f32 = 4.0;
+let murk_factor = clamp(water_depth / MURKY_DEPTH, 0.0, 1.0);
+let inv_depth = clamp(1.0 - murk_factor, 0.1, 0.99);
+let water_color = textureSample(gradient_tex, samp, vec2<f32>(inv_depth, 0.5)).rgb;
+let tinted = mix(refraction, water_color, murk_factor);
+```
+
+A gradient texture (`gradient_tex`) encodes the water colour progression: shallow water is nearly transparent (showing the refracted background), while deep water transitions to a murky blue-green tint. Depth also controls alpha: shallow edges fade to transparent, while deep water becomes opaque.
+
+### Screen-Space Reflection + Sky Fallback
+
+Reflections use a hybrid approach:
+
+1. **Screen-space reflection (SSR)** ray-marches the reflected view direction in view space, sampling the refraction texture (pre-water HDR scene).
+2. **HDR sky panorama** is used as a fallback for rays that miss scene geometry or leave the screen bounds.
+
+## 12.10 Screen-Space Reflection Rendering
+
+![Screen-space reflection: view-space ray march, depth hit test, and equirectangular sky fallback](../illustrations/12-ssr.svg)
+
+The SSR implementation in `water.wgsl` uses a view-space ray march with 32 steps:
+
+```wgsl
+fn ssr(world_pos: vec3<f32>, normal: vec3<f32>, view_dir: vec3<f32>) -> vec4<f32> {
+  let reflect_dir = reflect(-view_dir, normal);
+  let ray_vs = normalize((cam.view * vec4<f32>(reflect_dir, 0.0)).xyz);
+  let origin_vs = (cam.view * vec4<f32>(world_pos, 1.0)).xyz;
+
+  if (ray_vs.z >= -0.001) { return vec4<f32>(0.0); }  // only trace rays away from camera
+
+  let NUM_STEPS: u32 = 32u;
+  let MAX_DIST : f32 = 50.0;
+  let THICKNESS: f32 = 1.5;
+
+  for (var s = 0u; s < NUM_STEPS; s++) {
+    let t = (f32(s) + 1.0) * MAX_DIST / f32(NUM_STEPS);
+    let p = origin_vs + ray_vs * t;
+    // project to UV, compare against stored G-buffer depth...
+  }
+}
+```
+
+### Algorithm
+
+1. **Transform to view space.** Both the reflection origin (water surface point) and reflected direction are transformed into view space.
+2. **Ray march.** For each of 32 steps along the ray (up to 50 world units), the ray point is projected to screen UV.
+3. **Depth test.** The stored G-buffer depth is linearized and compared against the ray point's view-space Z. If they differ by less than `THICKNESS` (1.5 units), it's a hit.
+4. **Sky fallback.** On miss, the equirectangular HDR sky texture is sampled using the reflection direction:
+
+```wgsl
+fn sky_uv(d: vec3<f32>) -> vec2<f32> {
+  let u = 0.5 + atan2(d.z, d.x) / (2.0 * PI);
+  let v = 0.5 - asin(clamp(d.y, -1.0, 1.0)) / PI;
+  return vec2<f32>(u, v);
+}
+```
+
+### Confidence Blending
+
+SSR hits are not binary. The function returns `vec4(colour, confidence)` where confidence fades:
+
+- **Edge fade:** `min(uv.x, 1-uv.x, uv.y, 1-uv.y) * 8` — rays hitting near screen edges have low confidence, hiding discontinuities.
+- **Sky intensity:** The HDR sky reflection is multiplied by `sky_intensity` (0 at night, 1 at noon) to match diurnal lighting.
+
+### Fresnel Blend
+
+The final reflection contribution is controlled by Schlick Fresnel with water's F₀ ≈ 0.02:
+
+```wgsl
+let VdotN = clamp(dot(view_dir, normal), 0.0, 1.0);
+let fresnel_r = min(0.02 + 0.98 * pow(1.0 - VdotN, 5.0), 0.6);  // capped at 0.6
+let world_color = mix(tinted, reflection, fresnel_r);
+```
+
+Reflection is minimal when looking straight down (high V·N), rising towards grazing angles. The 0.6 cap prevents bright HDR sky values from washing out the water at shallow viewing angles.
+
+## 12.11 Village Generation
 
 Villages are generated procedurally when chunks load, in `crafty/game/village_gen.ts`. The system hooks into the chunk load event and places clusters of houses under the right conditions.
 
@@ -290,6 +378,7 @@ Currently, all houses use `SPRUCE_PLANKS` for structure and `GLASS` for windows.
 - `crafty/game/village_gen.ts` — Village and house placement
 - `src/renderer/passes/world_geometry_pass.ts` — Chunk G-buffer rendering
 - `src/renderer/passes/water_pass.ts` — Water surface rendering
+- `src/shaders/water.wgsl` — Water shader (SSR, refraction, depth tinting)
 - `src/shaders/chunk_geometry.wgsl` — Chunk G-buffer shader
 
 ----
