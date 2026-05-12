@@ -2,7 +2,7 @@
 
 [Contents](../crafty.md) | [Previous](math-ref.md)
 
-**ACES** — Academy Color Encoding System. A standardised colour space and tone mapping curve used for filmic HDR rendering.
+**ACES** — Academy Color Encoding System. A standardised color space and tone mapping curve used for filmic HDR rendering.
 
 **AABB** — Axis-Aligned Bounding Box. A rectangular box whose edges are aligned with the coordinate axes, used for fast collision and culling tests.
 
@@ -26,7 +26,7 @@
 
 **Forward Rendering** — A rendering technique where lighting is computed per-vertex or per-fragment during the geometry pass, as opposed to deferred.
 
-**Fragment Shader** — The GPU shader stage that computes the colour of each rasterised pixel fragment.
+**Fragment Shader** — The GPU shader stage that computes the color of each rasterised pixel fragment.
 
 **Fresnel** — The phenomenon where the reflectance of a surface increases at glancing angles. The Schlick approximation is commonly used in PBR.
 
@@ -54,17 +54,17 @@
 
 **Pipeline** — An immutable GPU state object combining shaders, vertex layout, blend state, depth state, and primitive configuration.
 
-**Render Pass** — A phase of GPU work between `beginRenderPass()` and `end()`, targeting a set of colour and depth attachments.
+**Render Pass** — A phase of GPU work between `beginRenderPass()` and `end()`, targeting a set of color and depth attachments.
 
 **Render Graph** — An ordered sequence of render passes that compose to produce a frame.
 
 **SSAO** — Screen-Space Ambient Occlusion. A technique that estimates ambient occlusion by sampling the depth buffer around each pixel.
 
-**SSGI** — Screen-Space Global Illumination. A technique that estimates indirect light bounces using the G-buffer and previous frame colour.
+**SSGI** — Screen-Space Global Illumination. A technique that estimates indirect light bounces using the G-buffer and previous frame color.
 
 **TAA** — Temporal Anti-Aliasing. A technique that reduces aliasing by jittering the sample position each frame and blending with previous frames.
 
-**Tone Mapping** — The process of converting HDR colour values to the display's dynamic range (usually SDR).
+**Tone Mapping** — The process of converting HDR color values to the display's dynamic range (usually SDR).
 
 **TRS** — Translation-Rotation-Scale. The decomposition of a local transform into its three component transforms.
 

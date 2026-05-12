@@ -240,7 +240,7 @@ async function main(): Promise<void> {
 
   await rebuildRenderTargets();
 
-  // Spawn block-debris particles tinted with the block's atlas colour. Small
+  // Spawn block-debris particles tinted with the block's atlas color. Small
   // "chip" bursts fire each time the visible crack stage advances during
   // mining; a larger burst plays on the final break.
   // Closes over `passes` (a `let`) so it always uses the live blockBreakPass

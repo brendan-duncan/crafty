@@ -19,7 +19,7 @@ HDR maps preserve the full dynamic range of the sky, allowing the sun to be thou
 
 ### RGBE Decoding
 
-Radiance HDR files use RGBE encoding (one shared exponent for three colour channels). Crafty decodes this on the GPU using `src/shaders/rgbe_decode.wgsl`:
+Radiance HDR files use RGBE encoding (one shared exponent for three color channels). Crafty decodes this on the GPU using `src/shaders/rgbe_decode.wgsl`:
 
 ```wgsl
 fn rgbeToFloat(rgbe: vec4f) -> vec3f {
@@ -66,13 +66,13 @@ for (var i = 0u; i < numOctaves; i++) {
 cloudDensity = smoothstep(cloudThreshold, 1.0, cloudDensity);
 ```
 
-The raymarch accumulates transmittance and colour along the view ray, producing soft, volumetric cloud shapes with realistic self-shadowing.
+The raymarch accumulates transmittance and color along the view ray, producing soft, volumetric cloud shapes with realistic self-shadowing.
 
 ## 11.4 Volumetric Fog
 
 ![Fog falloff: squared exponential distance curve and a height-based density gradient over a mountain silhouette](../illustrations/11-fog-distance-height.svg)
 
-Fog is rendered as part of the final `CompositePass`. The fog density is computed from the fragment depth and mixed with the scene colour:
+Fog is rendered as part of the final `CompositePass`. The fog density is computed from the fragment depth and mixed with the scene color:
 
 ```wgsl
 let fogFactor = 1.0 - exp(-fogDensity * fogDensity * viewDepth * viewDepth);

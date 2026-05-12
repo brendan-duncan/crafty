@@ -6,7 +6,7 @@ const SKY_UNIFORM_SIZE = 80;
 /**
  * Renders the sky as a fullscreen background by sampling an equirectangular HDR texture.
  *
- * Issued as the first colour writer of the frame: clears the HDR target and shades
+ * Issued as the first color writer of the frame: clears the HDR target and shades
  * each pixel by reconstructing its world-space view direction from `invViewProj` and
  * sampling the supplied sky texture. Output exposure is configurable per frame.
  */
@@ -28,9 +28,9 @@ export class SkyTexturePass extends RenderPass {
     }
     /**
      * Allocates the sky uniform buffer, sampler, bind groups, and the fragment pipeline
-     * that writes into the HDR colour target.
+     * that writes into the HDR color target.
      *
-     * @param hdrView - HDR colour render target (the pass clears it).
+     * @param hdrView - HDR color render target (the pass clears it).
      * @param skyTexture - Equirectangular HDR sky source.
      */
     static create(ctx, hdrView, skyTexture) {
@@ -94,7 +94,7 @@ export class SkyTexturePass extends RenderPass {
     }
     /**
      * Clears the HDR target and draws a fullscreen triangle that shades each pixel
-     * with the sky colour for its view direction.
+     * with the sky color for its view direction.
      */
     execute(encoder, _ctx) {
         const pass = encoder.beginRenderPass({

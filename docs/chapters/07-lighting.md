@@ -59,7 +59,7 @@ let diffuse = (1.0 - F) * (1.0 - metallic) * albedo / PI;
 return (diffuse + specular) * radiance * NdotL;
 ```
 
-The `metallic` parameter blends between dielectric behaviour (specular highlights on a diffuse base) and metallic behaviour (no diffuse, coloured specular). `F0` is `0.04` for dielectrics and `albedo` for metals, interpolated by `metallic`:
+The `metallic` parameter blends between dielectric behaviour (specular highlights on a diffuse base) and metallic behaviour (no diffuse, colored specular). `F0` is `0.04` for dielectrics and `albedo` for metals, interpolated by `metallic`:
 
 ```wgsl
 let F0 = mix(vec3f(0.04), albedo, metallic);
@@ -101,7 +101,7 @@ updateLight(
   debugCascades: boolean,
   shadowSoftness: number,
 ): void {
-  // Pack direction, intensity, colour, cascade data into lightBuffer
+  // Pack direction, intensity, color, cascade data into lightBuffer
   const data = this._lightScratch;
   data.set(light.direction.toArray(), 0);
   data[3] = light.intensity;
@@ -286,7 +286,7 @@ The `DeferredLightingPass` (`src/renderer/passes/deferred_lighting_pass.ts`) is 
 
 ```typescript
 export class DeferredLightingPass extends RenderPass {
-  readonly hdrTexture: GPUTexture;      // Output: HDR colour target
+  readonly hdrTexture: GPUTexture;      // Output: HDR color target
   readonly cameraBuffer: GPUBuffer;     // Shared with other passes
   readonly lightBuffer: GPUBuffer;      // Directional light + cascade data
   // ...
@@ -314,7 +314,7 @@ Each fragment samples the G-buffer, reconstructs the world position from depth, 
 // 4. Add ambient occlusion (from SSAO texture)
 // 5. Add indirect light (from SSGI texture)
 // 6. Add IBL diffuse + specular
-// 7. Write HDR colour
+// 7. Write HDR color
 ```
 
 ## 7.8 The Forward Lighting Path

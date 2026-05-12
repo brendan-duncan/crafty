@@ -209,7 +209,7 @@ The pig's wander behaviour is identical in structure to the duck's but uses slig
 const flashInterval = Math.max(0.08, 0.5 - this._detonateElapsed * 0.18);
 ```
 
-While detonating, the creeper checks whether the player has retreated beyond the cancel radius (6 blocks). If so, it restores its green colour and returns to `idle` with a short cooldown timer:
+While detonating, the creeper checks whether the player has retreated beyond the cancel radius (6 blocks). If so, it restores its green color and returns to `idle` with a short cooldown timer:
 
 ```typescript
 if (playerDist2 > DETONATE_CANCEL_RADIUS_SQ) {
@@ -224,7 +224,7 @@ If the full 2.5-second fuse elapses without the player escaping, the creeper exp
 
 The explosion has two phases:
 
-1. **Particle burst** — a `static onExplode` callback fires at the creeper's position, triggering an 80-particle burst via the game's `explosionPass`. The explosion config uses fire-coloured particles with `color_over_lifetime` (orange → dark transparent) and `size_over_lifetime` (grow → shrink) modifiers.
+1. **Particle burst** — a `static onExplode` callback fires at the creeper's position, triggering an 80-particle burst via the game's `explosionPass`. The explosion config uses fire-colored particles with `color_over_lifetime` (orange → dark transparent) and `size_over_lifetime` (grow → shrink) modifiers.
 
 2. **Block destruction** — all blocks within a 4-block spherical radius are destroyed via `world.mineBlock()`. For each destroyed block, a `static onBlockDestroyed` callback fires, routing the edit through the game's persistence and synchronisation system:
 
@@ -254,7 +254,7 @@ private _setColor(color: [number, number, number, number]): void {
 }
 ```
 
-The creeper uses a single `CREEPER_GREEN` colour for both body and head (unlike earlier NPCs which use different colours for different body parts).
+The creeper uses a single `CREEPER_GREEN` color for both body and head (unlike earlier NPCs which use different colors for different body parts).
 
 ### Spawning
 

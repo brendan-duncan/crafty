@@ -22,7 +22,7 @@ class Chunk {
 }
 ```
 
-Block types are stored as small integers (0 = air, 1 = grass, 2 = dirt, etc.). The `BlockType` enum maps to material and rendering properties: colour, texture atlas tile, opacity, hardness, and so on.
+Block types are stored as small integers (0 = air, 1 = grass, 2 = dirt, etc.). The `BlockType` enum maps to material and rendering properties: color, texture atlas tile, opacity, hardness, and so on.
 
 ## 12.2 Chunk Management
 
@@ -83,7 +83,7 @@ function getBiome(worldX: number, worldZ: number): Biome {
 }
 ```
 
-Each biome has its own surface block type, tree generation rules, and colour palette for the grass overlay.
+Each biome has its own surface block type, tree generation rules, and color palette for the grass overlay.
 
 ### Ores and Caves
 
@@ -245,7 +245,7 @@ let water_color = textureSample(gradient_tex, samp, vec2<f32>(inv_depth, 0.5)).r
 let tinted = mix(refraction, water_color, murk_factor);
 ```
 
-A gradient texture (`gradient_tex`) encodes the water colour progression: shallow water is nearly transparent (showing the refracted background), while deep water transitions to a murky blue-green tint. Depth also controls alpha: shallow edges fade to transparent, while deep water becomes opaque.
+A gradient texture (`gradient_tex`) encodes the water color progression: shallow water is nearly transparent (showing the refracted background), while deep water transitions to a murky blue-green tint. Depth also controls alpha: shallow edges fade to transparent, while deep water becomes opaque.
 
 ### Screen-Space Reflection + Sky Fallback
 
@@ -297,7 +297,7 @@ fn sky_uv(d: vec3<f32>) -> vec2<f32> {
 
 ### Confidence Blending
 
-SSR hits are not binary. The function returns `vec4(colour, confidence)` where confidence fades:
+SSR hits are not binary. The function returns `vec4(color, confidence)` where confidence fades:
 
 - **Edge fade:** `min(uv.x, 1-uv.x, uv.y, 1-uv.y) * 8` — rays hitting near screen edges have low confidence, hiding discontinuities.
 - **Sky intensity:** The HDR sky reflection is multiplied by `sky_intensity` (0 at night, 1 at noon) to match diurnal lighting.

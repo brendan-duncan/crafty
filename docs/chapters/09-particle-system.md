@@ -71,7 +71,7 @@ Modifiers are per-frame behaviours applied in order during the update compute pa
 | `curl_noise` | Turbulent flow via curl of a noise field |
 | `size_random` | Stable random size per particle slot |
 | `size_over_lifetime` | Linear size interpolation |
-| `color_over_lifetime` | Linear colour + alpha interpolation |
+| `color_over_lifetime` | Linear color + alpha interpolation |
 | `block_collision` | Kill particle on terrain contact (heightmap) |
 
 ### RenderNode
@@ -91,7 +91,7 @@ Two billboard modes exist:
 - **`velocity`** — streak aligned to the velocity vector (rain, sparks).
 
 Two render targets are supported:
-- **`hdr`** — forward alpha-blended rendering into the HDR colour buffer (transparent effects).
+- **`hdr`** — forward alpha-blended rendering into the HDR color buffer (transparent effects).
 - **`gbuffer`** — deferred opaque rendering into the G-buffer (hard billboards, e.g. debris).
 
 ## 9.3 The Particle Struct
@@ -136,7 +136,7 @@ The indirect draw buffer layout is `[vertexCount, instanceCount, firstVertex, fi
 The spawn shader is **generated** by `buildSpawnShader()` in `src/particles/particle_builder.ts`. It inlines:
 
 - The emitter's spawn shape code (sphere, cone, or box).
-- Initial value ranges (lifetime, speed, size, colour).
+- Initial value ranges (lifetime, speed, size, color).
 - Any `on_spawn` event actions.
 
 Each workgroup thread handles one new particle:
@@ -285,7 +285,7 @@ Particles are drawn via **indirect draw** — the `indirectBuffer` is bound as t
 
 ### Forward HDR (Transparent)
 
-For alpha-blended effects like rain and snow, the `particle_render_forward.wgsl` shader writes directly into the HDR colour buffer with depth read-only:
+For alpha-blended effects like rain and snow, the `particle_render_forward.wgsl` shader writes directly into the HDR color buffer with depth read-only:
 
 ```typescript
 // Forward HDR pipeline: alpha blend, no depth write
@@ -316,7 +316,7 @@ let world_pos = p.position
   + vel_dir * ofs.y * p.size * stretch;
 ```
 
-The fragment shader fades the alpha at the tips of the streak and multiplies the colour by `EMIT_SCALE` (4×) to produce bright, visible raindrops against the dark sky.
+The fragment shader fades the alpha at the tips of the streak and multiplies the color by `EMIT_SCALE` (4×) to produce bright, visible raindrops against the dark sky.
 
 **Camera billboard** (`vs_camera`). The quad always faces the camera, creating a soft disc. Used for snow and smoke:
 

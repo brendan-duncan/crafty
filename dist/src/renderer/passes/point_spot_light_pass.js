@@ -58,7 +58,7 @@ export class PointSpotLightPass extends RenderPass {
      * pipeline that writes into the HDR target.
      *
      * @param shadowPass - Source of the point cube-array VSM, spot 2D-array VSM, and projection texture array.
-     * @param hdrView - HDR colour target previously written by sky/directional lighting.
+     * @param hdrView - HDR color target previously written by sky/directional lighting.
      */
     static create(ctx, gbuffer, shadowPass, hdrView) {
         const { device } = ctx;

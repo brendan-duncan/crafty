@@ -13,7 +13,7 @@ Before diving into the API, it is worth reviewing the modern GPU pipeline. Every
 WebGPU exposes a subset of this pipeline with a clean, explicit API. The key programmable stages are:
 
 - **Vertex shader** — transforms vertices from model space to clip space, passes interpolated data to the fragment shader.
-- **Fragment shader** — computes the colour of each rasterised pixel, performing lighting, texturing, and shading.
+- **Fragment shader** — computes the color of each rasterised pixel, performing lighting, texturing, and shading.
 - **Compute shader** — a general-purpose shader that operates on arbitrary workgroups (used by Crafty for particle systems and auto-exposure).
 
 Pipeline state is fully explicit. Every combination of shaders, vertex layout, blend mode, depth test, and primitive topology is compiled into an immutable `GPURenderPipeline` object. There is no global state — you bind a pipeline, bind resources, and draw.
@@ -100,7 +100,7 @@ try {
 }
 ```
 
-Crafty attempts an HDR swap chain (`rgba16float` with `display-p3` colour space and extended tone mapping). If the platform does not support it (the `configure()` call throws), we fall back to the platform's preferred SDR format — typically `bgra8unorm` on Windows and `rgba8unorm` on macOS.
+Crafty attempts an HDR swap chain (`rgba16float` with `display-p3` color space and extended tone mapping). If the platform does not support it (the `configure()` call throws), we fall back to the platform's preferred SDR format — typically `bgra8unorm` on Windows and `rgba8unorm` on macOS.
 
 ## 3.3 GPUBuffer
 
@@ -249,13 +249,13 @@ But some passes need specialised views — for example, reading only the depth a
 
 ### HDR Render Target
 
-The lighting pass writes into an HDR colour attachment with format `rgba16float`:
+The lighting pass writes into an HDR color attachment with format `rgba16float`:
 
 ```typescript
 export const HDR_FORMAT: GPUTextureFormat = 'rgba16float';
 ```
 
-This is a 16-bit-per-channel floating-point format, giving a wider dynamic range and colour precision than the 8-bit sRGB swap chain. The HDR texture persists through post-processing (bloom, TAA, DOF) before being tone-mapped to SDR for display.
+This is a 16-bit-per-channel floating-point format, giving a wider dynamic range and color precision than the 8-bit sRGB swap chain. The HDR texture persists through post-processing (bloom, TAA, DOF) before being tone-mapped to SDR for display.
 
 ## 3.5 GPUSampler
 
@@ -503,7 +503,7 @@ pipeline = device.createRenderPipeline({
 
 **Vertex buffers.** The `buffers` array describes the vertex input layout: `arrayStride` (bytes between consecutive vertices) and `attributes` (location, format, and offset within the stride).
 
-**Fragment targets.** The `targets` array must match the colour attachments in the render pass — one entry per attachment.
+**Fragment targets.** The `targets` array must match the color attachments in the render pass — one entry per attachment.
 
 **Depth/stencil.** We use `depth32float` with `less` comparison and write enabled for the opaque geometry pass.
 

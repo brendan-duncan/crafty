@@ -14,12 +14,12 @@ const FACE_UPS = [
 /**
  * Omnidirectional point light component.
  *
- * Supplies position/colour/intensity/radius to the deferred lighting pass,
+ * Supplies position/color/intensity/radius to the deferred lighting pass,
  * and (when {@link PointLight.castShadow} is enabled) cube-face view-projection
  * matrices to the point-light shadow pass that renders into a cube shadow map.
  */
 export class PointLight extends Component {
-    /** Linear RGB colour multiplier. */
+    /** Linear RGB color multiplier. */
     color = Vec3.one();
     /** Scalar intensity multiplier. */
     intensity = 1.0;

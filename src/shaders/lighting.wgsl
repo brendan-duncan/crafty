@@ -33,7 +33,7 @@ fn atm_optical_depth(pos: vec3<f32>, dir: vec3<f32>) -> vec2<f32> {
   return od;
 }
 
-// Simplified scatter for fog colour (6 main steps).
+// Simplified scatter for fog color (6 main steps).
 fn atm_scatter(ro: vec3<f32>, rd: vec3<f32>, sun_dir: vec3<f32>) -> vec3<f32> {
   let ta = atm_ray_sphere(ro, rd, ATM_R_A); let tMin = max(ta.x, 0.0);
   if (ta.y < 0.0) { return vec3<f32>(0.0); }
@@ -93,10 +93,10 @@ fn apply_aerial_perspective(geo_color: vec3<f32>, world_pos: vec3<f32>,
   let tau   = (ATM_BETA_R * od_R + vec3<f32>(ATM_BETA_M * od_M)) * ATM_FOG_SCALE;
   let geo_T = exp(-tau);
 
-  // Sample fog colour using only the horizontal component of the ray direction.
+  // Sample fog color using only the horizontal component of the ray direction.
   // Using the true ray direction creates a visible line at camera height where
-  // the sky-scatter colour changes as the downward angle exceeds any clamp value.
-  // Projecting to horizontal makes fog colour a function of azimuth only (sun angle),
+  // the sky-scatter color changes as the downward angle exceeds any clamp value.
+  // Projecting to horizontal makes fog color a function of azimuth only (sun angle),
   // matching the sky at the true horizon with no altitude-dependent discontinuity.
   let h2   = vec3<f32>(ray_dir.x, 0.0, ray_dir.z);
   let len2 = dot(h2, h2);
@@ -383,7 +383,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         let tc = clamp(vec2<i32>(uv * sm_size),
                        vec2<i32>(0), vec2<i32>(sm_size) - vec2<i32>(1));
         let d = textureLoad(shadowMap, tc, i32(ci), 0);
-        // 2-pixel border in the cascade's debug colour
+        // 2-pixel border in the cascade's debug color
         let border = 2.0;
         if (px.x < x0 + border || px.y < y0 + border || px.y > y0 + thumb - border) {
           switch ci {

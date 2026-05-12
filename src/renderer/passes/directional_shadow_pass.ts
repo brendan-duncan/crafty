@@ -25,7 +25,7 @@ export interface DirectionalShadowDrawItem {
  * Inputs: a list of {@link DirectionalShadowDrawItem}s (set via
  * {@link setDrawItems}) and the light view-projection matrix supplied by
  * {@link updateCamera}.
- * Output: writes depth32float to the supplied shadow-map view; no colour
+ * Output: writes depth32float to the supplied shadow-map view; no color
  * targets are bound.
  *
  * Shader: `shadow.wgsl`. Uses depth-bias and back-face culling to mitigate

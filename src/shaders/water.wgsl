@@ -82,7 +82,7 @@ fn sky_uv(d: vec3<f32>) -> vec2<f32> {
 
 // Screen-space reflection: ray-march the reflected ray in view space, sampling
 // refraction_tex (the pre-water HDR copy) for radiance at each hit.
-// Returns vec4(colour, confidence) — confidence fades to 0 near screen edges or on a miss.
+// Returns vec4(color, confidence) — confidence fades to 0 near screen edges or on a miss.
 fn ssr(world_pos: vec3<f32>, normal: vec3<f32>, view_dir: vec3<f32>) -> vec4<f32> {
   let reflect_dir = reflect(-view_dir, normal);
   // Transform reflected direction and surface origin to view space.
@@ -170,7 +170,7 @@ fn fs_main(in: VertOut) -> @location(0) vec4<f32> {
   let reflection = mix(sky_color, ssr_result.rgb, ssr_result.a);
 
   // Depth-based water tint via gradient map, with murkiness blend (Litecraft approach).
-  // Shallow water is transparent refraction; deep water takes the gradient map colour.
+  // Shallow water is transparent refraction; deep water takes the gradient map color.
   const MURKY_DEPTH: f32 = 4.0;
   let murk_factor = clamp(water_depth / MURKY_DEPTH, 0.0, 1.0);
   let inv_depth   = clamp(1.0 - murk_factor, 0.1, 0.99);

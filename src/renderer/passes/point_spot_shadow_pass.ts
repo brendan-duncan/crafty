@@ -58,8 +58,8 @@ export class PointSpotShadowPass extends RenderPass {
   private _pointDepth  : GPUTexture;  // temporary depth for point face renders
   private _spotDepth   : GPUTexture;  // temporary depth for spot renders
 
-  private _pointFaceViews: GPUTextureView[];  // per-face colour views for rendering
-  private _spotFaceViews : GPUTextureView[];  // per-slot colour views
+  private _pointFaceViews: GPUTextureView[];  // per-face color views for rendering
+  private _spotFaceViews : GPUTextureView[];  // per-slot color views
   private _pointDepthView: GPUTextureView;
   private _spotDepthView : GPUTextureView;
 
@@ -132,7 +132,7 @@ export class PointSpotShadowPass extends RenderPass {
   static create(ctx: RenderContext): PointSpotShadowPass {
     const { device } = ctx;
 
-    // VSM colour textures
+    // VSM color textures
     const pointVsmTex = device.createTexture({
       label: 'PointVSM',
       size: { width: VSM_POINT_SIZE, height: VSM_POINT_SIZE, depthOrArrayLayers: MAX_SHADOW_POINT_LIGHTS * 6 },
