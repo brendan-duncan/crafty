@@ -14,6 +14,7 @@ const BRUSH_SPHERE_WGSL = `
     viewProj: mat4x4<f32>,
     brushCenter: vec3<f32>,
     brushRadius: f32,
+    brushColor: vec4<f32>,
   };
 
   @group(0) @binding(0) var<uniform> uni: Uniforms;
@@ -26,7 +27,7 @@ const BRUSH_SPHERE_WGSL = `
 
   @fragment
   fn fs_main() -> @location(0) vec4<f32> {
-    return vec4<f32>(0.3, 0.7, 1.0, 0.25);
+    return uni.brushColor;
   }
 `;
 
@@ -391,11 +392,11 @@ class MarchingCubesPass extends RenderPass {
 
     const brushSphereUniforms = device.createBuffer({
       label: 'McBrushSphereUniforms',
-      size: 80,
+      size: 96,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
-    const brushSphereUniBuf = new Float32Array(20);
+    const brushSphereUniBuf = new Float32Array(24);
 
     const brushSphereBG = device.createBindGroup({
       label: 'McBrushSphereBG',
@@ -477,15 +478,11 @@ class MarchingCubesPass extends RenderPass {
     this._depthView = depthView;
   }
 
-  setBrush(center: Vec3, radius: number, strength: number): void {
-    this._brush.enabled = true;
+  setBrush(center: Vec3, radius: number, strength: number, active = true): void {
+    this._brush.enabled = active;
     this._brush.center = center.clone();
     this._brush.radius = radius;
     this._brush.strength = strength;
-  }
-
-  clearBrush(): void {
-    this._brush.enabled = false;
   }
 
   updateCamera(
@@ -526,16 +523,12 @@ class MarchingCubesPass extends RenderPass {
     d[18] = this._config.detailScale;
     d[19] = this._config.detailStrength;
 
-    if (this._brush.enabled) {
-      d[24] = this._brush.center.x;
-      d[25] = this._brush.center.y;
-      d[26] = this._brush.center.z;
-      d[28] = this._brush.radius;
-      d[29] = this._brush.strength;
-      d[30] = 1;
-    } else {
-      d[30] = 0;
-    }
+    d[24] = this._brush.center.x;
+    d[25] = this._brush.center.y;
+    d[26] = this._brush.center.z;
+    d[28] = this._brush.radius;
+    d[29] = this._brush.strength;
+    d[30] = this._brush.enabled ? 1 : 0;
 
     ctx.queue.writeBuffer(this._densityUniforms, 0, d);
     ctx.queue.writeBuffer(this._vertexCounter, 0, this._zeroU32);
@@ -599,13 +592,18 @@ class MarchingCubesPass extends RenderPass {
     pass.setBindGroup(0, this._renderBG);
     pass.drawIndirect(this._indirectBuffer, 0);
 
-    if (this._brush.enabled) {
+    {
       const u = this._brushSphereUniBuf;
       u.set(this._viewProj.data, 0);
       u[16] = this._brush.center.x;
       u[17] = this._brush.center.y;
       u[18] = this._brush.center.z;
       u[19] = this._brush.radius;
+      if (this._brush.strength >= 0) {
+        u[20] = 0; u[21] = 1; u[22] = 0; u[23] = 0.25;
+      } else {
+        u[20] = 1; u[21] = 0; u[22] = 0; u[23] = 0.25;
+      }
       ctx.device.queue.writeBuffer(this._brushSphereUniforms, 0, u.buffer as ArrayBuffer, u.byteOffset, u.byteLength);
 
       pass.setPipeline(this._brushSpherePipeline);
@@ -680,14 +678,6 @@ async function main() {
     if (e.button === 2) {
       e.preventDefault();
       brushActive = true;
-
-      const sinY = Math.sin(cameraControls.yaw);
-      const cosY = Math.cos(cameraControls.yaw);
-      const sinP = Math.sin(cameraControls.pitch);
-      const cosP = Math.cos(cameraControls.pitch);
-      const forward = new Vec3(-sinY * cosP, -sinP, -cosY * cosP).normalize();
-
-      brushPosition = camPos.add(forward.scale(15.0));
     }
   });
 
@@ -753,6 +743,7 @@ async function main() {
     const sinP = Math.sin(cameraControls.pitch);
     const cosP = Math.cos(cameraControls.pitch);
     const forward = new Vec3(-sinY * cosP, -sinP, -cosY * cosP).normalize();
+    brushPosition = camPos.add(forward.scale(15.0));
     const target = camPos.add(forward);
     const view = Mat4.lookAt(camPos, target, new Vec3(0, 1, 0));
     const aspect = renderContext.width / renderContext.height;
@@ -766,11 +757,7 @@ async function main() {
       camPos, 0.1, 200,
     );
 
-    if (brushActive) {
-      mcPass.setBrush(brushPosition, brushRadius, brushStrength);
-    } else {
-      mcPass.clearBrush();
-    }
+    mcPass.setBrush(brushPosition, brushRadius, brushStrength, brushActive);
 
     const swapTexture = renderContext.getCurrentTexture();
     const swapView = swapTexture.createView();

@@ -26,11 +26,11 @@ const CORNER_INDEX_FROM_EDGE: array<vec2<i32>, 12> = array<vec2<i32>, 12>(
 
 fn interp(a: f32, b: f32, iso: f32) -> f32 {
   let eps = 0.0001;
-  if (abs(iso - b) < eps) {
-    return 0.5;
-  }
   if (abs(iso - a) < eps) {
     return 0.0;
+  }
+  if (abs(iso - b) < eps) {
+    return 1.0;
   }
   return (iso - a) / (b - a);
 }
@@ -134,10 +134,10 @@ fn cs_march(@builtin(global_invocation_id) gid: vec3<u32>) {
     var e1 = tri_verts[2] - tri_verts[0];
     var n = cross(e0, e1);
     var len2 = dot(n, n);
-    var norm = vec3<f32>(0.0, 1.0, 0.0);
-    if (len2 > 1e-12) {
-      norm = n / sqrt(len2);
+    if (len2 < 1e-12) {
+      continue;
     }
+    var norm = n / sqrt(len2);
 
     let slot = atomicAdd(&vertex_counter, 3u);
 
