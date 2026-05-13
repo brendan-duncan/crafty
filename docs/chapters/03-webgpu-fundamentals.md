@@ -577,38 +577,186 @@ async execute(ctx: RenderContext): Promise<void> {
 
 **All passes share one encoder.** This is critical for correctness — each pass appends commands (render passes, buffer copies, barriers) into the same encoder. A single `encoder.finish()` produces one command buffer, and `queue.submit()` sends it to the GPU.
 
-### Render Pass Encoding
+## 3.10 Render Passes
 
-Inside each pass, `encoder.beginRenderPass()` creates a `GPURenderPassEncoder`:
+A **render pass** is the fundamental unit of rendering work in WebGPU. Everything visible on screen — geometry, lighting, post-processing — is the product of one or more render passes executed in sequence. Understanding render passes in depth is essential because every pixel you produce flows through one.
 
-```typescript
-// ── from geometry_pass.ts execute() ──
-const pass = encoder.beginRenderPass({
-  label: 'GeometryPass',
-  colorAttachments: [
-    {
-      view: this._gbuffer.albedoRoughnessView,
-      clearValue: [0, 0, 0, 1],
-      loadOp: 'clear',
-      storeOp: 'store',
-    },
-    {
-      view: this._gbuffer.normalMetallicView,
-      clearValue: [0, 0, 0, 0],
-      loadOp: 'clear',
-      storeOp: 'store',
-    },
-  ],
-  depthStencilAttachment: {
-    view: this._gbuffer.depthView,
-    depthClearValue: 1,
-    depthLoadOp: 'clear',
-    depthStoreOp: 'store',
-  },
-});
+### What a Render Pass Is
+
+A render pass records a set of draw calls that write into a fixed collection of **attachments** — textures that serve as the render targets for that pass. The pass begins by declaring those attachments and specifying load and store behavior for each one. It then records state changes (pipeline, bind groups, vertex and index buffers) and draw calls. When the pass ends, the GPU executes every recorded command against those attachments.
+
+Conceptually, a render pass is a transaction: you declare what surfaces you are drawing into, you specify the starting and ending states of those surfaces, and you submit draw commands. The GPU processes the entire pass before the next pass can read from the same surfaces.
+
+The `GPURenderPassEncoder` is the API object that represents this transaction. You create one by calling `encoder.beginRenderPass()` on a command encoder, record into it, and then call `pass.end()`:
+
+```wgsl
+const pass = encoder.beginRenderPass(descriptor);
+// ... set pipeline, bind groups, buffers, issue draws ...
+pass.end();
 ```
 
-The `loadOp` controls whether the attachment is cleared at the start of the pass (`'clear'`) or preserves existing contents (`'load'`). Subsequent passes that write to the same G-buffer (e.g., `BlockGeometryPass`) use `loadOp: 'load'` to append to the already-filled G-buffer.
+### Attachments
+
+Every render pass operates on one or more **attachments**. There are two categories:
+
+- **Color attachments** — textures that receive color output from the fragment shader. A pass can have up to the device's `maxColorAttachments` limit (typically 8). Each attachment in the `colorAttachments` array corresponds to a `@location(N)` output in the fragment shader.
+- **Depth/stencil attachment** — an optional texture that receives depth and/or stencil output. When present, the GPU uses it for the depth test and stencil test on each fragment.
+
+An attachment is described by three fields:
+
+```typescript
+{
+  view: GPUTextureView,          // which texture (and subresource) to write into
+  loadOp: 'clear' | 'load',     // what to do at the start of the pass
+  storeOp: 'store' | 'discard', // what to do at the end of the pass
+  clearValue?: GPUColor,         // used only when loadOp is 'clear'
+}
+```
+
+The `view` must be a `GPUTextureView` created from a texture whose usage flags include `RENDER_ATTACHMENT`. The texture format must match the format declared in the render pipeline's fragment targets for color attachments, and the depth/stencil format must match the pipeline's `depthStencil.format`.
+
+### Load and Store Operations
+
+The most important behavioral decision for each attachment is the combination of `loadOp` and `storeOp`.
+
+**`loadOp`** controls what the GPU does to the attachment at the very start of the pass, before any draw calls execute:
+
+| `loadOp` | Behavior |
+| --- | --- |
+| `'clear'` | Fills the entire attachment with `clearValue` before drawing. This is the most common choice for the first pass that writes to a surface. |
+| `'load'` | Preserves whatever was already in the texture. Use this when a later pass wants to add to the contents written by an earlier pass, such as when the block geometry pass appends to a G-buffer that the mesh geometry pass already started filling. |
+
+Choosing `'clear'` is almost always correct for the first pass that writes to a given attachment each frame. It also signals to tile-based GPUs (common in mobile hardware) that they do not need to load the previous frame's contents from main memory into tile memory before beginning, which is a meaningful performance win on those architectures.
+
+**`storeOp`** controls what happens to the attachment's contents at the end of the pass, after all draw calls have finished:
+
+| `storeOp` | Behavior |
+| --- | --- |
+| `'store'` | Writes the rendered results back to the texture in memory, making them available for subsequent passes or presentation. |
+| `'discard'` | Tells the GPU it can throw away the rendered results. Use this for intermediate surfaces that are only needed by the GPU during the pass itself — for example, a multisample resolve target or an intermediate depth buffer that will not be read later. |
+
+On tile-based GPUs, `'discard'` avoids the cost of flushing tile memory back to main memory. When you use MSAA, you typically set `storeOp: 'discard'` on the multi-sampled color attachment and set up a `resolveTarget` pointing to the single-sampled texture where resolved output will be stored.
+
+A complete color attachment for the geometry pass looks like this:
+
+```typescript
+{
+  view: this._gbuffer.albedoRoughnessView,
+  clearValue: [0, 0, 0, 1],
+  loadOp: 'clear',
+  storeOp: 'store',
+}
+```
+
+And a subsequent pass that reads the G-buffer depth and writes additional geometry into it uses `'load'`:
+
+```typescript
+{
+  view: this._gbuffer.albedoRoughnessView,
+  loadOp: 'load',   // preserve what the previous geometry pass wrote
+  storeOp: 'store',
+}
+```
+
+Depth/stencil attachments have separate `depthLoadOp` / `depthStoreOp` and `stencilLoadOp` / `stencilStoreOp` fields, along with `depthClearValue` (a float, typically `1.0` for a reverse-Z buffer or `0.0` for a standard near-to-far depth convention) and `stencilClearValue` (an integer):
+
+```typescript
+depthStencilAttachment: {
+  view: this._gbuffer.depthView,
+  depthClearValue: 1.0,
+  depthLoadOp: 'clear',
+  depthStoreOp: 'store',
+}
+```
+
+### Relationship to Render Pipelines
+
+The attachment configuration declared in `beginRenderPass()` must be compatible with every `GPURenderPipeline` you bind during that pass. Specifically:
+
+- The number of color attachments must match the number of `targets` entries in the pipeline's `fragment` descriptor.
+- Each attachment's texture format must match the corresponding `targets[N].format`.
+- If a depth/stencil attachment is present, its format must match `depthStencil.format` in the pipeline.
+- The `sampleCount` of the render pass textures must match `multisample.count` in the pipeline (default 1).
+
+WebGPU validates this compatibility when you call `setPipeline()` during the pass. If there is a mismatch, a validation error fires immediately. This is the key reason that pipelines encode format information: it allows the runtime to verify pipeline-attachment compatibility without deferring the check to draw time.
+
+```typescript
+// The pipeline's fragment targets...
+fragment: {
+  module: shaderModule,
+  entryPoint: 'fs_main',
+  targets: [
+    { format: 'rgba8unorm' },    // must match albedoRoughness attachment
+    { format: 'rgba16float' },   // must match normalMetallic attachment
+  ],
+},
+// ...must exactly match the render pass attachments:
+colorAttachments: [
+  { view: albedoRoughnessView, /* format: rgba8unorm */ ... },
+  { view: normalMetallicView,  /* format: rgba16float */ ... },
+]
+```
+
+### Multiple Render Targets
+
+A single render pass can write to multiple color attachments simultaneously. In the fragment shader, each output is declared with a separate `@location(N)` attribute:
+
+```wgsl
+struct FragOutput {
+  @location(0) albedo_roughness : vec4<f32>,  // → colorAttachments[0]
+  @location(1) normal_metallic  : vec4<f32>,  // → colorAttachments[1]
+}
+
+@fragment
+fn fs_main(in: VertexOutput) -> FragOutput {
+  var out: FragOutput;
+  out.albedo_roughness = vec4f(albedo, roughness);
+  out.normal_metallic  = vec4f(normal * 0.5 + 0.5, metallic);
+  return out;
+}
+```
+
+This is how Crafty's G-buffer pass populates two separate textures in a single draw call sequence, rather than making two passes over the same geometry. Multiple render targets are only possible because the pipeline's `targets` array and the pass's `colorAttachments` array are matched by index.
+
+### Fullscreen Passes
+
+Many render passes — the lighting pass, SSAO, bloom, tone mapping — do not draw any scene geometry. Instead they draw a single large triangle that covers the entire viewport, running the fragment shader once for every pixel. A common pattern is:
+
+```typescript
+// No vertex or index buffers; the shader generates a fullscreen triangle from @builtin(vertex_index)
+pass.draw(3); // Three vertices, one triangle
+```
+
+In the vertex shader:
+
+```wgsl
+@vertex
+fn vs_main(@builtin(vertex_index) idx: u32) -> @builtin(position) vec4<f32> {
+  // Generates a CCW triangle that covers the clip-space square [-1,1]²
+  let uv = vec2f(f32((idx << 1u) & 2u), f32(idx & 2u));
+  return vec4f(uv * 2.0 - 1.0, 0.0, 1.0);
+}
+```
+
+These passes use `loadOp: 'clear'` on their output attachments (since they will write every pixel) and `loadOp: 'load'` on any G-buffer textures they sample as inputs — though those inputs are accessed as bound textures via `TEXTURE_BINDING` usage, not as attachments.
+
+### Viewport and Scissor
+
+By default the render pass covers the entire attachment. You can restrict drawing to a subregion with `setViewport()` and `setScissorRect()`:
+
+```typescript
+// Render into the top-left quarter of the attachment
+pass.setViewport(0, 0, width / 2, height / 2, 0.0, 1.0);
+
+// Clip all fragment output to this pixel rectangle (no border)
+pass.setScissorRect(0, 0, width / 2, height / 2);
+```
+
+The viewport controls the NDC-to-pixel mapping (including depth range via the last two parameters, `minDepth` and `maxDepth`). The scissor rectangle clips the rasterizer's output: fragments outside the scissor are discarded before the depth test and fragment shader execute.
+
+### Occlusion Queries
+
+Render passes optionally accept an **occlusion query set**, allowing the CPU to ask "how many samples passed the depth test for this draw call?" You declare the query set on the pass descriptor and issue `beginOcclusionQuery()` / `endOcclusionQuery()` around the relevant draws. The results can drive CPU-side culling decisions for subsequent frames.
 
 ### Draw Calls
 
@@ -626,9 +774,232 @@ pass.drawIndexed(indexCount);
 
 Crafty uses indexed drawing (via `drawIndexed`) for all triangle meshes. Non-indexed `draw()` is used for fullscreen triangle passes (lighting, post-processing).
 
-### Copy and Barrier Operations
+## 3.11 Compute Passes
 
-The command encoder also supports copy operations and pipeline barriers. For example, copying the results of a compute shader into a storage buffer for indirect draw:
+While render passes produce pixel output, **compute passes** run general-purpose GPU programs that operate on arbitrary data. A compute pass has no rasterizer, no attachments, and no fixed-function pipeline stages — just a compute shader dispatched over a grid of work items.
+
+### What a Compute Pass Is
+
+A compute pass is created with `encoder.beginComputePass()` and records one or more `dispatchWorkgroups()` calls against a bound compute pipeline:
+
+```typescript
+const pass = encoder.beginComputePass({ label: 'ParticleUpdate' });
+pass.setPipeline(this._simulatePipeline);
+pass.setBindGroup(0, this._particleBindGroup);
+pass.dispatchWorkgroups(Math.ceil(particleCount / 64));
+pass.end();
+```
+
+There are no draw calls, no vertex buffers, and no color attachments. The compute shader writes its results into storage buffers or storage textures declared in its bind groups.
+
+### The Compute Shader Model
+
+A compute shader runs as a three-dimensional grid of **workgroups**, each workgroup containing a fixed number of **invocations** (individual shader threads). The workgroup size is declared in WGSL with the `@workgroup_size` attribute:
+
+```wgsl
+@compute @workgroup_size(64, 1, 1)
+fn cs_main(
+  @builtin(global_invocation_id) gid: vec3<u32>,
+  @builtin(local_invocation_id) lid: vec3<u32>,
+  @builtin(workgroup_id) wid: vec3<u32>,
+) {
+  let index = gid.x; // global thread index across all workgroups
+  if (index >= arrayLength(&particles)) { return; }
+  // ... update particles[index] ...
+}
+```
+
+Key built-in values:
+
+| Built-in | Meaning |
+| --- | --- |
+| `global_invocation_id` | Absolute thread position across the entire dispatch grid (x, y, z) |
+| `local_invocation_id` | Thread position within its own workgroup |
+| `workgroup_id` | Which workgroup this thread belongs to |
+| `local_invocation_index` | Flattened linear index within the workgroup |
+| `num_workgroups` | Total number of workgroups dispatched |
+
+The total number of threads equals `dispatchWorkgroups(Wx, Wy, Wz)` × `@workgroup_size(Sx, Sy, Sz)`. If your data has `N` elements and your workgroup size is 64, you dispatch `ceil(N / 64)` workgroups and guard against out-of-bounds access:
+
+```wgsl
+if (gid.x >= arrayLength(&particles)) { return; }
+```
+
+### Workgroup Memory
+
+Threads within the same workgroup can communicate through **workgroup-shared memory**, declared with the `var<workgroup>` address space:
+
+```wgsl
+var<workgroup> shared_data: array<f32, 64>;
+
+@compute @workgroup_size(64)
+fn cs_main(@builtin(local_invocation_index) lid: u32) {
+  // Phase 1: each thread writes to shared memory
+  shared_data[lid] = load_something(lid);
+
+  // Synchronize: all threads must reach this barrier before any proceed
+  workgroupBarrier();
+
+  // Phase 2: each thread reads the result of its neighbor
+  let neighbor = shared_data[(lid + 1u) % 64u];
+  // ...
+}
+```
+
+`workgroupBarrier()` issues a memory and execution barrier: no thread in the workgroup proceeds past it until every thread has reached it. This is the mechanism for parallel reduction, prefix sums, histogram computation, and other patterns that require intra-workgroup communication.
+
+Workgroup memory is fast (on-chip) but limited. The WebGPU spec guarantees at least 16 KB per workgroup; typical hardware provides 32–64 KB. Exceeding the limit is a pipeline creation error.
+
+### Storage Buffers and Storage Textures
+
+Compute shaders communicate with the rest of the frame through **storage buffers** and **storage textures** — the only resource types that compute shaders can write to.
+
+A storage buffer is declared with `var<storage, read_write>` (or `read` for read-only access):
+
+```wgsl
+struct Particle {
+  position: vec3<f32>,
+  velocity: vec3<f32>,
+  life:     f32,
+}
+
+@group(0) @binding(0) var<storage, read_write> particles: array<Particle>;
+@group(0) @binding(1) var<uniform>              params:   ParticleParams;
+```
+
+A storage texture is declared with `var<storage_texture, write>` (currently, most platforms support write-only storage textures in compute; read-write storage textures require the `"chromium-experimental-read-write-storage-texture"` feature):
+
+```wgsl
+@group(0) @binding(0) var output_tex: texture_storage_2d<rgba8unorm, write>;
+
+@compute @workgroup_size(8, 8)
+fn cs_main(@builtin(global_invocation_id) gid: vec3<u32>) {
+  let value = compute_value(gid.xy);
+  textureStore(output_tex, vec2i(gid.xy), vec4f(value, 0.0, 0.0, 1.0));
+}
+```
+
+Storage textures use `textureStore()` rather than `textureSample()` — there is no sampler, filtering, or mip selection. For reading from a texture in a compute shader, you can bind it as a regular `texture_2d` with `textureLoad()` (which reads a specific texel without filtering):
+
+```wgsl
+@group(0) @binding(1) var input_tex: texture_2d<f32>;
+
+let texel = textureLoad(input_tex, vec2i(coord), 0); // mip level 0
+```
+
+### Dispatching Work
+
+`dispatchWorkgroups(x, y, z)` launches a 3D grid of workgroups. The `y` and `z` dimensions default to 1 if omitted:
+
+```typescript
+// 1D: particle simulation over N particles, 64 threads per workgroup
+pass.dispatchWorkgroups(Math.ceil(particleCount / 64));
+
+// 2D: image processing over a width × height texture
+pass.dispatchWorkgroups(
+  Math.ceil(width  / 8),
+  Math.ceil(height / 8),
+);
+
+// 3D: volumetric operation over a 3D grid
+pass.dispatchWorkgroups(
+  Math.ceil(gridX / 4),
+  Math.ceil(gridY / 4),
+  Math.ceil(gridZ / 4),
+);
+```
+
+For dynamic workload sizes determined by a previous compute pass (for example, the number of visible particles surviving a culling pass), use **indirect dispatch**:
+
+```typescript
+// The compute shader wrote the workgroup counts into an INDIRECT buffer
+pass.dispatchWorkgroupsIndirect(indirectBuffer, byteOffset);
+```
+
+The buffer at `byteOffset` must contain three `uint32` values: `[workgroupCountX, workgroupCountY, workgroupCountZ]`.
+
+### Compute Pipelines
+
+A `GPUComputePipeline` is simpler than a render pipeline — it has no vertex layout, no fragment targets, no depth state, and no primitive topology. It consists of a pipeline layout (bind group layouts) and a single compute shader entry point:
+
+```typescript
+const computePipeline = device.createComputePipeline({
+  label: 'ParticleSimulate',
+  layout: device.createPipelineLayout({
+    bindGroupLayouts: [particleBGL],
+  }),
+  compute: {
+    module: shaderModule,
+    entryPoint: 'cs_main',
+  },
+});
+```
+
+Like render pipelines, compute pipelines are immutable and expensive to create. They should be created once during initialization and cached.
+
+The `@workgroup_size` declared in the WGSL shader becomes part of the compiled pipeline. If you need the same algorithm to run efficiently at multiple workgroup sizes (for hardware that prefers different tile widths), you need separate pipeline objects — or use WGSL `override` constants:
+
+```wgsl
+override WORKGROUP_SIZE: u32 = 64;
+
+@compute @workgroup_size(WORKGROUP_SIZE)
+fn cs_main(...) { ... }
+```
+
+```typescript
+device.createComputePipeline({
+  compute: {
+    module: shaderModule,
+    entryPoint: 'cs_main',
+    constants: { WORKGROUP_SIZE: 128 },  // override at pipeline creation
+  },
+});
+```
+
+### Synchronization Between Passes
+
+In WebGPU, resource synchronization between passes is managed by the API automatically. A storage buffer written by a compute pass is visible to the next render pass that reads it — there is no explicit barrier API call required from the application. The command encoder's ordering guarantees that:
+
+- All commands in a compute pass complete before the next pass begins.
+- A texture transitioned from `RENDER_ATTACHMENT` usage to `TEXTURE_BINDING` usage is automatically available to subsequent passes.
+
+This is a significant simplification compared to Vulkan and D3D12, where explicit pipeline barriers and image layout transitions are the programmer's responsibility. WebGPU's driver inserts the necessary barriers during `queue.submit()`.
+
+However, within a single compute pass, there are no implicit barriers between `dispatchWorkgroups()` calls. If two dispatches in the same pass access the same storage buffer — one writing and one reading — you must split them into separate compute passes:
+
+```typescript
+// WRONG: second dispatch may read before first dispatch finishes writing
+const pass = encoder.beginComputePass();
+pass.dispatchWorkgroups(...); // writes buffer A
+pass.dispatchWorkgroups(...); // reads buffer A — undefined behavior
+pass.end();
+
+// CORRECT: separate passes ensure ordering
+const passA = encoder.beginComputePass();
+passA.dispatchWorkgroups(...);
+passA.end();
+
+const passB = encoder.beginComputePass();
+passB.dispatchWorkgroups(...);
+passB.end();
+```
+
+### Crafty's Compute Uses
+
+Crafty uses compute passes in three areas:
+
+**Particle simulation.** The particle system runs two compute passes each frame: one that emits new particles into a ring buffer and one that updates position, velocity, and lifetime for all live particles. The updated particle data feeds directly into the render pass as a storage buffer read by the vertex shader.
+
+**Auto-exposure.** The auto-exposure system dispatches two compute passes. The first builds a luminance histogram over the HDR color attachment (a 256-bin buffer, one bin per luminance level). The second reduces the histogram to a single average luminance value and uses it to update the exposure target buffer. The lighting pass's tone mapping reads that buffer to scale the HDR signal for display.
+
+**Temporal SSGI.** The screen-space global illumination pass uses a compute shader to accumulate and filter indirect lighting samples over multiple frames, writing the result into a storage texture that the final compositing pass blends into the frame.
+
+In each case, the compute pass writes into a buffer or texture via storage bindings, and a subsequent render pass reads from that same resource as a `TEXTURE_BINDING` or `STORAGE` buffer — with WebGPU's automatic cross-pass synchronization ensuring the data is ready.
+
+
+## 3.12 Copy Operations
+
+The command encoder also supports copy operations. For example, copying the results of a compute shader into a storage buffer for indirect draw:
 
 ```typescript
 encoder.copyBufferToBuffer(source, 0, dest, 0, size);
@@ -636,7 +1007,7 @@ encoder.copyBufferToBuffer(source, 0, dest, 0, size);
 
 Crafty uses compute-to-buffer copies in the particle system to copy the computed particle count into the indirect draw buffer.
 
-## 3.10 The RenderContext Abstraction
+## 3.13 The RenderContext Abstraction
 
 The `RenderContext` class (`src/renderer/render_context.ts`) wraps the WebGPU device, queue, and canvas configuration into a single handle that flows through the entire render graph.
 
@@ -680,7 +1051,7 @@ RenderGraph  ─── owns ───►  RenderPass[]
 3. **Resize.** On canvas resize, the canvas pixel dimensions are updated and the graph is re-created (passes that depend on canvas size, like the GBuffer, reallocate their textures).
 4. **Destroy.** `RenderGraph.destroy()` calls `destroy()` on every pass, and the render context itself is discarded.
 
-### 3.11 Summary
+### 3.14 Summary
 
 In this chapter we covered every major WebGPU resource type and saw how Crafty uses them:
 
