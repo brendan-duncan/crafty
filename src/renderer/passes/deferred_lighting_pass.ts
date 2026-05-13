@@ -355,7 +355,7 @@ export class DeferredLightingPass extends RenderPass {
    * @param intensity Scalar light intensity multiplier.
    * @param cascades Up to 4 shadow cascades (extra entries are ignored).
    * @param shadowsEnabled When `false`, the shader skips shadow sampling.
-   * @param debugCascades When `true`, the shader tints each cascade for visualisation.
+   * @param debugCascades When `true`, the shader tints each cascade for visualization.
    * @param shadowSoftness PCSS light-size factor used for softening shadow edges.
    */
   updateLight(ctx: RenderContext, dir: { x: number; y: number; z: number }, color: { x: number; y: number; z: number }, intensity: number, cascades: CascadeData[], shadowsEnabled = true, debugCascades = false, shadowSoftness = 0.02): void {

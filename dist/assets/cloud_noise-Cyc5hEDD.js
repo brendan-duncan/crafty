@@ -1,4 +1,4 @@
-var Y=Object.defineProperty;var X=(f,u,r)=>u in f?Y(f,u,{enumerable:!0,configurable:!0,writable:!0,value:r}):f[u]=r;var l=(f,u,r)=>X(f,typeof u!="symbol"?u+"":u,r);import{a as A}from"./render_pass-Cg-XJLDQ.js";import{H as W}from"./geometry_pass-BTG59YKQ.js";const q=`// Cloud + sky pass — fullscreen triangle.
+var Y=Object.defineProperty;var X=(f,u,r)=>u in f?Y(f,u,{enumerable:!0,configurable:!0,writable:!0,value:r}):f[u]=r;var l=(f,u,r)=>X(f,typeof u!="symbol"?u+"":u,r);import{a as A}from"./mesh-BZCnqQH3.js";import{H as W}from"./geometry_pass-DS4fVDMZ.js";const q=`// Cloud + sky pass — fullscreen triangle.
 // Raymarches through a cloud slab with Beer's law transmittance and self-shadow
 // light marching.  Sky color is computed with the same Rayleigh+Mie model as
 // atmosphere.wgsl so no sky texture is needed.
@@ -345,7 +345,7 @@ struct CloudShadowUniforms {
   coverage     : f32,
   density      : f32,
   windOffset   : vec2<f32>,   // XZ animated offset
-  worldOriginX : f32,         // world-space XZ centre of the shadow map
+  worldOriginX : f32,         // world-space XZ center of the shadow map
   worldOriginZ : f32,
   worldExtent  : f32,         // half-size in world units (map covers ±worldExtent)
   extinction   : f32,

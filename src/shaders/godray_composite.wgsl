@@ -52,7 +52,7 @@ fn depth_load(uv: vec2<f32>) -> f32 {
   return textureLoad(depth_tex, coord, 0u);
 }
 
-// Gaussian half-kernel (centre..edge, index = abs(tap offset)).
+// Gaussian half-kernel (center..edge, index = abs(tap offset)).
 // Sum of symmetric 7-tap (±3) with these weights ≈ 1.
 const GAUSS: array<f32, 4> = array<f32, 4>(
   0.19638062, 0.17469900, 0.12161760, 0.06706740,

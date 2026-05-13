@@ -78,13 +78,13 @@ export class AtmospherePass extends RenderPass {
   }
 
   /**
-   * Uploads the per-frame uniform block (inverse view-proj, camera position, normalised
+   * Uploads the per-frame uniform block (inverse view-proj, camera position, normalized
    * sun direction) to the GPU.
    *
    * @param ctx Render context (used for the queue).
    * @param invViewProj Inverse view-projection matrix used to reconstruct view rays.
    * @param camPos World-space camera position.
-   * @param lightDir Directional light direction (rays travelling toward the scene); the
+   * @param lightDir Directional light direction (rays traveling toward the scene); the
    *   shader receives `normalize(-lightDir)` as the toward-sun vector.
    */
   update(

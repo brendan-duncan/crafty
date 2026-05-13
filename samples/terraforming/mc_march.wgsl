@@ -36,14 +36,13 @@ fn interp(a: f32, b: f32, iso: f32) -> f32 {
 }
 
 struct McUniforms {
-  grid_size        : vec3<u32>,
-  _pad0            : u32,
+  grid_size        : vec4<f32>,
   isolevel         : f32,
-  _pad1            : vec3<f32>,
-  grid_extent      : vec3<f32>,
+  _pad0            : f32,
+  _pad1            : f32,
   _pad2            : f32,
-  grid_offset      : vec3<f32>,
-  _pad3            : f32,
+  grid_extent      : vec4<f32>,
+  grid_offset      : vec4<f32>,
 };
 
 struct Vertex {
@@ -60,14 +59,16 @@ struct Vertex {
 @group(0) @binding(6) var<storage, read> tri_table: array<array<i32, 16>, 256>;
 
 fn density_index(p: vec3<u32>) -> u32 {
-  return p.z * uni.grid_size.x * uni.grid_size.y +
-         p.y * uni.grid_size.x +
+  let gs = vec3<u32>(uni.grid_size.xyz);
+  return p.z * gs.x * gs.y +
+         p.y * gs.x +
          p.x;
 }
 
 @compute @workgroup_size(8, 4, 8)
 fn cs_march(@builtin(global_invocation_id) gid: vec3<u32>) {
-  let cell_count = uni.grid_size - vec3<u32>(1u);
+  let gs = vec3<u32>(uni.grid_size.xyz);
+  let cell_count = gs - vec3<u32>(1u);
 
   if (gid.x >= cell_count.x ||
       gid.y >= cell_count.y ||
@@ -110,8 +111,8 @@ fn cs_march(@builtin(global_invocation_id) gid: vec3<u32>) {
 
   let tris = tri_table[cube_idx];
 
-  let grid_cell_size = uni.grid_extent / vec3<f32>(uni.grid_size - vec3<u32>(1u));
-  let grid_origin = uni.grid_offset;
+  let grid_cell_size = uni.grid_extent.xyz / vec3<f32>(gs - vec3<u32>(1u));
+  let grid_origin = uni.grid_offset.xyz;
 
   for (var i = 0; i < 16; i += 3) {
     if (tris[i] < 0) {

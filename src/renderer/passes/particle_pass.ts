@@ -513,13 +513,13 @@ export class ParticlePass extends RenderPass {
    * No-op when the configured particle graph does not use block collision.
    *
    * `heights[z * HEIGHTMAP_RES + x]` stores the top solid-block Y at that
-   * cell. The covered region is centred on `(originX, originZ)` and spans
+   * cell. The covered region is centerd on `(originX, originZ)` and spans
    * `±extent` blocks on each axis.
    *
    * @param ctx     Renderer context (used for the queue).
    * @param heights Top-block Y per cell (`HEIGHTMAP_RES * HEIGHTMAP_RES` values).
-   * @param originX World-space X centre of the covered region.
-   * @param originZ World-space Z centre of the covered region.
+   * @param originX World-space X center of the covered region.
+   * @param originZ World-space Z center of the covered region.
    * @param extent  Half-size of the covered region in blocks.
    */
   updateHeightmap(ctx: RenderContext, heights: Float32Array, originX: number, originZ: number, extent: number): void {

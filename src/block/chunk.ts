@@ -528,7 +528,7 @@ export class Chunk {
     let waterVertCount = 0;
     if (hasWater) {
       // Which face-adjacent neighbor chunks actually exist (have a blocks array).
-      // The padded array is initialised to NONE, and when a neighbor IS provided
+      // The padded array is initialized to NONE, and when a neighbor IS provided
       // we copy its blocks (possibly including NONE = air).  At a chunk edge we
       // can't tell "neighbor has air" from "no neighbor at all" just from the
       // block value, so we use these flags to only suppress faces when the

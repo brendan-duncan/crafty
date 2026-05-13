@@ -16,7 +16,7 @@ struct CloudShadowUniforms {
   coverage     : f32,
   density      : f32,
   windOffset   : vec2<f32>,   // XZ animated offset
-  worldOriginX : f32,         // world-space XZ centre of the shadow map
+  worldOriginX : f32,         // world-space XZ center of the shadow map
   worldOriginZ : f32,
   worldExtent  : f32,         // half-size in world units (map covers ±worldExtent)
   extinction   : f32,

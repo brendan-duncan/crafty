@@ -61,7 +61,7 @@ export class NameLabelLayer
     }
   }
 
-  /** Project each labelled position to screen. Caller supplies world-space anchors. */
+  /** Project each labeled position to screen. Caller supplies world-space anchors. */
   update(viewProj: Mat4, camPos: Vec3, viewportW: number, viewportH: number, anchors: Map<number, Vec3>): void
   {
     for (const [playerId, div] of this._labels) {

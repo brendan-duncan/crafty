@@ -108,7 +108,7 @@ export function createHotbar(atlasUrl: string, onFlashlightToggle?: () => void):
 
   function updateSelection() {
     const barRect = bar.getBoundingClientRect();
-    // Each slot is 40px wide; centre the 44px selector over the active slot
+    // Each slot is 40px wide; center the 44px selector over the active slot
     sel.style.left = (barRect.left - 2 + selected * 40) + 'px';
     _onSelectionChanged?.();
   }

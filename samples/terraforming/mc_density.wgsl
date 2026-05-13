@@ -82,14 +82,13 @@ fn perlin_fbm_3d(p: vec3<f32>, octaves: u32) -> f32 {
 }
 
 struct DensityUniforms {
-  grid_size       : vec3<u32>,
-  _pad0           : u32,
+  grid_size       : vec4<f32>,
   isolevel        : f32,
-  _pad1           : vec3<f32>,
-  grid_extent     : vec3<f32>,
+  _pad0           : f32,
+  _pad1           : f32,
   _pad2           : f32,
-  grid_offset     : vec3<f32>,
-  _pad3           : f32,
+  grid_extent     : vec4<f32>,
+  grid_offset     : vec4<f32>,
 
   noise_scale     : f32,
   noise_height    : f32,
@@ -97,72 +96,68 @@ struct DensityUniforms {
   detail_strength : f32,
   _pad4           : vec4<f32>,
 
-  brush_center    : vec3<f32>,
-  _pad5           : f32,
+  brush_center    : vec4<f32>,
   brush_radius    : f32,
   brush_strength  : f32,
-  brush_enabled   : u32,
-  _pad6           : u32,
+  brush_enabled   : f32,
 };
 
 @group(0) @binding(0) var<storage, read_write> density: array<f32>;
 @group(0) @binding(1) var<uniform> uni: DensityUniforms;
 
 fn density_index(p: vec3<u32>) -> u32 {
-  return p.z * uni.grid_size.x * uni.grid_size.y +
-         p.y * uni.grid_size.x +
+  let gs = vec3<u32>(uni.grid_size.xyz);
+  return p.z * gs.x * gs.y +
+         p.y * gs.x +
          p.x;
-}
-
-fn sphere_sdf(p: vec3<f32>, center: vec3<f32>, radius: f32) -> f32 {
-  return length(p - center) - radius;
 }
 
 @compute @workgroup_size(8, 4, 8)
 fn cs_generate(@builtin(global_invocation_id) gid: vec3<u32>) {
-  if (gid.x >= uni.grid_size.x ||
-      gid.y >= uni.grid_size.y ||
-      gid.z >= uni.grid_size.z) {
+  let gs = vec3<u32>(uni.grid_size.xyz);
+  if (gid.x >= gs.x ||
+      gid.y >= gs.y ||
+      gid.z >= gs.z) {
     return;
   }
 
-  let grid_cell_size = uni.grid_extent / vec3<f32>(uni.grid_size);
-  let grid_origin = uni.grid_offset;
+  let cell_count = vec3<f32>(gs - vec3<u32>(1u));
+  let grid_cell_size = uni.grid_extent.xyz / cell_count;
+  let grid_origin = uni.grid_offset.xyz;
   let world_pos = vec3<f32>(gid) * grid_cell_size + grid_origin;
 
-  let noise_pos = world_pos * uni.noise_scale;
+  let noise_pos = vec3<f32>(world_pos.x, 0.0, world_pos.z) * uni.noise_scale;
   let base_noise = perlin_fbm_3d(noise_pos, 4u);
+  let terrain_height = uni.noise_height * base_noise;
 
   let detail_pos = world_pos * uni.detail_scale;
   let detail_noise = perlin_fbm_3d(detail_pos, 2u);
 
-  let height_val = world_pos.y - uni.noise_height * (0.5 + 0.5 * base_noise);
-  let density_val = height_val + uni.detail_strength * detail_noise;
-
-  let sphere_dist = sphere_sdf(world_pos, vec3<f32>(0.0, 2.0, 0.0), 5.0);
-  let final_density = max(density_val, sphere_dist);
+  let density_val = world_pos.y - terrain_height + uni.detail_strength * detail_noise;
 
   let idx = density_index(gid);
-  density[idx] = final_density;
+  density[idx] = density_val;
 }
 
 @compute @workgroup_size(8, 4, 8)
 fn cs_brush(@builtin(global_invocation_id) gid: vec3<u32>) {
-  if (gid.x >= uni.grid_size.x ||
-      gid.y >= uni.grid_size.y ||
-      gid.z >= uni.grid_size.z) {
+  let gs = vec3<u32>(uni.grid_size.xyz);
+  if (gid.x >= gs.x ||
+      gid.y >= gs.y ||
+      gid.z >= gs.z) {
     return;
   }
 
-  if (uni.brush_enabled == 0u) {
+  if (uni.brush_enabled == 0.0) {
     return;
   }
 
-  let grid_cell_size = uni.grid_extent / vec3<f32>(uni.grid_size);
-  let grid_origin = uni.grid_offset;
+  let cell_count = vec3<f32>(gs - vec3<u32>(1u));
+  let grid_cell_size = uni.grid_extent.xyz / cell_count;
+  let grid_origin = uni.grid_offset.xyz;
   let world_pos = vec3<f32>(gid) * grid_cell_size + grid_origin;
 
-  let dist = length(world_pos - uni.brush_center);
+  let dist = length(world_pos - uni.brush_center.xyz);
   let idx = density_index(gid);
 
   if (dist < uni.brush_radius) {

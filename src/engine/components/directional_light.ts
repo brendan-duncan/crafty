@@ -26,7 +26,7 @@ export interface CascadeData {
  * {@link Scene.findDirectionalLight}).
  */
 export class DirectionalLight extends Component {
-  /** Light direction in world space (normalised on construction). */
+  /** Light direction in world space (normalized on construction). */
   direction: Vec3;
   /** Linear RGB color multiplier. */
   color: Vec3;
@@ -36,7 +36,7 @@ export class DirectionalLight extends Component {
   numCascades: number;
 
   /**
-   * @param direction - World-space light direction (will be normalised).
+   * @param direction - World-space light direction (will be normalized).
    * @param color - Linear RGB color.
    * @param intensity - Scalar intensity multiplier.
    * @param numCascades - Number of shadow cascades to fit.

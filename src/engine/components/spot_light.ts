@@ -33,7 +33,7 @@ export class SpotLight extends Component {
   }
 
   /**
-   * World-space forward direction of the light (GameObject local -Z, normalised).
+   * World-space forward direction of the light (GameObject local -Z, normalized).
    */
   worldDirection(): Vec3 {
     return this.gameObject.localToWorld().transformDirection(Vec3.FORWARD).normalize();

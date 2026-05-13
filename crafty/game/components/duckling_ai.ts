@@ -7,7 +7,7 @@ import type { World } from '../../../src/block/world.js';
 const _Y_AXIS = new Vec3(0, 1, 0);
 
 /**
- * Follow behaviour for duckling GameObjects.
+ * Follow behavior for duckling GameObjects.
  *
  * Each duckling tracks its parent duck's world position and maintains a
  * personalised orbit offset so the brood spreads naturally rather than

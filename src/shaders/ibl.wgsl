@@ -47,7 +47,7 @@ fn tangent_frame(N: vec3<f32>) -> mat3x3<f32> {
   return mat3x3<f32>(T, B, N);
 }
 
-// Convert cube face + normalised UV in [-1,1] to a world-space direction.
+// Convert cube face + normalized UV in [-1,1] to a world-space direction.
 // Uses the standard WebGPU/OpenGL cubemap face convention.
 fn cube_dir(face: u32, uc: f32, vc: f32) -> vec3<f32> {
   switch face {

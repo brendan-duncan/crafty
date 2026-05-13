@@ -11,7 +11,9 @@ const FLY_FAST_MULT = 3.0; // ControlLeft speed multiplier
  *
  * Bindings: WASD (or arrows) for horizontal movement, Space to ascend,
  * ShiftLeft to descend, ControlLeft (or AltLeft) for a 3× speed boost.
- * Clicking the canvas acquires pointer lock; mouse motion drives yaw/pitch.
+ * When {@link usePointerLock} is true (default), clicking the canvas
+ * acquires pointer lock and mouse motion drives yaw/pitch.  When false,
+ * click-and-drag with the left mouse button controls the camera instead.
  * Call {@link CameraControls.attach} once, then {@link CameraControls.update}
  * every frame against the camera's GameObject.
  */
@@ -36,14 +38,19 @@ export class CameraControls {
   /** Held-fast flag (OR-ed with ControlLeft / AltLeft). */
   inputFast    = false;
 
-  private _keys  = new Set<string>();
-  private _canvas: HTMLCanvasElement | null = null;
+  private _keys     = new Set<string>();
+  private _canvas   : HTMLCanvasElement | null = null;
+  private _mouseBtn = false;
+  private _lastMX   = 0;
+  private _lastMY   = 0;
 
-  private readonly _onMouseMove: (e: MouseEvent) => void;
-  private readonly _onKeyDown  : (e: KeyboardEvent) => void;
-  private readonly _onKeyUp    : (e: KeyboardEvent) => void;
-  private readonly _onClick    : () => void;
-  private readonly _onBlur     : () => void;
+  private readonly _onMouseDown : (e: MouseEvent) => void;
+  private readonly _onMouseUp   : (e: MouseEvent) => void;
+  private readonly _onMouseMove : (e: MouseEvent) => void;
+  private readonly _onKeyDown   : (e: KeyboardEvent) => void;
+  private readonly _onKeyUp     : (e: KeyboardEvent) => void;
+  private readonly _onClick     : () => void;
+  private readonly _onBlur      : () => void;
 
   /**
    * @param yaw - Initial yaw in radians.
@@ -59,13 +66,40 @@ export class CameraControls {
 
     const HALF_PI = Math.PI / 2 - 0.001;
 
-    this._onMouseMove = (e: MouseEvent) => {
-      if (document.pointerLockElement !== this._canvas) {
-        return;
+    this._onMouseDown = (e: MouseEvent) => {
+      if (e.button === 0) {
+        this._mouseBtn = true;
+        this._lastMX = e.clientX;
+        this._lastMY = e.clientY;
       }
-      this.yaw   -= e.movementX * this.sensitivity;
-      this.pitch  = Math.max(-HALF_PI, Math.min(HALF_PI,
-        this.pitch + e.movementY * this.sensitivity));
+    };
+    this._onMouseUp = (e: MouseEvent) => {
+      if (e.button === 0) {
+        this._mouseBtn = false;
+      }
+    };
+    this._onMouseMove = (e: MouseEvent) => {
+      if (this.usePointerLock) {
+        if (document.pointerLockElement !== this._canvas) {
+          return;
+        }
+        this.yaw   -= e.movementX * this.sensitivity;
+        this.pitch  = Math.max(-HALF_PI, Math.min(HALF_PI,
+          this.pitch + e.movementY * this.sensitivity));
+      } else {
+        if (!this._mouseBtn) {
+          this._lastMX = e.clientX;
+          this._lastMY = e.clientY;
+          return;
+        }
+        const dx = e.clientX - this._lastMX;
+        const dy = e.clientY - this._lastMY;
+        this._lastMX = e.clientX;
+        this._lastMY = e.clientY;
+        this.yaw   -= dx * this.sensitivity;
+        this.pitch  = Math.max(-HALF_PI, Math.min(HALF_PI,
+          this.pitch + dy * this.sensitivity));
+      }
     };
     this._onKeyDown = (e: KeyboardEvent) => this._keys.add(e.code);
     this._onKeyUp   = (e: KeyboardEvent) => this._keys.delete(e.code);
@@ -74,7 +108,10 @@ export class CameraControls {
         this._canvas?.requestPointerLock();
       }
     };
-    this._onBlur    = () => this._keys.clear();
+    this._onBlur    = () => {
+      this._keys.clear();
+      this._mouseBtn = false;
+    };
   }
 
   /** Set false to suppress pointer-lock acquisition on canvas click (touch devices). */
@@ -87,11 +124,13 @@ export class CameraControls {
    */
   attach(canvas: HTMLCanvasElement): void {
     this._canvas = canvas;
-    canvas.addEventListener('click',     this._onClick);
-    document.addEventListener('mousemove', this._onMouseMove);
-    document.addEventListener('keydown',   this._onKeyDown);
-    document.addEventListener('keyup',     this._onKeyUp);
-    window.addEventListener('blur',        this._onBlur);
+    canvas.addEventListener('click',       this._onClick);
+    document.addEventListener('mousedown',   this._onMouseDown);
+    document.addEventListener('mouseup',     this._onMouseUp);
+    document.addEventListener('mousemove',   this._onMouseMove);
+    document.addEventListener('keydown',     this._onKeyDown);
+    document.addEventListener('keyup',       this._onKeyUp);
+    window.addEventListener('blur',          this._onBlur);
   }
 
   /**
@@ -126,11 +165,13 @@ export class CameraControls {
     if (!this._canvas) {
       return;
     }
-    this._canvas.removeEventListener('click',     this._onClick);
-    document.removeEventListener('mousemove', this._onMouseMove);
-    document.removeEventListener('keydown',   this._onKeyDown);
-    document.removeEventListener('keyup',     this._onKeyUp);
-    window.removeEventListener('blur',        this._onBlur);
+    this._canvas.removeEventListener('click',       this._onClick);
+    document.removeEventListener('mousedown', this._onMouseDown);
+    document.removeEventListener('mouseup',     this._onMouseUp);
+    document.removeEventListener('mousemove',   this._onMouseMove);
+    document.removeEventListener('keydown',     this._onKeyDown);
+    document.removeEventListener('keyup',       this._onKeyUp);
+    window.removeEventListener('blur',          this._onBlur);
     this._canvas = null;
   }
 

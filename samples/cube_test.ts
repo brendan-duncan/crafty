@@ -42,7 +42,7 @@ function applyJitter(vp: Mat4, jx: number, jy: number): Mat4 {
   return m;
 }
 
-// Injects a fixed overlay panel with labelled toggle buttons.
+// Injects a fixed overlay panel with labeled toggle buttons.
 // onChange is called with the key after the value has already been flipped.
 function createControlPanel(
   effects: Record<string, boolean>,

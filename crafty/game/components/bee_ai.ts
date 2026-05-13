@@ -10,7 +10,7 @@ const _Y_AXIS = new Vec3(0, 1, 0);
 const FLOWER_DETECT_RADIUS_SQ = 36;  // 6²
 
 /**
- * Flying NPC behaviour for bee GameObjects.
+ * Flying NPC behavior for bee GameObjects.
  *
  * Three-state machine (idle → wander → hover). Bees fly at a fixed altitude
  * above terrain and periodically seek out FLOWER blocks. After hovering over

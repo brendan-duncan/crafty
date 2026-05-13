@@ -1,11 +1,34 @@
 import { Mat4, Vec3 } from '../src/math/index.js';
 import { RenderPass } from '../src/renderer/render_pass.js';
 import { RenderContext } from '../src/renderer/render_context.js';
+import { CameraControls } from '../src/engine/index.js';
+import { Mesh } from '../src/assets/mesh.js';
 
 import densityWgsl from './terraforming/mc_density.wgsl?raw';
 import marchWgsl from './terraforming/mc_march.wgsl?raw';
 import renderWgsl from './terraforming/mc_render.wgsl?raw';
 import { EDGE_TABLE, TRIANGLE_TABLE } from './terraforming/mc_tables.js';
+
+const BRUSH_SPHERE_WGSL = `
+  struct Uniforms {
+    viewProj: mat4x4<f32>,
+    brushCenter: vec3<f32>,
+    brushRadius: f32,
+  };
+
+  @group(0) @binding(0) var<uniform> uni: Uniforms;
+
+  @vertex
+  fn vs_main(@location(0) pos: vec3<f32>) -> @builtin(position) vec4<f32> {
+    let worldPos = uni.brushCenter + pos * uni.brushRadius;
+    return uni.viewProj * vec4<f32>(worldPos, 1.0);
+  }
+
+  @fragment
+  fn fs_main() -> @location(0) vec4<f32> {
+    return vec4<f32>(0.3, 0.7, 1.0, 0.25);
+  }
+`;
 
 interface GridConfig {
   gridSize: [number, number, number];
@@ -67,6 +90,15 @@ class MarchingCubesPass extends RenderPass {
   private readonly _marchBG: GPUBindGroup;
   private readonly _renderBG: GPUBindGroup;
 
+  private _generated = false;
+  private _viewProj = new Mat4();
+
+  private readonly _sphereMesh: Mesh;
+  private readonly _brushSphereUniforms: GPUBuffer;
+  private readonly _brushSpherePipeline: GPURenderPipeline;
+  private readonly _brushSphereBG: GPUBindGroup;
+  private readonly _brushSphereUniBuf: Float32Array;
+
   private _brush: BrushState = {
     enabled: false,
     center: new Vec3(),
@@ -96,7 +128,7 @@ class MarchingCubesPass extends RenderPass {
 
     const vertexBuffer = device.createBuffer({
       label: 'McVertexBuffer',
-      size: cfg.maxVertices * (12 + 12),
+      size: cfg.maxVertices * 32,
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.VERTEX,
     });
 
@@ -255,7 +287,7 @@ class MarchingCubesPass extends RenderPass {
       },
       primitive: {
         topology: 'triangle-list',
-        cullMode: 'back',
+        cullMode: 'none',
       },
     });
 
@@ -304,6 +336,75 @@ class MarchingCubesPass extends RenderPass {
     mcUniBuf[14] = cfg.gridOffset[2];
     device.queue.writeBuffer(mcUniforms, 0, mcUniBuf);
 
+    const sphereMesh = Mesh.createSphere(device, 1, 16, 16);
+
+    const brushSphereModule = device.createShaderModule({
+      label: 'McBrushSphereShader',
+      code: BRUSH_SPHERE_WGSL,
+    });
+
+    const brushSphereBGL = device.createBindGroupLayout({
+      label: 'McBrushSphereBGL',
+      entries: [
+        { binding: 0, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, buffer: { type: 'uniform' } },
+      ],
+    });
+
+    const brushSpherePL = device.createPipelineLayout({
+      bindGroupLayouts: [brushSphereBGL],
+    });
+
+    const brushSpherePipeline = device.createRenderPipeline({
+      label: 'McBrushSpherePipeline',
+      layout: brushSpherePL,
+      vertex: {
+        module: brushSphereModule,
+        entryPoint: 'vs_main',
+        buffers: [{
+          arrayStride: 48,
+          attributes: [
+            { shaderLocation: 0, offset: 0, format: 'float32x3' },
+          ],
+        }],
+      },
+      fragment: {
+        module: brushSphereModule,
+        entryPoint: 'fs_main',
+        targets: [{
+          format: ctx.format,
+          blend: {
+            color: { srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha', operation: 'add' },
+            alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha', operation: 'add' },
+          },
+        }],
+      },
+      depthStencil: {
+        format: 'depth32float',
+        depthWriteEnabled: false,
+        depthCompare: 'less',
+      },
+      primitive: {
+        topology: 'triangle-list',
+        cullMode: 'none',
+      },
+    });
+
+    const brushSphereUniforms = device.createBuffer({
+      label: 'McBrushSphereUniforms',
+      size: 80,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+
+    const brushSphereUniBuf = new Float32Array(20);
+
+    const brushSphereBG = device.createBindGroup({
+      label: 'McBrushSphereBG',
+      layout: brushSphereBGL,
+      entries: [
+        { binding: 0, resource: { buffer: brushSphereUniforms } },
+      ],
+    });
+
     return new MarchingCubesPass(
       cfg,
       colorView, depthView,
@@ -312,6 +413,7 @@ class MarchingCubesPass extends RenderPass {
       densityUniforms, mcUniforms, renderUniforms,
       densityPipeline, brushPipeline, marchPipeline, indirectPipeline, renderPipeline,
       densityBG, marchBG, renderBG,
+      sphereMesh, brushSphereUniforms, brushSpherePipeline, brushSphereBG, brushSphereUniBuf,
     );
   }
 
@@ -336,6 +438,11 @@ class MarchingCubesPass extends RenderPass {
     densityBG: GPUBindGroup,
     marchBG: GPUBindGroup,
     renderBG: GPUBindGroup,
+    sphereMesh: Mesh,
+    brushSphereUniforms: GPUBuffer,
+    brushSpherePipeline: GPURenderPipeline,
+    brushSphereBG: GPUBindGroup,
+    brushSphereUniBuf: Float32Array,
   ) {
     super();
     this._config = config;
@@ -358,6 +465,11 @@ class MarchingCubesPass extends RenderPass {
     this._densityBG = densityBG;
     this._marchBG = marchBG;
     this._renderBG = renderBG;
+    this._sphereMesh = sphereMesh;
+    this._brushSphereUniforms = brushSphereUniforms;
+    this._brushSpherePipeline = brushSpherePipeline;
+    this._brushSphereBG = brushSphereBG;
+    this._brushSphereUniBuf = brushSphereUniBuf;
   }
 
   updateAttachments(colorView: GPUTextureView, depthView: GPUTextureView): void {
@@ -393,6 +505,7 @@ class MarchingCubesPass extends RenderPass {
     buf[off++] = near;
     buf[off] = far;
 
+    this._viewProj = viewProj;
     ctx.queue.writeBuffer(this._renderUniforms, 0, buf);
   }
 
@@ -419,9 +532,9 @@ class MarchingCubesPass extends RenderPass {
       d[26] = this._brush.center.z;
       d[28] = this._brush.radius;
       d[29] = this._brush.strength;
-      d[32] = 1;
+      d[30] = 1;
     } else {
-      d[32] = 0;
+      d[30] = 0;
     }
 
     ctx.queue.writeBuffer(this._densityUniforms, 0, d);
@@ -429,13 +542,16 @@ class MarchingCubesPass extends RenderPass {
 
     const compute = encoder.beginComputePass({ label: 'McCompute' });
 
-    compute.setPipeline(this._densityPipeline);
-    compute.setBindGroup(0, this._densityBG);
-    compute.dispatchWorkgroups(
-      Math.ceil(this._config.gridSize[0] / 8),
-      Math.ceil(this._config.gridSize[1] / 4),
-      Math.ceil(this._config.gridSize[2] / 8),
-    );
+    if (!this._generated) {
+      compute.setPipeline(this._densityPipeline);
+      compute.setBindGroup(0, this._densityBG);
+      compute.dispatchWorkgroups(
+        Math.ceil(this._config.gridSize[0] / 8),
+        Math.ceil(this._config.gridSize[1] / 4),
+        Math.ceil(this._config.gridSize[2] / 8),
+      );
+      this._generated = true;
+    }
 
     if (this._brush.enabled) {
       compute.setPipeline(this._brushPipeline);
@@ -483,6 +599,22 @@ class MarchingCubesPass extends RenderPass {
     pass.setBindGroup(0, this._renderBG);
     pass.drawIndirect(this._indirectBuffer, 0);
 
+    if (this._brush.enabled) {
+      const u = this._brushSphereUniBuf;
+      u.set(this._viewProj.data, 0);
+      u[16] = this._brush.center.x;
+      u[17] = this._brush.center.y;
+      u[18] = this._brush.center.z;
+      u[19] = this._brush.radius;
+      ctx.device.queue.writeBuffer(this._brushSphereUniforms, 0, u.buffer as ArrayBuffer, u.byteOffset, u.byteLength);
+
+      pass.setPipeline(this._brushSpherePipeline);
+      pass.setBindGroup(0, this._brushSphereBG);
+      pass.setVertexBuffer(0, this._sphereMesh.vertexBuffer);
+      pass.setIndexBuffer(this._sphereMesh.indexBuffer, 'uint32');
+      pass.drawIndexed(this._sphereMesh.indexCount);
+    }
+
     pass.end();
   }
 
@@ -496,6 +628,7 @@ class MarchingCubesPass extends RenderPass {
     this._densityUniforms.destroy();
     this._mcUniforms.destroy();
     this._renderUniforms.destroy();
+    this._sphereMesh.destroy();
   }
 }
 
@@ -517,60 +650,18 @@ async function main() {
   });
 
   const camPos = new Vec3(0, 10, 25);
-
-  let yaw = 0;
-  let pitch = -15 * Math.PI / 180;
-  let mouseDown = false;
-  let lastMouseX = 0;
-  let lastMouseY = 0;
+  const cameraControls = new CameraControls(0, -15 * Math.PI / 180, 15);
+  cameraControls.usePointerLock = false;
+  cameraControls.attach(canvas);
+  const fakeGO = { position: camPos, rotation: { x: 0, y: 0, z: 0, w: 1 } };
 
   let brushRadius = 2.0;
   let brushStrength = 0.2;
   let brushActive = false;
   let brushPosition = new Vec3();
 
-  canvas.addEventListener('mousedown', (e) => {
-    if (e.button === 0) {
-      mouseDown = true;
-      lastMouseX = e.clientX;
-      lastMouseY = e.clientY;
-    }
-  });
-
-  window.addEventListener('mouseup', () => {
-    mouseDown = false;
-  });
-
-  window.addEventListener('mousemove', (e) => {
-    if (mouseDown) {
-      const dx = e.clientX - lastMouseX;
-      const dy = e.clientY - lastMouseY;
-      yaw -= dx * 0.005;
-      pitch -= dy * 0.005;
-      pitch = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01, pitch));
-      lastMouseX = e.clientX;
-      lastMouseY = e.clientY;
-    }
-  });
-
   window.addEventListener('keydown', (e) => {
-    const moveSpeed = 0.8;
-    const forward = new Vec3(-Math.sin(yaw) * Math.cos(pitch), -Math.sin(pitch), -Math.cos(yaw) * Math.cos(pitch)).normalize();
-    const right = new Vec3(Math.cos(yaw), 0, -Math.sin(yaw)).normalize();
-
-    if (e.key === 'w' || e.key === 'W') {
-      camPos.add(forward.scale(moveSpeed));
-    } else if (e.key === 's' || e.key === 'S') {
-      camPos.sub(forward.scale(moveSpeed));
-    } else if (e.key === 'a' || e.key === 'A') {
-      camPos.sub(right.scale(moveSpeed));
-    } else if (e.key === 'd' || e.key === 'D') {
-      camPos.add(right.scale(moveSpeed));
-    } else if (e.key === 'q' || e.key === 'Q') {
-      camPos.y -= moveSpeed;
-    } else if (e.key === 'e' || e.key === 'E') {
-      camPos.y += moveSpeed;
-    } else if (e.key === '1') {
+    if (e.key === '1') {
       brushStrength = Math.abs(brushStrength);
       console.log('Add mode');
     } else if (e.key === '2') {
@@ -590,7 +681,11 @@ async function main() {
       e.preventDefault();
       brushActive = true;
 
-      const forward = new Vec3(-Math.sin(yaw) * Math.cos(pitch), -Math.sin(pitch), -Math.cos(yaw) * Math.cos(pitch)).normalize();
+      const sinY = Math.sin(cameraControls.yaw);
+      const cosY = Math.cos(cameraControls.yaw);
+      const sinP = Math.sin(cameraControls.pitch);
+      const cosP = Math.cos(cameraControls.pitch);
+      const forward = new Vec3(-sinY * cosP, -sinP, -cosY * cosP).normalize();
 
       brushPosition = camPos.add(forward.scale(15.0));
     }
@@ -631,6 +726,9 @@ async function main() {
       fpsElement.textContent = `FPS: ${fps}`;
       frameCount = 0;
       fpsTime = 0;
+      const brushInfo = document.getElementById('brush-info')!;
+      const mode = brushStrength > 0 ? 'Add' : 'Remove';
+      brushInfo.textContent = `Brush: ${mode} | Radius: ${brushRadius.toFixed(1)}`;
     }
 
     const needsResize = renderContext.canvas.width !== renderContext.canvas.clientWidth * devicePixelRatio ||
@@ -648,7 +746,13 @@ async function main() {
       });
     }
 
-    const forward = new Vec3(-Math.sin(yaw) * Math.cos(pitch), -Math.sin(pitch), -Math.cos(yaw) * Math.cos(pitch)).normalize();
+    cameraControls.update(fakeGO as any, dt);
+
+    const sinY = Math.sin(cameraControls.yaw);
+    const cosY = Math.cos(cameraControls.yaw);
+    const sinP = Math.sin(cameraControls.pitch);
+    const cosP = Math.cos(cameraControls.pitch);
+    const forward = new Vec3(-sinY * cosP, -sinP, -cosY * cosP).normalize();
     const target = camPos.add(forward);
     const view = Mat4.lookAt(camPos, target, new Vec3(0, 1, 0));
     const aspect = renderContext.width / renderContext.height;

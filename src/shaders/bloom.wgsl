@@ -47,7 +47,7 @@ fn fs_prefilter(in: VertexOutput) -> @location(0) vec4<f32> {
   return vec4<f32>(c * weight, 1.0);
 }
 
-// 9-tap separable Gaussian, sigma ≈ 2.  Weights are normalised to sum 1.
+// 9-tap separable Gaussian, sigma ≈ 2.  Weights are normalized to sum 1.
 const W0: f32 = 0.20416;
 const W1: f32 = 0.18009;
 const W2: f32 = 0.12388;

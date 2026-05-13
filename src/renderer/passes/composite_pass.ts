@@ -102,7 +102,7 @@ export class CompositePass extends RenderPass {
    *
    * @param ctx - Active render context (provides device and swap-chain format).
    * @param hdrView - Post-bloom (or post-DOF/TAA) HDR scene texture.
-   * @param aoView - SSAO ambient-occlusion texture (used for debug visualisation).
+   * @param aoView - SSAO ambient-occlusion texture (used for debug visualization).
    * @param depthView - GBuffer depth32float view for world-position reconstruction and stars.
    * @param cameraBuffer - Shared `CameraUniforms` buffer (also used by lighting).
    * @param lightBuffer - Shared `LightUniforms` buffer (only the sun direction is read).

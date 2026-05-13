@@ -1,5 +1,5 @@
 // Shadow pass for prop billboards (flowers, grass, torches, etc.).
-// Expands each 6-vertex centre-point into a 1×1 quad using a right-axis supplied
+// Expands each 6-vertex center-point into a 1×1 quad using a right-axis supplied
 // via a per-call orient uniform.  Called twice per chunk — once with right=(1,0,0)
 // and once with right=(0,0,1) — to produce a cross-shaped shadow.
 

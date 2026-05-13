@@ -6,14 +6,14 @@
 // cs_adapt     : reads the 64-bin histogram, computes a weighted average
 //                log-luminance (skipping the darkest 5% and brightest 2% of
 //                samples), derives the target linear exposure that maps the
-//                average to 18% grey, then lerps the current exposure toward
+//                average to 18% gray, then lerps the current exposure toward
 //                that target with a time-constant controlled by adapt_speed.
 
 const NUM_BINS      : u32 = 64u;
 const LOG_LUM_MIN   : f32 = -10.0;   // log2 luminance range bottom (2^-10 ≈ 0.001)
 const LOG_LUM_MAX   : f32 =   6.0;   // log2 luminance range top   (2^6  = 64)
 const LOG_LUM_RANGE : f32 = 16.0;    // LOG_LUM_MAX - LOG_LUM_MIN
-const GREY_LOG2     : f32 = -2.474;  // log2(0.18) — target middle-grey point
+const GRAY_LOG2     : f32 = -2.474;  // log2(0.18) — target middle-grey point
 
 struct AutoExposureParams {
   dt          : f32,
@@ -46,7 +46,7 @@ fn cs_histogram(
   @builtin(global_invocation_id)    gid: vec3<u32>,
   @builtin(local_invocation_index)  lid: u32,
 ) {
-  // wg_hist is zero-initialised per WGSL spec — no explicit clear needed.
+  // wg_hist is zero-initialized per WGSL spec — no explicit clear needed.
 
   let size  = textureDimensions(hdr_tex);
   let coord = gid.xy * 4u;   // sample every 4th pixel in each dimension
@@ -104,9 +104,9 @@ fn cs_adapt(@builtin(local_invocation_index) lid: u32) {
   }
   if (cnt == 0u) { return; }
 
-  // target exposure = 0.18 / avg_lum  →  in log-space: GREY_LOG2 - avg_log
+  // target exposure = 0.18 / avg_lum  →  in log-space: GRAY_LOG2 - avg_log
   let avg_log    = sum_log / f32(cnt);
-  let target_ev  = clamp(GREY_LOG2 - avg_log,
+  let target_ev  = clamp(GRAY_LOG2 - avg_log,
                          log2(params.min_exposure),
                          log2(params.max_exposure));
   let target_exp = exp2(target_ev);

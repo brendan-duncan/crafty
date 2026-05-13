@@ -1,4 +1,4 @@
-var q=Object.defineProperty;var W=(f,l,r)=>l in f?q(f,l,{enumerable:!0,configurable:!0,writable:!0,value:r}):f[l]=r;var n=(f,l,r)=>W(f,typeof l!="symbol"?l+"":l,r);import{a as H}from"./render_pass-Cg-XJLDQ.js";import{H as M}from"./geometry_pass-BTG59YKQ.js";const Y=`// Physically based single-scattering atmosphere (Rayleigh + Mie).
+var q=Object.defineProperty;var W=(f,l,r)=>l in f?q(f,l,{enumerable:!0,configurable:!0,writable:!0,value:r}):f[l]=r;var n=(f,l,r)=>W(f,typeof l!="symbol"?l+"":l,r);import{a as H}from"./mesh-BZCnqQH3.js";import{H as M}from"./geometry_pass-DS4fVDMZ.js";const Y=`// Physically based single-scattering atmosphere (Rayleigh + Mie).
 // Reference: Nishita 1993, Preetham 1999, Hillaire 2020 (simplified).
 //
 // World units are metres.  The ground sits at y ≈ 0 so the camera is placed at
@@ -422,7 +422,7 @@ fn depth_load(uv: vec2<f32>) -> f32 {
   return textureLoad(depth_tex, coord, 0u);
 }
 
-// Gaussian half-kernel (centre..edge, index = abs(tap offset)).
+// Gaussian half-kernel (center..edge, index = abs(tap offset)).
 // Sum of symmetric 7-tap (±3) with these weights ≈ 1.
 const GAUSS: array<f32, 4> = array<f32, 4>(
   0.19638062, 0.17469900, 0.12161760, 0.06706740,

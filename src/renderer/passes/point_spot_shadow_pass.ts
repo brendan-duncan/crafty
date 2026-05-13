@@ -125,7 +125,7 @@ export class PointSpotShadowPass extends RenderPass {
   }
 
   /**
-   * Allocates the point and spot VSM textures, the projection texture array (initialised
+   * Allocates the point and spot VSM textures, the projection texture array (initialized
    * to white), temporary depth buffers, the per-pass shadow uniform pool, and both the
    * point and spot render pipelines.
    */

@@ -181,7 +181,7 @@ function modifierWgsl(mod: ModifierNode): string {
       const str = mod.strength.toFixed(6);
       // Solid-body rotation in XZ around the emitter's world position.
       // radial = offset from axis; tangent = 90° CCW rotation of radial.
-      // Force ∝ radius → constant angular acceleration, gentle near centre.
+      // Force ∝ radius → constant angular acceleration, gentle near center.
       return `{
   let vx_radial = p.position.xz - uniforms.world_pos.xz;
   p.velocity += vec3<f32>(-vx_radial.y, 0.0, vx_radial.x) * ${str} * uniforms.dt;

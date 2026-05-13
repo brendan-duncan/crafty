@@ -33,7 +33,7 @@ export interface BlockInteractionState {
 
   /**
    * Optional sink fired when a block is fully broken locally, used by the
-   * renderer to spawn block-debris particles at the block centre tinted with
+   * renderer to spawn block-debris particles at the block center tinted with
    * the block's atlas color.
    */
   onBlockBroken?: (x: number, y: number, z: number, blockType: BlockType) => void;

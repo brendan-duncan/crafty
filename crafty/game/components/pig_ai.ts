@@ -8,7 +8,7 @@ type PigState = 'idle' | 'wander';
 const _Y_AXIS = new Vec3(0, 1, 0);
 
 /**
- * Wandering NPC behaviour for pig GameObjects.
+ * Wandering NPC behavior for pig GameObjects.
  *
  * Implements a two-state machine (idle ↔ wander) plus gravity, ground
  * collision, head-bob animation on a 'Pig.Head' child GameObject, and yaw

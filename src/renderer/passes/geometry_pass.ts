@@ -74,7 +74,7 @@ export class GeometryPass extends RenderPass {
    *
    * @param ctx Active render context (provides the GPU device).
    * @param gbuffer Target G-buffer whose attachments will receive the rasterised output.
-   * @returns A fully initialised `GeometryPass`.
+   * @returns A fully initialized `GeometryPass`.
    */
   static create(ctx: RenderContext, gbuffer: GBuffer): GeometryPass {
     const { device } = ctx;

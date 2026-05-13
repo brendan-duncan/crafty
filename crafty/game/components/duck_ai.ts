@@ -9,7 +9,7 @@ type DuckState = 'idle' | 'wander' | 'flee';
 const _Y_AXIS = new Vec3(0, 1, 0);
 
 /**
- * Simple wandering NPC behaviour for duck GameObjects.
+ * Simple wandering NPC behavior for duck GameObjects.
  *
  * Implements a three-state machine (idle → wander → flee) plus gravity,
  * water-surface flotation against the {@link World}, head-bob animation on a

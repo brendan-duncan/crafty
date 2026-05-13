@@ -129,7 +129,7 @@ fn vs_camera(
 
 @fragment
 fn fs_snow(in: VertexOutput) -> @location(0) vec4<f32> {
-  // Soft circular disc with radial falloff from centre.
+  // Soft circular disc with radial falloff from center.
   let uv = in.uv * 2.0 - 1.0;
   let d2 = dot(uv, uv);
   if (d2 > 1.0) { discard; }

@@ -195,7 +195,7 @@ export class PlayerController {
     if (this.inputStrafe  !== 0) { mx += cosY * this.inputStrafe;  mz -= sinY * this.inputStrafe;  }
     const hLen = Math.sqrt(mx * mx + mz * mz);
     if (hLen > 0) {
-      // Cap analog magnitude to 1 (joystick should normalise) but allow keys to fall back to
+      // Cap analog magnitude to 1 (joystick should normalize) but allow keys to fall back to
       // unit length naturally — use 1/max(hLen, 1) so unit-length keyboard input stays full speed.
       const norm = 1 / Math.max(hLen, 1);
       mx = mx * norm * speed;

@@ -198,7 +198,7 @@ async function main(): Promise<void> {
   canvas.addEventListener('click', _initAudio);
   canvas.addEventListener('touchend', _initAudio);
 
-  // Mobile / touch controls — initialised on the first real `touchstart` event,
+  // Mobile / touch controls — initialized on the first real `touchstart` event,
   // which is more reliable than capability detection on some browsers / webviews.
   setupTouchControlsLazy(canvas, {
     player,

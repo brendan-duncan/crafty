@@ -60,7 +60,7 @@ export async function loadBlockColors(atlasUrl: string): Promise<void> {
 
 /**
  * Returns the cached average linear-RGB color of `blockType`'s top-face tile.
- * Falls back to a neutral grey if the atlas wasn't loaded or the block has no
+ * Falls back to a neutral gray if the atlas wasn't loaded or the block has no
  * sampled color (e.g. air, props with all-transparent tiles).
  */
 export function getBlockColor(blockType: BlockType): [number, number, number] {

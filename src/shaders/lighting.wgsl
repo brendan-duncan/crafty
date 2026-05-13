@@ -146,7 +146,7 @@ struct LightUniforms {
   cascadeSplits     : vec4<f32>,
   shadowsEnabled    : u32,
   debugCascades     : u32,
-  cloudShadowOrigin : vec2<f32>,  // world-space XZ centre of cloud shadow map
+  cloudShadowOrigin : vec2<f32>,  // world-space XZ center of cloud shadow map
   cloudShadowExtent  : f32,        // half-size in world units (covers ±extent)
   shadowSoftness     : f32,        // PCSS light-size factor (~0.02)
   _pad_light         : vec2<f32>,  // padding to align cascadeDepthRanges to 16 bytes (offset 336)

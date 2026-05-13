@@ -108,7 +108,7 @@ const CRACK_ATLAS_STAGES  : f32 = 9.0;
 fn crack_alpha(local: vec3<f32>, stage: f32) -> f32 {
   if (stage < 0.5) { return 0.0; }
 
-  // Pick the dominant face axis (largest distance from block centre = the face
+  // Pick the dominant face axis (largest distance from block center = the face
   // the fragment lies on) and derive 0..1 face UV from the other two axes.
   let dx = abs(local.x - 0.5);
   let dy = abs(local.y - 0.5);

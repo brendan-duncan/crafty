@@ -1,4 +1,4 @@
-var g=Object.defineProperty;var _=(s,i,t)=>i in s?g(s,i,{enumerable:!0,configurable:!0,writable:!0,value:t}):s[i]=t;var a=(s,i,t)=>_(s,typeof i!="symbol"?i+"":i,t);import{a as x}from"./render_pass-Cg-XJLDQ.js";import{H as b}from"./geometry_pass-BTG59YKQ.js";const h=`// Sky pass — fullscreen triangle rendering an equirectangular HDR skybox.
+var g=Object.defineProperty;var _=(s,i,t)=>i in s?g(s,i,{enumerable:!0,configurable:!0,writable:!0,value:t}):s[i]=t;var a=(s,i,t)=>_(s,typeof i!="symbol"?i+"":i,t);import{a as x}from"./mesh-BZCnqQH3.js";import{H as b}from"./geometry_pass-DS4fVDMZ.js";const h=`// Sky pass — fullscreen triangle rendering an equirectangular HDR skybox.
 // Texture is pre-decoded to rgba16float so bilinear filtering works in linear HDR space.
 
 const PI: f32 = 3.14159265358979323846;

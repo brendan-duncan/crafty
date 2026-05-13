@@ -247,7 +247,7 @@ export class RenderContext {
   }
 
   /**
-   * Convenience method to create a 1x1 cubemap texture with a neutral grey color, used as a fallback when IBL textures fail to load.
+   * Convenience method to create a 1x1 cubemap texture with a neutral gray color, used as a fallback when IBL textures fail to load.
    */
   createDefaultCubemap(): GPUTexture {
     const tex = this.device.createTexture({

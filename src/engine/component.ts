@@ -16,7 +16,7 @@ export abstract class Component {
 
   /**
    * Called once when the component is added to a GameObject. Override to
-   * acquire references to siblings/children or initialise resources.
+   * acquire references to siblings/children or initialize resources.
    */
   onAttach(): void {}
 
