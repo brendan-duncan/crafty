@@ -171,7 +171,6 @@ This book is a work in progress.  Chapters are added as the engine evolves.
   - 7.6 The BRDF
   - 7.7 The Deferred Lighting Pass
   - 7.8 The Forward Lighting Path
-    - Forward+ (Tiled Shading)
   - 7.9 GPU-Based IBL Pre-Computation
     - BRDF LUT (CPU)
     - Irradiance Map (GPU Compute)
