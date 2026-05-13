@@ -680,7 +680,7 @@ RenderGraph  ─── owns ───►  RenderPass[]
 3. **Resize.** On canvas resize, the canvas pixel dimensions are updated and the graph is re-created (passes that depend on canvas size, like the GBuffer, reallocate their textures).
 4. **Destroy.** `RenderGraph.destroy()` calls `destroy()` on every pass, and the render context itself is discarded.
 
-### Summary
+### 3.11 Summary
 
 In this chapter we covered every major WebGPU resource type and saw how Crafty uses them:
 

@@ -564,7 +564,7 @@ Terrain generation combines multiple octaves of `perlinFbmNoise3` with elevation
 
 The noise functions operate on 3D coordinates, which allows overhangs and caves — a key advantage over 2D heightmap-based approaches.
 
-### Summary
+### 2.8 Summary
 
 The math library provides the foundation for everything that follows. Every vertex transform, every camera motion, every light calculation, and every procedural generation step builds on these types. The conventions are consistent throughout:
 

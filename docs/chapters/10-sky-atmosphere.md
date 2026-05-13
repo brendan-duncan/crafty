@@ -436,7 +436,7 @@ hdrColor += godrayColor * intensity;
 
 The sun screen position, density, decay, and intensity are configurable parameters that produce different godray effects — from subtle shafts to dramatic crepuscular rays.
 
-### Summary
+### 10.10 Summary
 
 The sky and atmosphere system combines several layered techniques:
 

@@ -60,7 +60,7 @@ The rendering techniques covered in this book — deferred shading, PBR, CSM, TA
 
 The source code at `https://github.com/brendan-duncan/crafty` will continue to evolve. The book will be updated as new features are added. Contributions, issues, and forks are welcome.
 
-### Summary
+### 23.6 Summary
 
 Crafty's future directions and closing reflections:
 

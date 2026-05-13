@@ -127,7 +127,7 @@ class WorldRepository {
 
 Auto-save runs every 30 seconds, writing only the chunks that have been modified since the last save. The server also saves on graceful shutdown.
 
-### Summary
+### 19.6 Summary
 
 The multiplayer architecture uses WebSockets with a dedicated Node.js server:
 

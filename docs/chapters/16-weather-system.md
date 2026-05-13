@@ -232,7 +232,7 @@ export interface HudElements {
 }
 ```
 
-### Summary
+### 16.8 Summary
 
 The weather system provides dynamic environmental variation:
 

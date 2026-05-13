@@ -118,7 +118,7 @@ class MusicPlayer {
 
 Ambient sounds (wind, birds, water near rivers) use spatial audio sources positioned at relevant locations in the world. Multiple ambient sources fade based on the player's proximity to biomes and features.
 
-### Summary
+### 17.5 Summary
 
 The audio system uses the Web Audio API for spatial and ambient sound:
 

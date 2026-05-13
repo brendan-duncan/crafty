@@ -143,7 +143,7 @@ The project uses GitHub Actions for CI. The workflow:
 
 The CI pipeline does not run visual tests (no WebGPU in CI environments). Visual regression testing is done manually through the sample framework.
 
-### Summary
+### 22.6 Summary
 
 The tooling and workflow infrastructure includes:
 

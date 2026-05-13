@@ -295,7 +295,7 @@ canvas.height = canvas.clientHeight * devicePixelRatio;
 
 All passes that depend on canvas size (GBuffer, HDR texture, SSAO textures, etc.) are destroyed and re-created. The render graph is rebuilt with the same pass structure but new resource sizes.
 
-### Summary
+### 4.7 Summary
 
 The render graph architecture is deliberately minimal. There is no automatic dependency tracking or barrier management. Instead, passes are ordered explicitly and agree on a shared resource convention:
 

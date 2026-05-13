@@ -555,7 +555,7 @@ A `copyTextureToTexture` copies the final result texture into the history textur
 
 These are exposed through the `SSGISettings` interface and can be adjusted at runtime via `SSGIPass.updateSettings()`.
 
-## Summary
+## 7.12 Summary
 
 Lighting is a composition of several systems:
 

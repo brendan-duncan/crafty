@@ -141,7 +141,7 @@ function placeBlock(hit: BlockHit, blockType: BlockType) {
   }
 }
 
-### Summary
+### 14.5 Summary
 
 The physics and interaction system is deliberately minimal for a creative-mode voxel game:
 

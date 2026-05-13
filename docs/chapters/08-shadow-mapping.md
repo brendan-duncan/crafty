@@ -316,7 +316,7 @@ The penumbra estimation runs in world units and is converted to per-cascade texe
 
 Crafty applies PCSS to the directional sun light's cascaded shadow maps. The `shadowSoftness` parameter is exposed through the settings UI (`effect_settings.ts`), giving the player control over how quickly shadows transition from sharp to soft.
 
-### Summary
+### 8.9 Summary
 
 | Technique | Used for | Texture | Resolution | Filtering |
 |-----------|----------|---------|------------|-----------|

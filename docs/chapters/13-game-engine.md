@@ -351,7 +351,7 @@ During gameplay, the world record is updated periodically (every ~5 seconds) thr
 
 The start screen uses `storage.list()` to populate the saved-world selector and `storage.delete()` to remove worlds, with the screenshot Blob providing a visual thumbnail for each entry.
 
-### Summary
+### 13.10 Summary
 
 The game engine layer provides:
 

@@ -373,7 +373,7 @@ struct CameraUniforms {
 
 Each `Material` subclass returns complete WGSL source from `getShaderCode()`, which may concatenate shared code with specific implementations. Reinventing this per material avoids the complexity of a full shader include system while keeping the shader source self-contained.
 
-### Summary
+### 6.7 Summary
 
 The material system decouples surface appearance from the renderer:
 

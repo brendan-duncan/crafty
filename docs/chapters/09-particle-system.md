@@ -453,7 +453,7 @@ export const snowConfig: ParticleGraphConfig = {
 
 Snow uses camera-facing billboards (soft discs), very slow fall speed (gravity 1.5 m/s², high drag), long lifetimes (30–45 seconds), and curl noise turbulence for drifting motion.
 
-### Summary
+### 9.12 Summary
 
 The GPU-driven particle system features:
 

@@ -157,7 +157,7 @@ Crafty does not implement server-side rewind (lag compensation) for block intera
 
 This approach is sufficient for a creative-mode voxel game where precise frame-perfect interaction timing is not critical.
 
-### Summary
+### 20.7 Summary
 
 Multiplayer gameplay builds on the network architecture with:
 

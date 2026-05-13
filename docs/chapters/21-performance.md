@@ -157,7 +157,7 @@ class TextureCache {
 }
 ```
 
-### Summary
+### 21.7 Summary
 
 Performance optimization techniques used throughout Crafty:
 

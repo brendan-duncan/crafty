@@ -249,7 +249,7 @@ The tint absorbs red light preferentially (0.20× red vs 0.90× blue), mimicking
 
 The `is_underwater` flag is set per-frame by the game code when the camera position is below the water surface, and `uw_time` provides the animation time for the distortion.
 
-### Summary
+### 12.8 Summary
 
 Post-processing transforms the raw HDR render into the final image. The diagram below shows how the passes chain together — every post-FX stage reads from and writes back to the HDR target until the composite pass produces SDR output for the swap chain:
 

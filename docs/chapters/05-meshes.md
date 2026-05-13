@@ -522,7 +522,7 @@ skeleton = new Skeleton(parentIndices, invBindMats, restT, restR, restS, rootTra
 
 Animation channels are grouped into `AnimationClip` objects, each containing per-joint keyframe sequences with configurable interpolation (LINEAR, STEP, CUBICSPLINE). The loader returns all parsed resources in a `GltfModel` object that owns the GPU buffers — the caller must call `model.destroy()` to release them.
 
-### Summary
+### 5.8 Summary
 
 The mesh system is self-contained and minimal:
 

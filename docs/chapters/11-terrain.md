@@ -393,7 +393,7 @@ const _WALL_L1: number[][] = [
 
 Currently, all houses use `SPRUCE_PLANKS` for structure and `GLASS` for windows.
 
-### Summary
+### 11.12 Summary
 
 The voxel terrain system features:
 

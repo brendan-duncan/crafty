@@ -101,7 +101,7 @@ The block manager UI (`crafty/ui/block_manager.ts`) allows the player to select 
 
 In creative mode, all block types are available. In survival mode, only blocks the player has collected are shown. The selected slot determines which block is placed on right-click.
 
-### Summary
+### 18.6 Summary
 
 The UI follows a hybrid approach combining DOM and GPU-rendered elements:
 

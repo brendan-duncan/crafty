@@ -770,7 +770,7 @@ Future NPC types could include:
 
 Each new type follows the same pattern: a state machine + `Component.update()` + `World` queries, with visual variety provided by different meshes, animations, and parameter tuning.
 
-### Summary
+### 15.13 Summary
 
 The NPC AI system demonstrates several patterns:
 
