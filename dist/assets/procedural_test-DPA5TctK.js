@@ -1,4 +1,4 @@
-var ne=Object.defineProperty;var te=(r,a,e)=>a in r?ne(r,a,{enumerable:!0,configurable:!0,writable:!0,value:e}):r[a]=e;var t=(r,a,e)=>te(r,typeof a!="symbol"?a+"":a,e);import{R as oe,d as b,C as re,e as ae,c,f as o}from"./shadow-BM2sdFPi.js";import{F as ie,D as se}from"./directional_shadow_pass-Dv9yyiQm.js";const le=`// Forward procedural shader — custom material demo
+var ne=Object.defineProperty;var te=(r,a,e)=>a in r?ne(r,a,{enumerable:!0,configurable:!0,writable:!0,value:e}):r[a]=e;var t=(r,a,e)=>te(r,typeof a!="symbol"?a+"":a,e);import{R as oe,d as b,C as re,f as ae,c,e as o}from"./shadow-u1qNz1eJ.js";import{F as ie,D as se}from"./directional_shadow_pass-DLF7vZ60.js";const le=`// Forward procedural shader — custom material demo
 // Uses the forward renderer's lighting infrastructure (groups 0,1,3)
 // with a procedurally generated animated pattern in the fragment shader.
 

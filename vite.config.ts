@@ -19,6 +19,7 @@ export default defineConfig({
         cascade_shadow_test: 'samples/cascade_shadow_test.html',
         forward_test: 'samples/forward_test.html',
         procedural_test: 'samples/procedural_test.html',
+        animal_test: 'samples/animal_test.html',
       }
     }
   },
