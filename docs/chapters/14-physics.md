@@ -36,6 +36,46 @@ The player controller implements a simplified **collide-and-slide** algorithm:
 
 Gravity is constant at `-20 m/s²` (slightly higher than Earth's `-9.8` for a more responsive feel). Ground friction slows horizontal movement when the player is standing on a block.
 
+### Coyote Time and Variable Jump Height
+
+Two interrelated mechanics make jumping feel responsive even with imperfect input timing:
+
+**Coyote time** gives a short grace window (~100 ms) after the player walks off a ledge during which a jump still succeeds. This prevents the frustration of pressing jump a frame too late after stepping off an edge:
+
+```typescript
+// Coyote timer: refreshed on landing, counts down while airborne
+if (landed) {
+  this._coyoteFrames = 6;
+} else if (!inWater) {
+  this._coyoteFrames = Math.max(0, this._coyoteFrames - 1);
+}
+
+// Jump triggers on ground OR within the coyote window
+if (jumpHeld && (this._onGround || this._coyoteFrames > 0)) {
+  this._velY        = JUMP_VEL;
+  this._coyoteFrames = 0;
+}
+```
+
+The counter is refreshed to 6 frames whenever the player is grounded and decrements only while airborne (and not in water). This gives a consistent ~100 ms at 60 FPS where a late jump press still connects.
+
+**Variable jump height** emerges naturally from the single-impulse jump model: the initial upward velocity (`JUMP_VEL = 11.5 blocks/s`, peak ~2.36 blocks) is applied once on the frame the jump triggers. Because the player is airborne immediately after, releasing the jump button has no further effect — gravity decelerates the ascent at `GRAVITY = -28 blocks/s²` and the player begins descending. The perceived height varies because:
+
+- The player can choose to jump early (near the edge) or late (deep in the coyote window), changing the height at which the jump occurs relative to the ground below.
+- Holding Space through the coyote window lets the player jump from the last possible moment, preserving maximum height even after a mistimed dismount.
+
+The auto-jump system augments this for mobile: when walking into a 1-block-high obstacle with air above it, a velocity of `AUTO_JUMP_VEL = 8.0 blocks/s` is applied automatically, stepping the player onto the block without explicit input:
+
+```typescript
+if (this.autoJump && this._onGround && hSpeed > 0.5) {
+  const aheadX = Math.floor(fx + dx * (HALF_W + 0.3));
+  const aheadZ = Math.floor(fz + dz * (HALF_W + 0.3));
+  if (this._isSolid(aheadX, footY, aheadZ) && !this._isSolid(aheadX, footY + 1, aheadZ)) {
+    this._velY = AUTO_JUMP_VEL;
+  }
+}
+```
+
 ## 14.3 Block Ray Casting
 
 ![DDA stepping through voxels (cells 1 → 6) until hitting a solid block, returning both the block coords and the face normal](../illustrations/14-block-raycast.svg)

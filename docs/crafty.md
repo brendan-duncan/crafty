@@ -308,6 +308,7 @@ This book is a work in progress.  Chapters are added as the engine evolves.
 - [Chapter 14: Physics and Interaction](chapters/14-physics.md)
   - 14.1 Collision Detection (AABB)
   - 14.2 Player Movement and Gravity
+    - Coyote Time and Variable Jump Height
   - 14.3 Block Ray Casting
   - 14.4 Block Interaction
 
