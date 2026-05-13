@@ -579,11 +579,7 @@ async execute(ctx: RenderContext): Promise<void> {
 
 ## 3.10 Render Passes
 
-A **render pass** is the fundamental unit of rendering work in WebGPU. Everything visible on screen — geometry, lighting, post-processing — is the product of one or more render passes executed in sequence. Understanding render passes in depth is essential because every pixel you produce flows through one.
-
-### What a Render Pass Is
-
-A render pass records a set of draw calls that write into a fixed collection of **attachments** — textures that serve as the render targets for that pass. The pass begins by declaring those attachments and specifying load and store behavior for each one. It then records state changes (pipeline, bind groups, vertex and index buffers) and draw calls. When the pass ends, the GPU executes every recorded command against those attachments.
+A **render pass** records a set of draw calls that write into a fixed collection of **attachments** — textures that serve as the render targets for that pass. The pass begins by declaring those attachments and specifying load and store behavior for each one. It then records state changes (pipeline, bind groups, vertex and index buffers) and draw calls. When the pass ends, the GPU executes every recorded command against those attachments.
 
 Conceptually, a render pass is a transaction: you declare what surfaces you are drawing into, you specify the starting and ending states of those surfaces, and you submit draw commands. The GPU processes the entire pass before the next pass can read from the same surfaces.
 
@@ -777,8 +773,6 @@ Crafty uses indexed drawing (via `drawIndexed`) for all triangle meshes. Non-ind
 ## 3.11 Compute Passes
 
 While render passes produce pixel output, **compute passes** run general-purpose GPU programs that operate on arbitrary data. A compute pass has no rasterizer, no attachments, and no fixed-function pipeline stages — just a compute shader dispatched over a grid of work items.
-
-### What a Compute Pass Is
 
 A compute pass is created with `encoder.beginComputePass()` and records one or more `dispatchWorkgroups()` calls against a bound compute pipeline:
 
@@ -984,20 +978,7 @@ passB.dispatchWorkgroups(...);
 passB.end();
 ```
 
-### Crafty's Compute Uses
-
-Crafty uses compute passes in three areas:
-
-**Particle simulation.** The particle system runs two compute passes each frame: one that emits new particles into a ring buffer and one that updates position, velocity, and lifetime for all live particles. The updated particle data feeds directly into the render pass as a storage buffer read by the vertex shader.
-
-**Auto-exposure.** The auto-exposure system dispatches two compute passes. The first builds a luminance histogram over the HDR color attachment (a 256-bin buffer, one bin per luminance level). The second reduces the histogram to a single average luminance value and uses it to update the exposure target buffer. The lighting pass's tone mapping reads that buffer to scale the HDR signal for display.
-
-**Temporal SSGI.** The screen-space global illumination pass uses a compute shader to accumulate and filter indirect lighting samples over multiple frames, writing the result into a storage texture that the final compositing pass blends into the frame.
-
-In each case, the compute pass writes into a buffer or texture via storage bindings, and a subsequent render pass reads from that same resource as a `TEXTURE_BINDING` or `STORAGE` buffer — with WebGPU's automatic cross-pass synchronization ensuring the data is ready.
-
-
-## 3.12 Copy Operations
+### Copy Operations
 
 The command encoder also supports copy operations. For example, copying the results of a compute shader into a storage buffer for indirect draw:
 
