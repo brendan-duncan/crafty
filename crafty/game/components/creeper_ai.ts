@@ -4,6 +4,8 @@ import { Component } from '../../../src/engine/component.js';
 import { Scene } from '../../../src/engine/scene.js';
 import { MeshRenderer } from '../../../src/engine/components/mesh_renderer.js';
 import { PbrMaterial } from '../../../src/renderer/materials/pbr_material.js';
+import { NPCEntity } from '../npc_entity.js';
+import { Creeper } from '../entities/creeper_entity.js';
 import type { World } from '../../../src/block/world.js';
 
 type CreeperState = 'idle' | 'wander' | 'chase' | 'detonate';
@@ -22,10 +24,6 @@ const CREEPER_GREEN: [number, number, number, number] = [0.37, 0.82, 0.22, 1];
 const FLASH_WHITE: [number, number, number, number] = [0.95, 0.45, 0.45, 1];
 
 export class CreeperAI extends Component {
-  static playerPos: Vec3 = new Vec3(0, 0, 0);
-  static onExplode: ((x: number, y: number, z: number) => void) | null = null;
-  static onBlockDestroyed: ((x: number, y: number, z: number) => void) | null = null;
-
   private _world: World;
   private _scene: Scene;
   private _state: CreeperState = 'idle';
@@ -56,7 +54,7 @@ export class CreeperAI extends Component {
     const gx = go.position.x;
     const gz = go.position.z;
 
-    const player = CreeperAI.playerPos;
+    const player = NPCEntity.playerPos;
     const dpx = player.x - gx;
     const dpz = player.z - gz;
     const playerDist2 = dpx * dpx + dpz * dpz;
@@ -203,14 +201,14 @@ export class CreeperAI extends Component {
     const cy = Math.floor(go.position.y);
     const cz = Math.floor(go.position.z);
 
-    CreeperAI.onExplode?.(go.position.x, go.position.y, go.position.z);
+    Creeper.onExplode?.(go.position.x, go.position.y, go.position.z);
 
     const r = EXPLOSION_RADIUS;
     for (let dx = -r; dx <= r; dx++) {
       for (let dy = -r; dy <= r; dy++) {
         for (let dz = -r; dz <= r; dz++) {
           if (dx * dx + dy * dy + dz * dz <= r * r) {
-            CreeperAI.onBlockDestroyed?.(cx + dx, cy + dy, cz + dz);
+            Creeper.onBlockDestroyed?.(cx + dx, cy + dy, cz + dz);
             this._world.mineBlock(cx + dx, cy + dy, cz + dz);
           }
         }

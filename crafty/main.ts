@@ -20,13 +20,11 @@ import { BlockTexture } from '../src/assets/block_texture.js';
 import { World, BiomeType, BlockType, EnvironmentEffect, getBiomeCloudBounds, isBlockWater } from '../src/block/index.js';
 import type { Chunk, ChunkMesh } from '../src/block/index.js';
 import type { DrawItem } from '../src/renderer/passes/geometry_pass.js';
-import { createDuckBodyMesh, createDuckHeadMesh, createDuckBillMesh } from './game/assets/duck_mesh.js';
-import { createPigBodyMesh, createPigHeadMesh, createPigSnoutMesh } from './game/assets/pig_mesh.js';
-import { createCreeperBodyMesh, createCreeperHeadMesh } from './game/assets/creeper_mesh.js';
-import { createBeeBodyMesh, createBeeStripeMesh, createBeeHeadMesh, createBeeEyeMesh, createBeeWingMesh } from './game/assets/bee_mesh.js';
-import { DuckAI } from './game/components/duck_ai.js';
-import { CreeperAI } from './game/components/creeper_ai.js';
-import { BeeAI } from './game/components/bee_ai.js';
+import { NPCEntity } from './game/npc_entity.js';
+import { Duck, Duckling } from './game/entities/duck_entity.js';
+import { Pig } from './game/entities/pig_entity.js';
+import { Creeper } from './game/entities/creeper_entity.js';
+import { Bee } from './game/entities/bee_entity.js';
 import { MeshRenderer } from '../src/engine/index.js';
 import { PointLight } from '../src/engine/index.js';
 import { SpotLight } from '../src/engine/components/spot_light.js';
@@ -235,7 +233,7 @@ async function main(): Promise<void> {
     );
     passes = newPasses;
     camera.aspect = ctx.width / ctx.height;
-    CreeperAI.onExplode = (x, y, z) => {
+    Creeper.onExplode = (x, y, z) => {
       passes.explosionPass?.burst({ x, y, z }, [1, 0.4, 0.05, 1], 80);
     };
   }
@@ -258,29 +256,15 @@ async function main(): Promise<void> {
     audio.playDig(surface, new Vec3(x + 0.5, y + 0.5, z + 0.5));
   };
 
-  // Register animal spawning on chunk load — must happen before world.update
-  // so the initial bulk-load also populates animals near the spawn point.
-  setupAnimalSpawning(world, scene, {
-    duckBody:    createDuckBodyMesh(device),
-    duckHead:    createDuckHeadMesh(device),
-    duckBill:    createDuckBillMesh(device),
-    ducklingBody: createDuckBodyMesh(device, 0.5),
-    ducklingHead: createDuckHeadMesh(device, 0.5),
-    ducklingBill: createDuckBillMesh(device, 0.5),
-    pigBody:     createPigBodyMesh(device, 1.0),
-    pigHead:     createPigHeadMesh(device, 1.0),
-    pigSnout:    createPigSnoutMesh(device, 1.0),
-    babyPigBody:  createPigBodyMesh(device, 0.55),
-    babyPigHead:  createPigHeadMesh(device, 0.55),
-    babyPigSnout: createPigSnoutMesh(device, 0.55),
-    creeperBody:  createCreeperBodyMesh(device),
-    creeperHead:  createCreeperHeadMesh(device),
-    beeBody:      createBeeBodyMesh(device),
-    beeStripe:    createBeeStripeMesh(device),
-    beeHead:      createBeeHeadMesh(device),
-    beeEye:       createBeeEyeMesh(device),
-    beeWing:      createBeeWingMesh(device),
-  });
+  // Initialise shared animal meshes and register spawning on chunk load —
+  // must happen before world.update so the initial bulk-load also populates
+  // animals near the spawn point.
+  Duck.initMeshes(device);
+  Duckling.initMeshes(device);
+  Pig.initMeshes(device);
+  Creeper.initMeshes(device);
+  Bee.initMeshes(device);
+  setupAnimalSpawning(world, scene);
 
   setupVillageGeneration(world);
 
@@ -299,7 +283,7 @@ async function main(): Promise<void> {
         for (let z = 0; z < CD; z++) {
           const bt = chunk.getBlock(x, y, z);
           if (bt === BlockType.FLOWER) {
-            BeeAI.flowerPositions.add(`${ox + x}:${oy + y}:${oz + z}`);
+            Bee.flowerPositions.add(`${ox + x}:${oy + y}:${oz + z}`);
           }
         }
       }
@@ -308,12 +292,12 @@ async function main(): Promise<void> {
 
   world.onBlockSet = (wx, wy, wz, blockType) => {
     if (blockType === BlockType.FLOWER) {
-      BeeAI.flowerPositions.add(`${wx}:${wy}:${wz}`);
+      Bee.flowerPositions.add(`${wx}:${wy}:${wz}`);
     }
   };
   world.onBlockBeforeRemove = (wx, wy, wz, blockType) => {
     if (blockType === BlockType.FLOWER) {
-      BeeAI.flowerPositions.delete(`${wx}:${wy}:${wz}`);
+      Bee.flowerPositions.delete(`${wx}:${wy}:${wz}`);
     }
   };
 
@@ -467,7 +451,7 @@ async function main(): Promise<void> {
         network.sendBlockBreak(edit.x, edit.y, edit.z);
       }
     };
-    CreeperAI.onBlockDestroyed = (x, y, z) => {
+    Creeper.onBlockDestroyed = (x, y, z) => {
       _stashEdit({ kind: 'break', x, y, z, blockType: 0 });
       network.sendBlockBreak(x, y, z);
     };
@@ -495,7 +479,7 @@ async function main(): Promise<void> {
       _stashEdit(wireEdit);
       saveDirty = true;
     };
-    CreeperAI.onBlockDestroyed = (x, y, z) => {
+    Creeper.onBlockDestroyed = (x, y, z) => {
       const wireEdit: BlockEdit = { kind: 'break', x, y, z, blockType: 0 };
       for (let i = savedWorld.edits.length - 1; i >= 0; i--) {
         const [ex, ey, ez] = _placedCoords(savedWorld.edits[i]);
@@ -889,15 +873,7 @@ async function main(): Promise<void> {
       _forward.z = -Math.cos(yaw) * cp;
       audio.updateListener(camPos, _forward, _upVec);
     }
-    DuckAI.playerPos.x = camPos.x;
-    DuckAI.playerPos.y = camPos.y;
-    DuckAI.playerPos.z = camPos.z;
-    CreeperAI.playerPos.x = camPos.x;
-    CreeperAI.playerPos.y = camPos.y;
-    CreeperAI.playerPos.z = camPos.z;
-    BeeAI.playerPos.x = camPos.x;
-    BeeAI.playerPos.y = camPos.y;
-    BeeAI.playerPos.z = camPos.z;
+    NPCEntity.playerPos.set(camPos.x, camPos.y, camPos.z);
 
     if (network !== null && network.connected) {
       network.sendTransform(camPos.x, camPos.y, camPos.z, player.yaw, player.pitch);

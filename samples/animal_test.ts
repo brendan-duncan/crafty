@@ -1,9 +1,9 @@
-import { Mat4, Vec3, Quaternion } from '../src/math/index.js';
+import { Mat4, Vec3 } from '../src/math/index.js';
 import { ForwardPass } from '../src/renderer/passes/forward_pass.js';
 import type { ForwardDrawItem } from '../src/renderer/passes/forward_pass.js';
 import { DirectionalShadowPass } from '../src/renderer/passes/directional_shadow_pass.js';
 import type { DirectionalShadowDrawItem } from '../src/renderer/passes/directional_shadow_pass.js';
-import { RenderContext } from '../src/renderer/render_context.js';
+import { RenderContext, RenderGraph } from '../src/renderer/index.js';
 import { CameraControls } from '../src/engine/camera_controls.js';
 import { Scene } from '../src/engine/scene.js';
 import { GameObject } from '../src/engine/game_object.js';
@@ -11,297 +11,69 @@ import { MeshRenderer } from '../src/engine/components/mesh_renderer.js';
 import { PbrMaterial } from '../src/renderer/materials/pbr_material.js';
 import { Mesh } from '../src/assets/mesh.js';
 import { BlockType } from '../src/block/block_type.js';
-import { DuckAI } from '../crafty/game/components/duck_ai.js';
-import { PigAI } from '../crafty/game/components/pig_ai.js';
-import { CreeperAI } from '../crafty/game/components/creeper_ai.js';
-import { BeeAI } from '../crafty/game/components/bee_ai.js';
-import { createDuckBodyMesh, createDuckHeadMesh, createDuckBillMesh } from '../crafty/game/assets/duck_mesh.js';
-import { createPigBodyMesh, createPigHeadMesh, createPigSnoutMesh } from '../crafty/game/assets/pig_mesh.js';
-import { createCreeperBodyMesh, createCreeperHeadMesh } from '../crafty/game/assets/creeper_mesh.js';
-import { createBeeBodyMesh, createBeeStripeMesh, createBeeHeadMesh, createBeeEyeMesh, createBeeWingMesh } from '../crafty/game/assets/bee_mesh.js';
-
-interface HeadBob {
-  go: GameObject;
-  baseY: number;
-  phase: number;
-}
-
-interface BeeWings {
-  wingL: GameObject;
-  wingR: GameObject;
-  phase: number;
-}
-
-interface BeeHover {
-  root: GameObject;
-  phase: number;
-}
+import { BiomeType } from '../src/block/biome_type.js';
+import { Duck, Duckling } from '../crafty/game/entities/duck_entity.js';
+import { Pig } from '../crafty/game/entities/pig_entity.js';
+import { Creeper } from '../crafty/game/entities/creeper_entity.js';
+import { Bee } from '../crafty/game/entities/bee_entity.js';
 
 interface AnimationState {
   roots: GameObject[];
-  headBobs: HeadBob[];
-  beeWings: BeeWings | null;
-  beeHover: BeeHover | null;
 }
 
 const PLANE_Y = 0;
 
 class MockWorld {
   getTopBlockY(_wx: number, _wz: number, _maxY: number): number {
-    return PLANE_Y;
+    return PLANE_Y + 1;
   }
   getBlockType(_wx: number, _wy: number, _wz: number): number {
     return BlockType.NONE;
+  }
+  getBiomeAt(_wx: number, _wy: number, _wz: number): BiomeType {
+    return BiomeType.GrassyPlains;
   }
   mineBlock(_wx: number, _wy: number, _wz: number): boolean {
     return false;
   }
 }
 
-function buildDuck(device: GPUDevice, scene: Scene, world: MockWorld): AnimationState {
-  const duckBodyMesh = createDuckBodyMesh(device);
-  const duckHeadMesh = createDuckHeadMesh(device);
-  const duckBillMesh = createDuckBillMesh(device);
-
-  const root = new GameObject('Duck');
-  root.position.set(0.5, PLANE_Y, 0.5);
-
-  const bodyGO = new GameObject('Duck.Body');
-  bodyGO.position.set(0, 0.15, 0);
-  bodyGO.addComponent(new MeshRenderer(duckBodyMesh, new PbrMaterial({ albedo: [0.93, 0.93, 0.93, 1], roughness: 0.9 })));
-  root.addChild(bodyGO);
-
-  const headGO = new GameObject('Duck.Head');
-  headGO.position.set(0, 0.32, -0.12);
-  headGO.addComponent(new MeshRenderer(duckHeadMesh, new PbrMaterial({ albedo: [0.08, 0.32, 0.10, 1], roughness: 0.9 })));
-  root.addChild(headGO);
-
-  const billGO = new GameObject('Duck.Bill');
-  billGO.position.set(0, 0.27, -0.205);
-  billGO.addComponent(new MeshRenderer(duckBillMesh, new PbrMaterial({ albedo: [1.0, 0.55, 0.05, 1], roughness: 0.8 })));
-  root.addChild(billGO);
-
-  root.addComponent(new DuckAI(world as any));
-  scene.add(root);
-
-  return {
-    roots: [root],
-    headBobs: [{ go: headGO, baseY: headGO.position.y, phase: Math.random() * Math.PI * 2 }],
-    beeWings: null,
-    beeHover: null,
-  };
+function buildDuck(scene: Scene, world: MockWorld): AnimationState {
+  const duck = Duck.spawn(0, 0, world as any, scene);
+  duck?.setStatic();
+  return { roots: duck ? [duck] : [] };
 }
 
-function buildDuckFamily(device: GPUDevice, scene: Scene, world: MockWorld): AnimationState {
-  const bodyMesh = createDuckBodyMesh(device);
-  const headMesh = createDuckHeadMesh(device);
-  const billMesh = createDuckBillMesh(device);
-  const babyBodyMesh = createDuckBodyMesh(device, 0.5);
-  const babyHeadMesh = createDuckHeadMesh(device, 0.5);
-  const babyBillMesh = createDuckBillMesh(device, 0.5);
-
-  const s = 0.5;
-  const ducklingColors = [
-    [0.95, 0.87, 0.25, 1] as [number, number, number, number],
-    [0.92, 0.84, 0.22, 1] as [number, number, number, number],
-    [0.97, 0.89, 0.28, 1] as [number, number, number, number],
-    [0.90, 0.82, 0.20, 1] as [number, number, number, number],
-    [0.88, 0.80, 0.18, 1] as [number, number, number, number],
-  ];
-
+function buildDuckFamily(scene: Scene, world: MockWorld): AnimationState {
   const roots: GameObject[] = [];
-  const headBobs: HeadBob[] = [];
-
-  // Parent duck at center
-  const duckRoot = new GameObject('Duck');
-  duckRoot.position.set(0.5, PLANE_Y, 0.5);
-
-  const duckBody = new GameObject('Duck.Body');
-  duckBody.position.set(0, 0.15, 0);
-  duckBody.addComponent(new MeshRenderer(bodyMesh, new PbrMaterial({ albedo: [0.93, 0.93, 0.93, 1], roughness: 0.9 })));
-  duckRoot.addChild(duckBody);
-
-  const duckHead = new GameObject('Duck.Head');
-  duckHead.position.set(0, 0.32, -0.12);
-  duckHead.addComponent(new MeshRenderer(headMesh, new PbrMaterial({ albedo: [0.08, 0.32, 0.10, 1], roughness: 0.9 })));
-  duckRoot.addChild(duckHead);
-
-  const duckBill = new GameObject('Duck.Bill');
-  duckBill.position.set(0, 0.27, -0.205);
-  duckBill.addComponent(new MeshRenderer(billMesh, new PbrMaterial({ albedo: [1.0, 0.55, 0.05, 1], roughness: 0.8 })));
-  duckRoot.addChild(duckBill);
-
-  duckRoot.addComponent(new DuckAI(world as any));
-  scene.add(duckRoot);
-  roots.push(duckRoot);
-  headBobs.push({ go: duckHead, baseY: duckHead.position.y, phase: Math.random() * Math.PI * 2 });
-
-  // 5 ducklings in a circle around the parent
-  for (let i = 0; i < 5; i++) {
-    const angle = (i / 5) * Math.PI * 2;
-    const dist = 0.8 + Math.random() * 0.4;
-    const dx = Math.cos(angle) * dist;
-    const dz = Math.sin(angle) * dist;
-
-    const dRoot = new GameObject('Duckling');
-    dRoot.position.set(0.5 + dx, PLANE_Y, 0.5 + dz);
-
-    const dBody = new GameObject('Duckling.Body');
-    dBody.position.set(0, 0.15 * s, 0);
-    dBody.addComponent(new MeshRenderer(babyBodyMesh, new PbrMaterial({ albedo: ducklingColors[i], roughness: 0.9 })));
-    dRoot.addChild(dBody);
-
-    const dHead = new GameObject('Duckling.Head');
-    dHead.position.set(0, 0.32 * s, -0.12 * s);
-    dHead.addComponent(new MeshRenderer(babyHeadMesh, new PbrMaterial({ albedo: [0.88, 0.78, 0.15, 1], roughness: 0.9 })));
-    dRoot.addChild(dHead);
-
-    const dBill = new GameObject('Duckling.Bill');
-    dBill.position.set(0, 0.27 * s, -0.205 * s);
-    dBill.addComponent(new MeshRenderer(babyBillMesh, new PbrMaterial({ albedo: [1.0, 0.55, 0.05, 1], roughness: 0.8 })));
-    dRoot.addChild(dBill);
-
-    dRoot.addComponent(new DuckAI(world as any));
-    scene.add(dRoot);
-    roots.push(dRoot);
-    headBobs.push({ go: dHead, baseY: dHead.position.y, phase: Math.random() * Math.PI * 2 });
+  const parent = Duck.spawn(0, 0, world as any, scene);
+  parent?.setStatic();
+  if (parent) {
+    roots.push(parent);
+    for (let i = 0; i < 5; i++) {
+      Duckling.spawn(parent, world as any, scene);
+      roots.push(parent.children[parent.children.length - 1]);
+    }
   }
-
-  return {
-    roots,
-    headBobs,
-    beeWings: null,
-    beeHover: null,
-  };
+  return { roots };
 }
 
-function buildPig(device: GPUDevice, scene: Scene, world: MockWorld): AnimationState {
-  const bodyMesh = createPigBodyMesh(device);
-  const headMesh = createPigHeadMesh(device);
-  const snoutMesh = createPigSnoutMesh(device);
-
-  const root = new GameObject('Pig');
-  root.position.set(0.5, PLANE_Y, 0.5);
-
-  const bodyGO = new GameObject('Pig.Body');
-  bodyGO.position.set(0, 0.35, 0);
-  bodyGO.addComponent(new MeshRenderer(bodyMesh, new PbrMaterial({ albedo: [0.96, 0.70, 0.72, 1], roughness: 0.85 })));
-  root.addChild(bodyGO);
-
-  const headGO = new GameObject('Pig.Head');
-  headGO.position.set(0, 0.35, -0.48);
-  headGO.addComponent(new MeshRenderer(headMesh, new PbrMaterial({ albedo: [0.96, 0.70, 0.72, 1], roughness: 0.85 })));
-  root.addChild(headGO);
-
-  const snoutGO = new GameObject('Pig.Snout');
-  snoutGO.position.set(0, 0.31, -0.70);
-  snoutGO.addComponent(new MeshRenderer(snoutMesh, new PbrMaterial({ albedo: [0.98, 0.76, 0.78, 1], roughness: 0.80 })));
-  root.addChild(snoutGO);
-
-  root.addComponent(new PigAI(world as any));
-  scene.add(root);
-
-  return {
-    roots: [root],
-    headBobs: [{ go: headGO, baseY: headGO.position.y, phase: Math.random() * Math.PI * 2 }],
-    beeWings: null,
-    beeHover: null,
-  };
+function buildPig(scene: Scene, world: MockWorld): AnimationState {
+  const pig = Pig.spawn(0, 0, world as any, scene);
+  pig?.setStatic();
+  return { roots: pig ? [pig] : [] };
 }
 
-function buildCreeper(device: GPUDevice, scene: Scene, world: MockWorld): AnimationState {
-  const bodyMesh = createCreeperBodyMesh(device);
-  const headMesh = createCreeperHeadMesh(device);
-
-  const root = new GameObject('Creeper');
-  root.position.set(0.5, PLANE_Y, 0.5);
-
-  const bodyGO = new GameObject('Creeper.Body');
-  bodyGO.position.set(0, 0.90, 0);
-  bodyGO.addComponent(new MeshRenderer(bodyMesh, new PbrMaterial({ albedo: [0.37, 0.82, 0.22, 1], roughness: 0.85 })));
-  root.addChild(bodyGO);
-
-  const headGO = new GameObject('Creeper.Head');
-  headGO.position.set(0, 1.28, -0.14);
-  headGO.addComponent(new MeshRenderer(headMesh, new PbrMaterial({ albedo: [0.37, 0.82, 0.22, 1], roughness: 0.85 })));
-  root.addChild(headGO);
-
-  root.addComponent(new CreeperAI(world as any, scene));
-  scene.add(root);
-
-  return {
-    roots: [root],
-    headBobs: [],
-    beeWings: null,
-    beeHover: null,
-  };
+function buildCreeper(scene: Scene, world: MockWorld): AnimationState {
+  const creeper = Creeper.spawn(0, 0, world as any, scene);
+  creeper?.setStatic();
+  return { roots: creeper ? [creeper] : [] };
 }
 
-function buildBee(device: GPUDevice, scene: Scene, world: MockWorld): AnimationState {
-  const bodyMesh = createBeeBodyMesh(device);
-  const stripeMesh = createBeeStripeMesh(device);
-  const headMesh = createBeeHeadMesh(device);
-  const eyeMesh = createBeeEyeMesh(device);
-  const wingMesh = createBeeWingMesh(device);
-
-  const flightAltitude = 2.5;
-
-  const root = new GameObject('Bee');
-  root.position.set(0.5, PLANE_Y + flightAltitude, 0.5);
-
-  const yellowMat = new PbrMaterial({ albedo: [0.95, 0.82, 0.15, 1], roughness: 0.7 });
-  const blackMat = new PbrMaterial({ albedo: [0.10, 0.10, 0.10, 1], roughness: 0.7 });
-  const brownMat = new PbrMaterial({ albedo: [0.30, 0.18, 0.08, 1], roughness: 0.7 });
-  const wingMat = new PbrMaterial({ albedo: [0.95, 0.95, 0.98, 0.45], roughness: 0.3, metallic: 0, transparent: true });
-
-  const bodyGO = new GameObject('Bee.Body');
-  bodyGO.addComponent(new MeshRenderer(bodyMesh, yellowMat));
-  root.addChild(bodyGO);
-
-  const stripe1 = new GameObject('Bee.Stripe1');
-  stripe1.position.set(0, 0, 0.06);
-  stripe1.addComponent(new MeshRenderer(stripeMesh, blackMat));
-  root.addChild(stripe1);
-
-  const stripe2 = new GameObject('Bee.Stripe2');
-  stripe2.position.set(0, 0, 0.14);
-  stripe2.addComponent(new MeshRenderer(stripeMesh, blackMat));
-  root.addChild(stripe2);
-
-  const headGO = new GameObject('Bee.Head');
-  headGO.position.set(0, 0.05, -0.19);
-  headGO.addComponent(new MeshRenderer(headMesh, brownMat));
-  root.addChild(headGO);
-
-  const eyeL = new GameObject('Bee.EyeL');
-  eyeL.position.set(-0.045, 0.05, -0.22);
-  eyeL.addComponent(new MeshRenderer(eyeMesh, blackMat));
-  root.addChild(eyeL);
-
-  const eyeR = new GameObject('Bee.EyeR');
-  eyeR.position.set(0.045, 0.05, -0.22);
-  eyeR.addComponent(new MeshRenderer(eyeMesh, blackMat));
-  root.addChild(eyeR);
-
-  const wingL = new GameObject('Bee.WingL');
-  wingL.position.set(-0.10, 0.10, 0);
-  wingL.addComponent(new MeshRenderer(wingMesh, wingMat));
-  root.addChild(wingL);
-
-  const wingR = new GameObject('Bee.WingR');
-  wingR.position.set(0.10, 0.10, 0);
-  wingR.addComponent(new MeshRenderer(wingMesh, wingMat));
-  root.addChild(wingR);
-
-  root.addComponent(new BeeAI(world as any));
-  scene.add(root);
-
-  return {
-    roots: [root],
-    headBobs: [],
-    beeWings: { wingL, wingR, phase: Math.random() * Math.PI * 2 },
-    beeHover: { root, phase: Math.random() * Math.PI * 2 },
-  };
+function buildBee(scene: Scene, world: MockWorld): AnimationState {
+  const bee = Bee.spawn(0, 0, world as any, scene);
+  bee?.setStatic();
+  return { roots: bee ? [bee] : [] };
 }
 
 async function main() {
@@ -325,6 +97,12 @@ async function main() {
   const scene = new Scene();
   const world = new MockWorld();
 
+  Duck.initMeshes(device);
+  Duckling.initMeshes(device);
+  Pig.initMeshes(device);
+  Creeper.initMeshes(device);
+  Bee.initMeshes(device);
+
   // Plane ground (static)
   const groundGO = new GameObject('Ground');
   groundGO.position.set(0, PLANE_Y, 0);
@@ -332,28 +110,27 @@ async function main() {
   groundRenderer.castShadow = false;
   scene.add(groundGO);
 
-  // Forward pass + shadow pass
-  const SHADOW_SIZE = 2048;
+  // Render graph — the forward pass owns the shadow-map array internally.
+  // Create a 2D view of layer 0 for the directional shadow pass to render
+  // directly into, eliminating any need for a shadow-copy pass.
   const forwardPass = ForwardPass.create(ctx, { clearColor: [1, 1, 1, 1] });
-  const dirShadowTex = device.createTexture({
-    label: 'DirShadowTex',
-    size: { width: SHADOW_SIZE, height: SHADOW_SIZE },
-    format: 'depth32float',
-    usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
-  });
-  const dirShadowView = dirShadowTex.createView();
-  const dirShadowPass = DirectionalShadowPass.create(ctx, dirShadowView);
+  const dirShadowLayer = forwardPass.getShadowMap(0);
+  const dirShadowPass = DirectionalShadowPass.create(ctx, dirShadowLayer);
+
+  const graph = new RenderGraph();
+  graph.addPass(dirShadowPass);
+  graph.addPass(forwardPass);
 
   // Camera
   const camPos = new Vec3(0, 1.5, 3);
   const cameraControls = new CameraControls(0, 0.5, 3, 0.002);
+  cameraControls.usePointerLock = false;
   cameraControls.attach(canvas);
 
   // Animation state
   let animState: AnimationState | null = null;
 
   function buildAndShow(type: string) {
-    // Remove previous animals
     if (animState) {
       for (const root of animState.roots) {
         scene.remove(root);
@@ -362,19 +139,19 @@ async function main() {
 
     switch (type) {
       case 'duck':
-        animState = buildDuck(device, scene, world);
+        animState = buildDuck(scene, world);
         break;
       case 'duckling':
-        animState = buildDuckFamily(device, scene, world);
+        animState = buildDuckFamily(scene, world);
         break;
       case 'pig':
-        animState = buildPig(device, scene, world);
+        animState = buildPig(scene, world);
         break;
       case 'creeper':
-        animState = buildCreeper(device, scene, world);
+        animState = buildCreeper(scene, world);
         break;
       case 'bee':
-        animState = buildBee(device, scene, world);
+        animState = buildBee(scene, world);
         break;
     }
   }
@@ -383,7 +160,6 @@ async function main() {
   buildAndShow(select.value);
 
   // Timing
-  let time = 0;
   let lastTime = performance.now();
   let frameCount = 0;
   let fpsAccum = 0;
@@ -393,7 +169,6 @@ async function main() {
     if (e.key === 'c' || e.key === 'C') {
       isolateAnimal = !isolateAnimal;
       console.log(`Isolate animal: ${isolateAnimal ? 'ON' : 'OFF'}`);
-
       groundGO.enabled = !isolateAnimal;
     }
   });
@@ -402,7 +177,6 @@ async function main() {
     const now = performance.now();
     const dt = (now - lastTime) * 0.001;
     lastTime = now;
-    time += dt;
 
     frameCount++;
     fpsAccum += dt;
@@ -439,25 +213,8 @@ async function main() {
 
     forwardPass.updateCamera(ctx, view, proj, viewProj, invViewProj, camPos, 0.1, 100);
 
-    // Animate animals
-    if (animState) {
-      for (const hb of animState.headBobs) {
-        hb.phase += dt * 2;
-        hb.go.position.y = hb.baseY + Math.sin(hb.phase) * 0.008;
-      }
-      if (animState.beeWings) {
-        animState.beeWings.phase += dt * 18;
-        const angle = Math.sin(animState.beeWings.phase) * 0.4;
-        const q = Quaternion.fromAxisAngle(new Vec3(1, 0, 0), angle);
-        animState.beeWings.wingL.rotation = q;
-        animState.beeWings.wingR.rotation = q;
-      }
-      if (animState.beeHover) {
-        animState.beeHover.phase += dt * 2.5;
-        const hoverOffset = Math.sin(animState.beeHover.phase) * 0.15;
-        animState.beeHover.root.position.y = PLANE_Y + 2.5 + hoverOffset;
-      }
-    }
+    // Tick AI components (movement & animation)
+    scene.update(dt);
 
     // Sun
     const sunDir = new Vec3(0.4, -0.7, -0.5).normalize();
@@ -474,10 +231,10 @@ async function main() {
       color: new Vec3(1.0, 0.95, 0.9),
       castShadows: true,
       lightViewProj,
-      shadowMap: dirShadowView,
+      shadowMap: dirShadowLayer,
     };
 
-    // Collect draw items from scene
+    // Collect draw items
     const meshRenderers = scene.collectMeshRenderers();
     const drawItems: ForwardDrawItem[] = meshRenderers.map((mr) => {
       const w = mr.gameObject.localToWorld();
@@ -496,21 +253,14 @@ async function main() {
         modelMatrix: mr.gameObject.localToWorld(),
       }));
 
-    // Execute
-    const encoder = device.createCommandEncoder({ label: 'AnimalDisplayEncoder' });
-
+    // Stage per-frame data on passes
     dirShadowPass.setDrawItems(shadowItems);
     dirShadowPass.updateCamera(ctx, lightViewProj);
-    if (dirShadowPass.enabled) {
-      dirShadowPass.execute(encoder, ctx);
-    }
-
-    forwardPass.copyShadowMapToArray(encoder, dirShadowTex, 0);
     forwardPass.updateLights(ctx, directionalLight, [], []);
     forwardPass.setDrawItems(drawItems);
-    forwardPass.execute(encoder, ctx);
 
-    device.queue.submit([encoder.finish()]);
+    // Execute the full render graph (shadow → forward)
+    await graph.execute(ctx);
 
     requestAnimationFrame(render);
   }

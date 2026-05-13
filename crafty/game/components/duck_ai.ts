@@ -1,6 +1,7 @@
 import { Vec3 } from '../../../src/math/index.js';
 import { Quaternion } from '../../../src/math/quaternion.js';
 import { Component } from '../../../src/engine/component.js';
+import { NPCEntity } from '../npc_entity.js';
 import type { World } from '../../../src/block/world.js';
 import { BlockType } from '../../../src/block/block_type.js';
 
@@ -18,9 +19,6 @@ const _Y_AXIS = new Vec3(0, 1, 0);
  * component only drives the transform, not rendering.
  */
 export class DuckAI extends Component {
-  /** Player world position, written once per frame by the host so ducks can flee. */
-  static playerPos: Vec3 = new Vec3(0, 0, 0);
-
   private _world: World;
   private _state: DuckState = 'idle';
   private _timer = 0;
@@ -66,12 +64,16 @@ export class DuckAI extends Component {
    * @param dt - Frame delta time in seconds.
    */
   update(dt: number): void {
-    const go = this.gameObject;
+    const go = this.gameObject as NPCEntity;
     const gx = go.position.x;
     const gz = go.position.z;
 
+    if (go.isStatic) {
+      return;
+    }
+
     // ── Player distance ──────────────────────────────────────────────────────
-    const player = DuckAI.playerPos;
+    const player = NPCEntity.playerPos;
     const dpx = player.x - gx;
     const dpz = player.z - gz;
     const playerDist2 = dpx * dpx + dpz * dpz;

@@ -1,6 +1,7 @@
 import { Vec3 } from '../../../src/math/index.js';
 import { Quaternion } from '../../../src/math/quaternion.js';
 import { Component } from '../../../src/engine/component.js';
+import { Bee } from '../entities/bee_entity.js';
 import type { World } from '../../../src/block/world.js';
 import type { GameObject } from '../../../src/engine/game_object.js';
 
@@ -19,8 +20,6 @@ const FLOWER_DETECT_RADIUS_SQ = 36;  // 6²
  * 'Bee.WingR' child GameObjects.
  */
 export class BeeAI extends Component {
-  static playerPos: Vec3 = new Vec3(0, 0, 0);
-  static flowerPositions = new Set<string>();
 
   private _world: World;
   private _state: BeeState = 'idle';
@@ -192,7 +191,7 @@ export class BeeAI extends Component {
     let nearestDist2 = FLOWER_DETECT_RADIUS_SQ;
     let found = false;
 
-    for (const key of BeeAI.flowerPositions) {
+    for (const key of Bee.flowerPositions) {
       const parts = key.split(':');
       const fx = Number(parts[0]);
       const fy = Number(parts[1]);

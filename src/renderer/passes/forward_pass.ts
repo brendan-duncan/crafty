@@ -384,6 +384,20 @@ export class ForwardPass extends RenderPass {
   }
 
   /**
+   * Get a specific shadowmap view from the shared 2D-array shadow texture.
+   *
+   * @param index Index of the shadowmap.
+   * @returns The requested shadowmap view.
+   */
+  getShadowMap(index: number): GPUTextureView {
+    return this._shadowMapArray.createView({
+      dimension: '2d',
+      baseArrayLayer: index,
+      arrayLayerCount: 1,
+    });
+  }
+
+  /**
    * Shared cube-array shadow texture (`depth32float`, 6 × `MAX_POINT_LIGHTS`
    * layers) that backs point-light omnidirectional shadow maps.
    */
