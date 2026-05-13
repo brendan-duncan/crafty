@@ -65,8 +65,20 @@ export class RenderContext {
       throw new Error('No WebGPU adapter found');
     }
 
+    // Use all available features and limits. Feature detection should be
+    // used to verify a feature or limit is actually supported before using it.
+    const requiredFeatures: GPUFeatureName[] = [];
+    for (const feature of adapter.features) {
+      requiredFeatures.push(feature as GPUFeatureName);
+    }
+    const requiredLimits: Record<string, number> = {};
+    for (const [limit, value] of Object.entries(adapter.limits)) {
+      requiredLimits[limit] = value;
+    }
+
     const device = await adapter.requestDevice({
-      requiredFeatures: [],
+      requiredFeatures,
+      requiredLimits,
     });
 
     if (options.enableErrorHandling) {

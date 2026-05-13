@@ -8,7 +8,7 @@ Crafty is a voxel game engine and rendering framework built entirely from scratc
 
 The engine demonstrates a complete, production-quality rendering pipeline:
 
-- **Multi-pass deferred rendering** with a GBuffer, HDR lighting, and forward+ transparency
+- **Multi-pass deferred rendering** with a GBuffer, HDR lighting, and forward rendering for transparency
 - **Cascaded shadow maps** for a directional sun light
 - **Variance shadow maps** for point and spot lights
 - **Full post-processing suite**: temporal anti-aliasing (TAA), bloom, screen-space ambient occlusion (SSAO), screen-space global illumination (SSGI), depth of field (DOF), god rays, auto-exposure, and HDR tonemapping

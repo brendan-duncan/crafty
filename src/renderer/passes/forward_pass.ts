@@ -41,7 +41,7 @@ export interface ForwardDrawItem {
 
 
 /**
- * Forward+ pass that shades meshes in a single render pass with one directional
+ * Forward pass that shades meshes in a single render pass with one directional
  * light, up to `MAX_POINT_LIGHTS` point lights and `MAX_SPOT_LIGHTS` spot
  * lights, plus an IBL environment.
  *

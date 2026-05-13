@@ -187,15 +187,21 @@ export class AudioManager {
     }
 
     const l = ctx.listener;
-    l.positionX.value = position.x;
-    l.positionY.value = position.y;
-    l.positionZ.value = position.z;
-    l.forwardX.value = forward.x;
-    l.forwardY.value = forward.y;
-    l.forwardZ.value = forward.z;
-    l.upX.value = up.x;
-    l.upY.value = up.y;
-    l.upZ.value = up.z;
+    if (l.positionX !== undefined) {
+      l.positionX.value = position.x;
+      l.positionY.value = position.y;
+      l.positionZ.value = position.z;
+      l.forwardX.value = forward.x;
+      l.forwardY.value = forward.y;
+      l.forwardZ.value = forward.z;
+      l.upX.value = up.x;
+      l.upY.value = up.y;
+      l.upZ.value = up.z;
+    } else {
+      // Firefox fallback — use the deprecated setPosition / setOrientation
+      (l as unknown as { setPosition: (x: number, y: number, z: number) => void }).setPosition(position.x, position.y, position.z);
+      (l as unknown as { setOrientation: (fx: number, fy: number, fz: number, ux: number, uy: number, uz: number) => void }).setOrientation(forward.x, forward.y, forward.z, up.x, up.y, up.z);
+    }
 
     // Prune finished one-shots.
     for (let i = this._oneShots.length - 1; i >= 0; i--) {
@@ -399,9 +405,13 @@ class OneShot {
     this._panner.maxDistance = 50;
     this._panner.refDistance = 5;
     this._panner.rolloffFactor = 1;
-    this._panner.positionX.value = pos.x;
-    this._panner.positionY.value = pos.y;
-    this._panner.positionZ.value = pos.z;
+    if (this._panner.positionX !== undefined) {
+      this._panner.positionX.value = pos.x;
+      this._panner.positionY.value = pos.y;
+      this._panner.positionZ.value = pos.z;
+    } else {
+      (this._panner as unknown as { setPosition: (x: number, y: number, z: number) => void }).setPosition(pos.x, pos.y, pos.z);
+    }
 
     this._src = ctx.createBufferSource();
     this._src.buffer = buffer;

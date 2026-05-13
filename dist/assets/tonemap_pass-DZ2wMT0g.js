@@ -1,4 +1,4 @@
-var y=Object.defineProperty;var h=(o,r,n)=>r in o?y(o,r,{enumerable:!0,configurable:!0,writable:!0,value:n}):o[r]=n;var t=(o,r,n)=>h(o,typeof r!="symbol"?r+"":r,n);import{a as B}from"./shadow-u1qNz1eJ.js";const P=`// tonemap.wgsl — Exposure + ACES + Gamma correction
+var y=Object.defineProperty;var h=(o,r,n)=>r in o?y(o,r,{enumerable:!0,configurable:!0,writable:!0,value:n}):o[r]=n;var t=(o,r,n)=>h(o,typeof r!="symbol"?r+"":r,n);import{a as B}from"./render_pass-Cg-XJLDQ.js";const P=`// tonemap.wgsl — Exposure + ACES + Gamma correction
 
 // ── ACES filmic ───────────────────────────────────────────────────────────────
 

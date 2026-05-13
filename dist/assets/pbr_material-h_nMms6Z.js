@@ -1,4 +1,4 @@
-var g=Object.defineProperty;var h=(m,a,n)=>a in m?g(m,a,{enumerable:!0,configurable:!0,writable:!0,value:n}):m[a]=n;var t=(m,a,n)=>h(m,typeof a!="symbol"?a+"":a,n);import{f as v,M as c}from"./shadow-u1qNz1eJ.js";const b=`// Forward PBR shader with multi-light support
+var g=Object.defineProperty;var h=(m,a,n)=>a in m?g(m,a,{enumerable:!0,configurable:!0,writable:!0,value:n}):m[a]=n;var t=(m,a,n)=>h(m,typeof a!="symbol"?a+"":a,n);import{c as v,M as c}from"./shadow-MUNhI2K-.js";const b=`// Forward PBR shader with multi-light support
 // Supports: directional, point, spot lights with shadows
 // Materials: PBR with IBL, normal mapping, MER textures
 
