@@ -167,9 +167,11 @@ If the player retreats beyond 6 blocks during the fuse, the creeper cancels deto
 
 ## 15.3 Duck AI
 
-![Concentric flee zones around the player (6-block trigger inside, 14-block safe ring outside) — the gap creates hysteresis so the duck doesn't flicker between flee and idle](../illustrations/15-duck-flee.svg)
+![Duck AI](../images/duck.png)
 
 `DuckAI` (`crafty/game/components/duck_ai.ts`) implements the full three-state machine. Ducks are amphibious — they walk on land and float on water:
+
+![Concentric flee zones around the player (6-block trigger inside, 14-block safe ring outside) — the gap creates hysteresis so the duck doesn't flicker between flee and idle](../illustrations/15-duck-flee.svg)
 
 ```typescript
 // If the block below is water, float on the surface
@@ -194,9 +196,11 @@ Player position is fed to ducks via a static field `DuckAI.playerPos`, written o
 
 ## 15.4 Duckling AI
 
-![Each duckling steers toward parent + polar offset; offsetAngle drifts at 0.25 rad/s so the brood gently swirls around the parent](../illustrations/15-duckling-follow.svg)
+![Ducling AI](../images/duckling.png)
 
 `DucklingAI` (`crafty/game/components/duckling_ai.ts`) implements a **follow** behavior rather than the idle/wander/flee pattern. Each duckling tracks its parent duck's world position and maintains a personalised polar offset so the brood spreads naturally:
+
+![Each duckling steers toward parent + polar offset; offsetAngle drifts at 0.25 rad/s so the brood gently swirls around the parent](../illustrations/15-duckling-follow.svg)
 
 ```typescript
 constructor(parent: GameObject, world: World) {
@@ -226,6 +230,8 @@ Ducklings do not check for the player directly — they simply follow their pare
 
 ## 15.5 Pig AI
 
+![Ducling AI](../images/pig.png)
+
 `PigAI` (`crafty/game/components/pig_ai.ts`) implements a simpler two-state machine (idle ↔ wander) with no flee response. Pigs are larger and slower than ducks:
 
 | Property | Duck | Duckling | Pig | Bee | Creeper |
@@ -244,9 +250,11 @@ The pig's wander behavior is identical in structure to the duck's but uses sligh
 
 ## 15.6 Creeper AI
 
-![Four creeper states with transitions: idle ↔ wander, both preempted by chase when the player is within 8 blocks; chase → detonate at 1.8 blocks; detonate → idle if the player retreats beyond 6 blocks, otherwise → explode after 2.5 seconds](../illustrations/15-creeper-states.svg)
+![Creeper AI](../images/creeper.png)
 
 `CreeperAI` (`crafty/game/components/creeper_ai.ts`) implements a hostile four-state machine that introduces the first truly threatening NPC in Crafty. Creepers spawn in any biome (unlike passive mobs which are restricted to GrassyPlains) and are distinguished by their tall green silhouette and explosive demise.
+
+![Four creeper states with transitions: idle ↔ wander, both preempted by chase when the player is within 8 blocks; chase → detonate at 1.8 blocks; detonate → idle if the player retreats beyond 6 blocks, otherwise → explode after 2.5 seconds](../illustrations/15-creeper-states.svg)
 
 | Property | Value |
 |----------|-------|
@@ -335,6 +343,8 @@ if (Math.random() < CREEPER_CHANCE) {
 The mesh stands twice as tall as a pig, with a body half-height of 0.60 and leg half-height of 0.20, giving the creeper its distinctive towering silhouette.
 
 ## 15.7 Bee AI
+
+![Bee AI](../images/bee.png)
 
 `BeeAI` (`crafty/game/components/bee_ai.ts`) implements a flying NPC with a three-state machine — `idle`, `wander`, and `hover` — that drifts through GrassyPlains biomes and periodically investigates nearby flowers. Unlike ground NPCs, bees have no gravity; they fly at a fixed altitude above the terrain.
 

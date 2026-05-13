@@ -77,7 +77,7 @@ async function main() {
       brdfTex.destroy();
     },
   };
-  const forwardPass = ForwardPass.create(renderContext, iblTextures);
+  const forwardPass = ForwardPass.create(renderContext, { iblTextures });
 
   // Get shadow map array from forward pass and create layer views for shadow passes
   const shadowMapArray = forwardPass.shadowMapArray;

@@ -334,7 +334,7 @@ async function main() {
 
   // Forward pass + shadow pass
   const SHADOW_SIZE = 2048;
-  const forwardPass = ForwardPass.create(ctx);
+  const forwardPass = ForwardPass.create(ctx, { clearColor: [1, 1, 1, 1] });
   const dirShadowTex = device.createTexture({
     label: 'DirShadowTex',
     size: { width: SHADOW_SIZE, height: SHADOW_SIZE },
@@ -387,6 +387,16 @@ async function main() {
   let lastTime = performance.now();
   let frameCount = 0;
   let fpsAccum = 0;
+  let isolateAnimal = false;
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'c' || e.key === 'C') {
+      isolateAnimal = !isolateAnimal;
+      console.log(`Isolate animal: ${isolateAnimal ? 'ON' : 'OFF'}`);
+
+      groundGO.enabled = !isolateAnimal;
+    }
+  });
 
   async function render() {
     const now = performance.now();
@@ -480,7 +490,7 @@ async function main() {
     });
 
     const shadowItems: DirectionalShadowDrawItem[] = meshRenderers
-      .filter((mr) => mr.castShadow)
+      .filter((mr) => mr.castShadow && mr.gameObject.enabled)
       .map((mr) => ({
         mesh: mr.mesh,
         modelMatrix: mr.gameObject.localToWorld(),

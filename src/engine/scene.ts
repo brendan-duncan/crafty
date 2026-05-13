@@ -45,6 +45,9 @@ export class Scene {
    */
   update(dt: number): void {
     for (const go of this.gameObjects) {
+      if (!go.enabled) {
+        continue;
+      }
       go.update(dt);
     }
   }
@@ -56,6 +59,9 @@ export class Scene {
    */
   findCamera(): Camera | null {
     for (const go of this.gameObjects) {
+      if (!go.enabled) {
+        continue;
+      }
       const c = go.getComponent(Camera);
       if (c) {
         return c;
@@ -71,6 +77,9 @@ export class Scene {
    */
   findDirectionalLight(): DirectionalLight | null {
     for (const go of this.gameObjects) {
+      if (!go.enabled) {
+        continue;
+      }
       const l = go.getComponent(DirectionalLight);
       if (l) {
         return l;
@@ -87,6 +96,9 @@ export class Scene {
   collectMeshRenderers(): MeshRenderer[] {
     const result: MeshRenderer[] = [];
     for (const go of this.gameObjects) {
+      if (!go.enabled) {
+        continue;
+      }
       this._collectMeshRenderersRecursive(go, result);
     }
     return result;
@@ -98,6 +110,9 @@ export class Scene {
       result.push(mr);
     }
     for (const child of go.children) {
+      if (!child.enabled) {
+        continue;
+      }
       this._collectMeshRenderersRecursive(child, result);
     }
   }

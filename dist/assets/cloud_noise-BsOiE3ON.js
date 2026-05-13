@@ -1,4 +1,4 @@
-var Y=Object.defineProperty;var X=(f,u,t)=>u in f?Y(f,u,{enumerable:!0,configurable:!0,writable:!0,value:t}):f[u]=t;var l=(f,u,t)=>X(f,typeof u!="symbol"?u+"":u,t);import{a as A}from"./mesh-BZCnqQH3.js";import{H as W}from"./geometry_pass-COZZ-SyG.js";const q=`// Cloud + sky pass — fullscreen triangle.\r
+var Y=Object.defineProperty;var X=(f,u,t)=>u in f?Y(f,u,{enumerable:!0,configurable:!0,writable:!0,value:t}):f[u]=t;var l=(f,u,t)=>X(f,typeof u!="symbol"?u+"":u,t);import{a as A}from"./mesh-LUU9vCQq.js";import{H as W}from"./geometry_pass-Bbprt9rQ.js";const q=`// Cloud + sky pass — fullscreen triangle.\r
 // Raymarches through a cloud slab with Beer's law transmittance and self-shadow\r
 // light marching.  Sky color is computed with the same Rayleigh+Mie model as\r
 // atmosphere.wgsl so no sky texture is needed.\r

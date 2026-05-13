@@ -3,7 +3,8 @@ import type { RenderContext } from '../render_context.js';
 import { VERTEX_ATTRIBUTES, VERTEX_STRIDE } from '../../assets/mesh.js';
 import type { Mesh } from '../../assets/mesh.js';
 import type { Mat4 } from '../../math/mat4.js';
-import type { Vec3 } from '../../math/vec3.js';
+import { Vec3 } from '../../math/vec3.js';
+import { Vec4 } from '../../math/vec4.js';
 import { Material, MaterialPassType } from '../material.js';
 import type { IblTextures } from '../../assets/ibl.js';
 import type { SpotLight } from '../spot_light.js';
@@ -38,6 +39,12 @@ export interface ForwardDrawItem {
   material: Material;
 }
 
+export interface ForwardPassOptions {
+  load?: GPULoadOp;
+  store?: GPUStoreOp;
+  clearColor?: GPUColor | Vec3 | Vec4;
+  iblTextures?: IblTextures;
+}
 
 
 /**
@@ -113,6 +120,10 @@ export class ForwardPass extends RenderPass {
   private _modelBindGroups: GPUBindGroup[] = [];
   private _bufferIndex = 0;
 
+  private _load: GPULoadOp;
+  private _store: GPUStoreOp;
+  private _clearColor: GPUColor;
+
   private constructor(
     cameraBGL: GPUBindGroupLayout,
     modelBGL: GPUBindGroupLayout,
@@ -130,6 +141,9 @@ export class ForwardPass extends RenderPass {
     depthView: GPUTextureView,
     outputTexture: GPUTexture,
     outputView: GPUTextureView,
+    load: GPULoadOp,
+    store: GPUStoreOp,
+    clearColor: GPUColor,
   ) {
     super();
     this._cameraBGL = cameraBGL;
@@ -148,6 +162,9 @@ export class ForwardPass extends RenderPass {
     this._depthView = depthView;
     this._outputTexture = outputTexture;
     this._outputView = outputView;
+    this._load = load;
+    this._store = store;
+    this._clearColor = clearColor;
   }
 
   /**
@@ -156,12 +173,15 @@ export class ForwardPass extends RenderPass {
    * unique `material.shaderId`.
    *
    * @param ctx Render context (provides device + framebuffer dimensions).
-   * @param iblTextures Optional image-based-lighting cubemaps and BRDF LUT bound to the
-   *   environment slots.
+   * @param options Optional configuration for the forward pass.
    * @returns A configured `ForwardPass`.
    */
-  static create(ctx: RenderContext, iblTextures?: IblTextures): ForwardPass {
+  static create(ctx: RenderContext, options: ForwardPassOptions = {}): ForwardPass {
     const { device, width, height } = ctx;
+    let { iblTextures, load, store, clearColor } = options;
+
+    load ??= 'clear';
+    store ??= 'store';
 
     if (!iblTextures) {
       // Create fallback 1x1 white cubemaps for IBL if not provided
@@ -320,6 +340,13 @@ export class ForwardPass extends RenderPass {
     });
     const outputView = outputTexture.createView();
 
+    let clear: GPUColor = !clearColor ? [0, 0, 0, 1]
+        : 'r' in clearColor ? clearColor
+        : Array.isArray(clearColor) ? clearColor as GPUColor
+        : clearColor instanceof Vec3 ? [clearColor.x, clearColor.y, clearColor.z, 1]
+        : clearColor instanceof Vec4 ? [clearColor.x, clearColor.y, clearColor.z, clearColor.w]
+        : [0, 0, 0, 1];
+
     return new ForwardPass(
       cameraBGL,
       modelBGL,
@@ -337,6 +364,9 @@ export class ForwardPass extends RenderPass {
       depthView,
       outputTexture,
       outputView,
+      load,
+      store,
+      clear
     );
   }
 
@@ -623,16 +653,16 @@ export class ForwardPass extends RenderPass {
       colorAttachments: [
         {
           view: colorView,
-          clearValue: { r: 0.0, g: 0.0, b: 1.0, a: 1.0 },
-          loadOp: 'clear',
-          storeOp: 'store',
+          clearValue: this._clearColor ?? { r: 0.0, g: 0.0, b: 1.0, a: 1.0 },
+          loadOp: this._load,
+          storeOp: this._store,
         },
       ],
       depthStencilAttachment: {
         view: depthAttachmentView,
         depthClearValue: 1.0,
-        depthLoadOp: 'clear',
-        depthStoreOp: 'store',
+        depthLoadOp: this._load,
+        depthStoreOp: this._store,
       },
     });
 

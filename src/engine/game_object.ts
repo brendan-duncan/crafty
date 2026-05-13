@@ -10,6 +10,8 @@ import { Component } from './component.js';
  * instances; per-frame updates flow recursively through {@link GameObject.update}.
  */
 export class GameObject {
+  /** Whether this GameObject is active and should be updated and rendered. */
+  enabled = true;
   /** Display/lookup name (not unique). */
   name: string;
   /** Local-space position relative to parent. */
@@ -118,6 +120,9 @@ export class GameObject {
    * @param dt - Frame delta time in seconds.
    */
   update(dt: number): void {
+    if (!this.enabled) {
+      return;
+    }
     for (const c of this._components) {
       c.update(dt);
     }
