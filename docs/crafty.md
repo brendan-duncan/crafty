@@ -101,7 +101,7 @@ This book is a work in progress.  Chapters are added as the engine evolves.
   - [3.7 GPUShaderModule and WGSL](chapters/03-webgpu-fundamentals.md#37-gpushadermodule-and-wgsl)
   - [3.8 GPURenderPipeline and GPUComputePipeline](chapters/03-webgpu-fundamentals.md#38-gpurenderpipeline-and-gpucomputepipeline)
   - [3.9 GPUCommandEncoder and GPUQueue](chapters/03-webgpu-fundamentals.md#39-gpucommandencoder-and-gpuqueue)
-  - [3.10] [Render Passes](chapters/03-webgpu-fundamentals.md#310-render-passes)
+  - [3.10 Render Passes](chapters/03-webgpu-fundamentals.md#310-render-passes)
     - [Attachments](chapters/03-webgpu-fundamentals.md#attachments)
     - [Load and Store Operations](chapters/03-webgpu-fundamentals.md#load-and-store-operations)
     - [Relationship to Render Pipelines](chapters/03-webgpu-fundamentals.md#relationship-to-render-pipelines)
@@ -118,7 +118,7 @@ This book is a work in progress.  Chapters are added as the engine evolves.
     - [Synchronization Between Passes](chapters/03-webgpu-fundamentals.md#synchronization-between-passes)
     - [Copy Operations](chapters/03-webgpu-fundamentals.md#copy-operations)
   - [3.10 The RenderContext Abstraction](chapters/03-webgpu-fundamentals.md#310-the-rendercontext-abstraction)
-    - [Lifecycle][chapters/03-webgpu-fundamentals.md#lifecycle]
+    - [Lifecycle](chapters/03-webgpu-fundamentals.md#lifecycle)
   - [3.11 Summary](chapters/03-webgpu-fundamentals.md#311-summary)
 
 ## II — Rendering
