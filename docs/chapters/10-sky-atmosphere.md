@@ -68,6 +68,34 @@ cloudDensity = smoothstep(cloudThreshold, 1.0, cloudDensity);
 
 The raymarch accumulates transmittance and color along the view ray, producing soft, volumetric cloud shapes with realistic self-shadowing.
 
+### 10.3.1 Silver's Multi-Scattering Approximation
+
+Real clouds scatter light many times — single scattering alone is too dark because it ignores energy that bounces between droplets. Silver's approximation models multi-scattering as an additional isotropic ambient term added at each raymarch step, avoiding the cost of explicit secondary ray marches:
+
+```wgsl
+// Per-step accumulation in the cloud raymarch
+let sun_energy = light.color * light.intensity * shadow_t * phase;
+let amb_energy = cloud.ambientColor * mix(0.5, 1.0, height_frac);
+
+cloud_color += (sun_energy + amb_energy) * (1.0 - t_step) * total_trans;
+```
+
+The direct `sun_energy` term uses the Henyey-Greenstein phase function for forward-peaked single scattering. The `amb_energy` term represents the multiply-scattered light that has lost its directional dependence after many collisions, becoming nearly isotropic. Its strength varies with height within the cloud: denser regions deeper in the cloud receive more scattered energy, while cloud edges are dominated by single scattering.
+
+The ambient color is derived from the cloud's extinction and the light color. Silver's key insight is that the ratio of multiply-scattered to singly-scattered light at a point depends primarily on the local optical depth and the scattering albedo — this can be pre-integrated or approximated as a function of density rather than computed recursively:
+
+```wgsl
+let dens = sample_density(p);
+let opt  = dens * cloud.extinction * step_size;
+let t_step = exp(-opt);
+
+// Multi-scatter boost: thicker clouds scatter more light forward
+let ms_boost = 1.0 + opt * (1.0 - cloud.anisotropy);
+amb_energy *= ms_boost;
+```
+
+This produces the characteristic bright, fluffy appearance of cumulus clouds that single-scattering models fail to capture — the cloud interior glows rather than appearing as dark grey volume.
+
 ## 10.4 Volumetric Fog
 
 ![Fog falloff: squared exponential distance curve and a height-based density gradient over a mountain silhouette](../illustrations/10-fog-distance-height.svg)
