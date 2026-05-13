@@ -238,6 +238,7 @@ async function main() {
   scene.add(cameraGO);
 
   const cameraControls = new CameraControls(Math.PI, 0.1);  // 5.7° down: upper ~50% is sky
+  cameraControls.usePointerLock = false;
   cameraControls.attach(canvas);
 
   // --- Effect toggles ---

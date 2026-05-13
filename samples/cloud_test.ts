@@ -157,7 +157,7 @@ async function main() {
   );
 
   const cloudPass = CloudPass.create(renderContext, lightingPass.hdrView, gbuffer.depthView, cloudNoises);
-  const atmospherePass = AtmospherePass.create(renderContext, lightingPass.hdrView);
+  const atmospherePass = AtmospherePass.create(renderContext, { output: lightingPass.hdrView });
 
   const godrayPass = GodrayPass.create(
     renderContext, gbuffer, shadowPass, lightingPass.hdrView,

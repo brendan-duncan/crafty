@@ -7,6 +7,11 @@ import atmosphereWgsl from '../../shaders/atmosphere.wgsl?raw';
 // invViewProj(64) + cameraPos+pad(16) + sunDir+pad(16) = 96 bytes
 const UNIFORM_SIZE = 96;
 
+export interface AtmospherePassOptions {
+  output?: GPUTextureView;
+  load?: GPULoadOp;
+}
+
 /**
  * Renders an atmospheric sky dome into the HDR scene texture.
  *
@@ -20,20 +25,23 @@ export class AtmospherePass extends RenderPass {
   private _pipeline: GPURenderPipeline;
   private _uniformBuf: GPUBuffer;
   private _bg: GPUBindGroup;
-  private _hdrView: GPUTextureView;
+  private _output: GPUTextureView | null = null;
   private readonly _scratch = new Float32Array(UNIFORM_SIZE / 4);
+  private readonly _load: GPULoadOp;
 
   private constructor(
     pipeline: GPURenderPipeline,
     uniformBuf: GPUBuffer,
     bg: GPUBindGroup,
-    hdrView: GPUTextureView,
+    output: GPUTextureView | null,
+    load: GPULoadOp,
   ) {
     super();
     this._pipeline = pipeline;
     this._uniformBuf = uniformBuf;
     this._bg = bg;
-    this._hdrView = hdrView;
+    this._output = output;
+    this._load = load;
   }
 
   /**
@@ -44,8 +52,9 @@ export class AtmospherePass extends RenderPass {
    * @param hdrView HDR color attachment the sky is drawn into.
    * @returns A ready-to-use `AtmospherePass`.
    */
-  static create(ctx: RenderContext, hdrView: GPUTextureView): AtmospherePass {
+  static create(ctx: RenderContext, options: AtmospherePassOptions): AtmospherePass {
     const { device } = ctx;
+    const { output, load } = options;
 
     const uniformBuf = device.createBuffer({
       label: 'AtmosphereUniform',
@@ -74,7 +83,11 @@ export class AtmospherePass extends RenderPass {
       primitive: { topology: 'triangle-list' },
     });
 
-    return new AtmospherePass(pipeline, uniformBuf, bg, hdrView);
+    return new AtmospherePass(pipeline, uniformBuf, bg, output ?? null, load ?? 'clear');
+  }
+
+  setOutput(output: GPUTextureView): void {
+    this._output = output;
   }
 
   /**
@@ -110,12 +123,16 @@ export class AtmospherePass extends RenderPass {
   }
 
   execute(encoder: GPUCommandEncoder, _ctx: RenderContext): void {
+    if (this._output === null) {
+      throw new Error('AtmospherePass: output texture view not set');
+    }
+
     const pass = encoder.beginRenderPass({
       label: 'AtmospherePass',
       colorAttachments: [{
-        view: this._hdrView,
+        view: this._output!,
         clearValue: [0, 0, 0, 1],
-        loadOp: 'clear',
+        loadOp: this._load,
         storeOp: 'store',
       }],
     });

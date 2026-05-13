@@ -87,6 +87,15 @@ async function main() {
   const ctx = await RenderContext.create(canvas);
   const { device } = ctx;
 
+  // Create depth texture for rendering (will be recreated on resize)
+  let depthTexture = device.createTexture({
+    size: { width: ctx.width, height: ctx.height },
+    format: 'depth32float',
+    usage: 0x10, // RENDER_ATTACHMENT
+  });
+
+  let depthTextureView = depthTexture.createView();
+
   const planeMesh = Mesh.createPlane(device, 20, 20);
   const planeMaterial = new PbrMaterial({
     albedo: [0.5, 0.7, 0.5, 1.0],
@@ -178,6 +187,10 @@ async function main() {
     const dt = (now - lastTime) * 0.001;
     lastTime = now;
 
+    const currentTexture = ctx.getCurrentTexture();
+    const currentView = currentTexture.createView();
+    forwardPass.setOutput(currentView, depthTextureView);
+
     frameCount++;
     fpsAccum += dt;
     if (fpsAccum >= 0.5) {
@@ -189,7 +202,15 @@ async function main() {
     if (ctx.canvas.width !== ctx.canvas.clientWidth || ctx.canvas.height !== ctx.canvas.clientHeight) {
       ctx.canvas.width = ctx.canvas.clientWidth;
       ctx.canvas.height = ctx.canvas.clientHeight;
-      forwardPass.resize(device, ctx.width, ctx.height);
+
+      // Recreate depth texture on resize
+      depthTexture.destroy();
+      depthTexture = device.createTexture({
+        size: { width: ctx.width, height: ctx.height },
+        format: 'depth32float',
+        usage: 0x10, // RENDER_ATTACHMENT
+      });
+      depthTextureView = depthTexture.createView();
     }
 
     // Camera

@@ -1,6 +1,7 @@
 import { Mat4 } from '../src/math/mat4.js';
 import { Vec3 } from '../src/math/vec3.js';
 import { ForwardPass } from '../src/renderer/passes/forward_pass.js';
+import { AtmospherePass } from '../src/renderer/passes/atmosphere_pass.js';
 import { SpotLight } from '../src/renderer/spot_light.js';
 import type { DirectionalLight } from '../src/renderer/directional_light.js';
 import type { PointLight } from '../src/renderer/point_light.js';
@@ -27,14 +28,11 @@ async function main() {
     usage: 0x10, // RENDER_ATTACHMENT
   });
 
+  let depthTextureView = depthTexture.createView();
+
   // Create meshes
   const cubeMesh = Mesh.createCube(device);
   const planeMesh = Mesh.createPlane(device, 20, 20);
-
-  // Create fallback textures
-  const irradianceTex = renderContext.createDefaultCubemap();
-  const prefilterTex = renderContext.createDefaultCubemap();
-  const brdfTex = renderContext.createDefaultBrdfLUT();
 
   // Create materials
   const opaqueMaterial = new PbrMaterial({
@@ -62,22 +60,7 @@ async function main() {
     metallic: 0.0,
   });
 
-  // Create forward pass first (it contains the shadow map array)
-  const iblTextures = {
-    irradiance: irradianceTex,
-    prefiltered: prefilterTex,
-    brdfLut: brdfTex,
-    irradianceView: irradianceTex.createView({ dimension: 'cube' }),
-    prefilteredView: prefilterTex.createView({ dimension: 'cube' }),
-    brdfLutView: brdfTex.createView(),
-    levels: 1,
-    destroy() {
-      irradianceTex.destroy();
-      prefilterTex.destroy();
-      brdfTex.destroy();
-    },
-  };
-  const forwardPass = ForwardPass.create(renderContext, { iblTextures });
+  const forwardPass = ForwardPass.create(renderContext, { load: 'load' });
 
   // Get shadow map array from forward pass and create layer views for shadow passes
   const shadowMapArray = forwardPass.shadowMapArray;
@@ -103,6 +86,8 @@ async function main() {
     pointShadowPasses.push(PointShadowPass.create(renderContext, pointShadowCubeArray, i * 6));
   }
 
+  const atmospherePass = AtmospherePass.create(renderContext, { load: 'clear' });
+
   // Create render graph
   const renderGraph = new RenderGraph();
   renderGraph.addPass(dirShadowPass);
@@ -110,6 +95,7 @@ async function main() {
     renderGraph.addPass(pass);
   }
   renderGraph.addPass(spotShadowPass);
+  renderGraph.addPass(atmospherePass);
   renderGraph.addPass(forwardPass);
 
   // Camera setup
@@ -159,6 +145,9 @@ async function main() {
       fpsTime = 0;
     }
 
+    const outputTexture = renderContext.getCurrentTexture();
+    const outputView = outputTexture.createView();
+
     // Handle canvas resize
     const needsResize = renderContext.canvas.width !== renderContext.canvas.clientWidth ||
                         renderContext.canvas.height !== renderContext.canvas.clientHeight;
@@ -173,10 +162,11 @@ async function main() {
         format: 'depth32float',
         usage: 0x10, // RENDER_ATTACHMENT
       });
-
-      // Resize forward pass internal textures
-      forwardPass.resize(device, renderContext.width, renderContext.height);
+      depthTextureView = depthTexture.createView();
     }
+
+    forwardPass.setOutput(outputView, depthTextureView);
+    atmospherePass.setOutput(outputView);
 
     // Update camera with CameraControls
     const fakeGameObject = {
@@ -358,26 +348,12 @@ async function main() {
     forwardPass.updateLights(renderContext, activeDirectionalLight, activePointLights, activeSpotLights);
     forwardPass.setDrawItems(drawItems);
 
+    atmospherePass.update(renderContext, invViewProj, camPos, lightDir);
+
     // Manual execution to control pass order
     const encoder = device.createCommandEncoder({ label: 'MainEncoder' });
 
-    // Execute shadow passes (render directly to array layers)
-    if (dirShadowPass.enabled) {
-      dirShadowPass.execute(encoder, renderContext);
-    }
-
-    for (let i = 0; i < pointShadowPasses.length; i++) {
-      if (pointShadowPasses[i].enabled) {
-        pointShadowPasses[i].execute(encoder, renderContext);
-      }
-    }
-
-    if (spotShadowPass.enabled) {
-      spotShadowPass.execute(encoder, renderContext);
-    }
-
-    // Execute forward pass
-    forwardPass.execute(encoder, renderContext);
+    renderGraph.execute(renderContext);
 
     device.queue.submit([encoder.finish()]);
 

@@ -106,6 +106,15 @@ async function main() {
   const ctx = await RenderContext.create(canvas);
   const { device } = ctx;
 
+  // Create depth texture for rendering (will be recreated on resize)
+  let depthTexture = device.createTexture({
+    size: { width: ctx.width, height: ctx.height },
+    format: 'depth32float',
+    usage: 0x10, // RENDER_ATTACHMENT
+  });
+
+  let depthTextureView = depthTexture.createView();
+
   // Meshes
   const planeMesh = Mesh.createPlane(device, 30, 30);
   const cubeMesh = Mesh.createCube(device, 1.5);
@@ -132,7 +141,7 @@ async function main() {
 
   // Forward pass + shadow pass
   const SHADOW_SIZE = 2048;
-  const forwardPass = ForwardPass.create(ctx);
+  const forwardPass = ForwardPass.create(ctx, { clearColor: [0.2, 0.2, 0.45, 1.0] });
   const dirShadowTex = device.createTexture({
     label: 'DirShadowTex',
     size: { width: SHADOW_SIZE, height: SHADOW_SIZE },
@@ -159,6 +168,9 @@ async function main() {
     lastTime = now;
     time += dt;
 
+    const currentTexture = ctx.getCurrentTexture();
+    const currentView = currentTexture.createView();
+
     frameCount++;
     fpsAccum += dt;
     if (fpsAccum >= 0.5) {
@@ -171,7 +183,15 @@ async function main() {
     if (ctx.canvas.width !== ctx.canvas.clientWidth || ctx.canvas.height !== ctx.canvas.clientHeight) {
       ctx.canvas.width = ctx.canvas.clientWidth;
       ctx.canvas.height = ctx.canvas.clientHeight;
-      forwardPass.resize(device, ctx.width, ctx.height);
+
+      // Recreate depth texture on resize
+      depthTexture.destroy();
+      depthTexture = device.createTexture({
+        size: { width: ctx.width, height: ctx.height },
+        format: 'depth32float',
+        usage: 0x10, // RENDER_ATTACHMENT
+      });
+      depthTextureView = depthTexture.createView();
     }
 
     // Camera
@@ -278,6 +298,7 @@ async function main() {
 
     forwardPass.updateLights(ctx, directionalLight, [], []);
     forwardPass.setDrawItems(items);
+    forwardPass.setOutput(currentView, depthTextureView);
     forwardPass.execute(encoder, ctx);
 
     device.queue.submit([encoder.finish()]);

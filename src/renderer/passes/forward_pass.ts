@@ -41,7 +41,6 @@ export interface ForwardDrawItem {
 
 export interface ForwardPassOptions {
   load?: GPULoadOp;
-  store?: GPUStoreOp;
   clearColor?: GPUColor | Vec3 | Vec4;
   iblTextures?: IblTextures;
 }
@@ -111,17 +110,14 @@ export class ForwardPass extends RenderPass {
   private readonly _spotLightsScratchF   = new Float32Array(this._spotLightsScratch);
   private readonly _spotLightsScratchU   = new Uint32Array(this._spotLightsScratch);
 
-  private _depthTexture: GPUTexture;
-  private _depthView: GPUTextureView;
-  private _outputTexture: GPUTexture;
-  private _outputView: GPUTextureView;
+  private _depthView: GPUTextureView | null = null;
+  private _outputView: GPUTextureView | null = null;
 
   private _modelBuffers: GPUBuffer[] = [];
   private _modelBindGroups: GPUBindGroup[] = [];
   private _bufferIndex = 0;
 
   private _load: GPULoadOp;
-  private _store: GPUStoreOp;
   private _clearColor: GPUColor;
 
   private constructor(
@@ -137,12 +133,7 @@ export class ForwardPass extends RenderPass {
     lightingIblBindGroup: GPUBindGroup,
     shadowMapArray: GPUTexture,
     pointShadowCubeArray: GPUTexture,
-    depthTexture: GPUTexture,
-    depthView: GPUTextureView,
-    outputTexture: GPUTexture,
-    outputView: GPUTextureView,
     load: GPULoadOp,
-    store: GPUStoreOp,
     clearColor: GPUColor,
   ) {
     super();
@@ -158,12 +149,7 @@ export class ForwardPass extends RenderPass {
     this._lightingIblBindGroup = lightingIblBindGroup;
     this._shadowMapArray = shadowMapArray;
     this._pointShadowCubeArray = pointShadowCubeArray;
-    this._depthTexture = depthTexture;
-    this._depthView = depthView;
-    this._outputTexture = outputTexture;
-    this._outputView = outputView;
     this._load = load;
-    this._store = store;
     this._clearColor = clearColor;
   }
 
@@ -177,11 +163,10 @@ export class ForwardPass extends RenderPass {
    * @returns A configured `ForwardPass`.
    */
   static create(ctx: RenderContext, options: ForwardPassOptions = {}): ForwardPass {
-    const { device, width, height } = ctx;
-    let { iblTextures, load, store, clearColor } = options;
+    const { device } = ctx;
+    let { iblTextures, load, clearColor } = options;
 
     load ??= 'clear';
-    store ??= 'store';
 
     if (!iblTextures) {
       // Create fallback 1x1 white cubemaps for IBL if not provided
@@ -324,21 +309,7 @@ export class ForwardPass extends RenderPass {
     });
 
     // Create render targets
-    const depthTexture = device.createTexture({
-      label: 'ForwardDepth',
-      size: { width, height },
-      format: 'depth32float',
-      usage: GPUTextureUsage.RENDER_ATTACHMENT,
-    });
-    const depthView = depthTexture.createView();
 
-    const outputTexture = device.createTexture({
-      label: 'ForwardOutput',
-      size: { width, height },
-      format: 'rgba16float',
-      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
-    });
-    const outputView = outputTexture.createView();
 
     let clear: GPUColor = !clearColor ? [0, 0, 0, 1]
         : 'r' in clearColor ? clearColor
@@ -360,19 +331,14 @@ export class ForwardPass extends RenderPass {
       lightingIblBindGroup,
       shadowMapArray,
       pointShadowCubeArray,
-      depthTexture,
-      depthView,
-      outputTexture,
-      outputView,
       load,
-      store,
       clear
     );
   }
 
-  /** Default view of the internal HDR color target written by the pass. */
-  get outputView(): GPUTextureView {
-    return this._outputView;
+  setOutput(outputTextureView: GPUTextureView, depthTexture: GPUTextureView): void {
+    this._outputView = outputTextureView;
+    this._depthView = depthTexture;
   }
 
   /**
@@ -403,39 +369,6 @@ export class ForwardPass extends RenderPass {
    */
   get pointShadowCubeArray(): GPUTexture {
     return this._pointShadowCubeArray;
-  }
-
-  /**
-   * Recreate the color and depth render targets for a new framebuffer size.
-   *
-   * Existing HDR / depth textures are destroyed and replaced; bind groups that
-   * reference them must be regenerated externally.
-   *
-   * @param device Active GPU device.
-   * @param width New width in pixels.
-   * @param height New height in pixels.
-   */
-  resize(device: GPUDevice, width: number, height: number): void {
-    // Destroy old textures
-    this._depthTexture.destroy();
-    this._outputTexture.destroy();
-
-    // Create new textures with updated size
-    this._depthTexture = device.createTexture({
-      label: 'ForwardDepth',
-      size: { width, height },
-      format: 'depth32float',
-      usage: GPUTextureUsage.RENDER_ATTACHMENT,
-    });
-    this._depthView = this._depthTexture.createView();
-
-    this._outputTexture = device.createTexture({
-      label: 'ForwardOutput',
-      size: { width, height },
-      format: 'rgba16float',
-      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
-    });
-    this._outputView = this._outputTexture.createView();
   }
 
   /**
@@ -641,7 +574,6 @@ export class ForwardPass extends RenderPass {
       }
       ctx.device.queue.writeBuffer(this._spotLightsBuffer, 0, buffer);
     }
-
   }
 
   /**
@@ -659,8 +591,13 @@ export class ForwardPass extends RenderPass {
    */
   execute(encoder: GPUCommandEncoder, ctx: RenderContext, outputView?: GPUTextureView, depthView?: GPUTextureView): void {
     // If no output view provided and context is HDR-capable, render directly to canvas
-    const colorView = outputView ?? (ctx.format === 'rgba16float' ? ctx.getCurrentTexture().createView() : this._outputView);
+    const colorView = outputView ?? this._outputView;
     const depthAttachmentView = depthView ?? this._depthView;
+
+    if (colorView == null || depthAttachmentView == null) {
+      console.warn('ForwardPass: Missing output or depth view; skipping render.');
+      return;
+    }
 
     const pass = encoder.beginRenderPass({
       label: 'ForwardRenderPass',
@@ -669,14 +606,14 @@ export class ForwardPass extends RenderPass {
           view: colorView,
           clearValue: this._clearColor ?? { r: 0.0, g: 0.0, b: 1.0, a: 1.0 },
           loadOp: this._load,
-          storeOp: this._store,
+          storeOp: 'store',
         },
       ],
       depthStencilAttachment: {
         view: depthAttachmentView,
         depthClearValue: 1.0,
-        depthLoadOp: this._load,
-        depthStoreOp: this._store,
+        depthLoadOp: 'clear',
+        depthStoreOp: 'store',
       },
     });
 
@@ -811,8 +748,6 @@ export class ForwardPass extends RenderPass {
    * material-owned resources are GC'd / destroyed by their owners.
    */
   destroy(): void {
-    this._depthTexture.destroy();
-    this._outputTexture.destroy();
     this._shadowMapArray.destroy();
     this._pointShadowCubeArray.destroy();
     this._cameraBuffer.destroy();
