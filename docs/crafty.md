@@ -224,6 +224,7 @@ This book is a work in progress.  Chapters are added as the engine evolves.
     - Single Scattering Approximation
   - 10.3 Cloud rendering
     - Silver's Multi-Scattering Approximation
+    - Cloud Noise Texture Generation
   - 10.4 Volumetric Fog
   - 10.5 Cloud Shadows
   - 10.6 Oren-Nayer Diffuse Ground

@@ -96,6 +96,120 @@ amb_energy *= ms_boost;
 
 This produces the characteristic bright, fluffy appearance of cumulus clouds that single-scattering models fail to capture — the cloud interior glows rather than appearing as dark grey volume.
 
+### Cloud Noise Texture Generation
+
+The cloud density textures are generated on the CPU at startup by `src/assets/cloud_noise.ts`. Two tileable 3D textures are created:
+
+| Texture | Size | Channels | Content |
+|---|---|---|---|
+| `baseNoise` | 64×64×64 | R | 4-octave Perlin FBM — cloud bulk shape |
+| | | G/B/A | Worley cellular noise at 2×, 4×, 8× frequency — erosion layers |
+| `detailNoise` | 32×32×32 | R/G/B | Worley noise at 4×, 8×, 16× frequency — fine edge detail |
+
+#### Tileable Perlin Noise
+
+The Perlin implementation wraps lattice coordinates via modular arithmetic so the noise tiles seamlessly at the texture boundaries. Gradient vectors are drawn from the classic 12-edge set stored as parallel `Int8Array`s to avoid heap allocation on the hot path:
+
+```typescript
+const GRAD3_X = new Int8Array([ 1, -1,  1, -1,  1, -1,  1, -1,  0,  0,  0,  0]);
+const GRAD3_Y = new Int8Array([ 1,  1, -1, -1,  0,  0,  0,  0,  1, -1,  1, -1]);
+const GRAD3_Z = new Int8Array([ 0,  0,  0,  0,  1,  1, -1, -1,  1,  1, -1, -1]);
+
+function gradDot(lx, ly, lz, period, seed, dx, dy, dz) {
+  const wx = ((lx % period) + period) % period;
+  const wy = ((ly % period) + period) % period;
+  const wz = ((lz % period) + period) % period;
+  const gi = Math.floor(hashS(wx, wy, wz, seed) * 12) % 12;
+  return GRAD3_X[gi] * dx + GRAD3_Y[gi] * dy + GRAD3_Z[gi] * dz;
+}
+```
+
+Trilinear interpolation uses a quintic smoothstep (`6t⁵ - 15t⁴ + 10t³`) to eliminate second-order discontinuities at lattice boundaries:
+
+```typescript
+function smoothstep5(t: number): number {
+  return t * t * t * (t * (t * 6 - 15) + 10);
+}
+```
+
+#### Fractal Brownian Motion
+
+Four octaves of Perlin noise are summed with halved amplitude and doubled frequency per octave, then remapped from the approximate range ±0.7 to [0, 1] for storage as `unorm8`:
+
+```typescript
+function perlinGradFbmTile(px, py, pz, octaves, baseFreq, seed) {
+  let v = 0, a = 0.5, f = 1, tot = 0;
+  for (let i = 0; i < octaves; i++) {
+    v += perlinGradTile(px * f, py * f, pz * f, baseFreq * f, seed + i * 17) * a;
+    tot += a;
+    a *= 0.5;  f *= 2;
+  }
+  return Math.max(0, Math.min(1, v / tot * 0.85 + 0.5));
+}
+```
+
+#### Tileable Worley Noise
+
+Worley (cellular) noise measures the distance to the nearest randomly-placed feature point in a 3D grid. Each cell contains one point at a hash-derived offset within the cell, and the search covers the 27-cell neighbourhood. The modulo-wrapped cell coordinates ensure seam-free tiling:
+
+```typescript
+function worleyTile(px, py, pz, freq, seed) {
+  const fx = px * freq, fy = py * freq, fz = pz * freq;
+  const ix = Math.floor(fx), iy = Math.floor(fy), iz = Math.floor(fz);
+  let minD2 = Infinity;
+  for (let dz = -1; dz <= 1; dz++) {
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        const cx = ix + dx, cy = iy + dy, cz = iz + dz;
+        const wcx = ((cx % freq) + freq) % freq;
+        const wcy = ((cy % freq) + freq) % freq;
+        const wcz = ((cz % freq) + freq) % freq;
+        const fpx = cx + hashS(wcx, wcy, wcz, seed);
+        const fpy = cy + hashS(wcx, wcy, wcz, seed + 1);
+        const fpz = cz + hashS(wcx, wcy, wcz, seed + 2);
+        const d2 = (fx - fpx) ** 2 + (fy - fpy) ** 2 + (fz - fpz) ** 2;
+        if (d2 < minD2) minD2 = d2;
+      }
+    }
+  }
+  return 1.0 - Math.min(Math.sqrt(minD2), 1.0);
+}
+```
+
+#### Texture Upload
+
+The generated noise arrays are uploaded to the GPU as `rgba8unorm` 3D textures with a single `queue.writeTexture()` call — no staging buffer needed for a one-time upload:
+
+```typescript
+function make3dTexture(device, label, size, data) {
+  const tex = device.createTexture({
+    label, dimension: '3d',
+    size: { width: size, height: size, depthOrArrayLayers: size },
+    format: 'rgba8unorm',
+    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+  });
+  device.queue.writeTexture(
+    { texture: tex },
+    data.buffer,
+    { bytesPerRow: size * 4, rowsPerImage: size },
+    { width: size, height: size, depthOrArrayLayers: size },
+  );
+  return tex;
+}
+```
+
+The four-channel packing means a single texture sample fetches both the bulk density (R) and three erosion frequencies (GBA) simultaneously — the shader combines them in the `sample_density()` function to carve realistic cloud shapes with wispy edges:
+
+```wgsl
+fn sample_pw(samp_uv: vec3f) -> f32 {
+  let s = textureSampleLevel(base_noise, noise_samp, samp_uv, 0.0);
+  let w = s.g * 0.5 + s.b * 0.35 + s.a * 0.15;
+  return remap(s.r, 1.0 - w, 1.0, 0.0, 1.0);
+}
+```
+
+This CPU-generation approach was chosen over GPU compute for simplicity — the noise is generated once at boot and needs no runtime modification. For a 64³ base texture and a 32³ detail texture, the total generation time is ~5 ms on a modern CPU.
+
 ## 10.4 Volumetric Fog
 
 ![Fog falloff: squared exponential distance curve and a height-based density gradient over a mountain silhouette](../illustrations/10-fog-distance-height.svg)
