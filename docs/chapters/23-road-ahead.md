@@ -52,7 +52,7 @@ The terrain generation system will be extended with:
 
 - **WebXR integration** — immersive VR mode using `XRSession` with WebGPU as the rendering backend. The renderer would output to the WebXR framebuffer with the correct projection and view matrices for each eye.
 
-### Closing Thoughts
+## 23.5 Closing Thoughts
 
 Crafty began as an experiment — could we build a complete, modern renderer from scratch on the web platform? The answer is yes, and the code is here for you to read, modify, and learn from.
 

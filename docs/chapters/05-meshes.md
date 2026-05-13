@@ -107,34 +107,6 @@ WebGPU supports multiple vertex buffers (for separate position/normal/UV streams
 
 Crafty's `Mesh` class is the sole mesh representation. There is no higher-level "model" class — a model is simply a collection of `Mesh` + `Material` pairs enumerated during rendering.
 
-### Procedural Primitives
-
-The `Mesh` class provides static methods for common procedural shapes.
-
-**Cube** (`Mesh.createCube`):
-
-```typescript
-static createCube(device: GPUDevice, size = 1): Mesh {
-  const h = size / 2;
-  // Six faces, each with 4 vertices
-  // Each vertex: position(3) + normal(3) + uv(2) + tangent(4) = 12 floats
-  const faces = [
-    { normal:[0,0,1],  tangent:[1,0,0,1],
-      verts: [[-h,-h,h],[h,-h,h],[h,h,h],[-h,h,h]] },    // front
-    { normal:[0,0,-1], tangent:[-1,0,0,1],
-      verts: [[h,-h,-h],[-h,-h,-h],[-h,h,-h],[h,h,-h]] },// back
-    // ... four more faces ...
-  ];
-  // Builds vertex array and index array, calls fromData()
-}
-```
-
-Each face has its own normal and tangent, enabling correct per-face lighting. The winding order is counter-clockwise (standard for WebGPU).
-
-**Plane** (`Mesh.createPlane`): A flat quad made of two triangles, used for the ground and other flat surfaces.
-
-**Sphere** (`Mesh.createSphere`): A UV sphere with configurable segment counts, used for debug light markers and procedural objects.
-
 ## 5.4 Procedural Geometry
 
 ### Plane
@@ -157,7 +129,25 @@ static createPlane(device: GPUDevice, size = 1): Mesh {
 }
 ```
 
-### Cube with Correct Normals
+### Cube
+
+```typescript
+static createCube(device: GPUDevice, size = 1): Mesh {
+  const h = size / 2;
+  // Six faces, each with 4 vertices
+  // Each vertex: position(3) + normal(3) + uv(2) + tangent(4) = 12 floats
+  const faces = [
+    { normal:[0,0,1],  tangent:[1,0,0,1],
+      verts: [[-h,-h,h],[h,-h,h],[h,h,h],[-h,h,h]] },    // front
+    { normal:[0,0,-1], tangent:[-1,0,0,1],
+      verts: [[h,-h,-h],[-h,-h,-h],[-h,h,-h],[h,h,-h]] },// back
+    // ... four more faces ...
+  ];
+  // Builds vertex array and index array, calls fromData()
+}
+```
+
+Each face has its own normal and tangent, enabling correct per-face lighting. The winding order is counter-clockwise (standard for WebGPU).
 
 A common mistake with cube meshes is sharing vertices across faces (so a vertex has a single normal that is an average of the adjacent face normals). Crafty's cube creates **unique vertices per face**, so each face has its own explicit normal:
 
@@ -175,7 +165,6 @@ bottom (0,-1,0) (1,0,0,-1)    (-h,-h,-h)-(h,-h,-h)-(h,-h,h)-(-h,-h,h)
 This is important for correct lighting — without explicit per-face normals, a cube with hard edges would appear softly shaded at the corners:
 
 ![Cube normals: shared (averaged) vs per-face vertices](../illustrations/05-cube-face-normals.svg)
-
 
 ### UV Sphere
 

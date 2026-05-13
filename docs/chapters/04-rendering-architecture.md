@@ -245,7 +245,7 @@ export class GBuffer {
 
 The G-buffer is allocated once per canvas size and re-created on resize. It is shared across the geometry-fill passes (which write to it) and the lighting/post-processing passes (which read from it via `TEXTURE_BINDING`).
 
-### G-buffer Fill Strategy
+### GBuffer Fill Strategy
 
 ![Three geometry passes layer into the same G-buffer using clear / load / load loadOps; downstream passes read it via TEXTURE_BINDING](../illustrations/04-gbuffer-fill.svg)
 

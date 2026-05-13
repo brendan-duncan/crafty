@@ -334,20 +334,6 @@ The forward pass uses the same camera and light uniform buffers as the deferred 
 
 Crafty's forward pass uses a simple **Forward+** optimisation: active lights are culled per-tile on the CPU using the camera frustum, and only lights intersecting the tile are evaluated for each fragment. This prevents the O(N × M) scaling of naive forward rendering (N fragments, M lights).
 
-### Summary
-
-Lighting is a composition of several systems:
-
-| System | Pass | Purpose |
-|--------|------|---------|
-| Directional (sun) | `DeferredLightingPass` | Main light, CSM shadows |
-| Point lights | `PointSpotLightPass` | Additive deferred, cube shadow maps |
-| Spot lights | `PointSpotLightPass` | Additive deferred, 2D shadow maps |
-| IBL | `DeferredLightingPass` | Environment-based ambient + specular |
-| Forward transparency | `ForwardPass` | PBR for transparent surfaces |
-
-All paths share the same PBR BRDF functions, ensuring consistent appearance regardless of rendering path.
-
 ## 7.9 GPU-Based IBL Pre-Computation
 
 The three IBL textures — irradiance map, GGX prefiltered environment map, and BRDF LUT — could be pre-computed offline and shipped as assets, but Crafty computes them at runtime on the GPU. This allows the IBL to adapt to the current sky (procedural or HDR) without managing additional texture assets per environment.
@@ -423,6 +409,20 @@ fn cs_prefilter(@builtin(global_invocation_id) id: vec3u) {
 The dispatch is 6 faces × 5 roughness levels = 30 workgroups, each sampling 256 GGX-importance-weighted directions per texel. The base mip is 128×128 per face, halving at each roughness level down to 8×8 at roughness 1.0.
 
 These compute dispatches run once when the sky changes (e.g., on world load or a new HDR map), and the results persist until the next rebuild. The `computeIblGpu()` function in `src/assets/ibl.ts` orchestrates the entire pipeline and awaits `onSubmittedWorkDone()` before returning the ready-to-use textures.
+
+## Summary
+
+Lighting is a composition of several systems:
+
+| System | Pass | Purpose |
+|--------|------|---------|
+| Directional (sun) | `DeferredLightingPass` | Main light, CSM shadows |
+| Point lights | `PointSpotLightPass` | Additive deferred, cube shadow maps |
+| Spot lights | `PointSpotLightPass` | Additive deferred, 2D shadow maps |
+| IBL | `DeferredLightingPass` | Environment-based ambient + specular |
+| Forward transparency | `ForwardPass` | PBR for transparent surfaces |
+
+All paths share the same PBR BRDF functions, ensuring consistent appearance regardless of rendering path.
 
 **Further reading:**
 - `src/shaders/lighting.wgsl` — Deferred lighting shader (full PBR evaluation)

@@ -68,7 +68,7 @@ cloudDensity = smoothstep(cloudThreshold, 1.0, cloudDensity);
 
 The raymarch accumulates transmittance and color along the view ray, producing soft, volumetric cloud shapes with realistic self-shadowing.
 
-### 10.3.1 Silver's Multi-Scattering Approximation
+### Silver's Multi-Scattering Approximation
 
 Real clouds scatter light many times — single scattering alone is too dark because it ignores energy that bounces between droplets. Silver's approximation models multi-scattering as an additional isotropic ambient term added at each raymarch step, avoiding the cost of explicit secondary ray marches:
 
