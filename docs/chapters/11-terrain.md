@@ -346,11 +346,30 @@ function _isFlatEnough(world: World, baseX: number, baseZ: number, refY: number)
 
 ### House Placement
 
-When a village is selected, 2–4 houses are placed in a cluster around the chunk center. Each house position:
+When a village is selected, 2–4 houses are placed in a cluster around the chunk center. Each candidate position uses polar coordinates (random angle + random distance 4–10 blocks from center) and must pass three checks:
 
-- Uses polar coordinates (random angle + random distance 4–10 blocks from center)
-- Validates that the house footprint sits on ground (not water)
-- Places the house only if the local terrain elevation is within 1.5 blocks of the village reference height
+1. **Overlap avoidance.** House footprints are 7×5 blocks. Before placing, the new house is tested against all already-placed houses using an AABB collision check with 1-block padding. If it overlaps, it is skipped.
+2. **Footprint flatness.** All 35 columns of the 7×5 area must have ground height within ±1.5 blocks of the village reference height. This prevents houses from overhanging terrain edges.
+3. **No water.** Scans a 5×5 grid of sample points one block below the house for water blocks.
+
+```typescript
+const placed: { x: number; z: number }[] = [];
+for (const p of placed) {
+  if (hx < p.x + 8 && hx + 7 > p.x && hz < p.z + 6 && hz + 5 > p.z) {
+    // overlap — skip
+  }
+}
+
+function _isHouseFootprintFlat(world: World, hx: number, hz: number, refY: number, tolerance: number): boolean {
+  for (let dx = 0; dx < 7; dx++) {
+    for (let dz = 0; dz < 5; dz++) {
+      const y = world.getTopBlockY(hx + dx, hz + dz, 200);
+      if (y <= 0 || Math.abs(y - refY) > tolerance) return false;
+    }
+  }
+  return true;
+}
+```
 
 ### House Template
 
