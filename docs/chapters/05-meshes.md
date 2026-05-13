@@ -383,6 +383,145 @@ queue.writeBuffer(jointBuffer, 0, jointMatrices.buffer);
 
 The storage buffer is bound at group 3 of the skinned geometry pipeline, separate from the group-2 material bindings, so the same material system works for both static and skinned meshes.
 
+## 5.7 GLTF 2.0 Binary Loader
+
+Crafty's `GltfLoader` (`src/assets/gltf_loader.ts`) loads animated, skinned models from binary glTF 2.0 (`.glb`) files. It parses the GLB container, decodes accessors, generates tangents, and produces GPU-ready meshes, materials, skeletons, and animation clips.
+
+### GLB Container Format
+
+A `.glb` file is a little-endian binary container with a 12-byte header followed by chunks:
+
+```
+┌────────────────────────────────────────────┐
+│ Magic  (0x46546C67 = "glTF") | Version (2) │  12 bytes
+│ File length                                 │
+├────────────────────────────────────────────┤
+│ Chunk length (JSON)   | Type (0x4E4F534A)  │  8 bytes + chunk data
+│ Chunk: UTF-8 JSON describing the scene     │
+├────────────────────────────────────────────┤
+│ Chunk length (BIN)    | Type (0x004E4942)  │  8 bytes + chunk data  
+│ Chunk: binary buffer for accessors/images │
+└────────────────────────────────────────────┘
+```
+
+The parser reads these chunks in sequence — the JSON chunk is decoded with `TextDecoder` and parsed, the BIN chunk is kept as an `ArrayBuffer` for direct `DataView` access:
+
+```typescript
+const magic   = view.getUint32(0, true);
+const version = view.getUint32(4, true);
+if (magic !== 0x46546C67 || version !== 2) throw Error('Not a valid GLB 2.0');
+
+while (offset < arrayBuf.byteLength) {
+  const chunkLength = view.getUint32(offset, true);
+  const chunkType   = view.getUint32(offset + 4, true);
+  offset += 8;
+  if (chunkType === 0x4E4F534A) { /* JSON chunk */ }
+  else if (chunkType === 0x004E4942) { /* BIN chunk */ }
+  offset += chunkLength;
+}
+```
+
+### Accessor Decoding
+
+glTF accessors describe typed views into the binary buffer. The loader handles all common formats:
+
+| `componentType` | C type | Method |
+|---|---|---|
+| 5126 | `float32` | `DataView.getFloat32` |
+| 5125 | `uint32` | `DataView.getUint32` |
+| 5123 | `uint16` | `DataView.getUint16` |
+| 5121 | `uint8` | `DataView.getUint8` |
+
+Accessors respect the buffer view's `byteStride`, allowing interleaved vertex data in the source file:
+
+```typescript
+const n      = TYPE_COUNT[acc.type] ?? 1;
+const bv     = bufferViews[acc.bufferView!];
+const stride = bv.byteStride ?? (n * 4);
+
+for (let i = 0; i < count; i++) {
+  for (let c = 0; c < n; c++) {
+    out[i * n + c] = src.getFloat32(i * stride + c * 4, true);
+  }
+}
+```
+
+### MikkTSpace Tangent Generation
+
+Many glTF files omit tangents, relying on the engine to generate them. Crafty's `computeTangents` implements the **MikkTSpace** algorithm — it accumulates per-triangle tangent/bitangent contributions into vertex arrays, then applies Gram-Schmidt orthonormalisation and calculates the bitangent sign (`w`):
+
+```typescript
+for each triangle (i0, i1, i2):
+  const e1 = p1 - p0, e2 = p2 - p0;
+  const duv1 = uv1 - uv0, duv2 = uv2 - uv0;
+  const r = 1 / (du1*dv2 - du2*dv1);
+  const t = (dv2*e1 - dv1*e2) * r;
+  const b = (du1*e2 - du2*e1) * r;
+  accumulate t into tan1[i0,i1,i2], b into tan2[i0,i1,i2]
+
+for each vertex i:
+  Gram-Schmidt: t' = normalize(t - n * dot(n, t))
+  w = sign(dot(cross(n, t'), tan2[i]))
+  store t'.xyz and w as the 4-component tangent
+```
+
+### Vertex Packing
+
+The loader packs parsed attributes into an 80-byte interleaved vertex (20 floats):
+
+| Offset | Size | Attribute |
+|---|---|---|
+| 0 | 12 bytes | `position` (float32x3) |
+| 12 | 12 bytes | `normal` (float32x3) |
+| 24 | 8 bytes | `uv` (float32x2) |
+| 32 | 16 bytes | `tangent` (float32x4) |
+| 48 | 16 bytes | `joints` (uint32x4, written via `Uint32Array` view) |
+| 64 | 16 bytes | `weights` (float32x4) |
+
+Joints and weights are packed at fixed offsets using a `Uint32Array` view over the same `Float32Array` buffer — a common pattern for writing uint data into an f32 array without allocation:
+
+```typescript
+const vertBuf = new Float32Array(vertCount * 20);
+const vertU32 = new Uint32Array(vertBuf.buffer);
+
+vertU32[f+12] = jointsRaw[i*4];   // joint 0-3 as uint32
+vertBuf[f+16] = weights[i*4];     // weight 0-3 as float32
+```
+
+If the mesh has no joints or weights, a default weight of `1.0` is assigned to make it compatible with the skinned pipeline.
+
+### Material and Texture Resolution
+
+PBR materials are constructed from the glTF metallic-roughness model. Base color and normal textures embedded in the BIN chunk are extracted as Blobs, decoded via `createImageBitmap`, and uploaded to the GPU as `Texture` objects:
+
+```typescript
+if (img.bufferView != null) {
+  const bv  = gltf.bufferViews![img.bufferView];
+  const bytes = new Uint8Array(bin, bv.byteOffset, bv.byteLength);
+  const blob  = new Blob([bytes], { type: img.mimeType ?? 'image/png' });
+  const bitmap = await createImageBitmap(blob, { colorSpaceConversion: 'none' });
+  return Texture.fromBitmap(device, bitmap, { srgb });
+}
+```
+
+External URI-based textures are loaded via `Texture.fromUrl` as a fallback.
+
+### Skeleton and Animation Import
+
+Skinning data is reconstructed from glTF's node hierarchy. The loader builds a `Skeleton` by mapping joint nodes, computing parent indices, and reading inverse bind matrices. A root transform accumulates ancestor nodes above the skeleton root that contribute to the model-space transform:
+
+```typescript
+let rootTransform = identity();
+let anc = nodeParent[jointNodes[0]];
+while (anc >= 0) {
+  rootTransform = mat4Mul(nodeLocalMatrix(nodes[anc]), rootTransform);
+  anc = nodeParent[anc];
+}
+skeleton = new Skeleton(parentIndices, invBindMats, restT, restR, restS, rootTransform);
+```
+
+Animation channels are grouped into `AnimationClip` objects, each containing per-joint keyframe sequences with configurable interpolation (LINEAR, STEP, CUBICSPLINE). The loader returns all parsed resources in a `GltfModel` object that owns the GPU buffers — the caller must call `model.destroy()` to release them.
+
 ### Summary
 
 The mesh system is self-contained and minimal:

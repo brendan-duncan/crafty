@@ -254,7 +254,7 @@ Reflections use a hybrid approach:
 1. **Screen-space reflection (SSR)** ray-marches the reflected view direction in view space, sampling the refraction texture (pre-water HDR scene).
 2. **HDR sky panorama** is used as a fallback for rays that miss scene geometry or leave the screen bounds.
 
-## 11.10 Screen-Space Reflection Rendering
+## 11.10 Screen-Space Reflections (SSR)
 
 ![Screen-space reflection: view-space ray march, depth hit test, and equirectangular sky fallback](../illustrations/11-ssr.svg)
 

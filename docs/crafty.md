@@ -133,7 +133,15 @@ This book is a work in progress.  Chapters are added as the engine evolves.
     - UV Sphere
     - Cone
   - 5.5 Skinned Meshes and Skeletons
+    - Dual-Quaternion Skinning
   - 5.6 Animation
+  - 5.7 GLTF 2.0 Binary Loader
+    - GLB Container Format
+    - Accessor Decoding
+    - Tangent Generation
+    - Vertex Packing
+    - Material and Texture Resolution
+    - Skeleton and Animation Import
 
 - [Chapter 6: Textures and Materials](chapters/06-textures-materials.md)
   - 6.1 2D, 3D, and Cube Textures
@@ -243,7 +251,7 @@ This book is a work in progress.  Chapters are added as the engine evolves.
     - Screen-Space Refraction
     - Depth-Based Attenuation
     - Screen-Space reflection + Sky Fallback
-  - 11.10 Screen-Space Reflection
+  - 11.10 Screen-Space Reflections (SSR)
     - Algorithm
     - Confidence Blending
     - Fresnel Blend
