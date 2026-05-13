@@ -12,8 +12,8 @@ Self-contained samples in `samples/` demonstrate individual features in isolatio
 samples/
 ├── forward_pass.html
 ├── forward_pass_sample.ts      — Forward renderer demo
-├── cube_test.html
-├── cube_test.ts                — Full deferred pipeline test
+├── engine_test.html
+├── engine_test.ts              — Full deferred pipeline test
 ├── cascade_shadow_test.html
 └── cascade_shadow_test.ts      — CSM visualization
 ```
