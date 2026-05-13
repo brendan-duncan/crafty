@@ -92,6 +92,61 @@ fogDensity *= heightFog;
 
 The `CloudShadowPass` renders a top-down cloud shadow map — a 2D texture storing cloud density as seen from above. The lighting pass samples this texture at the surface position to modulate direct sunlight, producing dynamic cloud shadows on the terrain.
 
+## 10.6 Oren-Nayar Diffuse Ground
+
+The standard atmosphere model treats the ground as fully absorbing — light reaching the surface is lost. In reality, the ground reflects scattered sunlight back into the sky, brightening the lower atmosphere, especially near the horizon. An **Oren-Nayar BRDF** models this reflection more accurately than a simple Lambertian for rough surfaces like terrain.
+
+```wgsl
+fn orenNayar(cosThetaI: f32, cosThetaR: f32, phiDiff: f32, roughness: f32) -> f32 {
+  let sigma2 = roughness * roughness;
+  let A = 1.0 - 0.5 * sigma2 / (sigma2 + 0.33);
+  let B = 0.45 * sigma2 / (sigma2 + 0.09);
+  let alpha = max(acos(cosThetaI), acos(cosThetaR));
+  let beta  = min(acos(cosThetaI), acos(cosThetaR));
+  return A + B * max(0.0, cos(phiDiff)) * sin(alpha) * tan(beta);
+}
+```
+
+The roughness parameter controls the surface microfacets: low roughness behaves close to Lambertian, while high roughness widens the reflection lobe, scattering light back across a broader angle. In the atmosphere pass, the Oren-Nayar contribution is added during the scattering integral by treating the ground as a secondary light source:
+
+```wgsl
+// Ground-reflected radiance at the surface point
+let groundAlbedo = vec3f(0.2, 0.25, 0.15);  // terrain tint
+let groundIrradiance = SUN_INTENSITY * max(dot(normal, u.sunDir), 0.0);
+let groundReflected = groundAlbedo * groundIrradiance * orenNayar(..., roughness);
+```
+
+This adds a subtle warm tint to the lower sky that improves realism, particularly during sunrise and sunset when the ground reflection path is longest.
+
+## 10.7 Ozone Absorption (Chappuis Band)
+
+Ozone in the stratosphere absorbs visible light in the **Chappuis band** (500–700 nm, peak ~600 nm). While the effect is negligible at high sun angles, it becomes visible at twilight when sunlight travels through a long path in the ozone layer. The absorption gives the zenith sky a subtle purple-pink hue at sunset.
+
+The absorption is modeled as an additional wavelength-dependent extinction coefficient added to the Rayleigh term in the ozone layer (20–40 km altitude):
+
+```wgsl
+const OZONE_ABSORPTION : vec3f = vec3f(0.00065, 0.0044, 0.0125);
+  // Per-metre absorption at 440/550/680 nm (weak in blue, strong in red)
+
+fn ozoneOpticalDepth(pos: vec3f, sunDir: vec3f) -> f32 {
+  // Integrate density only in the ozone layer (20–40 km)
+  let h = length(pos) - R_E;
+  let ozoneDensity = smoothstep(20_000.0, 40_000.0, h) *
+                     (1.0 - smoothstep(40_000.0, 50_000.0, h));
+  // ...
+}
+```
+
+The extinction from ozone is applied to the transmittance alongside Rayleigh and Mie:
+
+```wgsl
+let transmittance = exp(
+  -(BETA_R * odR + BETA_M * 1.1 * odM + OZONE_ABSORPTION * odOzone)
+);
+```
+
+This produces the characteristic **purple-pink zenith glow** at sunset that a Rayleigh+Mie-only model misses.
+
 **Further reading:**
 - `src/renderer/passes/sky_texture_pass.ts` — HDR cubemap sky
 - `src/renderer/passes/atmosphere_pass.ts` — Procedural atmospheric sky
