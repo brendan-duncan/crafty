@@ -85,6 +85,18 @@ function _hasWaterUnderColumn(world: World, baseX: number, baseZ: number, refY: 
   return false;
 }
 
+function _isHouseFootprintFlat(world: World, hx: number, hz: number, refY: number, tolerance: number): boolean {
+  for (let dx = 0; dx < 7; dx++) {
+    for (let dz = 0; dz < 5; dz++) {
+      const y = world.getTopBlockY(hx + dx, hz + dz, 200);
+      if (y <= 0 || Math.abs(y - refY) > tolerance) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
 function _hasWaterUnderHouse(world: World, hx: number, hy: number, hz: number): boolean {
   for (let dx = -1; dx <= 1; dx++) {
     for (let dz = -1; dz <= 1; dz++) {
@@ -163,22 +175,31 @@ export function setupVillageGeneration(world: World): void {
     }
 
     const houseCount = 2 + Math.floor(rng.randomFloat(0, 3));
+    const placed: { x: number; z: number }[] = [];
     for (let i = 0; i < houseCount; i++) {
       const angle = rng.randomFloat(0, Math.PI * 2);
       const dist = rng.randomFloat(4, 10);
       const hx = Math.floor(centerWX + Math.cos(angle) * dist);
       const hz = Math.floor(centerWZ + Math.sin(angle) * dist);
-      const hy = world.getTopBlockY(hx, hz, 200);
-      if (hy <= 0) {
+      let overlap = false;
+      for (const p of placed) {
+        if (hx < p.x + 8 && hx + 7 > p.x && hz < p.z + 6 && hz + 5 > p.z) {
+          overlap = true;
+          break;
+        }
+      }
+      if (overlap) {
         continue;
       }
-      if (Math.abs(hy - topY) > 1.5) {
+      if (!_isHouseFootprintFlat(world, hx, hz, topY, 1.5)) {
         continue;
       }
+      const hy = topY;
       if (_hasWaterUnderHouse(world, hx, hy, hz)) {
         continue;
       }
       _placeHouse(hx, hy, hz, world);
+      placed.push({ x: hx, z: hz });
     }
   };
 }
