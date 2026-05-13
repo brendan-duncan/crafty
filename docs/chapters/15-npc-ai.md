@@ -415,7 +415,115 @@ update(dt: number): void {
 
 The joint matrices are consumed by the skinned variant of the world geometry pass, which renders the animated mesh with GPU skinning. NPCs that need full-body animation (e.g. a character walking, waving, or performing actions) use `AnimatedModel` instead of the simple head-bob approach.
 
-## 15.10 Extending the NPC System
+## 15.10 Mob Spawning Mechanics
+
+Rather than scanning the world periodically, Crafty spawns mobs as a **side effect of chunk generation**. The `setupAnimalSpawning()` function in `crafty/game/animal_spawner.ts` hooks into the `World.onChunkAdded` callback so every new chunk triggers a spawn attempt for its XZ column:
+
+```typescript
+const prev = world.onChunkAdded;
+world.onChunkAdded = (chunk, chunkMesh) => {
+  prev?.(chunk, chunkMesh);          // preserve renderer callback
+  if (chunk.aliveBlocks === 0) return;
+  const key = `${cx}:${cz}`;
+  if (processedColumns.has(key)) return;  // deduplicate
+  processedColumns.add(key);
+  _spawnInColumn(cx, cz, world, scene, meshes);
+};
+```
+
+### Column-Level Deduplication
+
+A chunk column covers all Y-layers for one XZ coordinate. Since Crafty generates terrain in vertical layers (chunks), the same column may trigger `onChunkAdded` multiple times as lower or higher layers load. The `processedColumns` set prevents animals from piling up:
+
+```
+cx:cz ──→ processedColumns Set ──→ skip if already seen
+                                    add on first sight
+                                    spawn all mob types once
+```
+
+This also covers world reload — the set is created fresh per `setupAnimalSpawning()` call, so re-entering the world re-rolls mob placement.
+
+### Spawn Conditions
+
+Each mob type has an independent spawn roll per column:
+
+| Mob | Probability | Biome Filter | Size |
+|-----|-------------|-------------|------|
+| Duck | 0.15 | GrassyPlains only | 1–2 adults + optional 5 ducklings |
+| Pig | 0.20 | GrassyPlains only | 1–2 adults or babies (25% baby chance) |
+| Creeper | 0.01 | Any | Single |
+
+Every spawn checks that the column has solid ground (`getTopBlockY > 0`). Ducks additionally check if the surface block is water — they can float on the surface or stand on solid ground:
+
+```typescript
+// From duck_spawning.ts
+const topY = world.getTopBlockY(wx, wz, 200);
+if (topY <= 0) return null;                          // no ground
+const biome = world.getBiomeAt(wx, topY, wz);
+if (biome !== BiomeType.GrassyPlains) return null;    // biome filter
+const blockBelow = world.getBlockType(wx, floor(topY - 1), wz);
+const spawnY = blockBelow === BlockType.WATER ? floor(topY - 0.05) : topY;
+```
+
+Creepers have the loosest filter — any biome, 1% per column — making them a rare but universal threat.
+
+### Spawn Resolution
+
+The spawn functions construct `GameObject` hierarchies with `MeshRenderer` components and AI components attached, then add them to the scene. Group spawns (ducklings, baby pigs) are decided by a secondary probability roll:
+
+```typescript
+// Ducks: 25% chance of 5 ducklings per spawned duck
+if (parent && Math.random() < DUCKLING_CHANCE) {
+  for (let d = 0; d < DUCKLING_COUNT; d++) {
+    spawnDuckling(parent, world, scene, ...);
+  }
+}
+
+// Pigs: 25% chance of baby instead of adult
+if (Math.random() < BABY_PIG_CHANCE) {
+  spawnPig(wx, wz, world, scene, babyPigBody, ..., 0.55);
+} else {
+  spawnPig(wx, wz, world, scene, pigBody, ..., 1.0);
+}
+```
+
+### Helper Functions for Debugging
+
+Dedicated helpers (`spawnDucksAroundPoint`, `spawnPigsAroundPoint`, `spawnCreepersAroundPoint`) allow spawning groups around a world coordinate at runtime, used for testing and village generation:
+
+```typescript
+export function spawnDucksAroundPoint(
+  spawnX: number, spawnZ: number, count: number,
+  world: World, scene: Scene, /* ... meshes ... */,
+  ducklingChance = 0.25,
+): void {
+  for (let i = 0; i < count; i++) {
+    const angle = (i / count) * Math.PI * 2 + Math.random() * 0.4;
+    const dist  = 8 + Math.random() * 20;
+    spawnDuck(floor(spawnX + cos(angle) * dist), floor(spawnZ + sin(angle) * dist), ...);
+  }
+}
+```
+
+These functions scatter mobs in a ring around a centre point with random angular offset, producing natural-looking distributions.
+
+### Summary of Spawn Flow
+
+```
+Chunk generated
+  └─ onChunkAdded fires
+       └─ aliveBlocks > 0?
+            └─ Column already processed?
+                 └─ _spawnInColumn()
+                      ├─ DUCK_CHANCE  (0.15) → spawnDuck + optional ducklings
+                      ├─ PIG_CHANCE   (0.20) → spawnPig (adult or baby)
+                      └─ CREEPER_CHANCE (0.01) → spawnCreeper
+```
+
+Mob spawning is strictly a generation-time event — there is no respawn timer or despawn-on-distance system. Once spawned, NPCs persist in the scene until the world is unloaded.
+
+
+## 15.11 Extending the NPC System
 
 The component-based architecture makes it straightforward to add new NPC types:
 

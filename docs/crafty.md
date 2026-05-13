@@ -335,7 +335,13 @@ This book is a work in progress.  Chapters are added as the engine evolves.
   - 15.7 Gravity and Ground Collision
   - 15.8 Head Bob Animation
   - 15.9 Animated Models and Skeletal Animation
-  - 15.10 Extending the NPC System
+  - 15.10 Mob Spawning Mechanics
+    - Column-Level Deduplication
+    - Spawn Conditions
+    - Spawn Resolution
+    - Helper Functions for Debugging
+    - Summary of Spawn Flow
+  - 15.11 Extending the NPC System
 
 - [Chapter 16: Weather System](chapters/16-weather-system.md)
   - 16.1 Weather Types
