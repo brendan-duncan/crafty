@@ -216,7 +216,7 @@ static createSphere(device: GPUDevice, radius = 0.5,
 }
 ```
 
-Because the sphere is centred at the origin, the **normal at each vertex equals the normalised vertex position** — the unit vector `(nx, ny, nz)`. The vertex position is simply that normal scaled by `radius`. This gives smooth, continuous normals across the entire surface, producing correct Lambertian and specular lighting.
+Because the sphere is centerd at the origin, the **normal at each vertex equals the normalized vertex position** — the unit vector `(nx, ny, nz)`. The vertex position is simply that normal scaled by `radius`. This gives smooth, continuous normals across the entire surface, producing correct Lambertian and specular lighting.
 
 The **tangent** is the derivative of the surface position with respect to longitude — `(-sinPhi, 0, cosPhi)` — which points eastward along the latitude ring. This gives the normal map a consistent local reference frame.
 
@@ -243,7 +243,7 @@ The sphere is used for debug light markers (showing point/spot light positions a
 
 ### Cone
 
-`Mesh.createCone(device, radius, height, segments)` generates a cone with its apex at `(0, height, 0)` and its base centred at the origin on the XZ plane:
+`Mesh.createCone(device, radius, height, segments)` generates a cone with its apex at `(0, height, 0)` and its base centerd at the origin on the XZ plane:
 
 ```typescript
 static createCone(device: GPUDevice, radius = 0.5,
@@ -303,7 +303,7 @@ static createCone(device: GPUDevice, radius = 0.5,
 }
 ```
 
-The cone is built from three parts: the **apex** (a single vertex at the tip), the **side** (a triangle fan from the apex to the base ring), and the **base cap** (a triangle fan from the centre of the base to the ring). Side normals come from the cone's slope — perpendicular to the slanted surface in cross-section:
+The cone is built from three parts: the **apex** (a single vertex at the tip), the **side** (a triangle fan from the apex to the base ring), and the **base cap** (a triangle fan from the center of the base to the ring). Side normals come from the cone's slope — perpendicular to the slanted surface in cross-section:
 
 ![Cone construction and side-normal derivation](../illustrations/05-cone-construction.svg)
 
@@ -318,11 +318,11 @@ const cn = radius / slope;   // vertical (Y) component
 
 This produces normals that are perpendicular to the cone's slanted surface, giving correct Lambertian lighting across the sides.
 
-**Base cap normals** are `(0, -1, 0)` — straight down — shared by both the centre vertex and the ring vertices. The base and side use separate vertices at the same ring positions (the `sideRingStart` and `capRingStart` loops each generate their own copy of the ring), so the side and base can have different normals at the same spatial location.
+**Base cap normals** are `(0, -1, 0)` — straight down — shared by both the center vertex and the ring vertices. The base and side use separate vertices at the same ring positions (the `sideRingStart` and `capRingStart` loops each generate their own copy of the ring), so the side and base can have different normals at the same spatial location.
 
-**UVs** for the side map `u` around the circumference and `v` to the vertical position (0 at the apex, 1 at the base). The base cap uses a radial projection: `(0.5 + cos(t) * 0.5, 0.5 + sin(t) * 0.5)`, creating a circular UV layout centred on the base.
+**UVs** for the side map `u` around the circumference and `v` to the vertical position (0 at the apex, 1 at the base). The base cap uses a radial projection: `(0.5 + cos(t) * 0.5, 0.5 + sin(t) * 0.5)`, creating a circular UV layout centerd on the base.
 
-**Tangents** for the side are `(cos(t), 0, sin(t))` — the derivative of the vertex position around the ring. The apex and base centre use a fixed `(1, 0, 0, 1)` tangent since they are singular points connected to all segments.
+**Tangents** for the side are `(cos(t), 0, sin(t))` — the derivative of the vertex position around the ring. The apex and base center use a fixed `(1, 0, 0, 1)` tangent since they are singular points connected to all segments.
 
 The cone is useful for rendering volumetric light cones (spot lights), particle emission cones, and any conical procedural shape.
 
@@ -448,7 +448,7 @@ for (let i = 0; i < count; i++) {
 
 ### MikkTSpace Tangent Generation
 
-Many glTF files omit tangents, relying on the engine to generate them. Crafty's `computeTangents` implements the **MikkTSpace** algorithm — it accumulates per-triangle tangent/bitangent contributions into vertex arrays, then applies Gram-Schmidt orthonormalisation and calculates the bitangent sign (`w`):
+Many glTF files omit tangents, relying on the engine to generate them. Crafty's `computeTangents` implements the **MikkTSpace** algorithm — it accumulates per-triangle tangent/bitangent contributions into vertex arrays, then applies Gram-Schmidt orthonormalization and calculates the bitangent sign (`w`):
 
 ```typescript
 for each triangle (i0, i1, i2):

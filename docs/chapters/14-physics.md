@@ -140,9 +140,20 @@ function placeBlock(hit: BlockHit, blockType: BlockType) {
     world.setBlock(nx, ny, nz, blockType);
   }
 }
-```
 
+### Summary
 
+The physics and interaction system is deliberately minimal for a creative-mode voxel game:
+
+- **Collision detection**: AABB sweep tests with collide-and-slide algorithm (up to 3 iterations)
+- **Player movement**: Gravity at −20 m/s², coyote time (100 ms), variable jump height, auto-step
+- **Block targeting**: DDA voxel ray casting with progressive break animation (10 crack stages)
+- **Block placement**: Adjacent to the hit face, subject to server validation in multiplayer
+
+**Further reading:**
+- `src/engine/player_controller.ts` — Collide-and-slide and movement physics
+- `src/block/world.ts` — DDA ray casting and block queries
+- `src/renderer/passes/block_highlight_pass.ts` — Crack overlay rendering
 
 ----
 [Contents](../crafty.md) | [13-Game Engine](13-game-engine.md) | [15-NPC AI](15-npc-ai.md)

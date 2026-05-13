@@ -177,7 +177,7 @@ setSpawnRate(rate: number): void {
 }
 ```
 
-This is a key performance optimisation — rebuilding the render graph is expensive (it destroys and recreates every pass), so we only do it when the particle system type changes. Intensity changes within the same type are handled by a simple property write.
+This is a key performance optimization — rebuilding the render graph is expensive (it destroys and recreates every pass), so we only do it when the particle system type changes. Intensity changes within the same type are handled by a simple property write.
 
 ## 16.6 Integration in the Frame Loop
 
@@ -185,7 +185,7 @@ This is a key performance optimisation — rebuilding the render graph is expens
 
 The weather system integrates at four points in the main loop (`crafty/main.ts`):
 
-1. **Initialisation** — on startup, a random weather is chosen for the player's spawn biome.
+1. **Initialization** — on startup, a random weather is chosen for the player's spawn biome.
 
 ```typescript
 const _initBiome = world.getBiomeAt(cameraGO.position.x, cameraGO.position.y, cameraGO.position.z);
@@ -232,14 +232,22 @@ export interface HudElements {
 }
 ```
 
-## File Reference
+### Summary
 
-| File | Purpose |
-|------|---------|
-| `crafty/game/weather_system.ts` | `WeatherType` enum, biome tables, weather selection, cloud/environment/spawn mappings |
-| `crafty/main.ts` | Weather state, timer, frame-loop integration, HUD update |
-| `src/renderer/passes/particle_pass.ts` | `setSpawnRate()` for dynamic particle rate changes |
-| `crafty/ui/hud.ts` | `weather` debug overlay element |
-| `crafty/config/particle_configs.ts` | Rain and snow particle configs consumed by `ParticlePass` |
+The weather system provides dynamic environmental variation:
+
+- **Seven weather types**: Sunny through HeavySnow with biome-specific weather tables
+- **Timer-driven transitions**: Random intervals (30–120 s) with weighted selection per biome
+- **Cloud coverage**: Interpolated target values drive cloud density changes
+- **Precipitation control**: `EnvironmentEffect` (None/Rain/Snow) with dynamic spawn rates
+- **Debug overlay**: Current weather type displayed in the HUD
+
+### Further Reading
+
+- `crafty/game/weather_system.ts` — `WeatherType` enum, biome tables, weather selection, cloud/environment/spawn mappings
+- `crafty/main.ts` — Weather state, timer, frame-loop integration, HUD update
+- `src/renderer/passes/particle_pass.ts` — `setSpawnRate()` for dynamic particle rate changes
+- `crafty/ui/hud.ts` — `weather` debug overlay element
+- `crafty/config/particle_configs.ts` — Rain and snow particle configs consumed by `ParticlePass`
 
 [Contents](../crafty.md) | [15-NPC AI](15-npc-ai.md) | [17-Audio](17-audio.md)

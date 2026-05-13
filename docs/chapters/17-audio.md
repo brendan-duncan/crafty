@@ -118,6 +118,15 @@ class MusicPlayer {
 
 Ambient sounds (wind, birds, water near rivers) use spatial audio sources positioned at relevant locations in the world. Multiple ambient sources fade based on the player's proximity to biomes and features.
 
+### Summary
+
+The audio system uses the Web Audio API for spatial and ambient sound:
+
+- **Spatial audio**: `PannerNode` with HRTF panning, inverse distance rolloff, configurable max distance
+- **AudioSource component**: Per-frame position updates, `play()` with position and volume
+- **AudioManager**: Preloaded sound map, `playAt()` helper for one-shot effects
+- **Music/ambient**: Dedicated `GainNode`, looping tracks, fade-out transitions
+
 **Further reading:**
 - `crafty/game/audio_manager.ts` — Audio lifecycle management
 - `src/engine/components/audio_source.ts` — Spatial audio component

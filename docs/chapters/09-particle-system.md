@@ -115,7 +115,7 @@ struct Particle {
 
 The `life` field serves double duty: a value of `-1.0` marks the slot as dead (available for recycling), while a non-negative value counts upward toward `max_life`. When `life >= max_life` the particle is killed in the update shader.
 
-On construction, the entire particle buffer is initialised with `life = -1.0` so every slot starts dead.
+On construction, the entire particle buffer is initialized with `life = -1.0` so every slot starts dead.
 
 ## 9.4 GPU Buffers
 
@@ -129,7 +129,7 @@ Each `ParticlePass` owns five GPU buffers:
 | `indirectBuffer` | 16 | INDIRECT | STORAGE | COPY_DST | Indirect draw parameters |
 | `computeUniforms` | 80 | UNIFORM | COPY_DST | Per-frame compute uniforms |
 
-The indirect draw buffer layout is `[vertexCount, instanceCount, firstVertex, firstInstance]`. It is initialised to `[6, 0, 0, 0]` — six vertices (two triangles for a quad) with zero instances. The compact pass writes the live particle count into the `instanceCount` field.
+The indirect draw buffer layout is `[vertexCount, instanceCount, firstVertex, firstInstance]`. It is initialized to `[6, 0, 0, 0]` — six vertices (two triangles for a quad) with zero instances. The compact pass writes the live particle count into the `instanceCount` field.
 
 ## 9.5 The Spawn Stage
 
@@ -326,7 +326,7 @@ let up    = camera.view[1].xyz;   // world-space up
 let world_pos = p.position + right * ofs.x * p.size + up * ofs.y * p.size;
 ```
 
-The snow fragment shader applies a radial alpha falloff from the centre, producing circular flakes:
+The snow fragment shader applies a radial alpha falloff from the center, producing circular flakes:
 
 ```wgsl
 let uv = in.uv * 2.0 - 1.0;
@@ -452,6 +452,17 @@ export const snowConfig: ParticleGraphConfig = {
 ```
 
 Snow uses camera-facing billboards (soft discs), very slow fall speed (gravity 1.5 m/s², high drag), long lifetimes (30–45 seconds), and curl noise turbulence for drifting motion.
+
+### Summary
+
+The GPU-driven particle system features:
+
+- **Five-stage pipeline**: Spawn → Update → Compact → Indirect Write → Render, all on GPU
+- **Configurable graphs**: `ParticleGraphConfig` with emitter, modifier, and renderer nodes
+- **Shader generation**: WGSL code generated from config for spawn shapes and update modifiers
+- **Indirect rendering**: Compact pass produces dense alive lists; indirect draw eliminates CPU round-trips
+- **Two render paths**: Forward HDR (alpha blend) and deferred GBuffer billboards
+- **Weather integration**: Rain and snow configs driven by the weather system
 
 ## File Reference
 

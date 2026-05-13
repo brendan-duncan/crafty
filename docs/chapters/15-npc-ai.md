@@ -2,7 +2,7 @@
 
 [Contents](../crafty.md) | [14-Physics](14-physics.md) | [16-Weather System](16-weather-system.md)
 
-Non-playable characters (NPCs) bring the world to life. Crafty's NPC system uses lightweight state-machine components that attach to `GameObject` entities, driving movement, rotation, and animation. This chapter covers the three built-in NPC types — ducks, ducklings, and pigs — and shows how the pattern can be extended for more complex behaviours.
+Non-playable characters (NPCs) bring the world to life. Crafty's NPC system uses lightweight state-machine components that attach to `GameObject` entities, driving movement, rotation, and animation. This chapter covers the three built-in NPC types — ducks, ducklings, and pigs — and shows how the pattern can be extended for more complex behaviors.
 
 ## 15.1 NPC Architecture
 
@@ -86,7 +86,7 @@ The yaw is updated each frame so the NPC's model faces the direction of travel. 
 
 ### Flee
 
-Ducks flee from the player when within detection range (6 blocks). The flee behaviour moves the duck directly away from the player at a higher speed (4.0 m/s vs 1.5 m/s wander). Once the distance exceeds 14 blocks, the duck returns to `idle`:
+Ducks flee from the player when within detection range (6 blocks). The flee behavior moves the duck directly away from the player at a higher speed (4.0 m/s vs 1.5 m/s wander). Once the distance exceeds 14 blocks, the duck returns to `idle`:
 
 ```typescript
 case 'flee': {
@@ -107,7 +107,7 @@ Pigs are docile — they never flee and remain in the two-state cycle indefinite
 
 ### Follow
 
-Ducklings use a single-state `follow` behaviour instead of the idle/wander pattern. Rather than selecting random targets, each duckling tracks its parent duck's position and maintains a polar offset so the brood spreads naturally around the parent:
+Ducklings use a single-state `follow` behavior instead of the idle/wander pattern. Rather than selecting random targets, each duckling tracks its parent duck's position and maintains a polar offset so the brood spreads naturally around the parent:
 
 ```typescript
 case 'follow': {
@@ -125,7 +125,7 @@ case 'follow': {
 }
 ```
 
-The duckling does not check player distance directly — it inherits the parent's flee behaviour automatically by following the parent.
+The duckling does not check player distance directly — it inherits the parent's flee behavior automatically by following the parent.
 
 ### Chase
 
@@ -196,7 +196,7 @@ Player position is fed to ducks via a static field `DuckAI.playerPos`, written o
 
 ![Each duckling steers toward parent + polar offset; offsetAngle drifts at 0.25 rad/s so the brood gently swirls around the parent](../illustrations/15-duckling-follow.svg)
 
-`DucklingAI` (`crafty/game/components/duckling_ai.ts`) implements a **follow** behaviour rather than the idle/wander/flee pattern. Each duckling tracks its parent duck's world position and maintains a personalised polar offset so the brood spreads naturally:
+`DucklingAI` (`crafty/game/components/duckling_ai.ts`) implements a **follow** behavior rather than the idle/wander/flee pattern. Each duckling tracks its parent duck's world position and maintains a personalised polar offset so the brood spreads naturally:
 
 ```typescript
 constructor(parent: GameObject, world: World) {
@@ -222,7 +222,7 @@ go.position.x += nx * speed * dt;
 go.position.z += nz * speed * dt;
 ```
 
-Ducklings do not check for the player directly — they simply follow their parent, so they inherit the parent's flee behaviour automatically.
+Ducklings do not check for the player directly — they simply follow their parent, so they inherit the parent's flee behavior automatically.
 
 ## 15.5 Pig AI
 
@@ -240,7 +240,7 @@ Ducklings do not check for the player directly — they simply follow their pare
 
 *Ducklings use ground collision only — they do not float on water.
 
-The pig's wander behaviour is identical in structure to the duck's but uses slightly different parameters: slower speed, longer wander distances, and a different head bob signature.
+The pig's wander behavior is identical in structure to the duck's but uses slightly different parameters: slower speed, longer wander distances, and a different head bob signature.
 
 ## 15.6 Creeper AI
 
@@ -735,7 +735,7 @@ export function spawnDucksAroundPoint(
 }
 ```
 
-These functions scatter mobs in a ring around a centre point with random angular offset, producing natural-looking distributions.
+These functions scatter mobs in a ring around a center point with random angular offset, producing natural-looking distributions.
 
 ### Summary of Spawn Flow
 
@@ -765,14 +765,23 @@ The component-based architecture makes it straightforward to add new NPC types:
 Future NPC types could include:
 
 - **Villagers** — diurnal cycle, trading, pathfinding to waypoints.
-- **Hostile mobs** — chase, attack, patrol, and respawn behaviours.
+- **Hostile mobs** — chase, attack, patrol, and respawn behaviors.
 - **Fish** — aquatic NPCs constrained to water volumes.
 
 Each new type follows the same pattern: a state machine + `Component.update()` + `World` queries, with visual variety provided by different meshes, animations, and parameter tuning.
 
+### Summary
+
+The NPC AI system demonstrates several patterns:
+
+- **State machine design**: Single-state (follow), two-state (idle/wander), three-state (idle/wander/flee), and four-state (idle/wander/chase/detonate) variants
+- **Implemented mobs**: Duck (amphibious, 3 states), Duckling (follow parent), Pig (2 states), Creeper (4 states with explosion), Bee (flying, flower detection)
+- **Visual variety**: Head bobbing, wing animation, skeletal animation via `AnimatedModel`, mesh builders for each mob
+- **Spawning**: Integrated with chunk generation, column-level deduplication, biome filters, spawn probabilities
+
 **Further reading:**
 - `crafty/game/components/duck_ai.ts` — Duck AI (three-state + water float)
-- `crafty/game/components/duckling_ai.ts` — Duckling AI (follow behaviour)
+- `crafty/game/components/duckling_ai.ts` — Duckling AI (follow behavior)
 - `crafty/game/components/pig_ai.ts` — Pig AI (two-state wandering)
 - `crafty/game/components/creeper_ai.ts` — Creeper AI (four-state hostile + explosion)
 - `crafty/game/components/bee_ai.ts` — Bee AI (three-state flying + flower hover)

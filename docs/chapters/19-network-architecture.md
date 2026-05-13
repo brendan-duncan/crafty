@@ -103,7 +103,7 @@ class WorldRoom {
 }
 ```
 
-### Server-Side Authorisation
+### Server-Side Authorization
 
 ![Block edit message flowing through three server-side checks — within reach distance, target block exists / placement is adjacent, edit rate sane — before being applied to the authoritative world and broadcast to peers](../illustrations/19-server-authoritative.svg)
 
@@ -126,6 +126,15 @@ class WorldRepository {
 ```
 
 Auto-save runs every 30 seconds, writing only the chunks that have been modified since the last save. The server also saves on graceful shutdown.
+
+### Summary
+
+The multiplayer architecture uses WebSockets with a dedicated Node.js server:
+
+- **Message protocol**: 8 JSON message types covering connection, input, block edits, and chat
+- **Server architecture**: `WorldRoom` per world with simulation loop, player list, and state
+- **Authorization**: Server-side reach distance checks, adjacency validation, rate limiting
+- **Persistence**: IndexedDB for client, JSON/binary disk for server, 30 s autosave
 
 **Further reading:**
 - `server/src/server.ts` — WebSocket server entry point

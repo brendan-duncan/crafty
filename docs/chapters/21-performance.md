@@ -2,7 +2,7 @@
 
 [Contents](../crafty.md) | [20-Multiplayer Gameplay](20-multiplayer-gameplay.md) | [22-Tools](22-tools.md)
 
-This chapter covers the profiling, optimisation, and culling techniques used to keep Crafty running at 60+ FPS on mid-range hardware.
+This chapter covers the profiling, optimization, and culling techniques used to keep Crafty running at 60+ FPS on mid-range hardware.
 
 ## 21.1 GPU Timestamps and Profiling
 
@@ -156,6 +156,16 @@ class TextureCache {
   }
 }
 ```
+
+### Summary
+
+Performance optimization techniques used throughout Crafty:
+
+- **Profiling**: GPU timestamp queries for per-pass timing
+- **Shader compilation**: Lazy pipeline creation with caching to avoid stalls
+- **Culling**: Frustum culling (6-plane AABB) and temporal occlusion culling
+- **Batching**: GPU indirect draw with compute shader culling for reduced CPU overhead
+- **Memory management**: Pre-allocated staging arrays, buffer pooling, texture cache with reference counting
 
 **Further reading:**
 - `src/renderer/passes/` — Per-pass buffer pre-allocation patterns

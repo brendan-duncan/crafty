@@ -60,6 +60,16 @@ The rendering techniques covered in this book — deferred shading, PBR, CSM, TA
 
 The source code at `https://github.com/brendan-duncan/crafty` will continue to evolve. The book will be updated as new features are added. Contributions, issues, and forks are welcome.
 
+### Summary
+
+Crafty's future directions and closing reflections:
+
+- **Ray tracing**: Hardware-accelerated shadows, AO, reflections, and path-traced preview
+- **Compute post-processing**: Bloom, DOF, and TAA implemented as compute shaders
+- **Procedural generation**: Infinite terrain, cave systems, biome diversity, LOD generation
+- **WebXR**: Immersive VR mode via `XRSession` with WebGPU rendering backend
+- **Closing**: The rendering techniques covered are the foundation of real-time graphics, applicable beyond WebGPU and Crafty
+
 **Further reading:**
 - WebGPU specification: <https://www.w3.org/TR/webgpu/>
 - WGSL specification: <https://www.w3.org/TR/WGSL/>

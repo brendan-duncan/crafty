@@ -91,7 +91,7 @@ The interface is minimal by design. A pass is just something that:
 
 ### Pass Construction Pattern
 
-Every pass follows the same creation pattern: a **static `create()` factory** that allocates all GPU resources and returns a fully initialised instance. The constructor is private:
+Every pass follows the same creation pattern: a **static `create()` factory** that allocates all GPU resources and returns a fully initialized instance. The constructor is private:
 
 ```typescript
 export class GeometryPass extends RenderPass {
@@ -305,6 +305,12 @@ The render graph architecture is deliberately minimal. There is no automatic dep
 - **Factory pattern**: all GPU resources created in static `create()`, destroyed in `destroy()`.
 
 This simplicity makes the rendering pipeline easy to debug — each pass is an independent unit that can be enabled, disabled, or reordered in isolation.
+
+**Further reading:**
+- `src/renderer/render_graph.ts` — Render graph orchestration
+- `src/renderer/render_pass.ts` — Abstract `RenderPass` base class
+- `src/renderer/gbuffer.ts` — GBuffer texture layout
+- `src/renderer/passes/` — All concrete pass implementations
 
 ----
 [Contents](../crafty.md) | [03-Webgpu Fundamentals](03-webgpu-fundamentals.md) | [05-Meshes](05-meshes.md)

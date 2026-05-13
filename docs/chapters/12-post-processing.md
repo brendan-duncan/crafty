@@ -245,7 +245,7 @@ if (params.is_underwater > 0.5) {
 }
 ```
 
-The tint absorbs red light preferentially (0.20× red vs 0.90× blue), mimicking the wavelength-dependent attenuation of water. The vignette uses a quadratic falloff from the screen centre, smoothly reaching 45% darkening at the corners.
+The tint absorbs red light preferentially (0.20× red vs 0.90× blue), mimicking the wavelength-dependent attenuation of water. The vignette uses a quadratic falloff from the screen center, smoothly reaching 45% darkening at the corners.
 
 The `is_underwater` flag is set per-frame by the game code when the camera position is below the water surface, and `uw_time` provides the animation time for the distortion.
 

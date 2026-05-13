@@ -245,7 +245,7 @@ A `GPUTextureView` is a window into a texture — a specific subresource (mip le
 this.albedoRoughnessView = albedoRoughness.createView();
 ```
 
-But some passes need specialised views — for example, reading only the depth aspect of a depth-stencil texture, or binding a single array layer of a cube map.
+But some passes need specialized views — for example, reading only the depth aspect of a depth-stencil texture, or binding a single array layer of a cube map.
 
 ### HDR Render Target
 
@@ -259,7 +259,7 @@ This is a 16-bit-per-channel floating-point format, giving a wider dynamic range
 
 ## 3.5 GPUSampler
 
-A `GPUSampler` controls how textures are sampled in shaders — filtering mode, addressing mode (wrap/clamp/mirror), and level-of-detail behaviour. Samplers are created once and reused across passes.
+A `GPUSampler` controls how textures are sampled in shaders — filtering mode, addressing mode (wrap/clamp/mirror), and level-of-detail behavior. Samplers are created once and reused across passes.
 
 Typical creation pattern from Crafty's passes:
 
@@ -696,6 +696,12 @@ In this chapter we covered every major WebGPU resource type and saw how Crafty u
 | `GPUComputePipeline` | Particles, auto-exposure, SSGI | `particle_pass.ts`, `auto_exposure_pass.ts` |
 | `GPUCommandEncoder` | One per frame, shared across all passes | `render_graph.ts` |
 | `GPUQueue` | `writeBuffer()` for uniform uploads, `submit()` for command buffers | `render_context.ts` |
+
+**Further reading:**
+- `src/renderer/render_context.ts` — GPUDevice/GPUAdapter creation and management
+- `src/renderer/passes/` — Per-pass buffer, texture, and pipeline creation
+- `src/shaders/` — All WGSL shader modules
+- `src/engine/camera.ts` — Camera uniforms and bind group layout
 
 In the next chapter, we see how these pieces come together in Crafty's render graph architecture — the system that orchestrates all these resources into a complete frame.
 

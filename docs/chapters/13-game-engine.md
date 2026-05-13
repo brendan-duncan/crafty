@@ -210,7 +210,7 @@ When the overlay initialises, it disables pointer lock on the player and camera 
 
 ### Virtual Joystick
 
-The left thumb controls movement via a virtual joystick — a 120px circular area positioned at the bottom-left. Touch position relative to the joystick centre is normalised to `[-1, 1]` and written to `player.inputForward` / `player.inputStrafe`, which the `PlayerController.update` loop reads alongside keyboard input:
+The left thumb controls movement via a virtual joystick — a 120px circular area positioned at the bottom-left. Touch position relative to the joystick center is normalized to `[-1, 1]` and written to `player.inputForward` / `player.inputStrafe`, which the `PlayerController.update` loop reads alongside keyboard input:
 
 ```typescript
 private _setMovement(strafe: number, forward: number): void {
@@ -351,11 +351,22 @@ During gameplay, the world record is updated periodically (every ~5 seconds) thr
 
 The start screen uses `storage.list()` to populate the saved-world selector and `storage.delete()` to remove worlds, with the screenshot Blob providing a visual thumbnail for each entry.
 
+### Summary
+
+The game engine layer provides:
+
+- **Entity/component system**: `GameObject` + `Component` with scene graph tree hierarchy
+- **Game loop**: Six phases — input, scene update, world update, feed passes, render, schedule
+- **Input handling**: Keyboard, mouse, pointer lock, and touch controls with virtual joystick
+- **Player controller**: WASD movement, gravity, collide-and-slide, sprint, and jump
+- **Touch controls**: Virtual joystick, touch-drag look, action buttons, responsive layout
+- **World persistence**: IndexedDB-based storage with schema versioning, autosave, and edit-log replay
+
 **Further reading:**
 - `crafty/game/touch_controls.ts` — Full touch overlay implementation
 - `src/engine/player_controller.ts` — Analog input support (inputForward, inputStrafe, inputSprint)
 - `crafty/ui/hotbar.ts` — Hotbar with tap-to-select and resize handling
-- `crafty/main.ts` — Touch control initialisation and audio context bootstrap
+- `crafty/main.ts` — Touch control initialization and audio context bootstrap
 
 ----
 [Contents](../crafty.md) | [12-Post-Processing](12-post-processing.md) | [14-Physics](14-physics.md)

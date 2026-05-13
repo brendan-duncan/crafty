@@ -15,7 +15,7 @@ samples/
 ├── cube_test.html
 ├── cube_test.ts                — Full deferred pipeline test
 ├── cascade_shadow_test.html
-└── cascade_shadow_test.ts      — CSM visualisation
+└── cascade_shadow_test.ts      — CSM visualization
 ```
 
 Samples share no state with each other or with the main game. Each creates its own `RenderContext`, builds a minimal render graph, and runs a dedicated frame loop. This makes them ideal for testing specific features in isolation.
@@ -37,7 +37,7 @@ main();
 
 ## 22.2 Testing Strategy
 
-Crafty uses **Vitest** for unit testing. Tests live in `tests/` and cover mathematical correctness, data structure invariants, and component behaviour:
+Crafty uses **Vitest** for unit testing. Tests live in `tests/` and cover mathematical correctness, data structure invariants, and component behavior:
 
 ```typescript
 // tests/math/vec3.test.ts
@@ -142,6 +142,16 @@ The project uses GitHub Actions for CI. The workflow:
 6. **Build** with `npm run build`.
 
 The CI pipeline does not run visual tests (no WebGPU in CI environments). Visual regression testing is done manually through the sample framework.
+
+### Summary
+
+The tooling and workflow infrastructure includes:
+
+- **Sample framework**: Self-contained demos for isolated feature testing
+- **Testing strategy**: Vitest for unit tests, sample pages for visual regression
+- **Debugging**: WebGPU validation errors with per-pass error scopes, WGSL compilation info, Chrome extension
+- **Asset pipeline**: Texture atlas building and HDR map preprocessing
+- **CI pipeline**: GitHub Actions with type-check, lint, test, and build stages
 
 **Further reading:**
 - `tests/` — Unit test directory

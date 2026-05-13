@@ -2,7 +2,7 @@
 
 [Contents](../crafty.md) | [Previous](wgsl-ref.md) | [Next](math-ref.md)
 
-## Initialisation
+## Initialization
 
 ```typescript
 // Check availability

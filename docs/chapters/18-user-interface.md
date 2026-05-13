@@ -22,7 +22,7 @@ The DOM approach gives us accessibility (screen readers, browser zoom) and famil
 
 ## 18.2 The HUD
 
-![Screen mockup showing the HUD's anchored regions: crosshair centred, hotbar bottom-centre, stats bottom-left, debug overlay top-left, chat bottom-left — each region is a DOM element positioned with CSS, transparent to mouse events](../illustrations/18-hud-layout.svg)
+![Screen mockup showing the HUD's anchored regions: crosshair centered, hotbar bottom-center, stats bottom-left, debug overlay top-left, chat bottom-left — each region is a DOM element positioned with CSS, transparent to mouse events](../illustrations/18-hud-layout.svg)
 
 The HUD (`crafty/ui/hud.ts`) is a DOM overlay with:
 
@@ -100,6 +100,17 @@ Quality presets control shadow resolution, SSAO samples, bloom intensity, and pa
 The block manager UI (`crafty/ui/block_manager.ts`) allows the player to select which block type to place. It shows a grid of available blocks with their textures, organized by category.
 
 In creative mode, all block types are available. In survival mode, only blocks the player has collected are shown. The selected slot determines which block is placed on right-click.
+
+### Summary
+
+The UI follows a hybrid approach combining DOM and GPU-rendered elements:
+
+- **DOM-based UI**: Menus, HUD, and settings — fully accessible and CSS-styled
+- **GPU overlays**: Crosshair and block highlight — zero latency with the 3D scene
+- **HUD**: Crosshair, hotbar, stats, debug info, chat
+- **Start screen**: Single player, multiplayer, and settings panels
+- **Settings**: LocalStorage persistence with quality presets
+- **Block manager**: Categorized grid with creative/survival mode filtering
 
 **Further reading:**
 - `crafty/ui/` — All UI components

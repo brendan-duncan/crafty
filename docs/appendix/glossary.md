@@ -2,7 +2,7 @@
 
 [Contents](../crafty.md) | [Previous](math-ref.md)
 
-**ACES** — Academy Color Encoding System. A standardised color space and tone mapping curve used for filmic HDR rendering.
+**ACES** — Academy Color Encoding System. A standardized color space and tone mapping curve used for filmic HDR rendering.
 
 **AABB** — Axis-Aligned Bounding Box. A rectangular box whose edges are aligned with the coordinate axes, used for fast collision and culling tests.
 
@@ -34,7 +34,7 @@
 
 **G-Buffer** — Geometry Buffer. A set of textures storing surface properties (albedo, normal, depth, roughness, metallic) for deferred shading.
 
-**GGX** — A normal distribution function (NDF) used in the Cook-Torrance BRDF, characterised by its specular highlight shape with long tails.
+**GGX** — A normal distribution function (NDF) used in the Cook-Torrance BRDF, characterized by its specular highlight shape with long tails.
 
 **God Rays** — Volumetric light shafts, also known as crepuscular rays, caused by light scattering through partially occluded volumes.
 

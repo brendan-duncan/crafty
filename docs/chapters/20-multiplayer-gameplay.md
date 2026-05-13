@@ -2,9 +2,9 @@
 
 [Contents](../crafty.md) | [19-Network Architecture](19-network-architecture.md) | [21-Performance](21-performance.md)
 
-Multiplayer gameplay adds state synchronisation, remote player rendering, and latency compensation.
+Multiplayer gameplay adds state synchronization, remote player rendering, and latency compensation.
 
-## 20.1 Player State Synchronisation
+## 20.1 Player State Synchronization
 
 ![Multiple clients sending input frames up at 20 Hz to a central server, which broadcasts merged snapshots back down at 20 Hz to every client — fan-in / fan-out shape with sequence numbers on each frame](../illustrations/20-state-sync.svg)
 
@@ -156,6 +156,16 @@ Crafty does not implement server-side rewind (lag compensation) for block intera
 - **Remote players**: interpolated with 100 ms delay to hide packet loss and jitter.
 
 This approach is sufficient for a creative-mode voxel game where precise frame-perfect interaction timing is not critical.
+
+### Summary
+
+Multiplayer gameplay builds on the network architecture with:
+
+- **Input sync**: Client sends input at 20 Hz; server stores latest state and broadcasts snapshots
+- **Snapshot interpolation**: 100 ms render delay with lerp between bracketing snapshots for smooth 60+ Hz rendering
+- **Remote player rendering**: Interpolated position, smooth rotation, name labels with distance fade and behind-camera hiding
+- **Block replication**: Client-side prediction with server validation, broadcast, and acknowledgment
+- **Latency strategy**: Client-predicted movement, server-validated blocks, 100 ms interpolation for remote players
 
 **Further reading:**
 - `crafty/game/network_client.ts` — Client network state management

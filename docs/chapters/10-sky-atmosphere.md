@@ -94,7 +94,7 @@ let ms_boost = 1.0 + opt * (1.0 - cloud.anisotropy);
 amb_energy *= ms_boost;
 ```
 
-This produces the characteristic bright, fluffy appearance of cumulus clouds that single-scattering models fail to capture — the cloud interior glows rather than appearing as dark grey volume.
+This produces the characteristic bright, fluffy appearance of cumulus clouds that single-scattering models fail to capture — the cloud interior glows rather than appearing as dark gray volume.
 
 ### Cloud Noise Texture Generation
 
@@ -435,6 +435,17 @@ hdrColor += godrayColor * intensity;
 ```
 
 The sun screen position, density, decay, and intensity are configurable parameters that produce different godray effects — from subtle shafts to dramatic crepuscular rays.
+
+### Summary
+
+The sky and atmosphere system combines several layered techniques:
+
+- **HDR environment maps**: RGBE decoding and equirectangular-to-cubemap conversion on GPU
+- **Atmospheric scattering**: Rayleigh and Mie single scattering with ozone absorption
+- **Volumetric clouds**: 3D Perlin noise raymarching with Silver's multi-scattering approximation
+- **Day/night cycle**: Sun position skew with color intensity ramping and moon rendering
+- **God rays**: Radial blur from sun screen position composited onto the HDR target
+- **Cloud shadows**: Shadow map from cloud density projected onto the scene
 
 **Further reading:**
 - `src/renderer/passes/sky_texture_pass.ts` — HDR cubemap sky

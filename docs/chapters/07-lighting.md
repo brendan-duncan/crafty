@@ -59,7 +59,7 @@ let diffuse = (1.0 - F) * (1.0 - metallic) * albedo / PI;
 return (diffuse + specular) * radiance * NdotL;
 ```
 
-The `metallic` parameter blends between dielectric behaviour (specular highlights on a diffuse base) and metallic behaviour (no diffuse, colored specular). `F0` is `0.04` for dielectrics and `albedo` for metals, interpolated by `metallic`:
+The `metallic` parameter blends between dielectric behavior (specular highlights on a diffuse base) and metallic behavior (no diffuse, colored specular). `F0` is `0.04` for dielectrics and `albedo` for metals, interpolated by `metallic`:
 
 ```wgsl
 let F0 = mix(vec3f(0.04), albedo, metallic);
@@ -376,7 +376,7 @@ fn cs_irradiance(@builtin(global_invocation_id) id: vec3u) {
 }
 ```
 
-Each output direction `dir` is the centre of a cube face texel transformed to a unit vector. A tangent frame is built around that vector and 256 cosine-weighted hemisphere samples are taken from the equirectangular sky texture. The result is a 32×32 `rgba16float` cube map — low resolution since irradiance is very low-frequency.
+Each output direction `dir` is the center of a cube face texel transformed to a unit vector. A tangent frame is built around that vector and 256 cosine-weighted hemisphere samples are taken from the equirectangular sky texture. The result is a 32×32 `rgba16float` cube map — low resolution since irradiance is very low-frequency.
 
 ### GGX Prefiltered Environment Map (GPU Compute)
 

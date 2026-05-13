@@ -26,7 +26,7 @@ a × b = (a.y*b.z - a.z*b.y,
          a.x*b.y - a.y*b.x)
 ```
 
-### Normalisation
+### Normalization
 
 ```
 n = v / |v|

@@ -100,7 +100,7 @@ Rendering each visible block face as two triangles creates millions of quads —
 
 For each face direction (6 directions), the algorithm:
 
-1. **Mask generation.** For each slice perpendicular to the face direction, generate a 2D binary mask of solid blocks whose neighbour in the face direction is air.
+1. **Mask generation.** For each slice perpendicular to the face direction, generate a 2D binary mask of solid blocks whose neighbor in the face direction is air.
 2. **Greedy merge.** Scan the mask and merge contiguous runs into the largest possible rectangle.
 3. **Emit quad.** Each merged rectangle becomes a single quad (4 vertices, 6 indices).
 
@@ -158,7 +158,7 @@ When a block is broken or placed:
 
 1. The block ID is updated in the chunk's `blocks` array.
 2. The chunk's mesh is marked dirty and regenerated on the next frame.
-3. If the modification is at a chunk boundary, neighbouring chunks are also marked dirty.
+3. If the modification is at a chunk boundary, neighboring chunks are also marked dirty.
 
 Breaking blocks uses a gradual animation — the block shows cracks at progressive stages (mined over ~0.75 seconds for stone, instant for dirt).
 
@@ -392,6 +392,19 @@ const _WALL_L1: number[][] = [
 ```
 
 Currently, all houses use `SPRUCE_PLANKS` for structure and `GLASS` for windows.
+
+### Summary
+
+The voxel terrain system features:
+
+- **Chunked world**: 16×256×16 chunks stored as dense `Uint8Array` with load/unload by distance
+- **Procedural generation**: Noise-based height maps, biome selection from temperature/humidity, ore and cave placement
+- **Greedy meshing**: Mask-based quad merging for minimal triangle counts
+- **LOD system**: Three distance-based levels of detail
+- **Block interaction**: DDA ray casting for placement and breaking
+- **Erosion simulation**: Water flow and sediment transport via compute shader
+- **Water system**: Cellular automaton propagation with screen-space refraction, SSR, and Fresnel blending
+- **Village generation**: Procedural house placement with template-based layout
 
 **Further reading:**
 - `src/block/` — Block types, chunk, world classes
