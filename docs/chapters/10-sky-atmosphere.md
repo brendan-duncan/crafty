@@ -289,6 +289,122 @@ let transmittance = exp(
 
 This produces the characteristic **purple-pink zenith glow** at sunset that a Rayleigh+Mie-only model misses.
 
+## 10.8 Day/Night Cycle and Star Rendering
+
+The day/night cycle is driven from the game loop in `crafty/main.ts`. A single linear angle `sunAngle` controls the entire cycle:
+
+```typescript
+let sunAngle = welcome?.sunAngle ?? savedWorld?.sunAngle ?? Math.PI * 0.3;
+```
+
+Each frame the angle advances at a fixed rate, giving a full cycle of roughly 10.5 minutes:
+
+```typescript
+sunAngle += dt * 0.01;
+```
+
+### Sun Position Skew
+
+The linear angle is skewed so the sun spends more time above the horizon than below, preventing unrealistically short days. A `_dayFraction` of 0.80 maps the first 80% of the linear cycle to the visible hemisphere (sun above horizon) and the remaining 20% to night:
+
+```typescript
+const _dayFraction = 0.80;
+const _norm = ((sunAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+const _dayPortion = _dayFraction * 2 * Math.PI;
+const _skewed = _norm < _dayPortion
+  ? (_norm / _dayPortion) * Math.PI
+  : Math.PI + ((_norm - _dayPortion) / (2 * Math.PI - _dayPortion)) * Math.PI;
+```
+
+`_skewed` is remapped from `[0, 2π]` to `[0, π]` during the day portion (sun rises, peaks, sets) and `[π, 2π]` during the night portion (sun below the horizon). This produces a smooth sinusoidal elevation profile throughout the day.
+
+### Sun Direction, Intensity, and Color
+
+The sun direction uses a fixed X component (the sun arcs across the sky rather than passing directly overhead) with Y and Z driven by the skewed angle:
+
+```typescript
+const sinA = Math.sin(_skewed);
+const rawDirX = 0.25;
+const rawDirY = -sinA;
+const rawDirZ = Math.cos(_skewed);
+const dLen = Math.sqrt(rawDirX * rawDirX + rawDirY * rawDirY + rawDirZ * rawDirZ);
+sun.direction.set(rawDirX / dLen, rawDirY / dLen, rawDirZ / dLen);
+```
+
+The sun's elevation (`sinA`) directly controls intensity and color. Intensity ramps from 0 at the horizon to 6.0 at zenith. The color shifts from warm orange-red at sunrise/sunset to cool white at midday:
+
+```typescript
+const elev = sinA;
+sun.intensity = Math.max(0, elev) * 6.0;
+const t = Math.max(0, elev);
+sun.color.set(1.0, 0.8 + 0.2 * t, 0.6 + 0.4 * t);
+```
+
+At sunrise (`elev ≈ 0`) the color is `(1.0, 0.8, 0.6)` — warm amber. At noon (`elev = 1`) it reaches `(1.0, 1.0, 1.0)` — pure white.
+
+### Sky and Cloud Driven by Day Fraction
+
+The elevation also feeds into the cloud ambient color and water reflection brightness:
+
+```typescript
+const dayT = Math.max(0, elev);
+const cloudAmbient: [number, number, number] =
+  [0.02 + 0.38 * dayT, 0.03 + 0.52 * dayT, 0.05 + 0.65 * dayT];
+passes.waterPass!.updateTime(ctx, waterTime, Math.max(0.01, dayT));
+```
+
+Clouds are illuminated with a dim blueish ambient at night that brightens to warm white during the day. The water pass uses `dayT` as `skyIntensity` to control the brightness of sky reflections on the water surface.
+
+### Persistence
+
+The `sunAngle` is saved to `SavedWorld.sunAngle` each time the world is persisted (`crafty/game/world_storage.ts`), and restored on load. This means the time of day is preserved between sessions — when you re-enter a world, the sun is at the same position you left it.
+
+### Moon Rendering
+
+The moon is rendered in the atmosphere shader (`src/shaders/atmosphere.wgsl`) as a disk antipodal to the sun direction. It fades in after sunset using a `night_t` factor:
+
+```wgsl
+let moonDir = -u.sunDir;
+if (dot(rd, moonDir) > MOON_COS_THRESH) {
+  let night_t = saturate((-u.sunDir.y - 0.05) * 10.0);
+  color += transmittance(ro, moonDir) * vec3<f32>(0.85, 0.90, 1.0) * 15.0 * night_t;
+}
+```
+
+The `night_t` factor ramps from 0 to 1 as the sun drops below the horizon, so the moon is invisible during the day and fully visible at night. The moon color has a cool blue tint `(0.85, 0.90, 1.0)` and the disk size is controlled by `MOON_COS_THRESH = 0.9997`.
+
+### Star Rendering
+
+Stars are rendered in the `CompositePass` (`src/renderer/passes/composite_pass.ts`) using a GPU-generated star field. The sun direction is uploaded to the star uniform buffer:
+
+```typescript
+data[20] = sunDir.x;  data[21] = sunDir.y;  data[22] = sunDir.z;  data[23] = 0;
+```
+
+In the composite shader (`src/shaders/composite.wgsl`), stars are drawn only on sky pixels (`depth >= 1.0`) and faded by `night_t` computed from the sun's Y component:
+
+```wgsl
+if (depth >= 1.0) {
+  let world_h = star_uni.invViewProj * vec4<f32>(in.uv * 2.0 - 1.0, 1.0, 1.0);
+  let ray_dir = normalize(world_h.xyz / world_h.w - star_uni.cam_pos);
+  if (ray_dir.y > -0.05) {
+    let night_t     = saturate((-star_uni.sun_dir.y - 0.05) * 10.0);
+    let above_horiz = saturate(ray_dir.y * 20.0);
+    let star_fade   = night_t * above_horiz;
+    if (star_fade > 0.001) {
+      scene += sample_stars(ray_dir) * (star_fade * 2.0);
+    }
+  }
+}
+```
+
+Three factors gate star visibility:
+- `night_t` — fades stars in as the sun drops below the horizon (same factor used for the moon)
+- `above_horiz` — prevents stars from rendering below the horizon even at night
+- `depth >= 1.0` — restricts stars to sky pixels only (they are not reflected on geometry)
+
+The `sample_stars()` function (in the same shader) generates a procedural star field using a pseudo-random hash of the view direction, producing thousands of stars of varying brightness without any texture. This keeps the star field crisp at any resolution.
+
 **Further reading:**
 - `src/renderer/passes/sky_texture_pass.ts` — HDR cubemap sky
 - `src/renderer/passes/atmosphere_pass.ts` — Procedural atmospheric sky

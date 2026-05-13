@@ -229,6 +229,13 @@ This book is a work in progress.  Chapters are added as the engine evolves.
   - 10.5 Cloud Shadows
   - 10.6 Oren-Nayer Diffuse Ground
   - 10.7 Ozone Absorption (Chappuis Band)
+  - 10.8 Day/Night Cycle and Star Rendering
+    - Sun Position Skew
+    - Sun Direction, Intensity, and Color
+    - Sky and Cloud Driven by Day Fraction
+    - Persistence
+    - Moon Rendering
+    - Star Rendering
 
 - [Chapter 11: Terrain and Voxel World](chapters/11-terrain.md)
   - 11.1 Voxel Data Structure
