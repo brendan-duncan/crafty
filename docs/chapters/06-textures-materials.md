@@ -55,6 +55,110 @@ Textures are loaded at runtime using the browser's built-in image decoding. Craf
 
 HDR environment maps (.hdr files) use a custom RGBE decoder (`src/shaders/rgbe_decode.wgsl`) that converts the Radiance HDR format to floating-point values on the GPU.
 
+### HDR / RGBE Environment Maps
+
+HDR environment maps (.hdr files) store a 360° panoramic image of a real-world lighting environment in the **Radiance RGBE format** — three mantissa bytes (R, G, B) plus a shared exponent (E), packing high dynamic range into 32 bits per pixel. Crafty's `hdr_loader.ts` parses the file on the CPU and decodes it to floating-point on the GPU via a compute shader.
+
+#### File Format Parsing
+
+The `.hdr` file is a text header followed by binary pixel data. The parser reads scanlines with ASCII helpers:
+
+```typescript
+const magic = readAsciiLine();
+if (!magic.startsWith('#?RADIANCE') && !magic.startsWith('#?RGBE'))
+  throw Error('Not a Radiance HDR file');
+
+// Skip header key=value lines until blank line
+while (readAsciiLine().length > 0) {}
+
+// Resolution line: -Y height +X width
+const m = readAsciiLine().match(/-Y\s+(\d+)\s+\+X\s+(\d+)/);
+const height = parseInt(m[1], 10);
+const width  = parseInt(m[2], 10);
+```
+
+Pixel data uses two encoding schemes detected at scanline granularity. The **new RLE format** stores each channel (R, G, B, E) as a separate interleaved RLE stream, flagged by the scanline prefix `[2, 2, W>>8, W&255]`:
+
+```typescript
+if (r === 2 && g === 2 && (b & 0x80) === 0) {
+  // New RLE scanline: 4 independent RLE streams (R, G, B, E)
+  const sw = (b << 8) | e;  // stored width, must match header
+  readNewScanline(y);
+}
+```
+
+Each channel stream uses run-length encoding where `code > 128` means repeat the next byte `code - 128` times:
+
+```typescript
+while (x < width) {
+  const code = bytes[pos++];
+  if (code > 128) {
+    const count = code - 128;
+    dst.fill(bytes[pos++], x, x + count);
+    x += count;
+  } else {
+    dst.set(bytes.subarray(pos, pos + code), x);
+    pos += code;  x += code;
+  }
+}
+```
+
+The **old/uncompressed format** stores raw RGBE quads, with `[1, 1, 1, count]` sequences indicating a pixel-repeat run.
+
+#### GPU-Accelerated RGBE Decoding
+
+Rather than computing `Math.pow(2, e - 128)` per pixel on the CPU, the raw RGBE bytes are uploaded as an `rgba8uint` texture and decoded to `rgba16float` via a compute shader (`src/shaders/rgbe_decode.wgsl`):
+
+```typescript
+// Upload raw RGBE bytes as uint texture — CPU does no math
+const srcTex = device.createTexture({
+  format: 'rgba8uint',
+  usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+});
+device.queue.writeTexture(
+  { texture: srcTex },
+  data.buffer, { bytesPerRow: width * 4 }, { width, height },
+);
+
+// Decode via compute shader → rgba16float
+const dstTex = device.createTexture({
+  format: 'rgba16float',
+  usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING,
+});
+
+pass.setPipeline(pipeline);
+pass.setBindGroup(0, srcBG);  // rgba8uint input
+pass.setBindGroup(1, dstBG);  // rgba16float output
+pass.dispatchWorkgroups(ceil(width / 8), ceil(height / 8));
+```
+
+The decode shader expands each RGBE texel to floating-point radiance in a single arithmetic instruction:
+
+```wgsl
+@compute @workgroup_size(8, 8)
+fn cs_decode(@builtin(global_invocation_id) id: vec3u) {
+  let rgbe = textureLoad(srcTex, id.xy, 0);
+  let exponent = f32(rgbe.a * 255u) - 128.0;
+  textureStore(dstTex, id.xy, vec4f(vec3f(rgbe.rgb) * pow(2.0, exponent), 1.0));
+}
+```
+
+The compute pipeline and bind group layouts are cached per-device via a `WeakMap`, so repeated HDR loads reuse the same compiled shader.
+
+#### Equirectangular to Cubemap Extraction
+
+The decoded 2D equirectangular HDR texture is typically converted to a cubemap for skybox rendering and IBL pre-filtering. Crafty renders six fullscreen quads, each sampling the equirectangular texture with spherical coordinates derived from the cubemap face direction:
+
+```wgsl
+// In the cubemap-face render pass
+let dir = normalize(cubeFaceDir);
+let u = 0.5 + atan2(dir.z, dir.x) / (2.0 * PI);
+let v = 0.5 - asin(clamp(dir.y, -1.0, 1.0)) / PI;
+let radiance = textureSample(equirectTex, sampler, vec2f(u, v));
+```
+
+This face-by-face rendering produces a 6-layer cube texture used as the sky background and as the source for the IBL irradiance and prefiltered environment maps.
+
 ### Block Texture Atlas
 
 Voxel games face a unique texturing challenge: there can be hundreds of unique block types, each with up to 6 face textures. Rather than binding individual textures per chunk, Crafty packs all block textures into a **texture atlas**. Each block face stores its UV offset and scale within the atlas as part of its material parameters, so a fragment's local UV gets remapped into the atlas at sample time:

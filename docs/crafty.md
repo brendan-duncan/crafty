@@ -147,6 +147,7 @@ This book is a work in progress.  Chapters are added as the engine evolves.
   - 6.1 2D, 3D, and Cube Textures
   - 6.2 Texture Loading
     - Runtime Loading
+    - HDR / RGBE Environment Maps
     - Block Texture Atlas
   - 6.3 Textures in the GBuffer
   - 6.4 The PBR Material System
