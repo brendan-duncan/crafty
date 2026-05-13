@@ -228,13 +228,15 @@ Ducklings do not check for the player directly — they simply follow their pare
 
 `PigAI` (`crafty/game/components/pig_ai.ts`) implements a simpler two-state machine (idle ↔ wander) with no flee response. Pigs are larger and slower than ducks:
 
-| Property | Duck | Duckling | Pig | Creeper |
-|----------|------|----------|-----|---------|
-| States | idle/wander/flee | follow | idle/wander | idle/wander/chase/detonate |
-| Wander speed | 1.5 m/s | 1.8–3.5 m/s | 1.2 m/s | 1.0 m/s |
-| Idle head bob | 0.008 @ 2 Hz | 0.004 @ 2 Hz | 0.005 @ 1.5 Hz | — |
-| Wander head bob | 0.018 @ 6 Hz | 0.012 @ 7 Hz | 0.014 @ 4 Hz | — |
-| Water support | Yes (float) | No* | No | No |
+| Property | Duck | Duckling | Pig | Bee | Creeper |
+|----------|------|----------|-----|-----|---------|
+| States | idle/wander/flee | follow | idle/wander | idle→approach→hover | idle/wander/chase/detonate |
+| Wander speed | 1.5 m/s | 1.8–3.5 m/s | 1.2 m/s | 2.5 m/s | 1.0 m/s |
+| Idle bob | 0.008 @ 2 Hz | 0.004 @ 2 Hz | 0.005 @ 1.5 Hz | 0.15 vert. @ 2.5 Hz | — |
+| Wander bob | 0.018 @ 6 Hz | 0.012 @ 7 Hz | 0.014 @ 4 Hz | 0.15 vert. @ 2.5 Hz | — |
+| Hover bob | — | — | — | 0.15 vert. @ 7.5 Hz | — |
+| Water support | Yes (float) | No* | No | No (flies) | No |
+| Gravity | Yes | Yes | Yes | No | Yes |
 
 *Ducklings use ground collision only — they do not float on water.
 
@@ -332,7 +334,234 @@ if (Math.random() < CREEPER_CHANCE) {
 
 The mesh stands twice as tall as a pig, with a body half-height of 0.60 and leg half-height of 0.20, giving the creeper its distinctive towering silhouette.
 
-## 15.7 Gravity and Ground Collision
+## 15.7 Bee AI
+
+`BeeAI` (`crafty/game/components/bee_ai.ts`) implements a flying NPC with a three-state machine — `idle`, `wander`, and `hover` — that drifts through GrassyPlains biomes and periodically investigates nearby flowers. Unlike ground NPCs, bees have no gravity; they fly at a fixed altitude above the terrain.
+
+### Flight Mechanics
+
+Bees maintain altitude via terrain tracking rather than gravity. Each frame the ground height below the bee is sampled, and the bee's Y position is lerped toward the target height at 3× per second, giving smooth transitions:
+
+```typescript
+this._verticalPhase += dt * 2.5;
+const hoverOffset = Math.sin(this._verticalPhase) * 0.15;
+const targetBase = this._flowerTarget
+  ? this._flowerTarget.y - 0.1         // just above flower
+  : groundY + this._flightAltitude;     // normal cruising
+go.position.y += (targetBase + hoverOffset - go.position.y) * Math.min(1, 3.0 * dt);
+```
+
+The `_verticalPhase` oscillates all parts (body bob, wing flap) and runs continuously in every state. When the bee acquires or loses a `_flowerTarget`, the lerp carries it smoothly between cruising altitude (2.5–4.0 blocks above ground) and the hover height (0.1 blocks below the flower block center, i.e. resting on the flower's visual top).
+
+### State Machine
+
+```
+idle → (flower found) → approach (wander toward flower XZ)
+idle → (no flower)    → wander (random direction)
+approach → (arrived)  → hover (fine 3D positioning on flower)
+hover → (timer done)  → wander (fly away, clear flower target)
+wander → (done)       → idle
+```
+
+#### Idle
+
+The bee hovers in place with a vertical bob. A random timer (3–6 seconds) counts down. When it expires, the bee scans for nearby flower blocks (6-block radius). If found, it enters the **approach** sub-mode: the wander target is set to the flower's XZ coordinates and the state switches to `wander`, causing the bee to fly toward the flower at 2.5 m/s. If no flower is found, a random wander target is picked instead:
+
+```typescript
+case 'idle': {
+  this._timer -= dt;
+  if (this._timer <= 0) {
+    if (this._findNearestFlower()) {
+      this._enterApproachFlower();
+    } else {
+      this._pickWanderTarget();
+    }
+  }
+  break;
+}
+```
+
+```typescript
+private _enterApproachFlower(): void {
+  this._targetX = this._flowerTarget.x;
+  this._targetZ = this._flowerTarget.z;
+  this._hasTarget = true;
+  this._state = 'wander';
+  this._timer = 6;
+}
+```
+
+During the approach flight the terrain tracking targets `_flowerTarget.y - 0.1` instead of the normal cruising altitude, so the bee smoothly descends to just above the flower as it flies toward it. By the time it arrives, the Y is already correct — no pop.
+
+#### Wander
+
+The bee flies toward a target position at 2.5 m/s. Directional yaw is computed from the movement vector:
+
+```typescript
+private _pickWanderTarget(): void {
+  const angle = Math.random() * Math.PI * 2;
+  const dist  = 8 + Math.random() * 8;
+  this._targetX = go.position.x + Math.cos(angle) * dist;
+  this._targetZ = go.position.z + Math.sin(angle) * dist;
+  this._hasTarget = true;
+  this._state = 'wander';
+  this._timer = 8 + Math.random() * 4;
+  this._flowerTarget = null;
+}
+```
+
+Steering uses direct-to-target movement. When the target is reached (within 1.0 block in XZ), the bee checks whether a `_flowerTarget` is set — if so, it transitions to `hover` for fine positioning; otherwise it returns to `idle`:
+
+```typescript
+case 'wander': {
+  ...
+  if (dist2 < 1.0) {
+    if (this._flowerTarget) {
+      this._enterHover();
+    } else {
+      this._enterIdle();
+    }
+    break;
+  }
+  go.position.x += (dx / dist) * 2.5 * dt;
+  go.position.z += (dz / dist) * 2.5 * dt;
+  this._yaw = Math.atan2(-(dx / dist), -(dz / dist));
+  break;
+}
+```
+
+If the wander timer expires before reaching the target, the bee idles in place.
+
+#### Hover
+
+When the bee reaches the flower's XZ position (approach completed), it enters `hover` — a fine 3D positioning mode that steers toward the flower at a reduced speed (0.8 m/s). The hover Y targets `_flowerTarget.y - 0.1`, placing the bee's body center right at the flower's visual top:
+
+```typescript
+case 'hover': {
+  this._hoverElapsed += dt;
+  if (this._hoverElapsed >= this._hoverDuration) {
+    this._pickWanderTarget();     // fly away after hovering
+    break;
+  }
+  const targetY = this._flowerTarget.y - 0.1 + Math.sin(this._verticalPhase * 3) * 0.15;
+  const dx = this._flowerTarget.x - gx;
+  const dz = this._flowerTarget.z - gz;
+  const dy = targetY - go.position.y;
+  const dist = Math.sqrt(dx * dx + dz * dz + dy * dy);
+  if (dist > 0.01) {
+    go.position.x += (dx / dist) * 0.8 * dt;
+    go.position.z += (dz / dist) * 0.8 * dt;
+    go.position.y += (dy / dist) * 0.8 * dt;
+  }
+  this._yaw = Math.atan2(-dx, -dz);
+  break;
+}
+```
+
+After 4–8 seconds the hover timer expires, and instead of idling in place the bee calls `_pickWanderTarget()`. This clears `_flowerTarget` and sets a random wander destination, causing the bee to fly away. The terrain tracking lerp smoothly carries it back up to cruising altitude. Once it reaches the wander target, it idles and may find a different flower — this prevents the bee from getting stuck re-hovering the same flower.
+
+If the flower is broken during hover, `_flowerTarget` becomes stale (the key is removed from `flowerPositions`), and on the next frame the null check transitions to `_pickWanderTarget()` immediately.
+
+### Flower Detection
+
+Flower positions are cached in a shared static `Set<string>`, keyed as `"x:y:z"`. The cache is populated when chunks are generated (scanning each new chunk for `BlockType.FLOWER`) and updated in real-time via `World.onBlockSet` / `World.onBlockBeforeRemove` callbacks wired in `main.ts`:
+
+```typescript
+// main.ts
+world.onBlockSet = (wx, wy, wz, blockType) => {
+  if (blockType === BlockType.FLOWER) {
+    BeeAI.flowerPositions.add(`${wx}:${wy}:${wz}`);
+  }
+};
+world.onBlockBeforeRemove = (wx, wy, wz, blockType) => {
+  if (blockType === BlockType.FLOWER) {
+    BeeAI.flowerPositions.delete(`${wx}:${wy}:${wz}`);
+  }
+};
+```
+
+The bee iterates this set to find the nearest flower within 6 blocks, using squared-distance comparison:
+
+```typescript
+private _findNearestFlower(): boolean {
+  let nearestDist2 = FLOWER_DETECT_RADIUS_SQ;
+  let found = false;
+  for (const key of BeeAI.flowerPositions) {
+    const [fx, fy, fz] = key.split(':').map(Number);
+    const dx = fx + 0.5 - go.position.x;
+    const dy = fy + 0.5 - go.position.y;
+    const dz = fz + 0.5 - go.position.z;
+    const d2 = dx * dx + dy * dy + dz * dz;
+    if (d2 < nearestDist2) { /* record nearest */ }
+  }
+  ...
+}
+```
+
+### Parameters
+
+| Property | Value |
+|----------|-------|
+| States | idle → approach (wander) → hover |
+| Wander speed | 2.5 m/s |
+| Hover speed | 0.8 m/s |
+| Flight altitude | 2.5–4.0 blocks above ground |
+| Vertical bob (idle/wander) | 0.15 @ 2.5 Hz |
+| Vertical bob (hover) | 0.15 @ 7.5 Hz |
+| Flower detect radius | 6 blocks |
+| Wander distance | 8–16 blocks |
+| Idle duration | 3–6 seconds |
+| Hover duration | 4–8 seconds |
+| Wander timer | 8–12 seconds |
+| Y lerp rate | 3× per second |
+| Biome | GrassyPlains only |
+| Spawn probability | 0.10 per column |
+| Clearance required | 3 blocks above spawn |
+
+### Model
+
+The bee `GameObject` hierarchy consists of nine child nodes, each with its own `MeshRenderer` and material:
+
+| Child | Mesh | Material | Position |
+|-------|------|----------|----------|
+| `Bee.Body` | Yellow body box (0.24×0.18×0.30) | Yellow, rough | Root center |
+| `Bee.Stripe1` | Black stripe band (0.26×0.18×0.06) | Black, rough | (0, 0, +0.06) |
+| `Bee.Stripe2` | Black stripe band | Black, rough | (0, 0, +0.14) |
+| `Bee.Head` | Brown head box (0.18×0.14×0.08) | Brown, rough | (0, +0.05, −0.19) |
+| `Bee.EyeL` | Tiny black eye (0.04×0.04×0.02) | Black, rough | (−0.045, +0.05, −0.22) |
+| `Bee.EyeR` | Tiny black eye | Black, rough | (+0.045, +0.05, −0.22) |
+| `Bee.WingL` | Translucent wing (0.24×0.01×0.12) | White, 45% alpha | (−0.10, +0.10, 0) |
+| `Bee.WingR` | Translucent wing | White, 45% alpha | (+0.10, +0.10, 0) |
+
+Both wings are animated identically with a fast sinusoidal flap (18 Hz, ±0.4 rad) that runs continuously across all states:
+
+```typescript
+this._wingPhase += dt * 18;
+const wingAngle = Math.sin(this._wingPhase) * 0.4;
+const q = Quaternion.fromAxisAngle(new Vec3(1, 0, 0), wingAngle);
+this._wingL.rotation = q;
+this._wingR.rotation = q;
+```
+
+### Spawning
+
+Bees spawn during chunk generation with 10% probability per column in GrassyPlains biomes, using the same `onChunkAdded` mechanism described in §15.11. Unlike ducks (which may spawn ducklings), bees always spawn as solitary individuals with a 3-block vertical clearance check:
+
+```typescript
+if (Math.random() < BEE_CHANCE) {
+  const wx = Math.floor(baseX + Math.random() * CHUNK_SIZE);
+  const wz = Math.floor(baseZ + Math.random() * CHUNK_SIZE);
+  const topY = world.getTopBlockY(wx, wz, 200);
+  if (topY > 0 && world.getBiomeAt(wx, topY, wz) === BiomeType.GrassyPlains) {
+    if (world.getBlockType(wx, topY + 1, wz) !== BlockType.NONE) return;
+    if (world.getBlockType(wx, topY + 2, wz) !== BlockType.NONE) return;
+    if (world.getBlockType(wx, topY + 3, wz) !== BlockType.NONE) return;
+    spawnBee(wx, wz, world, scene, body, stripe, head, eye, wing);
+  }
+}
+```
+
+## 15.8 Gravity and Ground Collision
 
 All NPC components share the same gravity and ground collision logic:
 
@@ -356,7 +585,7 @@ The +4 offset in `getTopBlockY` provides a search range above the NPC's current 
 
 Ducks extend this with a water check — if the block directly below is `BlockType.WATER`, the duck floats at the water's surface instead of sinking.
 
-## 15.8 Head Bob Animation
+## 15.9 Head Bob Animation
 
 ![Six waveforms: each NPC has its own amplitude/frequency in idle and wander, giving each a distinct gait without skeletal animation](../illustrations/15-head-bob.svg)
 
@@ -376,7 +605,7 @@ onAttach(): void {
 
 The bob is a simple sine wave whose frequency and amplitude vary by state — faster and larger when the NPC is moving, slower and subtler when idle. This gives each NPC a distinctive gait without requiring skeletal animation.
 
-## 15.9 Animated Models and Skeletal Animation
+## 15.10 Animated Models and Skeletal Animation
 
 ![AnimatedModel pipeline: sample clip at time t into per-joint TRS arrays, walk the skeleton to compute joint matrices, upload to GPU for skinned vertex transformation](../illustrations/15-skeletal-animation.svg)
 
@@ -415,7 +644,7 @@ update(dt: number): void {
 
 The joint matrices are consumed by the skinned variant of the world geometry pass, which renders the animated mesh with GPU skinning. NPCs that need full-body animation (e.g. a character walking, waving, or performing actions) use `AnimatedModel` instead of the simple head-bob approach.
 
-## 15.10 Mob Spawning Mechanics
+## 15.11 Mob Spawning Mechanics
 
 Rather than scanning the world periodically, Crafty spawns mobs as a **side effect of chunk generation**. The `setupAnimalSpawning()` function in `crafty/game/animal_spawner.ts` hooks into the `World.onChunkAdded` callback so every new chunk triggers a spawn attempt for its XZ column:
 
@@ -451,6 +680,7 @@ Each mob type has an independent spawn roll per column:
 |-----|-------------|-------------|------|
 | Duck | 0.15 | GrassyPlains only | 1–2 adults + optional 5 ducklings |
 | Pig | 0.20 | GrassyPlains only | 1–2 adults or babies (25% baby chance) |
+| Bee | 0.10 | GrassyPlains only | Single (requires 3-block clearance) |
 | Creeper | 0.01 | Any | Single |
 
 Every spawn checks that the column has solid ground (`getTopBlockY > 0`). Ducks additionally check if the surface block is water — they can float on the surface or stand on solid ground:
@@ -514,16 +744,17 @@ Chunk generated
   └─ onChunkAdded fires
        └─ aliveBlocks > 0?
             └─ Column already processed?
-                 └─ _spawnInColumn()
-                      ├─ DUCK_CHANCE  (0.15) → spawnDuck + optional ducklings
-                      ├─ PIG_CHANCE   (0.20) → spawnPig (adult or baby)
-                      └─ CREEPER_CHANCE (0.01) → spawnCreeper
+                  └─ _spawnInColumn()
+                       ├─ DUCK_CHANCE  (0.15) → spawnDuck + optional ducklings
+                       ├─ PIG_CHANCE   (0.20) → spawnPig (adult or baby)
+                       ├─ BEE_CHANCE   (0.10) → spawnBee
+                       └─ CREEPER_CHANCE (0.01) → spawnCreeper
 ```
 
 Mob spawning is strictly a generation-time event — there is no respawn timer or despawn-on-distance system. Once spawned, NPCs persist in the scene until the world is unloaded.
 
 
-## 15.11 Extending the NPC System
+## 15.12 Extending the NPC System
 
 The component-based architecture makes it straightforward to add new NPC types:
 
@@ -535,7 +766,6 @@ Future NPC types could include:
 
 - **Villagers** — diurnal cycle, trading, pathfinding to waypoints.
 - **Hostile mobs** — chase, attack, patrol, and respawn behaviours.
-- **Flying NPCs** — birds, bats — with three-dimensional movement and collision.
 - **Fish** — aquatic NPCs constrained to water volumes.
 
 Each new type follows the same pattern: a state machine + `Component.update()` + `World` queries, with visual variety provided by different meshes, animations, and parameter tuning.
@@ -545,6 +775,9 @@ Each new type follows the same pattern: a state machine + `Component.update()` +
 - `crafty/game/components/duckling_ai.ts` — Duckling AI (follow behaviour)
 - `crafty/game/components/pig_ai.ts` — Pig AI (two-state wandering)
 - `crafty/game/components/creeper_ai.ts` — Creeper AI (four-state hostile + explosion)
+- `crafty/game/components/bee_ai.ts` — Bee AI (three-state flying + flower hover)
+- `crafty/game/bee_spawning.ts` — Bee spawn logic (biome filter + clearance check)
+- `crafty/game/assets/bee_mesh.ts` — Bee body, stripe, head, eye, and wing mesh builders
 - `src/engine/components/animated_model.ts` — Skeletal animation playback
 - `src/engine/components/` — All component implementations
 - `src/engine/component.ts` — Base `Component` class

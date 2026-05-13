@@ -63,6 +63,74 @@ export class Mesh {
   }
 
   /**
+   * Appends a single axis-aligned box to an accumulator array.
+   *
+   * Each vertex uses 12 floats (position/normal/uv/tangent — matching
+   * {@link VERTEX_ATTRIBUTES}). The box face set is identical to the one
+   * produced by {@link createBox} but allows multiple boxes to be packed into
+   * one combined mesh.
+   *
+   * @param verts   - Accumulated vertex floats (12 per vertex).
+   * @param indices - Accumulated triangle-list indices.
+   * @param cx      - Box center X.
+   * @param cy      - Box center Y.
+   * @param cz      - Box center Z.
+   * @param sx      - Half-extent along X.
+   * @param sy      - Half-extent along Y.
+   * @param sz      - Half-extent along Z.
+   */
+  static addBox(
+    verts: number[], indices: number[],
+    cx: number, cy: number, cz: number,
+    sx: number, sy: number, sz: number,
+  ): void {
+    const faces: Array<{
+      n: [number, number, number];
+      t: [number, number, number, number];
+      v: [number, number, number][];
+    }> = [
+      { n: [0, 0, -1], t: [-1, 0, 0, 1], v: [[-sx, -sy, -sz], [sx, -sy, -sz], [sx, sy, -sz], [-sx, sy, -sz]] },
+      { n: [0, 0,  1], t: [ 1, 0, 0, 1], v: [[sx, -sy, sz], [-sx, -sy, sz], [-sx, sy, sz], [sx, sy, sz]] },
+      { n: [-1, 0, 0], t: [0, 0, -1, 1], v: [[-sx, -sy, sz], [-sx, -sy, -sz], [-sx, sy, -sz], [-sx, sy, sz]] },
+      { n: [ 1, 0, 0], t: [0, 0,  1, 1], v: [[sx, -sy, -sz], [sx, -sy, sz], [sx, sy, sz], [sx, sy, -sz]] },
+      { n: [0, 1, 0],  t: [ 1, 0, 0, 1], v: [[-sx, sy, -sz], [sx, sy, -sz], [sx, sy, sz], [-sx, sy, sz]] },
+      { n: [0, -1, 0], t: [ 1, 0, 0, 1], v: [[-sx, -sy, sz], [sx, -sy, sz], [sx, -sy, -sz], [-sx, -sy, -sz]] },
+    ];
+    const uvs: [number, number][] = [[0, 1], [1, 1], [1, 0], [0, 0]];
+
+    for (const f of faces) {
+      const base = verts.length / 12;
+      for (let i = 0; i < 4; i++) {
+        const [vx, vy, vz] = f.v[i];
+        verts.push(
+          cx + vx, cy + vy, cz + vz,
+          f.n[0], f.n[1], f.n[2],
+          uvs[i][0], uvs[i][1],
+          f.t[0], f.t[1], f.t[2], f.t[3],
+        );
+      }
+      indices.push(base, base + 2, base + 1, base, base + 3, base + 2);
+    }
+  }
+
+  /**
+   * Creates an axis-aligned box centered at the origin with outward-facing
+   * normals.
+   *
+   * @param device - The WebGPU device.
+   * @param width  - Total width along X.
+   * @param height - Total height along Y.
+   * @param depth  - Total depth along Z.
+   * @returns The box mesh.
+   */
+  static createBox(device: GPUDevice, width: number, height: number, depth: number): Mesh {
+    const verts: number[] = [];
+    const indices: number[] = [];
+    Mesh.addBox(verts, indices, 0, 0, 0, width / 2, height / 2, depth / 2);
+    return Mesh.fromData(device, new Float32Array(verts), new Uint32Array(indices));
+  }
+
+  /**
    * Creates an axis-aligned cube centered at the origin with outward-facing CCW winding.
    *
    * @param device - The WebGPU device.

@@ -17,14 +17,16 @@ import type { IblTextures } from '../src/assets/ibl.js';
 import { Texture } from '../src/assets/texture.js';
 import { parseHdr, createHdrTexture } from '../src/assets/hdr_loader.js';
 import { BlockTexture } from '../src/assets/block_texture.js';
-import { World, BiomeType, EnvironmentEffect, getBiomeCloudBounds, isBlockWater } from '../src/block/index.js';
+import { World, BiomeType, BlockType, EnvironmentEffect, getBiomeCloudBounds, isBlockWater } from '../src/block/index.js';
 import type { Chunk, ChunkMesh } from '../src/block/index.js';
 import type { DrawItem } from '../src/renderer/passes/geometry_pass.js';
 import { createDuckBodyMesh, createDuckHeadMesh, createDuckBillMesh } from './game/assets/duck_mesh.js';
 import { createPigBodyMesh, createPigHeadMesh, createPigSnoutMesh } from './game/assets/pig_mesh.js';
 import { createCreeperBodyMesh, createCreeperHeadMesh } from './game/assets/creeper_mesh.js';
+import { createBeeBodyMesh, createBeeStripeMesh, createBeeHeadMesh, createBeeEyeMesh, createBeeWingMesh } from './game/assets/bee_mesh.js';
 import { DuckAI } from './game/components/duck_ai.js';
 import { CreeperAI } from './game/components/creeper_ai.js';
+import { BeeAI } from './game/components/bee_ai.js';
 import { MeshRenderer } from '../src/engine/index.js';
 import { PointLight } from '../src/engine/index.js';
 import { SpotLight } from '../src/engine/components/spot_light.js';
@@ -273,9 +275,47 @@ async function main(): Promise<void> {
     babyPigSnout: createPigSnoutMesh(device, 0.55),
     creeperBody:  createCreeperBodyMesh(device),
     creeperHead:  createCreeperHeadMesh(device),
+    beeBody:      createBeeBodyMesh(device),
+    beeStripe:    createBeeStripeMesh(device),
+    beeHead:      createBeeHeadMesh(device),
+    beeEye:       createBeeEyeMesh(device),
+    beeWing:      createBeeWingMesh(device),
   });
 
   setupVillageGeneration(world);
+
+  // ── Bee flower position tracking ───────────────────────────────────────────
+  // Keep the static flower set in sync so bees can find flowers to hover over.
+  const prevOnChunkAdded2 = world.onChunkAdded;
+  world.onChunkAdded = (chunk, chunkMesh) => {
+    prevOnChunkAdded2?.(chunk, chunkMesh);
+    // Scan newly generated chunks for worldgen flowers
+    const ox = chunk.globalPosition.x;
+    const oy = chunk.globalPosition.y;
+    const oz = chunk.globalPosition.z;
+    const CW = 16, CH = 16, CD = 16;
+    for (let x = 0; x < CW; x++) {
+      for (let y = 0; y < CH; y++) {
+        for (let z = 0; z < CD; z++) {
+          const bt = chunk.getBlock(x, y, z);
+          if (bt === BlockType.FLOWER) {
+            BeeAI.flowerPositions.add(`${ox + x}:${oy + y}:${oz + z}`);
+          }
+        }
+      }
+    }
+  };
+
+  world.onBlockSet = (wx, wy, wz, blockType) => {
+    if (blockType === BlockType.FLOWER) {
+      BeeAI.flowerPositions.add(`${wx}:${wy}:${wz}`);
+    }
+  };
+  world.onBlockBeforeRemove = (wx, wy, wz, blockType) => {
+    if (blockType === BlockType.FLOWER) {
+      BeeAI.flowerPositions.delete(`${wx}:${wy}:${wz}`);
+    }
+  };
 
   // ── Multiplayer wiring ────────────────────────────────────────────────────
   // Server-authoritative block edits arrive as a list at welcome time + a
@@ -808,9 +848,9 @@ async function main(): Promise<void> {
     cloudWindX += dt * 1.5;
     cloudWindZ += dt * 0.5;
 
-    // Skew the linear angle so the sun spends ~3/5 of the cycle above the
-    // horizon and only ~2/5 below (night).
-    const _dayFraction = 0.65;
+    // Skew the linear angle so the sun spends ~4/5 of the cycle above the
+    // horizon and only ~1/5 below (night).
+    const _dayFraction = 0.80;
     const _norm = ((sunAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
     const _dayPortion = _dayFraction * 2 * Math.PI;
     const _skewed = _norm < _dayPortion
@@ -855,6 +895,9 @@ async function main(): Promise<void> {
     CreeperAI.playerPos.x = camPos.x;
     CreeperAI.playerPos.y = camPos.y;
     CreeperAI.playerPos.z = camPos.z;
+    BeeAI.playerPos.x = camPos.x;
+    BeeAI.playerPos.y = camPos.y;
+    BeeAI.playerPos.z = camPos.z;
 
     if (network !== null && network.connected) {
       network.sendTransform(camPos.x, camPos.y, camPos.z, player.yaw, player.pitch);

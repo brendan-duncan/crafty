@@ -5,11 +5,13 @@ import type { Mesh } from '../../src/assets/mesh.js';
 import { spawnDuck, spawnDuckling } from './duck_spawning.js';
 import { spawnPig } from './pig_spawning.js';
 import { spawnCreeper } from './creeper_spawning.js';
+import { spawnBee } from './bee_spawning.js';
 
 const CHUNK_SIZE     = 16;
 const DUCK_CHANCE    = 0.15;
 const PIG_CHANCE     = 0.20;
 const CREEPER_CHANCE = 0.01;
+const BEE_CHANCE     = 0.10;
 const DUCKLING_CHANCE = 0.25;
 const DUCKLING_COUNT  = 5;
 const BABY_PIG_CHANCE = 0.25;
@@ -20,6 +22,7 @@ export interface AnimalMeshes {
   pigBody: Mesh;     pigHead: Mesh;     pigSnout: Mesh;
   babyPigBody: Mesh; babyPigHead: Mesh; babyPigSnout: Mesh;
   creeperBody: Mesh; creeperHead: Mesh;
+  beeBody: Mesh; beeStripe: Mesh; beeHead: Mesh; beeEye: Mesh; beeWing: Mesh;
 }
 
 /**
@@ -90,5 +93,11 @@ function _spawnInColumn(cx: number, cz: number, world: World, scene: Scene, mesh
     const wx = Math.floor(baseX + Math.random() * CHUNK_SIZE);
     const wz = Math.floor(baseZ + Math.random() * CHUNK_SIZE);
     spawnCreeper(wx, wz, world, scene, meshes.creeperBody, meshes.creeperHead);
+  }
+
+  if (Math.random() < BEE_CHANCE) {
+    const wx = Math.floor(baseX + Math.random() * CHUNK_SIZE);
+    const wz = Math.floor(baseZ + Math.random() * CHUNK_SIZE);
+    spawnBee(wx, wz, world, scene, meshes.beeBody, meshes.beeStripe, meshes.beeHead, meshes.beeEye, meshes.beeWing);
   }
 }

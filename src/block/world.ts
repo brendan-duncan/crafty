@@ -48,6 +48,10 @@ export class World {
   onChunkAdded?: (chunk: Chunk, mesh: ChunkMesh) => void;
   onChunkUpdated?: (chunk: Chunk, mesh: ChunkMesh) => void;
   onChunkRemoved?: (chunk: Chunk) => void;
+  /** Fires after any block is placed via setBlockType. World-space coords. */
+  onBlockSet?: (wx: number, wy: number, wz: number, blockType: number) => void;
+  /** Fires before a block is removed via mineBlock. World-space coords. */
+  onBlockBeforeRemove?: (wx: number, wy: number, wz: number, blockType: number) => void;
 
   private _chunks    = new Map<number, Chunk>();
   private _generated = new Set<number>();
@@ -172,6 +176,7 @@ export class World {
     const rz = Math.round(wz) - chunk.globalPosition.z;
     chunk.setBlock(rx, ry, rz, blockType);
     this._updateChunk(chunk, rx, ry, rz);
+    this.onBlockSet?.(Math.round(wx), Math.round(wy), Math.round(wz), blockType);
     return true;
   }
 
@@ -359,6 +364,8 @@ export class World {
     if (blockType === BlockType.NONE) {
       return false;
     }
+
+    this.onBlockBeforeRemove?.(gX, gY, gZ, blockType);
 
     // Allow mining water blocks (just removes them)
     if (isBlockWater(blockType)) {
