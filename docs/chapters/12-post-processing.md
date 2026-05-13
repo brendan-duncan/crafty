@@ -2,7 +2,7 @@
 
 [Contents](../crafty.md) | [11-Terrain](11-terrain.md) | [13-Game Engine](13-game-engine.md)
 
-After the scene is rendered into the HDR target, a series of post-processing passes refines the image. This chapter covers tonemapping, bloom, temporal anti-aliasing, screen-space ambient occlusion, depth of field, and god rays.
+After the scene is rendered into the HDR target, a series of post-processing passes refines the image. This chapter covers tonemapping, bloom, temporal anti-aliasing, and depth of field.
 
 ## 12.1 Tone Mapping and HDR Display
 
@@ -137,45 +137,7 @@ let maxColor = max(neighbourhood);
 historyColor = clamp(historyColor, minColor, maxColor);
 ```
 
-## 12.4 Screen-Space Ambient Occlusion (SSAO)
-
-SSAO estimates ambient light occlusion by sampling the depth buffer around each pixel. The `SSAOPass` (`src/renderer/passes/ssao_pass.ts`) computes an occlusion factor for each screen pixel by sending sample rays into a hemisphere oriented to the surface normal:
-
-![SSAO: hemisphere of samples around the surface](../illustrations/12-ssao-hemisphere.svg)
-
-
-### Algorithm
-
-For each pixel, the shader samples the depth buffer at several positions within a sphere around the pixel's world position. The number of samples that fall inside the scene geometry (closer to the camera) determines the occlusion:
-
-```wgsl
-let occlusion = 0.0;
-let radius = 1.0;
-let samples = 16;
-for (var i = 0u; i < samples; i++) {
-  let samplePos = pixelPos + sampleKernel[i] * radius;
-  let sampleDepth = textureSample(depthMap, sampler, samplePos.xy).r;
-  // Reconstruct world position from depth
-  let sampleWorldPos = reconstructWorldPos(samplePos.xy, sampleDepth);
-  let dist = sampleWorldPos.z - pixelPos.z;
-  occlusion += step(dist, 0.0) * max(0.0, 1.0 - dist / radius);
-}
-occlusion = 1.0 - occlusion / f32(samples);
-```
-
-The sample kernel is oriented by the surface normal to bias samples toward the visible hemisphere. A noise texture rotates the kernel per-pixel to hide banding, which is then resolved by a bilateral blur.
-
-### Bilateral Blur
-
-The raw SSAO output is noisy and requires blurring. A separable bilateral blur preserves edges by weighting the blur kernel by the depth difference:
-
-```wgsl
-let weight = exp(-abs(depthCenter - depthNeighbour) * sigmaDepth);
-blurred += neighbourValue * weight * gaussianWeight;
-totalWeight += weight * gaussianWeight;
-```
-
-## 12.5 Depth of Field (DOF)
+## 12.4 Depth of Field (DOF)
 
 The `DofPass` (`src/renderer/passes/dof_pass.ts`) simulates camera lens defocus blur. Objects at a specific focal distance are sharp; objects farther or closer become increasingly blurred. Geometrically, off-focus points project to a disk on the sensor instead of a single point — that disk's diameter is the **circle of confusion**:
 
@@ -204,39 +166,7 @@ The DOF pass renders at half resolution for performance:
 
 The blur uses a Poisson-disk kernel where the number of samples is proportional to the CoC radius, capped at `maxCocRadius` (typically 8-16 texels).
 
-## 12.6 God Rays (Crepuscular Rays)
-
-The `GodrayPass` (`src/renderer/passes/godray_pass.ts`) renders volumetric light shafts — rays of light that appear when sunlight filters through semitransparent occluders (clouds, tree leaves). The trick is that we don't actually march through 3D space: we just sample the screen-space HDR image along a 1D ray pointing back toward the sun, accumulating luminance as we go:
-
-![God rays: radial sampling from the sun](../illustrations/12-godray-sampling.svg)
-
-
-### Radial Blur from Light Source
-
-The algorithm determines the sun's position in screen space, then samples the HDR target along rays radiating from that position:
-
-```wgsl
-let sunScreenPos = projectToScreen(sunDirection);
-let ray = sunScreenPos - uv;
-let step = ray / f32(numSamples);
-var godray = 0.0;
-for (var i = 0u; i < numSamples; i++) {
-  let sampleUV = uv + step * f32(i);
-  let sampleColor = textureSample(hdrTexture, sampler, sampleUV).rgb;
-  godray += luminance(sampleColor) * density;
-}
-godray = godray * decay / f32(numSamples);
-```
-
-The result is composited additively onto the HDR target:
-
-```wgsl
-hdrColor += godrayColor * intensity;
-```
-
-The sun screen position, density, decay, and intensity are configurable parameters that produce different godray effects — from subtle shafts to dramatic crepuscular rays.
-
-## 12.7 Auto-Exposure
+## 12.5 Auto-Exposure
 
 The `AutoExposurePass` (`src/renderer/passes/auto_exposure_pass.ts`) computes a scene-adaptive exposure value using compute shaders. It adapts the overall brightness when the scene changes (e.g., walking from indoors to sunlight). The mechanism is a per-frame log-luminance histogram, smoothed temporally so that exposure tracks scene changes without snapping:
 
@@ -271,7 +201,7 @@ hdrColor *= exposure;
 
 This provides a smooth, automatic transition between lighting conditions.
 
-## 12.8 Color Grading
+## 12.6 Color Grading
 
 The `CompositePass` optionally applies color grading via a **lookup table (LUT)**. A 3D LUT texture maps input colors to graded output colors, enabling cinematic color grading:
 
@@ -282,7 +212,7 @@ let gradedColor = textureSampleLevel(colorGradingLut, lutSampler,
 
 When no LUT is active, the composite pass applies a simple contrast, saturation, and vibrance adjustment as a post-tonemapping step.
 
-## 12.9 Underwater Screen-Space Effects
+## 12.7 Underwater Screen-Space Effects
 
 When the camera is submerged, the `CompositePass` applies a series of screen-space effects that simulate the visual experience of being underwater. These are implemented as a single extra code path in the composite fragment shader (`src/shaders/composite.wgsl`).
 
@@ -328,21 +258,17 @@ Post-processing transforms the raw HDR render into the final image. The diagram 
 
 | Pass | Input | Output | Purpose |
 |------|-------|--------|---------|
-| SSAO | G-buffer depth/normal | AO texture | Local ambient occlusion |
 | SSGI | G-buffer + history | Indirect light | Bounce light approximation |
 | TAA | HDR + history + motion | Anti-aliased HDR | Temporal supersampling |
 | DOF | HDR + depth | Blurred HDR | Lens defocus simulation |
-| Godrays | HDR + sun position | HDR + shafts | Volumetric light scattering |
 | Bloom | HDR bright pass | HDR + glow | Lens glare simulation |
 | Auto-exposure | HDR → histogram → exposure | Adapts HDR brightness | Automatic exposure |
 | Composite | HDR + all of the above | Swap chain output | Tonemapping + grading + underwater |
 
 **Further reading:**
 - `src/renderer/passes/taa_pass.ts` — Temporal anti-aliasing
-- `src/renderer/passes/ssao_pass.ts` — Screen-space ambient occlusion
 - `src/renderer/passes/ssgi_pass.ts` — Screen-space global illumination
 - `src/renderer/passes/bloom_pass.ts` — HDR bloom
-- `src/renderer/passes/godray_pass.ts` — Volumetric god rays
 - `src/renderer/passes/dof_pass.ts` — Depth of field
 - `src/renderer/passes/auto_exposure_pass.ts` — Auto-exposure
 - `src/renderer/passes/composite_pass.ts` — Final composition + tonemap

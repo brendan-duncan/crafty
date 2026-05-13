@@ -410,6 +410,43 @@ The dispatch is 6 faces × 5 roughness levels = 30 workgroups, each sampling 256
 
 These compute dispatches run once when the sky changes (e.g., on world load or a new HDR map), and the results persist until the next rebuild. The `computeIblGpu()` function in `src/assets/ibl.ts` orchestrates the entire pipeline and awaits `onSubmittedWorkDone()` before returning the ready-to-use textures.
 
+## 7.10 Screen-Space Ambient Occlusion (SSAO)
+
+SSAO estimates ambient light occlusion by sampling the depth buffer around each pixel. The `SSAOPass` (`src/renderer/passes/ssao_pass.ts`) computes an occlusion factor for each screen pixel by sending sample rays into a hemisphere oriented to the surface normal:
+
+![SSAO: hemisphere of samples around the surface](../illustrations/12-ssao-hemisphere.svg)
+
+### Algorithm
+
+For each pixel, the shader samples the depth buffer at several positions within a sphere around the pixel's world position. The number of samples that fall inside the scene geometry (closer to the camera) determines the occlusion:
+
+```wgsl
+let occlusion = 0.0;
+let radius = 1.0;
+let samples = 16;
+for (var i = 0u; i < samples; i++) {
+  let samplePos = pixelPos + sampleKernel[i] * radius;
+  let sampleDepth = textureSample(depthMap, sampler, samplePos.xy).r;
+  // Reconstruct world position from depth
+  let sampleWorldPos = reconstructWorldPos(samplePos.xy, sampleDepth);
+  let dist = sampleWorldPos.z - pixelPos.z;
+  occlusion += step(dist, 0.0) * max(0.0, 1.0 - dist / radius);
+}
+occlusion = 1.0 - occlusion / f32(samples);
+```
+
+The sample kernel is oriented by the surface normal to bias samples toward the visible hemisphere. A noise texture rotates the kernel per-pixel to hide banding, which is then resolved by a bilateral blur.
+
+### Bilateral Blur
+
+The raw SSAO output is noisy and requires blurring. A separable bilateral blur preserves edges by weighting the blur kernel by the depth difference:
+
+```wgsl
+let weight = exp(-abs(depthCenter - depthNeighbour) * sigmaDepth);
+blurred += neighbourValue * weight * gaussianWeight;
+totalWeight += weight * gaussianWeight;
+```
+
 ## Summary
 
 Lighting is a composition of several systems:
@@ -420,6 +457,7 @@ Lighting is a composition of several systems:
 | Point lights | `PointSpotLightPass` | Additive deferred, cube shadow maps |
 | Spot lights | `PointSpotLightPass` | Additive deferred, 2D shadow maps |
 | IBL | `DeferredLightingPass` | Environment-based ambient + specular |
+| SSAO | `SSAOPass` | Local ambient occlusion from depth buffer |
 | Forward transparency | `ForwardPass` | PBR for transparent surfaces |
 
 All paths share the same PBR BRDF functions, ensuring consistent appearance regardless of rendering path.
@@ -432,6 +470,7 @@ All paths share the same PBR BRDF functions, ensuring consistent appearance rega
 - `src/renderer/passes/deferred_lighting_pass.ts` — Deferred lighting pass
 - `src/renderer/passes/forward_pass.ts` — Forward lighting pass
 - `src/renderer/passes/point_spot_light_pass.ts` — Additive point/spot pass
+- `src/renderer/passes/ssao_pass.ts` — Screen-space ambient occlusion
 
 ----
 [Contents](../crafty.md) | [06-Textures / Materials](06-textures-materials.md) | [08-Shadow Mapping](08-shadow-mapping.md)

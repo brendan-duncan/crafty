@@ -176,6 +176,9 @@ This book is a work in progress.  Chapters are added as the engine evolves.
     - BRDF LUT (CPU)
     - Irradiance Map (GPU Compute)
     - GGX Prefiltered Environment Map (GPU Compute)
+  - 7.10 Screen-Space Ambient Occlusion (SSAO)
+    - Algorithm
+    - Bilateral Blur
 
 - [Chapter 8: Shadow Mapping](chapters/08-shadow-mapping.md)
   - 8.1 Shadow Map Theory
@@ -236,6 +239,8 @@ This book is a work in progress.  Chapters are added as the engine evolves.
     - Persistence
     - Moon Rendering
     - Star Rendering
+  - 10.9 God Rays (Crepuscular Rays)
+    - Radial Blur from Light Source
 
 - [Chapter 11: Terrain and Voxel World](chapters/11-terrain.md)
   - 11.1 Voxel Data Structure
@@ -279,19 +284,14 @@ This book is a work in progress.  Chapters are added as the engine evolves.
     - Jitter
     - Reprojection
     - Neighborhood Clamping
-  - 12.4 Screen-Space Ambient Occlusion (SSAO)
-    - Algorithm
-    - Bilateral Blur
-  - 12.5 Depth of Field (DOF)
+  - 12.4 Depth of Field (DOF)
     - Circle of Confusion
     - Seperable Blur
-  - 12.6 God Rays (Crepuscular Rays)
-    - Radial Blur from Light Source
-  - 12.7 Auto-Exposure
+  - 12.5 Auto-Exposure
     - Histogram Computation
     - Average Luminance
-  - 12.8 Color Grading
-  - 12.9 Underwater Screen-Space Effects
+  - 12.6 Color Grading
+  - 12.7 Underwater Screen-Space Effects
     - UV Distortion
     - Color Tint and Vignette
 

@@ -405,11 +405,43 @@ Three factors gate star visibility:
 
 The `sample_stars()` function (in the same shader) generates a procedural star field using a pseudo-random hash of the view direction, producing thousands of stars of varying brightness without any texture. This keeps the star field crisp at any resolution.
 
+## 10.9 God Rays (Crepuscular Rays)
+
+The `GodrayPass` (`src/renderer/passes/godray_pass.ts`) renders volumetric light shafts — rays of light that appear when sunlight filters through semitransparent occluders (clouds, tree leaves). The trick is that we don't actually march through 3D space: we just sample the screen-space HDR image along a 1D ray pointing back toward the sun, accumulating luminance as we go:
+
+![God rays: radial sampling from the sun](../illustrations/12-godray-sampling.svg)
+
+### Radial Blur from Light Source
+
+The algorithm determines the sun's position in screen space, then samples the HDR target along rays radiating from that position:
+
+```wgsl
+let sunScreenPos = projectToScreen(sunDirection);
+let ray = sunScreenPos - uv;
+let step = ray / f32(numSamples);
+var godray = 0.0;
+for (var i = 0u; i < numSamples; i++) {
+  let sampleUV = uv + step * f32(i);
+  let sampleColor = textureSample(hdrTexture, sampler, sampleUV).rgb;
+  godray += luminance(sampleColor) * density;
+}
+godray = godray * decay / f32(numSamples);
+```
+
+The result is composited additively onto the HDR target:
+
+```wgsl
+hdrColor += godrayColor * intensity;
+```
+
+The sun screen position, density, decay, and intensity are configurable parameters that produce different godray effects — from subtle shafts to dramatic crepuscular rays.
+
 **Further reading:**
 - `src/renderer/passes/sky_texture_pass.ts` — HDR cubemap sky
 - `src/renderer/passes/atmosphere_pass.ts` — Procedural atmospheric sky
 - `src/renderer/passes/cloud_pass.ts` — Volumetric clouds
 - `src/renderer/passes/cloud_shadow_pass.ts` — Cloud shadow maps
+- `src/renderer/passes/godray_pass.ts` — Volumetric god rays
 - `src/shaders/sky.wgsl` — Sky shader
 - `src/shaders/atmosphere.wgsl` — Atmosphere scattering shader
 - `src/shaders/clouds.wgsl` — Cloud raymarching shader
