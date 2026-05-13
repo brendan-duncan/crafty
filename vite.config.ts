@@ -14,7 +14,7 @@ export default defineConfig({
          main: 'crafty/index.html',
          index: 'index.html',
          samples: 'samples/index.html',
-         cube_test: 'samples/cube_test.html',
+         engine_test: 'samples/engine_test.html',
          cloud_test: 'samples/cloud_test.html',
          cascade_shadow_test: 'samples/cascade_shadow_test.html',
          forward_test: 'samples/forward_test.html',
