@@ -1,0 +1,154 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 520" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="520" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">IBL Baking Pipeline — GPU Compute Pre-Computation</text>
+
+  <defs>
+    <marker id="ibArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+    </marker>
+
+    <!-- Sky cubemap -->
+    <linearGradient id="skyGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fef3c7"/>
+      <stop offset="50%" stop-color="#7dd3fc"/>
+      <stop offset="100%" stop-color="#1e3a8a"/>
+    </linearGradient>
+
+    <!-- Irradiance (very blurred) -->
+    <radialGradient id="irrGrad" cx="0.5" cy="0.5" r="0.6">
+      <stop offset="0%" stop-color="#fde68a"/>
+      <stop offset="100%" stop-color="#3b82f6"/>
+    </radialGradient>
+
+    <!-- Prefilter roughness variants -->
+    <linearGradient id="pf0" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fef3c7"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="pf1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#6d28d9"/>
+    </linearGradient>
+    <linearGradient id="pf2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#5b21b6"/>
+    </linearGradient>
+
+    <!-- BRDF LUT -->
+    <linearGradient id="lutGrad" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0%" stop-color="#dc2626"/>
+      <stop offset="30%" stop-color="#fbbf24"/>
+      <stop offset="70%" stop-color="#22c55e"/>
+      <stop offset="100%" stop-color="#15803d"/>
+    </linearGradient>
+  </defs>
+
+  <!-- ===== TOP: HDR sky source ===== -->
+  <g transform="translate(360, 50)">
+    <rect x="0" y="0" width="200" height="70" fill="url(#skyGrad)" stroke="#374151" stroke-width="1.5" rx="4"/>
+    <text x="100" y="90" text-anchor="middle" font-weight="700" fill="#111827">HDR sky (equirectangular)</text>
+    <text x="100" y="106" text-anchor="middle" font-size="11" font-style="italic" fill="#6b7280">rgba16float, captured once at startup</text>
+  </g>
+
+  <!-- Three branching arrows from the sky to the three derived textures -->
+  <g stroke="#374151" stroke-width="1.5" fill="none">
+    <path d="M 420,160 L 420,175 L 180,175 L 180,195" marker-end="url(#ibArr)"/>
+    <path d="M 460,160 L 460,195" marker-end="url(#ibArr)"/>
+    <path d="M 500,160 L 500,175 L 740,175 L 740,195" marker-end="url(#ibArr)"/>
+  </g>
+
+  <!-- ===== MIDDLE ROW: three derived textures ===== -->
+
+  <!-- 1. Irradiance map -->
+  <g transform="translate(60, 200)">
+    <!-- Title box -->
+    <rect x="0" y="0" width="220" height="28" fill="#eff6ff" stroke="#1e40af" stroke-width="1.2" rx="4"/>
+    <text x="110" y="19" text-anchor="middle" font-weight="700" fill="#1e40af">Irradiance map</text>
+
+    <!-- Texture preview -->
+    <rect x="40" y="38" width="140" height="90" fill="url(#irrGrad)" stroke="#1e40af" stroke-width="1.4" rx="3"/>
+    <text x="110" y="144" text-anchor="middle" font-family="ui-monospace, Consolas, monospace" font-size="11" fill="#1e40af">32×32 cube · diffuse</text>
+
+    <!-- Details panel -->
+    <rect x="0" y="160" width="220" height="100" fill="#f9fafb" stroke="#d1d5db" stroke-width="1" rx="4"/>
+    <text x="12" y="180" font-size="11" font-weight="600" fill="#374151">cs_irradiance compute shader</text>
+    <text x="12" y="198" font-size="11" fill="#6b7280">6 face dispatches (32×32 threads)</text>
+    <text x="12" y="215" font-size="11" fill="#6b7280">256 cosine-weighted hemisphere</text>
+    <text x="12" y="232" font-size="11" fill="#6b7280">samples per output texel</text>
+    <text x="12" y="252" font-family="ui-monospace, Consolas, monospace" font-size="10" fill="#374151">textureStore(out_tex, uv, irradiance)</text>
+  </g>
+
+  <!-- 2. Prefilter map -->
+  <g transform="translate(330, 200)">
+    <!-- Title box -->
+    <rect x="0" y="0" width="260" height="28" fill="#f5f3ff" stroke="#7c3aed" stroke-width="1.2" rx="4"/>
+    <text x="130" y="19" text-anchor="middle" font-weight="700" fill="#7c3aed">GGX Prefiltered map</text>
+
+    <!-- Texture preview: 5 mip thumbnails -->
+    <!-- Labels sit above the rectangles, not overlapping them -->
+    <g font-size="10" fill="#7c3aed" text-anchor="middle">
+      <text x="54"  y="40">mip 0</text>
+      <text x="126" y="40">mip 1</text>
+      <text x="178" y="40">mip 2</text>
+      <text x="212" y="40">mip 3</text>
+      <text x="234" y="40">mip 4</text>
+    </g>
+
+    <g transform="translate(0, 46)">
+      <rect x="14" y="0" width="80" height="80" fill="url(#pf0)" stroke="#7c3aed" stroke-width="1.2" rx="2"/>
+      <rect x="98" y="12" width="56" height="56" fill="url(#pf1)" stroke="#7c3aed" stroke-width="1.2" rx="2"/>
+      <rect x="158" y="24" width="40" height="40" fill="url(#pf2)" stroke="#7c3aed" stroke-width="1.2" rx="2"/>
+      <rect x="200" y="32" width="24" height="24" fill="url(#irrGrad)" stroke="#7c3aed" stroke-width="1.2" rx="2"/>
+      <rect x="226" y="36" width="16" height="16" fill="url(#irrGrad)" stroke="#7c3aed" stroke-width="1.2" rx="2"/>
+    </g>
+
+    <!-- Label under mips -->
+    <text x="130" y="148" text-anchor="middle" font-family="ui-monospace, Consolas, monospace" font-size="11" fill="#7c3aed">128×128 cube · 5 mip levels</text>
+
+    <!-- Roughness scale -->
+    <line x1="14" y1="160" x2="246" y2="160" stroke="#374151" stroke-width="1"/>
+    <text x="14"  y="176" font-size="10" fill="#374151">roughness 0</text>
+    <text x="246" y="176" text-anchor="end" font-size="10" fill="#374151">roughness 1</text>
+
+    <!-- Details panel -->
+    <rect x="0" y="190" width="260" height="100" fill="#f9fafb" stroke="#d1d5db" stroke-width="1" rx="4"/>
+    <text x="12" y="202" font-size="11" font-weight="600" fill="#374151">cs_prefilter compute shader</text>
+    <text x="12" y="220" font-size="11" fill="#6b7280">30 dispatches (6 faces × 5 roughnesses)</text>
+    <text x="12" y="237" font-size="11" fill="#6b7280">256 GGX importance-sampled</text>
+    <text x="12" y="254" font-size="11" fill="#6b7280">directions per texel</text>
+    <text x="12" y="274" font-family="ui-monospace, Consolas, monospace" font-size="10" fill="#374151">sample by R̂ · select mip by roughness</text>
+  </g>
+
+  <!-- 3. BRDF LUT -->
+  <g transform="translate(640, 200)">
+    <!-- Title box -->
+    <rect x="0" y="0" width="220" height="28" fill="#fff1f2" stroke="#be123c" stroke-width="1.2" rx="4"/>
+    <text x="110" y="19" text-anchor="middle" font-weight="700" fill="#be123c">BRDF LUT (2D)</text>
+
+    <!-- Texture preview -->
+    <rect x="50" y="38" width="120" height="100" fill="url(#lutGrad)" stroke="#be123c" stroke-width="1.4" rx="3"/>
+
+    <!-- Axis labels -->
+    <text x="110" y="156" text-anchor="middle" font-family="ui-monospace, Consolas, monospace" font-size="11" fill="#374151">N·V → (scale, bias)</text>
+    <text x="42" y="92" text-anchor="end" font-family="ui-monospace, Consolas, monospace" font-size="11" fill="#374151">rough ↑</text>
+
+    <!-- Details panel -->
+    <rect x="0" y="170" width="220" height="112" fill="#f9fafb" stroke="#d1d5db" stroke-width="1" rx="4"/>
+    <text x="12" y="190" font-size="11" font-weight="600" fill="#374151">CPU (cached per device)</text>
+    <text x="12" y="208" font-size="11" fill="#6b7280">64×64 rgba16float</text>
+    <text x="12" y="225" font-size="11" fill="#6b7280">Hammersley + GGX importance</text>
+    <text x="12" y="242" font-size="11" fill="#6b7280">sampling, 512 samples/texel</text>
+    <text x="12" y="262" font-family="ui-monospace, Consolas, monospace" font-size="10" fill="#374151">computed once, reused across</text>
+    <text x="12" y="276" font-family="ui-monospace, Consolas, monospace" font-size="10" fill="#374151">IBL rebuilds via WeakMap cache</text>
+  </g>
+
+  <!-- ===== BOTTOM: pipeline orchestration ===== -->
+  <g transform="translate(60, 444)">
+    <rect width="800" height="58" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+    <text x="14" y="22" font-weight="700" fill="#111827">Orchestration (src/assets/ibl.ts · computeIblGpu())</text>
+    <g font-size="11" fill="#374151">
+      <text x="14" y="42">1. Create irradiance + prefiltered rgba16float cube textures with STORAGE_BINDING usage</text>
+      <text x="14" y="56">2. Dispatch 6 + 30 compute workgroups → 3. Upload BRDF LUT via writeTexture → 4. await onSubmittedWorkDone()</text>
+    </g>
+  </g>
+</svg>

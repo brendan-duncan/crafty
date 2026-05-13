@@ -282,6 +282,43 @@ let gradedColor = textureSampleLevel(colorGradingLut, lutSampler,
 
 When no LUT is active, the composite pass applies a simple contrast, saturation, and vibrance adjustment as a post-tonemapping step.
 
+## 12.9 Underwater Screen-Space Effects
+
+When the camera is submerged, the `CompositePass` applies a series of screen-space effects that simulate the visual experience of being underwater. These are implemented as a single extra code path in the composite fragment shader (`src/shaders/composite.wgsl`).
+
+### UV Distortion
+
+Before sampling the HDR scene, the UV coordinates are perturbed by a pair of animated sine/cosine waves that create a gentle, caustic-like shimmer:
+
+```wgsl
+if (params.is_underwater > 0.5) {
+  let t = params.uw_time;
+  let distort = vec2f(
+    sin(in.uv.y * 18.0 + t * 1.4) * 0.006,
+    cos(in.uv.x * 14.0 + t * 1.1) * 0.004,
+  );
+  sample_uv = clamp(in.uv + distort, vec2f(0.001), vec2f(0.999));
+}
+```
+
+The distortion is small (≤0.6% of screen width), anisotropic (horizontal distortion is stronger), and animated over time to simulate moving water ripples above the camera.
+
+### Color Tint and Vignette
+
+After fog is applied, submerged fragments receive a strong blue-green color cast and a vignette that darkens the screen periphery:
+
+```wgsl
+if (params.is_underwater > 0.5) {
+  scene = scene * vec3f(0.20, 0.55, 0.90);
+  let d = length(in.uv * 2.0 - 1.0);
+  scene *= clamp(1.0 - d * d * 0.55, 0.0, 1.0);
+}
+```
+
+The tint absorbs red light preferentially (0.20× red vs 0.90× blue), mimicking the wavelength-dependent attenuation of water. The vignette uses a quadratic falloff from the screen centre, smoothly reaching 45% darkening at the corners.
+
+The `is_underwater` flag is set per-frame by the game code when the camera position is below the water surface, and `uw_time` provides the animation time for the distortion.
+
 ### Summary
 
 Post-processing transforms the raw HDR render into the final image. The diagram below shows how the passes chain together — every post-FX stage reads from and writes back to the HDR target until the composite pass produces SDR output for the swap chain:
@@ -298,7 +335,7 @@ Post-processing transforms the raw HDR render into the final image. The diagram 
 | Godrays | HDR + sun position | HDR + shafts | Volumetric light scattering |
 | Bloom | HDR bright pass | HDR + glow | Lens glare simulation |
 | Auto-exposure | HDR → histogram → exposure | Adapts HDR brightness | Automatic exposure |
-| Composite | HDR + all of the above | Swap chain output | Tonemapping + grading |
+| Composite | HDR + all of the above | Swap chain output | Tonemapping + grading + underwater |
 
 **Further reading:**
 - `src/renderer/passes/taa_pass.ts` — Temporal anti-aliasing

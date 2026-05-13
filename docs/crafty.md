@@ -117,8 +117,8 @@ This book is a work in progress.  Chapters are added as the engine evolves.
   - 5.2 Vertex attributes and layouts
   - 5.3 The Mesh asset type
   - 5.4 Procedural geometry — cubes, planes, spheres
-  - 5.6 Skinned meshes and skeletons
-  - 5.7 Animation — clips, sampling, blending
+  - 5.5 Skinned meshes and skeletons
+  - 5.6 Animation — clips, sampling, blending
 
 - [Chapter 6: Textures and Materials](chapters/06-textures-materials.md)
   - 6.1 2D, 3D, and cube textures
@@ -137,6 +137,7 @@ This book is a work in progress.  Chapters are added as the engine evolves.
   - 7.6 The BRDF
   - 7.7 The deferred lighting pass
   - 7.8 The forward lighting path
+  - 7.9 GPU-based IBL pre-computation
 
 - [Chapter 8: Shadow Mapping](chapters/08-shadow-mapping.md)
   - 8.1 Shadow map theory
@@ -146,6 +147,7 @@ This book is a work in progress.  Chapters are added as the engine evolves.
   - 8.5 Point light (omnidirectional) shadows
   - 8.6 Shadow sampling and filtering
   - 8.7 Shadow acne and Peter Panning
+  - 8.8 Percentage-closer soft shadows (PCSS)
 
 - [Chapter 9: GPU Particle System](chapters/09-particle-system.md)
   - 9.1 Architecture Overview
@@ -204,6 +206,7 @@ This book is a work in progress.  Chapters are added as the engine evolves.
   - 12.6 God rays (crepuscular rays)
   - 12.7 Auto-exposure
   - 12.8 Color grading
+  - 12.9 Underwater screen-space effects
 
 ## III — Game Engine
 

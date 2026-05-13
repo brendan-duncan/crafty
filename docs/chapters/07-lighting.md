@@ -348,10 +348,87 @@ Lighting is a composition of several systems:
 
 All paths share the same PBR BRDF functions, ensuring consistent appearance regardless of rendering path.
 
+## 7.9 GPU-Based IBL Pre-Computation
+
+The three IBL textures — irradiance map, GGX prefiltered environment map, and BRDF LUT — could be pre-computed offline and shipped as assets, but Crafty computes them at runtime on the GPU. This allows the IBL to adapt to the current sky (procedural or HDR) without managing additional texture assets per environment.
+
+![IBL baking pipeline: equirectangular sky → compute shaders → irradiance cube + prefiltered cube + BRDF LUT](../illustrations/07-ibl-baking.svg)
+
+### BRDF LUT (CPU)
+
+The split-sum BRDF lookup table is view-independent (depends only on NdotV and roughness), so it is computed once on the CPU and cached per device. For each texel `(NdotV, roughness)`, the function importance-samples the GGX distribution using a Hammersley low-discrepancy sequence and integrates the Smith G₂ visibility term weighted by the Fresnel coefficient:
+
+```typescript
+function computeBrdfLutData(outW: number, outH: number, samples: number): Float32Array {
+  for (let py = 0; py < outH; py++) {
+    for (let px = 0; px < outW; px++) {
+      const NdotV = (px + 0.5) / outW;
+      const roughness = (py + 0.5) / outH;
+      // Importance-sample GGX, accumulate scale (A) and bias (B)
+      A += G_vis * (1 - Fc);
+      B += G_vis * Fc;
+    }
+  }
+}
+```
+
+The result is a 64×64 `rgba16float` texture (A in R, B in G). Because it depends only on the BRDF model and not on the environment, it is computed exactly once per `GPUDevice` and reused across IBL rebuilds.
+
+### Irradiance Map (GPU Compute)
+
+The diffuse irradiance map is a heavily blurred version of the HDR sky that stores the cosine-weighted hemisphere integral at every direction. The `cs_irradiance` compute shader (`src/shaders/ibl.wgsl`) dispatches once per cube face (6 dispatches), each thread computing one output texel:
+
+```wgsl
+@compute @workgroup_size(8, 8, 1)
+fn cs_irradiance(@builtin(global_invocation_id) id: vec3u) {
+  let uv = (vec2f(id.xy) + 0.5) / f32(IRR_SIZE);
+  let dir = cube_face_dir(u32(params.face), uv * 2.0 - 1.0);
+  var irradiance = vec3f(0.0);
+  for (var i = 0u; i < SAMPLES; i++) {
+    let xi = hammersley(i, SAMPLES);
+    let local_dir = cosine_sample_hemisphere(xi);
+    let world_dir = tangent_frame(dir) * local_dir;
+    irradiance += textureSampleLevel(sky_tex, sky_samp, equirect_uv(world_dir), 0).rgb;
+  }
+  textureStore(out_tex, id.xy, vec4f(irradiance / f32(SAMPLES) * params.exposure, 1.0));
+}
+```
+
+Each output direction `dir` is the centre of a cube face texel transformed to a unit vector. A tangent frame is built around that vector and 256 cosine-weighted hemisphere samples are taken from the equirectangular sky texture. The result is a 32×32 `rgba16float` cube map — low resolution since irradiance is very low-frequency.
+
+### GGX Prefiltered Environment Map (GPU Compute)
+
+The specular prefiltered cube follows the same pattern but uses importance sampling of the GGX distribution. Each mip level corresponds to a different roughness value (0, 0.25, 0.5, 0.75, 1.0), allowing the lighting shader to sample a mip level matching the surface roughness:
+
+```wgsl
+@compute @workgroup_size(8, 8, 1)
+fn cs_prefilter(@builtin(global_invocation_id) id: vec3u) {
+  let uv = (vec2f(id.xy) + 0.5) / f32(mipSize);
+  let dir = cube_face_dir(u32(params.face), uv * 2.0 - 1.0);
+  var color = vec3f(0.0); var weight = 0.0;
+  for (var i = 0u; i < SAMPLES; i++) {
+    let xi = hammersley(i, SAMPLES);
+    let h  = ggx_importance_sample(xi, params.roughness);
+    let l  = reflect(-dir, h);
+    let ndotl = max(dot(dir, l), 0.0);
+    if (ndotl > 0.0) {
+      color += textureSampleLevel(sky_tex, sky_samp, equirect_uv(l), 0).rgb * ndotl;
+      weight += ndotl;
+    }
+  }
+  textureStore(out_tex, id.xy, vec4f(color / weight * params.exposure, 1.0));
+}
+```
+
+The dispatch is 6 faces × 5 roughness levels = 30 workgroups, each sampling 256 GGX-importance-weighted directions per texel. The base mip is 128×128 per face, halving at each roughness level down to 8×8 at roughness 1.0.
+
+These compute dispatches run once when the sky changes (e.g., on world load or a new HDR map), and the results persist until the next rebuild. The `computeIblGpu()` function in `src/assets/ibl.ts` orchestrates the entire pipeline and awaits `onSubmittedWorkDone()` before returning the ready-to-use textures.
+
 **Further reading:**
 - `src/shaders/lighting.wgsl` — Deferred lighting shader (full PBR evaluation)
 - `src/shaders/forward_pbr.wgsl` — Forward PBR shader
-- `src/shaders/ibl.wgsl` — IBL sampling functions
+- `src/shaders/ibl.wgsl` — IBL sampling functions and baking compute shaders
+- `src/assets/ibl.ts` — GPU-based IBL pre-computation pipeline
 - `src/renderer/passes/deferred_lighting_pass.ts` — Deferred lighting pass
 - `src/renderer/passes/forward_pass.ts` — Forward lighting pass
 - `src/renderer/passes/point_spot_light_pass.ts` — Additive point/spot pass

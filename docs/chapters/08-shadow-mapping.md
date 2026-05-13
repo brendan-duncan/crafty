@@ -272,16 +272,61 @@ let blend = smoothstep(cascadeSplits[cascadeIndex] - blendRegion,
 shadow = mix(shadowCascade, shadowNextCascade, blend);
 ```
 
+## 8.8 Percentage-Closer Soft Shadows (PCSS)
+
+Standard PCF uses a fixed kernel radius, producing shadows that are equally soft everywhere. In reality, shadows are sharper near the occluder and softer farther away. **Percentage-Closer Soft Shadows (PCSS)** approximate this by estimating the penumbra width per-fragment and scaling the PCF kernel accordingly.
+
+PCSS adds two steps before the standard PCF sample loop:
+
+![PCSS: blocker search computes average occluder depth, then penumbra estimation scales the PCF kernel](../illustrations/08-pcss-pipeline.svg)
+
+**1. Blocker search.** A small fixed-radius search (8 taps, 0.3 world units) samples the shadow map around the fragment and averages the depth of all texels that are closer than the fragment. If no blockers are found, the fragment is fully lit and we skip PCF entirely:
+
+```wgsl
+fn pcss_blocker_search(cascade: u32, sc: vec3f, search_radius: f32) -> f32 {
+  var total = 0.0; var count = 0.0;
+  for (var i = 0u; i < 8u; i++) {
+    let offset = poissonDisk[i] * search_radius / SHADOW_MAP_SIZE;
+    let d = textureLoad(shadowMap, tc, i32(cascade), 0);
+    if (d < sc.z) { total += d; count += 1.0; }
+  }
+  if (count == 0.0) { return -1.0; }
+  return total / count;
+}
+```
+
+**2. Penumbra estimation.** The penumbra width is proportional to the distance from the fragment to the average blocker, multiplied by a configurable `shadowSoftness` factor. This width is converted from world units to texels in the selected cascade:
+
+```wgsl
+let avg_blocker = pcss_blocker_search(cascade, sc0, search_tex);
+if (avg_blocker >= 0.0) {
+  let occluder_dist = (sc0.z - avg_blocker) * depth_world;
+  let penumbra = min(shadowSoftness * occluder_dist, KERNEL_MAX_WORLD);
+  kernel = clamp(penumbra / texel_world, 1.0, 16.0);
+}
+```
+
+**3. PCF with variable kernel.** The standard 16-tap Poisson-disk PCF loop runs with the per-fragment kernel radius:
+
+```wgsl
+let s = pcf_shadow(cascade, sc0, bias, kernel, screen_pos);
+```
+
+The penumbra estimation runs in world units and is converted to per-cascade texels. This keeps the visual softness consistent across cascade boundaries — without this, a sudden change in texel size at the split would reveal a hard transition in shadow appearance.
+
+Crafty applies PCSS to the directional sun light's cascaded shadow maps. The `shadowSoftness` parameter is exposed through the settings UI (`effect_settings.ts`), giving the player control over how quickly shadows transition from sharp to soft.
+
 ### Summary
 
 | Technique | Used for | Texture | Resolution | Filtering |
 |-----------|----------|---------|------------|-----------|
-| CSM | Directional light | `depth32float` 2D array | 2048 × 2048 × 4 | PCF with Poisson disk |
+| CSM + PCSS | Directional light | `depth32float` 2D array | 2048 × 2048 × 4 | PCSS (blocker search + variable PCF) |
 | VSM | Point and spot lights | `rg16float` 2D array | 1024 × 1024 | Separable Gaussian blur |
 | Depth-only | Individual spot lights | `depth32float` | 1024 × 1024 | Hardware PCF |
 
 **Further reading:**
 - `src/renderer/passes/shadow_pass.ts` — CSM for directional light
+- `src/shaders/lighting.wgsl` — PCSS blocker search and variable-kernel PCF
 - `src/renderer/passes/block_shadow_pass.ts` — Chunk shadow maps (appends to CSM)
 - `src/renderer/passes/point_shadow_pass.ts` — Point light cube shadows
 - `src/renderer/passes/spot_shadow_pass.ts` — Spot light depth shadows
