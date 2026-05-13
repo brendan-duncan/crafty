@@ -304,6 +304,11 @@ This book is a work in progress.  Chapters are added as the engine evolves.
     - Camera Look
     - Action Buttons
     - Layout and Hotbar Clearance
+  - 13.9 World Persistence (IndexedDB)
+    - Database Schema
+    - CRUD Operations
+    - Schema Versioning
+    - World Record Lifecycle
 
 - [Chapter 14: Physics and Interaction](chapters/14-physics.md)
   - 14.1 Collision Detection (AABB)

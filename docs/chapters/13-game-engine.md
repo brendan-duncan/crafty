@@ -240,6 +240,117 @@ Toggle-type buttons use `_bindToggleButton`. The Run button (`>>`) toggles `play
 
 The action buttons are positioned with a `HOTBAR_CLEARANCE` of 70px from the bottom of the screen, keeping them above the 44px fixed hotbar. The virtual joystick uses the same clearance. A `resize` listener on the highlight overlay recalculates its position after orientation or resolution changes so the visual selection tracks the correct slot.
 
+## 13.9 World Persistence (IndexedDB)
+
+Crafty saves local worlds in the browser's **IndexedDB** via the `WorldStorage` class (`crafty/game/world_storage.ts`). Each world is stored as a single record in a `worlds` object store keyed by a UUID:
+
+```typescript
+export interface SavedWorld {
+  id: string;
+  name: string;
+  seed: number;
+  createdAt: number;
+  lastPlayedAt: number;
+  edits: BlockEdit[];          // All block changes since world creation
+  player: { x, y, z, yaw, pitch };
+  sunAngle: number;
+  screenshot?: Blob;           // JPEG thumbnail for the launcher UI
+  version?: number;            // Schema version for migration
+}
+```
+
+### Database Schema
+
+The IndexedDB database is opened with a single object store. An `onupgradeneeded` handler creates the store if it doesn't exist — IndexedDB ignores duplicate creations, so repeated opens are safe:
+
+```typescript
+static open(): Promise<WorldStorage> {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('crafty', 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains('worlds')) {
+        db.createObjectStore('worlds', { keyPath: 'id' });
+      }
+    };
+    req.onsuccess = () => resolve(new WorldStorage(req.result));
+    req.onerror = () => reject(req.error);
+  });
+}
+```
+
+### CRUD Operations
+
+All operations follow a consistent pattern: begin a transaction, get the object store, and wrap the request in a promise:
+
+```typescript
+save(world: SavedWorld): Promise<void> {
+  return this._withStore('readwrite', (store) => {
+    return new Promise((resolve, reject) => {
+      const req = store.put(world);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  });
+}
+
+list(): Promise<SavedWorld[]> {
+  return this._withStore('readonly', (store) => {
+    return new Promise((resolve, reject) => {
+      const req = store.getAll();
+      req.onsuccess = () => {
+        const all = req.result ?? [];
+        all.sort((a, b) => b.lastPlayedAt - a.lastPlayedAt);
+        resolve(all);
+      };
+    });
+  });
+}
+```
+
+Results are sorted by `lastPlayedAt` descending so the launcher can show the most recently played world first. The `_withStore` helper reduces boilerplate by wrapping the transaction + object store setup:
+
+```typescript
+private _withStore<T>(mode: IDBTransactionMode,
+                      fn: (store: IDBObjectStore) => Promise<T>): Promise<T> {
+  const tx = this._db.transaction('worlds', mode);
+  return fn(tx.objectStore('worlds'));
+}
+```
+
+### Schema Versioning
+
+A `version` field on each record enables forward-compatible schema changes. Records with a missing or lower version are detected and migrated when loaded:
+
+```typescript
+export const CURRENT_FORMAT_VERSION = 1;
+```
+
+The version check happens in the load path — if `loaded.version < CURRENT_FORMAT_VERSION`, the application applies upgrade transforms before exposing the record. This avoids maintaining migration logic inside the storage layer itself.
+
+### World Record Lifecycle
+
+Worlds are created via the factory function `createSavedWorld`, which populates sensible defaults for a fresh world:
+
+```typescript
+export function createSavedWorld(name: string, seed: number): SavedWorld {
+  return {
+    id: crypto.randomUUID(),
+    name, seed,
+    createdAt: Date.now(),
+    lastPlayedAt: Date.now(),
+    edits: [],
+    player: { x: 64, y: 80, z: 64, yaw: 0, pitch: 0 },
+    sunAngle: Math.PI * 0.3,
+    version: CURRENT_FORMAT_VERSION,
+  };
+}
+```
+
+During gameplay, the world record is updated periodically (every ~5 seconds) through a debounced autosave in `main.ts`. The edits array grows monotonically — every block placement or destruction appends a `BlockEdit` entry. This gives a complete undo history and enables replay-based persistence: the world is re-generated from the seed plus the edit log rather than storing the full block grid.
+
+The start screen uses `storage.list()` to populate the saved-world selector and `storage.delete()` to remove worlds, with the screenshot Blob providing a visual thumbnail for each entry.
+
 **Further reading:**
 - `crafty/game/touch_controls.ts` — Full touch overlay implementation
 - `src/engine/player_controller.ts` — Analog input support (inputForward, inputStrafe, inputSprint)
