@@ -258,7 +258,6 @@ Post-processing transforms the raw HDR render into the final image. The diagram 
 
 | Pass | Input | Output | Purpose |
 |------|-------|--------|---------|
-| SSGI | G-buffer + history | Indirect light | Bounce light approximation |
 | TAA | HDR + history + motion | Anti-aliased HDR | Temporal supersampling |
 | DOF | HDR + depth | Blurred HDR | Lens defocus simulation |
 | Bloom | HDR bright pass | HDR + glow | Lens glare simulation |
@@ -267,7 +266,6 @@ Post-processing transforms the raw HDR render into the final image. The diagram 
 
 **Further reading:**
 - `src/renderer/passes/taa_pass.ts` — Temporal anti-aliasing
-- `src/renderer/passes/ssgi_pass.ts` — Screen-space global illumination
 - `src/renderer/passes/bloom_pass.ts` — HDR bloom
 - `src/renderer/passes/dof_pass.ts` — Depth of field
 - `src/renderer/passes/auto_exposure_pass.ts` — Auto-exposure

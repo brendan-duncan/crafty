@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 340" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="760" height="340" fill="#ffffff"/>
+  <text x="380" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">SSGI Pipeline: Three Sub-Passes per Frame</text>
+
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6366f1"/>
+    </marker>
+  </defs>
+
+  <!-- ─── Stage 1: Ray March ─────────────────────────────────────── -->
+  <g transform="translate(30, 70)">
+    <rect width="180" height="70" rx="8" fill="#eef2ff" stroke="#6366f1" stroke-width="1.8"/>
+    <text x="90" y="30" text-anchor="middle" font-weight="700" fill="#4338ca" font-size="14">1. Ray March</text>
+    <text x="90" y="50" text-anchor="middle" font-size="11" fill="#4b5563">Cosine-weighted</text>
+    <text x="90" y="64" text-anchor="middle" font-size="11" fill="#4b5563">hemisphere rays</text>
+  </g>
+
+  <g transform="translate(100, 48)">
+    <rect width="36" height="16" rx="3" fill="#d1fae5" stroke="#059669" stroke-width="0.8"/>
+    <text x="18" y="12" text-anchor="middle" font-size="9" fill="#065f46">GPU</text>
+  </g>
+
+  <line x1="210" y1="105" x2="250" y2="105" stroke="#6366f1" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- ─── Stage 2: Temporal Accumulation ─────────────────────────── -->
+  <g transform="translate(260, 70)">
+    <rect width="200" height="70" rx="8" fill="#fdf4ff" stroke="#c026d3" stroke-width="1.8"/>
+    <text x="100" y="30" text-anchor="middle" font-weight="700" fill="#a21caf" font-size="14">2. Temporal Accumulation</text>
+    <text x="100" y="50" text-anchor="middle" font-size="11" fill="#4b5563">Reproject → AABB clamp →</text>
+    <text x="100" y="64" text-anchor="middle" font-size="11" fill="#4b5563">10% blend with history</text>
+  </g>
+
+  <line x1="460" y1="105" x2="500" y2="105" stroke="#c026d3" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- ─── Stage 3: Copy ──────────────────────────────────────────── -->
+  <g transform="translate(510, 70)">
+    <rect width="180" height="70" rx="8" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.8"/>
+    <text x="90" y="30" text-anchor="middle" font-weight="700" fill="#15803d" font-size="14">3. Copy to History</text>
+    <text x="90" y="50" text-anchor="middle" font-size="11" fill="#4b5563">Result → History</text>
+    <text x="90" y="64" text-anchor="middle" font-size="11" fill="#4b5563">for next frame</text>
+  </g>
+
+  <!-- ─── Texture labels below each stage ────────────────────────── -->
+  <g transform="translate(30, 155)">
+    <text x="90" y="12" text-anchor="middle" font-size="11" font-weight="600" fill="#374151">Inputs:</text>
+    <text x="90" y="28" text-anchor="middle" font-size="10" fill="#6b7280">G-buffer depth</text>
+    <text x="90" y="40" text-anchor="middle" font-size="10" fill="#6b7280">G-buffer normal/metallic</text>
+    <text x="90" y="52" text-anchor="middle" font-size="10" fill="#6b7280">Prev-frame radiance</text>
+    <text x="90" y="64" text-anchor="middle" font-size="10" fill="#6b7280">4×4 noise texture</text>
+    <text x="90" y="80" text-anchor="middle" font-size="11" font-weight="600" fill="#374151">Output:</text>
+    <text x="90" y="96" text-anchor="middle" font-size="10" fill="#6b7280">Raw SSGI (noisy)</text>
+  </g>
+
+  <g transform="translate(260, 155)">
+    <text x="100" y="12" text-anchor="middle" font-size="11" font-weight="600" fill="#374151">Inputs:</text>
+    <text x="100" y="28" text-anchor="middle" font-size="10" fill="#6b7280">Raw SSGI (this frame)</text>
+    <text x="100" y="40" text-anchor="middle" font-size="10" fill="#6b7280">History (prev frames)</text>
+    <text x="100" y="52" text-anchor="middle" font-size="10" fill="#6b7280">G-buffer depth</text>
+    <text x="100" y="64" text-anchor="middle" font-size="10" fill="#6b7280">Prev view-proj matrix</text>
+    <text x="100" y="80" text-anchor="middle" font-size="11" font-weight="600" fill="#374151">Output:</text>
+    <text x="100" y="96" text-anchor="middle" font-size="10" fill="#6b7280">Final SSGI (stable)</text>
+  </g>
+
+  <g transform="translate(510, 155)">
+    <text x="90" y="12" text-anchor="middle" font-size="11" font-weight="600" fill="#374151">Action:</text>
+    <text x="90" y="28" text-anchor="middle" font-size="10" fill="#6b7280">copyTextureToTexture</text>
+    <text x="90" y="40" text-anchor="middle" font-size="10" fill="#6b7280">Result → History</text>
+    <text x="90" y="60" text-anchor="middle" font-size="11" font-weight="600" fill="#374151">History serves as</text>
+    <text x="90" y="72" text-anchor="middle" font-size="10" fill="#6b7280">previous-frame SSGI</text>
+    <text x="90" y="84" text-anchor="middle" font-size="10" fill="#6b7280">for temporal reprojection</text>
+  </g>
+
+  <!-- ─── Bottom note ────────────────────────────────────────────── -->
+  <g transform="translate(30, 270)">
+    <rect width="700" height="56" rx="4" fill="#fef3c7" stroke="#92400e" stroke-width="1"/>
+    <text x="14" y="18" font-size="11" font-weight="600" fill="#92400e">Default settings</text>
+    <text x="14" y="34" font-size="11" fill="#92400e">4 rays per pixel × 16 steps per ray × radius 3.0 view-space units × thickness 0.5.</text>
+    <text x="14" y="48" font-size="11" fill="#92400e">At 90% history blend, the effective sample count reaches ~40 rays/pixel after a few frames.</text>
+  </g>
+</svg>

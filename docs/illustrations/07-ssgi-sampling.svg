@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 420" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="760" height="420" fill="#ffffff"/>
+  <text x="380" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">SSGI: Screen-Space Ray Marching for Indirect Light</text>
+
+  <defs>
+    <marker id="rayArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6366f1"/>
+    </marker>
+    <marker id="hitArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/>
+    </marker>
+    <marker id="normArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/>
+    </marker>
+  </defs>
+
+  <!-- Left side: cross-section of scene geometry -->
+  <g transform="translate(20, 10)">
+
+    <!-- Scene title -->
+    <text x="360" y="46" text-anchor="middle" font-size="12" fill="#1e40af" font-weight="600">Screen-space cross-section (XZ view)</text>
+
+    <!-- Surface A — ground plane (horizontal) -->
+    <line x1="60" y1="290" x2="400" y2="290" stroke="#374151" stroke-width="2.5"/>
+    <g stroke="#9ca3af" stroke-width="0.8">
+      <line x1="60" y1="290" x2="80" y2="310"/>
+      <line x1="100" y1="290" x2="120" y2="310"/>
+      <line x1="140" y1="290" x2="160" y2="310"/>
+      <line x1="180" y1="290" x2="200" y2="310"/>
+      <line x1="220" y1="290" x2="240" y2="310"/>
+      <line x1="260" y1="290" x2="280" y2="310"/>
+      <line x1="300" y1="290" x2="320" y2="310"/>
+      <line x1="340" y1="290" x2="360" y2="310"/>
+    </g>
+    <text x="50" y="322" font-size="11" font-style="italic" fill="#6b7280">surface A</text>
+
+    <!-- Surface B — a wall/object above surface A, to the right -->
+    <polygon points="250,190 330,190 330,240 250,240" fill="#fde68a" stroke="#92400e" stroke-width="1.5"/>
+    <text x="290" y="220" text-anchor="middle" font-size="12" fill="#92400e" font-weight="600">surface B</text>
+
+    <!-- Surface point P on surface A -->
+    <circle cx="170" cy="290" r="5" fill="#dc2626"/>
+    <text x="158" y="308" text-anchor="end" fill="#dc2626" font-weight="700">P</text>
+
+    <!-- Hemisphere arc around P (above surface A) -->
+    <path d="M 85,290 A 85,85 0 0 0 255,290 Z" fill="#dbeafe" stroke="#1e40af" stroke-width="1.2" opacity="0.4"/>
+
+    <!-- Normal at P -->
+    <line x1="170" y1="290" x2="170" y2="195" stroke="#16a34a" stroke-width="3" marker-end="url(#normArrow)"/>
+    <text x="182" y="198" font-size="14" fill="#16a34a" font-weight="700">n̂</text>
+
+    <!-- Sample rays from P into the hemisphere -->
+    <g fill="none" stroke-width="1.5" stroke-dasharray="3,2">
+
+      <!-- Ray hitting surface B (red) -->
+      <line x1="170" y1="290" x2="250" y2="224" stroke="#dc2626" marker-end="url(#hitArrow)"/>
+      <text x="238" y="216" text-anchor="end" font-size="9" fill="#dc2626">hit</text>
+
+      <!-- Ray going off into open space (green) -->
+      <line x1="170" y1="290" x2="120" y2="228" stroke="#16a34a" marker-end="url(#rayArrow)"/>
+
+      <!-- Another open ray -->
+      <line x1="170" y1="290" x2="200" y2="210" stroke="#16a34a" marker-end="url(#rayArrow)"/>
+
+      <!-- Ray stepping through space, showing multiple march points -->
+      <line x1="170" y1="290" x2="135" y2="265" stroke="#6366f1" stroke-width="1" stroke-dasharray="2,2"/>
+    </g>
+
+    <!-- March steps along one example ray -->
+    <circle cx="150" cy="270" r="2.5" fill="#6366f1"/>
+    <circle cx="140" cy="260" r="2.5" fill="#6366f1"/>
+    <circle cx="135" cy="250" r="2.5" fill="#6366f1"/>
+    <circle cx="130" cy="240" r="2.5" fill="#6366f1"/>
+  </g>
+
+  <!-- Right side: explanation panel -->
+  <g transform="translate(430, 60)">
+    <rect width="300" height="240" rx="6" fill="#f9fafb" stroke="#9ca3af" stroke-width="1"/>
+    <text x="14" y="22" font-weight="700" fill="#111827">Per-pixel ray march</text>
+
+    <text x="14" y="48" font-size="12" fill="#374151">1. Sample G-buffer at pixel P:</text>
+    <text x="28" y="64" font-size="11" fill="#6b7280">depth → view-space position</text>
+    <text x="28" y="78" font-size="11" fill="#6b7280">normal → view-space N</text>
+
+    <text x="14" y="102" font-size="12" fill="#374151">2. For each of N rays (default 4):</text>
+    <text x="28" y="120" font-size="11" fill="#6b7280">cosine-weighted hemisphere direction</text>
+    <text x="28" y="136" font-size="11" fill="#6b7280">golden-ratio jitter per frame</text>
+
+    <text x="14" y="160" font-size="12" fill="#374151">3. March each ray (default 16 steps):</text>
+    <text x="28" y="178" font-size="11" fill="#6b7280">project step to screen-space UV</text>
+    <text x="28" y="194" font-size="11" fill="#6b7280">read stored depth at that UV</text>
+    <text x="28" y="210" font-size="11" fill="#6b7280">if ray passed behind surface: HIT</text>
+
+    <text x="14" y="234" font-size="12" fill="#374151">4. On hit: sample prev-frame radiance</text>
+  </g>
+
+  <!-- Bottom note -->
+  <g transform="translate(20, 350)">
+    <rect width="720" height="56" rx="4" fill="#fef3c7" stroke="#92400e" stroke-width="1"/>
+    <text x="14" y="18" font-size="11" font-weight="600" fill="#92400e">Temporal accumulation</text>
+    <text x="14" y="34" font-size="11" fill="#92400e">The noisy raw SSGI is reprojected into the previous frame using each pixel's world-space motion, AABB-clamped to</text>
+    <text x="14" y="48" font-size="11" fill="#92400e">prevent ghosting, and blended 10:90 with the history. Over ~40 frames, this converges to a stable bounce light signal.</text>
+  </g>
+</svg>

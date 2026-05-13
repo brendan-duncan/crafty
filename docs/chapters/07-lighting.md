@@ -447,6 +447,118 @@ blurred += neighbourValue * weight * gaussianWeight;
 totalWeight += weight * gaussianWeight;
 ```
 
+## 7.11 Screen-Space Global Illumination (SSGI)
+
+Screen-space global illumination approximates one-bounce indirect light from the scene itself rather than from a pre-computed environment map. The `SSGIPass` (`src/renderer/passes/ssgi_pass.ts`) casts stochastic rays in screen space against the previous frame's lit radiance, then accumulates the result temporally using a reprojected history:
+
+![SSGI pipeline: ray march → temporal accumulation → copy to history](../illustrations/07-ssgi-pipeline.svg)
+
+### Ray March Pass
+
+For each visible pixel, the shader reconstructs the world-space normal and view-space position from the G-buffer, then casts several rays in a cosine-weighted hemisphere oriented around the surface normal. Each ray steps through view space; at each step the current position is projected back to screen space and compared against the stored depth buffer:
+
+![SSGI ray sampling in screen space](../illustrations/07-ssgi-sampling.svg)
+
+```wgsl
+let vp = view_pos_at(in.uv, depth);
+let N_vs = normalize((u.view * vec4<f32>(N_world, 0.0)).xyz);
+
+for (var i = 0u; i < u.numRays; i++) {
+  let phi = 6.28318530 * fract(f32(i) / f32(u.numRays) + f32(u.frameIndex) * 0.618033988);
+  let ur = fract(f32(u.frameIndex * u.numRays + i) * 0.381966011);
+  let cos_theta = sqrt(ur);
+  let sin_theta = sqrt(max(0.0, 1.0 - cos_theta * cos_theta));
+  let ray_local = vec3<f32>(sin_theta * cos(phi), sin_theta * sin(phi), cos_theta);
+
+  for (var s = 0u; s < u.numSteps; s++) {
+    let t = (f32(s) + 1.0) / f32(u.numSteps);
+    let p = vp + ray_vs * (u.radius * t);
+    // Project to screen UV, compare with stored depth
+    let clip = u.proj * vec4<f32>(p, 1.0);
+    let inv_w = 1.0 / clip.w;
+    let ray_uv = vec2<f32>(clip.x * inv_w * 0.5 + 0.5, -clip.y * inv_w * 0.5 + 0.5);
+    // ... read depth at ray_uv, test if ray passed behind surface ...
+    if (p.z < stored_z && stored_z - p.z < u.thickness) {
+      accum += textureSampleLevel(prev_radiance, lin_samp, ray_uv, 0.0).rgb;
+      break;
+    }
+  }
+}
+```
+
+Key details of the ray march:
+
+**Cosine-weighted distribution.** Rays are distributed according to a cosine-weighted hemisphere, which matches the Lambertian diffuse BRDF — directions near the surface normal contribute more energy, while grazing-angle directions contribute less. The weighting is embedded in the ray distribution itself so every hit contributes equally and no explicit weight factor is needed.
+
+**Golden-ratio temporal jitter.** The azimuth angle `phi` is offset each frame by the golden ratio `φ ≈ 0.618` of a full turn. Over successive frames the ray pattern fills the hemisphere without ever repeating the same direction, so that temporal accumulation converges to a dense sampling pattern:
+
+```text
+Frame 0: phi = 2π × fract(0 + 0 × 0.618)
+Frame 1: phi = 2π × fract(0 + 1 × 0.618)
+Frame 2: phi = 2π × fract(0 + 2 × 0.618)  →  ~124° rotation each frame
+```
+
+**Tangent frame rotation.** A 4×4 random noise texture provides a per-pixel rotation angle for the tangent frame, decorrelating rays between adjacent pixels. Without this, nearby pixels would cast rays in nearly identical directions, producing visible banding in the raw output:
+
+```wgsl
+let noise_val = textureLoad(noise_tex, coord % 4, 0).rg;
+let cos_a = noise_val.x * 2.0 - 1.0;
+let sin_a = noise_val.y * 2.0 - 1.0;
+let T = cos_a * T_raw - sin_a * B_raw;
+let B = sin_a * T_raw + cos_a * B_raw;
+```
+
+**Hit test.** An intersection is recorded when the ray's view-space Z has stepped past the stored depth at the projected screen position and the distance behind the surface is within the `thickness` threshold (default 0.5 view-space units). The thickness parameter prevents rays from self-intersecting on thin geometry such as leaves or wires.
+
+### Temporal Accumulation Pass
+
+The raw SSGI output from a single frame is extremely noisy — only 4 rays per pixel. The temporal pass accumulates samples over many frames by reprojecting each pixel's SSGI into the previous frame and blending:
+
+```wgsl
+// Reproject to previous frame
+let world_pos = reconstructWorld(in.uv, depth);
+let prev_clip = u.prevViewProj * vec4<f32>(world_pos, 1.0);
+let prev_uv = vec2<f32>(
+  prev_clip.x / prev_clip.w * 0.5 + 0.5,
+  -prev_clip.y / prev_clip.w * 0.5 + 0.5,
+);
+
+// AABB clamp: 3×3 neighbourhood of raw SSGI
+var nb_min = vec3<f32>(1e9);
+var nb_max = vec3<f32>(-1e9);
+for (var dy = -1; dy <= 1; dy++) {
+  for (var dx = -1; dx <= 1; dx++) {
+    let s = textureLoad(raw_ssgi, clamp(coord + vec2<i32>(dx, dy), ...), 0).rgb;
+    nb_min = min(nb_min, s);
+    nb_max = max(nb_max, s);
+  }
+}
+let history_clamped = clamp(history, nb_min, nb_max);
+let result = mix(history_clamped, current, 0.1);
+```
+
+**Reprojection.** Each pixel is converted from screen-space UV and depth back to world position using the inverse view-projection matrix, then transformed into the previous frame's clip space using the stored `prevViewProj` matrix. If the previous UV falls outside the screen boundaries (disocclusion), the pixel trusts only the current frame.
+
+**Neighbourhood clamping.** The raw SSGI has high variance — a few bright rays can cause temporal ghosting when the camera moves. A 3×3 neighbourhood AABB around the current pixel's raw SSGI clamps the history sample to prevent stale bright values from persisting after a geometry change.
+
+**Blend factor.** The 10% blend (`mix(history_clamped, current, 0.1)`) means each frame contributes one tenth of the new raw estimate. With 4 rays per frame, the effective sample count after `N` frames is `4 × (1 − 0.9^N) / 0.1`, reaching ~36 effective rays after 20 frames and ~40 rays at convergence.
+
+### History Copy
+
+A `copyTextureToTexture` copies the final result texture into the history texture for the next frame. No additional filtering is needed — the temporal accumulation acts as the denoiser.
+
+### SSGI Settings
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `numRays` | 4 | Stochastic rays per pixel per frame |
+| `numSteps` | 16 | March steps along each ray |
+| `radius` | 3.0 | Maximum march distance (view-space units) |
+| `thickness` | 0.5 | Hit acceptance depth tolerance |
+| `strength` | 1.0 | Output intensity multiplier |
+
+These are exposed through the `SSGISettings` interface and can be adjusted at runtime via `SSGIPass.updateSettings()`.
+
 ## Summary
 
 Lighting is a composition of several systems:
@@ -458,6 +570,7 @@ Lighting is a composition of several systems:
 | Spot lights | `PointSpotLightPass` | Additive deferred, 2D shadow maps |
 | IBL | `DeferredLightingPass` | Environment-based ambient + specular |
 | SSAO | `SSAOPass` | Local ambient occlusion from depth buffer |
+| SSGI | `SSGIPass` | One-bounce indirect light via screen-space ray marching |
 | Forward transparency | `ForwardPass` | PBR for transparent surfaces |
 
 All paths share the same PBR BRDF functions, ensuring consistent appearance regardless of rendering path.
@@ -471,6 +584,9 @@ All paths share the same PBR BRDF functions, ensuring consistent appearance rega
 - `src/renderer/passes/forward_pass.ts` — Forward lighting pass
 - `src/renderer/passes/point_spot_light_pass.ts` — Additive point/spot pass
 - `src/renderer/passes/ssao_pass.ts` — Screen-space ambient occlusion
+- `src/renderer/passes/ssgi_pass.ts` — Screen-space global illumination
+- `src/shaders/ssgi.wgsl` — SSGI ray march shader
+- `src/shaders/ssgi_temporal.wgsl` — SSGI temporal accumulation shader
 
 ----
 [Contents](../crafty.md) | [06-Textures / Materials](06-textures-materials.md) | [08-Shadow Mapping](08-shadow-mapping.md)

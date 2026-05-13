@@ -179,6 +179,11 @@ This book is a work in progress.  Chapters are added as the engine evolves.
   - 7.10 Screen-Space Ambient Occlusion (SSAO)
     - Algorithm
     - Bilateral Blur
+  - 7.11 Screen-Space Global Illumination (SSGI)
+    - Ray March Pass
+    - Temporal Accumulation Pass
+    - History Copy
+    - SSGI Settings
 
 - [Chapter 8: Shadow Mapping](chapters/08-shadow-mapping.md)
   - 8.1 Shadow Map Theory
