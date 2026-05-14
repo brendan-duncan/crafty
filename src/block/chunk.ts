@@ -693,12 +693,8 @@ export class Chunk {
 
           if (g_y < surfaceHeight) {
             if (Chunk._isCave(g_x, g_y, g_z, seed, surfaceHeight - g_y)) {
-              // Carved: flooded below sea level, air above it
-              if (g_y < Chunk.SEA_LEVEL + 1) {
-                this.setBlock(x, y, z, BlockType.WATER);
-              } else {
-                this.setBlock(x, y, z, BlockType.NONE);
-              }
+              // Carved: always air — no water in caves
+              this.setBlock(x, y, z, BlockType.NONE);
             } else {
               this.setBlock(x, y, z, this._generateBlockBasedOnBiome(colBiome1[ci] as BiomeType, colBiome2[ci] as BiomeType, colBiomeBlend[ci], g_x, g_y, g_z, surfaceHeight));
             }
@@ -984,18 +980,25 @@ export class Chunk {
 
   // Returns true if a block should be carved out to form a cave.
   // depthBelowSurface < 3 is skipped to preserve the solid ground cap.
-  // Two cave types:
+  // Three cave types:
+  //   Grand caverns  — rare, truly massive chambers.
   //   Cheese caves  — large open chambers via a single noise threshold.
   //   Spaghetti tunnels — two intersecting noise isosurfaces form winding passages.
-  // Carved blocks below WATER_HEIGHT are filled with water (underground lakes).
+  // Carved blocks below SEA_LEVEL may become underground lakes.
   static _isCave(gx: number, gy: number, gz: number, seed: number, depthBelowSurface: number): boolean {
     if (depthBelowSurface < 3) {
       return false;
     }
 
-    // Cheese caves: large open chambers - increased scale and lowered threshold for bigger caves
+    // Grand caverns: rare, truly massive chambers at a broad scale
+    const grandNoise = perlinNoise3Seed(gx / 200.0, gy / 200.0, gz / 200.0, 0, 0, 0, seed + 1111);
+    if (grandNoise > 0.65) {
+      return true;
+    }
+
+    // Cheese caves: open chambers
     const cheeseNoise = perlinNoise3Seed(gx / 60.0, gy / 60.0, gz / 60.0, 0, 0, 0, seed + 777);
-    if (cheeseNoise > 0.60) {
+    if (cheeseNoise > 0.58) {
       return true;
     }
 
@@ -1004,14 +1007,14 @@ export class Chunk {
     // Compressing n2's Y scale biases tunnels toward horizontal.
     const n1 = perlinNoise3Seed(gx / 24.0, gy / 24.0, gz / 24.0, 0, 0, 0, seed + 13579);
     const n2 = perlinNoise3Seed(gx / 24.0, gy / 14.0, gz / 24.0, 0, 0, 0, seed + 24680);
-    if (Math.abs(n1) < 0.12 && Math.abs(n2) < 0.12) {
+    if (Math.abs(n1) < 0.10 && Math.abs(n2) < 0.10) {
       return true;
     }
 
     // Additional tunnel layer with different orientation for more complex networks
     const n3 = perlinNoise3Seed(gx / 28.0, gy / 18.0, gz / 28.0, 0, 0, 0, seed + 55555);
     const n4 = perlinNoise3Seed(gx / 28.0, gy / 28.0, gz / 28.0, 0, 0, 0, seed + 99999);
-    if (Math.abs(n3) < 0.10 && Math.abs(n4) < 0.10) {
+    if (Math.abs(n3) < 0.08 && Math.abs(n4) < 0.08) {
       return true;
     }
 
