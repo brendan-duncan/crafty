@@ -7,6 +7,10 @@ an open-source WebGPU voxel game engine written in TypeScript.
 
 ![Crafty](images/crafty.png)
 
+## Status
+
+This book is a work in progress. Chapters are added as the engine evolves.
+
 ## Who this is for
 
 You have written a few small graphics demos and want to understand how a
@@ -34,24 +38,18 @@ ground up.
 ## How to read this book
 
 The canonical companion is the Crafty source tree at
-<https://github.com/brendan-duncan/crafty>.  Each chapter cross-references the
+<https://github.com/brendan-duncan/crafty>. Each chapter cross-references the
 relevant source files — you are encouraged to open them side-by-side.
 
 Code blocks are either **annotated excerpts** (showing the key logic) or
-**complete listings** (the entire file).  Excerpts use `// ── ... ──` markers
+**complete listings** (the entire file). Excerpts use `// ── ... ──` markers
 to indicate elided boilerplate.
 
 ## The Crafty philosophy
 
-> **Write it once, understand it forever.**
-
-No black boxes.  Every system is built from scratch — we import only the
-WebGPU API and the standard library.  If we use a third-party tool (e.g. a
+No black boxes. Every system is built from scratch — we import only the
+WebGPU API and the standard library. If we use a third-party tool (e.g. a
 texture compressor), we explain why and how it fits.
-
-## Status
-
-This book is a work in progress.  Chapters are added as the engine evolves.
 
 ----
 
