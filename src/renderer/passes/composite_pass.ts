@@ -24,15 +24,27 @@ import compositeWgsl from '../../shaders/composite.wgsl?raw';
 const PARAMS_SIZE   = 64;
 const STAR_UNI_SIZE = 96; // mat4(64) + vec3+pad(16) + vec3+pad(16)
 
+export interface CompositePassOptions {
+  inputView: GPUTextureView, // input texture (post-bloom or post-DOF/TAA)
+  outputView?: GPUTextureView, // optional output view (defaults to swap-chain backbuffer)
+  aoView: GPUTextureView, // SSAO occlusion texture (used for debug visualization)
+  depthView: GPUTextureView, // GBuffer depth32float view for world-position reconstruction and stars
+  cameraBuffer: GPUBuffer, // Shared CameraUniforms buffer (also used by lighting)
+  lightBuffer: GPUBuffer, // Shared LightUniforms buffer (only the sun direction is read)
+  exposureBuffer: GPUBuffer, // Auto-exposure storage buffer used for tonemapping
+}
+
 /**
  * Final fullscreen pass that composes the post-processed HDR scene with fog,
  * stars, the underwater effect and tonemapping into the swap-chain target.
  *
  * Inputs sampled:
- *  - `hdrView`: post-bloom (or DOF/TAA) HDR color
+ *  - `inputView`: post-bloom (or DOF/TAA) HDR color
  *  - `aoView`: SSAO occlusion (used for the debug-AO output mode)
  *  - `depthView`: GBuffer depth32float (for fog reconstruction and stars)
- *  - shared camera, light and auto-exposure buffers
+ *  - `cameraBuffer`: Shared `CameraUniforms` buffer (also used by lighting)
+ *  - `lightBuffer`: Shared `LightUniforms` buffer (only the sun direction is read)
+ *  - `exposureBuffer`: Auto-exposure storage buffer used for tonemapping
  *
  * Output: writes LDR/HDR color to the swap-chain texture acquired from the
  * render context.
@@ -48,36 +60,38 @@ export class CompositePass extends RenderPass {
   /** When true, depth-based exponential fog is applied. */
   depthFogEnabled  = true;
   /** Depth fog density multiplier. */
-  depthDensity     = 1.0;
+  depthDensity = 1.0;
   /** World-space distance at which depth fog begins to accumulate. */
-  depthBegin       = 32;
+  depthBegin = 32;
   /** World-space distance at which depth fog reaches full strength. */
-  depthEnd         = 128;
+  depthEnd = 128;
   /** Power curve applied to the depth-fog interpolation in [begin, end]. */
-  depthCurve       = 1.5;
+  depthCurve = 1.5;
   /** When true, height-based fog is applied (heavier near {@link heightMin}). */
   heightFogEnabled = false;
   /** Height fog density multiplier. */
-  heightDensity    = 0.7;
+  heightDensity = 0.7;
   /** World-space Y at which height fog reaches its strongest contribution. */
-  heightMin        = 48;
+  heightMin = 48;
   /** World-space Y at which height fog vanishes. */
-  heightMax        = 80;
+  heightMax = 80;
   /** Power curve applied to the height-fog interpolation. */
-  heightCurve      = 1.0;
+  heightCurve = 1.0;
   /** Linear RGB fog tint shared by both fog modes. */
   fogColor: [number, number, number] = [1.0, 1.0, 1.0];
 
-  private _pipeline  : GPURenderPipeline;
-  private _bg0       : GPUBindGroup;  // textures + sampler
-  private _bg1       : GPUBindGroup;  // camera + light (shared buffers)
-  private _bg2       : GPUBindGroup;  // params + stars + exposure
-  private _paramsBuf : GPUBuffer;
-  private _starBuf   : GPUBuffer;
+  private _pipeline: GPURenderPipeline;
+  private _bg0: GPUBindGroup;  // textures + sampler
+  private _bg1: GPUBindGroup;  // camera + light (shared buffers)
+  private _bg2: GPUBindGroup;  // params + stars + exposure
+  private _paramsBuf: GPUBuffer;
+  private _starBuf: GPUBuffer;
   private readonly _paramsAB = new ArrayBuffer(PARAMS_SIZE);
   private readonly _paramsF  = new Float32Array(this._paramsAB);
   private readonly _paramsU  = new Uint32Array(this._paramsAB);
   private readonly _starScratch = new Float32Array(STAR_UNI_SIZE / 4);
+
+  outputView: GPUTextureView | null = null;
 
   private constructor(
     pipeline : GPURenderPipeline,
@@ -86,14 +100,16 @@ export class CompositePass extends RenderPass {
     bg2      : GPUBindGroup,
     paramsBuf: GPUBuffer,
     starBuf  : GPUBuffer,
+    outputView: GPUTextureView | null = null,
   ) {
     super();
-    this._pipeline  = pipeline;
-    this._bg0       = bg0;
-    this._bg1       = bg1;
-    this._bg2       = bg2;
+    this._pipeline = pipeline;
+    this._bg0 = bg0;
+    this._bg1 = bg1;
+    this._bg2 = bg2;
     this._paramsBuf = paramsBuf;
-    this._starBuf   = starBuf;
+    this._starBuf = starBuf;
+    this.outputView = outputView;
   }
 
   /**
@@ -106,17 +122,12 @@ export class CompositePass extends RenderPass {
    * @param depthView - GBuffer depth32float view for world-position reconstruction and stars.
    * @param cameraBuffer - Shared `CameraUniforms` buffer (also used by lighting).
    * @param lightBuffer - Shared `LightUniforms` buffer (only the sun direction is read).
-   * @param exposureBuf - Auto-exposure storage buffer used for tonemapping.
+   * @param exposureBuffer - Auto-exposure storage buffer used for tonemapping.
    * @returns A configured composite pass instance.
    */
   static create(
-    ctx          : RenderContext,
-    hdrView      : GPUTextureView,
-    aoView       : GPUTextureView,
-    depthView    : GPUTextureView,
-    cameraBuffer : GPUBuffer,
-    lightBuffer  : GPUBuffer,
-    exposureBuf  : GPUBuffer,
+    ctx: RenderContext,
+    options: CompositePassOptions,
   ): CompositePass {
     const { device, format } = ctx;
 
@@ -147,25 +158,25 @@ export class CompositePass extends RenderPass {
       ],
     });
 
-    const sampler   = device.createSampler({ label: 'CompositeSampler', magFilter: 'linear', minFilter: 'linear' });
+    const sampler = device.createSampler({ label: 'CompositeSampler', magFilter: 'linear', minFilter: 'linear' });
     const paramsBuf = device.createBuffer({ label: 'CompositeParams', size: PARAMS_SIZE,   usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
-    const starBuf   = device.createBuffer({ label: 'CompositeStars',  size: STAR_UNI_SIZE, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+    const starBuf = device.createBuffer({ label: 'CompositeStars',  size: STAR_UNI_SIZE, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
 
     const bg0 = device.createBindGroup({
       label: 'CompositeBG0', layout: bgl0,
       entries: [
-        { binding: 0, resource: hdrView   },
-        { binding: 1, resource: aoView    },
-        { binding: 2, resource: depthView },
-        { binding: 3, resource: sampler   },
+        { binding: 0, resource: options.inputView },
+        { binding: 1, resource: options.aoView },
+        { binding: 2, resource: options.depthView },
+        { binding: 3, resource: sampler },
       ],
     });
 
     const bg1 = device.createBindGroup({
       label: 'CompositeBG1', layout: bgl1,
       entries: [
-        { binding: 0, resource: { buffer: cameraBuffer } },
-        { binding: 1, resource: { buffer: lightBuffer  } },
+        { binding: 0, resource: { buffer: options.cameraBuffer } },
+        { binding: 1, resource: { buffer: options.lightBuffer  } },
       ],
     });
 
@@ -174,7 +185,7 @@ export class CompositePass extends RenderPass {
       entries: [
         { binding: 0, resource: { buffer: paramsBuf  } },
         { binding: 1, resource: { buffer: starBuf    } },
-        { binding: 2, resource: { buffer: exposureBuf} },
+        { binding: 2, resource: { buffer: options.exposureBuffer} },
       ],
     });
 
@@ -188,7 +199,7 @@ export class CompositePass extends RenderPass {
       primitive: { topology: 'triangle-list' },
     });
 
-    return new CompositePass(pipeline, bg0, bg1, bg2, paramsBuf, starBuf);
+    return new CompositePass(pipeline, bg0, bg1, bg2, paramsBuf, starBuf, options.outputView ?? null);
   }
 
   /**
@@ -203,12 +214,12 @@ export class CompositePass extends RenderPass {
    * @param hdrCanvas - Skip the SDR clamp when the canvas is HDR-capable.
    */
   updateParams(
-    ctx         : RenderContext,
+    ctx: RenderContext,
     isUnderwater: boolean,
-    uwTime      : number,
-    aces        : boolean,
-    debugAO     : boolean,
-    hdrCanvas   : boolean,
+    uwTime: number,
+    aces: boolean,
+    debugAO: boolean,
+    hdrCanvas: boolean,
   ): void {
     const f = this._paramsF;
     const u = this._paramsU;
@@ -262,7 +273,7 @@ export class CompositePass extends RenderPass {
    * @param sunDir - Normalised sun direction (used to fade stars at dawn/dusk).
    */
   updateStars(
-    ctx : RenderContext,
+    ctx: RenderContext,
     invViewProj: Mat4,
     camPos: { x: number; y: number; z: number },
     sunDir: { x: number; y: number; z: number },
@@ -284,7 +295,7 @@ export class CompositePass extends RenderPass {
     const pass = encoder.beginRenderPass({
       label: 'CompositePass',
       colorAttachments: [{
-        view: ctx.backbufferView,
+        view: this.outputView || ctx.backbufferView,
         clearValue: [0, 0, 0, 1],
         loadOp: 'clear',
         storeOp: 'store',

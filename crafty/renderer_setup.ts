@@ -166,7 +166,14 @@ export async function buildRenderTargets(
   const blockHighlightPass = BlockHighlightPass.create(ctx, bloomOut, gbuffer.depthView, blockTexture.colorAtlas);
   const autoExposurePass = AutoExposurePass.create(ctx, lightingPass.hdrTexture);
   autoExposurePass.enabled = effects.auto_exp;
-  const compositePass = CompositePass.create(ctx, bloomOut, ssaoPass.aoView, gbuffer.depthView, lightingPass.cameraBuffer, lightingPass.lightBuffer, autoExposurePass.exposureBuffer);
+  const compositePass = CompositePass.create(ctx, {
+      inputView: bloomOut,
+      aoView: ssaoPass.aoView,
+      depthView: gbuffer.depthView,
+      cameraBuffer: lightingPass.cameraBuffer,
+      lightBuffer: lightingPass.lightBuffer,
+      exposureBuffer: autoExposurePass.exposureBuffer,
+  });
   compositePass.depthFogEnabled = effects.fog;
 
   const currentWeatherEffect = passes.currentWeatherEffect ?? EnvironmentEffect.None;

@@ -165,10 +165,14 @@ async function main() {
     cloudNoises,
   );
 
-  const compositePass = CompositePass.create(
-    ctx, lightingPass.hdrView, aoView, gbuffer.depthView,
-    lightingPass.cameraBuffer, lightingPass.lightBuffer, exposureBuf,
-  );
+  const compositePass = CompositePass.create(ctx, {
+    inputView: lightingPass.hdrView,
+    aoView: aoView,
+    depthView: gbuffer.depthView,
+    cameraBuffer: lightingPass.cameraBuffer,
+    lightBuffer: lightingPass.lightBuffer,
+    exposureBuffer: exposureBuf
+  });
 
   // Render graph — order matters
   const renderGraph = new RenderGraph();

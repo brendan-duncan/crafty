@@ -415,7 +415,14 @@ async function main() {
       : postInput;
 
     autoExposurePass = AutoExposurePass.create(ctx, lightingPass.hdrTexture);
-    compositePass = CompositePass.create(ctx, compositeInput, ssaoPass.aoView, gbuffer.depthView, lightingPass.cameraBuffer, lightingPass.lightBuffer, autoExposurePass.exposureBuffer);
+    compositePass = CompositePass.create(ctx, {
+      inputView: compositeInput,
+      aoView: ssaoPass.aoView,
+      depthView: gbuffer.depthView,
+      cameraBuffer: lightingPass.cameraBuffer,
+      lightBuffer: lightingPass.lightBuffer,
+      exposureBuffer: autoExposurePass.exposureBuffer
+    });
 
     graph = new RenderGraph();
     graph.addPass(shadowPass);
@@ -533,6 +540,9 @@ async function main() {
   function frame(time: number) {
     const dt = (time - lastTime) / 1000;
     lastTime = time;
+
+    ctx.update();
+
     if (dt > 0) {
       smoothFps += (1 / dt - smoothFps) * 0.1;
       fpsEl.textContent = `${smoothFps.toFixed(0)} fps`;
