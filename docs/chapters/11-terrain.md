@@ -256,15 +256,230 @@ function raycastVoxels(origin: Vec3, direction: Vec3, world: World, maxDist: num
 }
 ```
 
-### Block Placement and Breaking
+### Block Placement
 
-When a block is broken or placed:
+Right-clicking a block face places a new block adjacent to the targeted face. Placement is instantaneous — the block ID is written to the chunk's `blocks` array and the chunk mesh is marked dirty for regeneration. The `BlockInteractionState` fires an `onLocalEdit` callback with `{ kind: 'place', x, y, z, blockType }`.
 
-1. The block ID is updated in the chunk's `blocks` array.
-2. The chunk's mesh is marked dirty and regenerated on the next frame.
-3. If the modification is at a chunk boundary, neighboring chunks are also marked dirty.
+#### Instant Breaks
 
-Breaking blocks uses a gradual animation — the block shows cracks at progressive stages (mined over ~0.75 seconds for stone, instant for dirt).
+Blocks with `hardness = 0` (props: flowers, torches, dead bushes; also water and air) are removed immediately with no crack animation. The `BlockInteractionState` detects hardness 0 and calls `completeBreak()` directly without entering the progressive mining loop.
+
+### Chunk Dirtying
+
+Both placement and breaking follow the same re-meshing pattern:
+
+1. The block ID is updated in the chunk's `blocks` array via `chunk.setBlock()`.
+2. The chunk is marked for re-mesh via `world._updateChunk()`.
+3. If the modified block lies at a chunk boundary (within 1 block of the edge), neighboring chunks are also marked dirty, since their face-culling depends on this chunk's blocks.
+4. Re-meshing is deferred: changes are accumulated in a `_dirtyChunks` set and processed once per frame.
+
+On the server side (`server/src/world_state.ts`), edits are validated (integer coords, deduplicated against prior edits at the same cell) and broadcast to all clients as `{ t: 'block_edit', edit }` messages.
+
+### Block Breaking Progression
+
+When the player holds left-click on a block within reach, the break timer advances each frame. The `BlockInteractionState` in `crafty/game/block_interaction.ts` tracks:
+
+```typescript
+interface BlockInteractionState {
+  targetBlock: Vec3 | null;
+  breakProgress: number;        // accumulated ms spent mining this block
+  breakingBlock: Vec3 | null;   // world position of the block being broken
+  breakTime: number;            // total ms required (hardness × 1500)
+  crackStage: number;           // -1 = none, 0-9 = current crack overlay stage
+  onBlockBroken: (x: number, y: number, z: number, blockType: BlockType) => void;
+  onBlockChip: (x: number, y: number, z: number, blockType: BlockType) => void;
+}
+```
+
+#### Break Time
+
+The total time to break a block is determined from its hardness value in `blockHardness[]` (`src/block/block_type.ts`):
+
+```typescript
+function getBreakTime(blockType: BlockType): number {
+  return blockHardness[blockType] * 1500;  // ms
+}
+```
+
+A hardness of 0 means the block breaks instantly (no crack animation). Examples:
+
+| Block | Hardness | Break Time |
+|-------|----------|------------|
+| Dirt, Sand | 0.5 | 750 ms |
+| Grass | 0.6 | 900 ms |
+| Stone, Amethyst | 1.5 | 2250 ms |
+| Trunk, Planks | 2.0 | 3000 ms |
+| Diamond, Iron ore | 3.0 | 4500 ms |
+| Obsidian | 10.0 | 15000 ms |
+
+#### Per-Frame Accumulation
+
+Each frame, `updateBlockInteraction()` in `crafty/game/block_interaction.ts:233` accumulates breaking time:
+
+```typescript
+// Called every frame with dt in seconds
+this.breakProgress += dt * 1000;
+```
+
+The current crack stage is computed from progress:
+
+```typescript
+const newStage = Math.floor(this.breakProgress / this.breakTime * 10);
+if (newStage !== this.crackStage && newStage < 10) {
+  this.crackStage = newStage;
+  this.onBlockChip(x, y, z, blockType);  // emit chip particles
+}
+if (this.breakProgress >= this.breakTime) {
+  this.completeBreak();  // remove block, emit break particles + sound
+}
+```
+
+When the player releases the mouse button or looks away from the block, all break state resets to zero — progress is not preserved between attempts.
+
+#### Crack Overlay Rendering
+
+The `BlockHighlightPass` (`src/renderer/passes/block_highlight_pass.ts`) renders a crack overlay on the targeted block face. The crack atlas occupies the rightmost column of the block texture atlas: 9 crack stages stacked vertically, mapped by `crackStage (0-9)`. The WGSL shader in `block_highlight.wgsl` samples this tile and composites a dark overlay with luminance-based alpha:
+
+```wgsl
+// Crack alpha from luminance of the crack tile sample
+let crack_luma = dot(crack_sample.rgb, vec3<f32>(0.299, 0.587, 0.114));
+let crack_alpha = smoothstep(0.3, 0.7, crack_luma);
+let final_alpha = min(0.35 + crack_alpha * 0.5, 0.9);
+```
+
+The final fragment combines a base dark overlay (0.35 alpha) with the crack texture, capped at 0.9 alpha. This is drawn as 36 face vertices and 144 edge wireframe vertices around the targeted block.
+
+### Particle Emission
+
+Block breaking produces two kinds of particles, both emitted through a dedicated GPU particle pass (`ParticlePass` with `blockBreakConfig`):
+
+#### Chip Particles on Crack Stage Advance
+
+Each time the crack stage advances (every 10% of break time), a burst of **4 particles** is emitted from the block center:
+
+```typescript
+blockInteraction.onBlockChip = (x, y, z, blockType) => {
+  const [r, g, b] = getBlockColor(blockType);
+  passes.blockBreakPass?.burst(
+    { x: x + 0.5, y: y + 0.5, z: z + 0.5 },
+    [r, g, b, 1],
+    4
+  );
+};
+```
+
+The block color is extracted at startup by `loadBlockColors()` (`crafty/game/block_colors.ts`), which samples each block type's top-face tile from the texture atlas and averages it into an sRGB-to-linear converted `[r, g, b]` triplet.
+
+#### Break Particles on Destruction
+
+When the block is fully broken, a larger burst of **14 particles** is emitted from the same position, following the same color-tinting scheme.
+
+#### Particle Configuration
+
+Both bursts use the `blockBreakConfig` in `crafty/config/particle_configs.ts`:
+
+```typescript
+export const blockBreakConfig: ParticleGraphConfig = {
+  emitter: {
+    maxParticles: 1024,
+    spawnRate: 0,          // bursts only — no continuous emission
+    lifetime: [0.5, 1.0],
+    shape: { kind: 'sphere', radius: 0.15, solidAngle: Math.PI },
+    initialSpeed: [2.0, 4.5],
+    initialColor: [1, 1, 1, 1],  // overridden per burst by the block's tint
+    initialSize: [0.025, 0.05],
+    roughness: 0.9, metallic: 0.0,
+  },
+  modifiers: [
+    { type: 'gravity', strength: 14.0 },
+    { type: 'drag', coefficient: 0.6 },
+  ],
+  renderer: { type: 'sprites', blendMode: 'alpha', billboard: 'camera', shape: 'pixel', renderTarget: 'hdr' },
+};
+```
+
+Key properties:
+- **Spawn shape:** A hemisphere (solidAngle: π) of radius 0.15 blocks, centered on the block position — particles scatter outward from the block face.
+- **Initial speed:** Random between 2.0 and 4.5 blocks/second, giving a snappy ejection.
+- **Lifetime:** Random between 0.5 and 1.0 seconds, after which the particle fades.
+- **Gravity:** 14.0 blocks/s² pulls particles downward, creating an arc.
+- **Drag:** 0.6 coefficient decelerates particles for a natural settling look.
+- **Render shape:** `'pixel'` — each particle is a small square sprite, always camera-facing via `billboard: 'camera'`.
+- **Color:** The config's `initialColor` is overridden per burst call. The block's linear-RGB average color from the atlas is passed as the tint, so dirt particles are brown, stone particles are gray, grass particles are green, etc.
+
+The `ParticlePass` (`src/renderer/passes/particle_pass.ts`) simulates particles entirely on the GPU via compute shaders generated by `ParticleBuilder` (`src/particles/particle_builder.ts`). The `burst()` method queues a one-shot spawn that replaces any prior pending burst:
+
+```typescript
+burst(position: Vec3, color: [number, number, number, number], count: number): void {
+  this._pendingBurst = { position, color, count };
+}
+```
+
+On the next GPU dispatch, these particles are emitted into the simulation buffer and rendered as billboard sprites into the HDR render target, composite over the scene.
+
+### Audio
+
+Block breaking and placement trigger spatial audio via the `AudioManager` (`crafty/game/audio_manager.ts`).
+
+#### Surface-to-Sound Mapping
+
+Each block type maps to a `SurfaceGroup` via `blockTypeToSurface()` (`src/engine/audio_surface.ts`):
+
+| Surface Group | Block Types |
+|---------------|-------------|
+| `grass` | GRASS, DIRT, TREELEAVES, SNOW, GRASS_SNOW, GRASS_PROP, SNOWYLEAVES |
+| `sand` | SAND |
+| `wood` | TRUNK, SPRUCE_PLANKS |
+| `stone` | STONE, GLASS, GLOWSTONE, MAGMA, OBSIDIAN, DIAMOND, IRON, SPECULAR, CACTUS, AMETHYST |
+
+#### Dig Sound Playback
+
+When a block is fully broken, the `onBlockBroken` callback fires:
+
+```typescript
+blockInteraction.onBlockBroken = (x, y, z, blockType) => {
+  const [r, g, b] = getBlockColor(blockType);
+  passes.blockBreakPass?.burst(/* ... */, 14);     // break particles
+  const surface = blockTypeToSurface(blockType);
+  audio.playDig(surface, new Vec3(x + 0.5, y + 0.5, z + 0.5));  // dig sound
+};
+```
+
+`playDig()` selects a random audio buffer from the matching surface group's pre-loaded pool (`assets/sounds/player/dig/`) — each surface has 4 `.wav` variants for variety — and plays it as a spatial one-shot:
+
+```typescript
+playDig(surface: SurfaceGroup, pos: Vec3): void {
+  const list = this._digBuffers.get(surface);
+  const buf = list[Math.floor(Math.random() * list.length)];
+  this.playBufferAt(buf, pos, 0.8);
+}
+```
+
+#### Spatial Audio Pipeline
+
+`playBufferAt()` creates a `OneShot` instance with Web Audio API nodes:
+
+1. **AudioBufferSourceNode** — plays the sound buffer once.
+2. **PannerNode** — HRTF-based 3D panning with inverse distance model:
+   - `maxDistance`: 50 blocks
+   - `refDistance`: 5 blocks  
+   - `rolloffFactor`: 1.0
+3. **GainNode** — final volume = `volume × sfxVolume × masterVolume` (0.8 × 0.7 × 0.5 = 0.28 by default).
+
+The listener position and orientation are updated each frame from the camera transform via `updateListener()` in `AudioManager`. Finished one-shots are automatically pruned.
+
+#### Audio Asset Inventory
+
+| Category | Files | Purpose |
+|----------|-------|---------|
+| `dig/grass1-4.wav` | 4 | Breaking grass, dirt, leaves |
+| `dig/sand1-4.wav` | 4 | Breaking sand |
+| `dig/stone1-4.wav` | 4 | Breaking stone, ores, glass |
+| `dig/wood1-4.wav` | 4 | Breaking wood trunks, planks |
+
+#### Audio Initialization
+
+The Web Audio `AudioContext` is created lazily on the first user gesture (click/touch) in `crafty/main.ts:189` to comply with browser autoplay policies. Sound buffers are loaded asynchronously and cached in `AudioManager._digBuffers`, `_stepBuffers`, and `_fallBuffers` maps.
 
 ## 11.8 Erosion Simulation
 
@@ -505,7 +720,9 @@ The voxel terrain system features:
 - **Procedural generation**: Noise-based height maps, biome selection from temperature/humidity, ore and cave placement
 - **Greedy meshing**: Mask-based quad merging for minimal triangle counts
 - **LOD system**: Three distance-based levels of detail
-- **Block interaction**: DDA ray casting for placement and breaking
+- **Block interaction**: DDA ray casting for placement, progressive breaking with crack overlay (10 stages), hardness-based timers
+- **Break particles**: GPU-accelerated chip bursts on crack advance and break particles tinted to block color
+- **Break audio**: Spatial audio with HRTF panning, surface-group sound mapping (grass, sand, stone, wood)
 - **Erosion simulation**: Water flow and sediment transport via compute shader
 - **Water system**: Cellular automaton propagation with screen-space refraction, SSR, and Fresnel blending
 - **Village generation**: Procedural house placement with template-based layout
@@ -516,6 +733,15 @@ The voxel terrain system features:
 - `src/block/mesher.ts` — Greedy meshing algorithm
 - `src/block/generator.ts` — Terrain generation
 - `crafty/game/village_gen.ts` — Village and house placement
+- `crafty/game/block_interaction.ts` — Block breaking/placement state machine and per-frame update
+- `src/block/block_type.ts` — `blockHardness[]` table defining break times
+- `src/renderer/passes/block_highlight_pass.ts` — Crack overlay rendering (10-stage crack texture)
+- `src/shaders/block_highlight.wgsl` — Crack overlay WGSL shader
+- `crafty/config/particle_configs.ts` — `blockBreakConfig` particle emitter/modifier definitions
+- `src/renderer/passes/particle_pass.ts` — GPU particle simulation and burst API
+- `crafty/game/block_colors.ts` — Atlas-based block color extraction for particle tinting
+- `crafty/game/audio_manager.ts` — Spatial audio manager, `playDig()` and `playStep()`
+- `src/engine/audio_surface.ts` — `blockTypeToSurface()` mapping for dig/step sounds
 - `src/renderer/passes/block_geometry_pass.ts` — Block G-buffer rendering
 - `src/renderer/passes/water_pass.ts` — Water surface rendering
 - `src/shaders/water.wgsl` — Water shader (SSR, refraction, depth tinting)
