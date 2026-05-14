@@ -680,6 +680,7 @@ async function main(): Promise<void> {
   exitBtn.addEventListener('mouseenter', () => { exitBtn.style.background = '#4a2424'; });
   exitBtn.addEventListener('mouseleave', () => { exitBtn.style.background = '#3a1a1a'; });
   const onExit = (): void => {
+    _skipTabCloseCheck = true;
     if (document.pointerLockElement === canvas) {
       document.exitPointerLock();
     }
@@ -807,7 +808,9 @@ async function main(): Promise<void> {
 
   // Prompt before closing the tab — some browsers ignore preventDefault on
   // Ctrl+W, so this catches those cases via the standard beforeunload dialog.
+  let _skipTabCloseCheck = false;
   window.addEventListener('beforeunload', (e) => {
+    if (_skipTabCloseCheck) return;
     e.preventDefault();
     e.returnValue = '';
   });
