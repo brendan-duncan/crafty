@@ -123,7 +123,7 @@ The full `package.json` at `package.json` defines all available scripts:
 | `npm run test:coverage` | Run tests with coverage |
 | `npm run server` | Start the multiplayer server |
 
-There are also self-contained sample pages in `samples/`. Each sample pairs an HTML file with a TypeScript entry point. To view a sample, navigate to its HTML path, e.g. `http://localhost:5173/samples/forward_pass.html`.
+There are also self-contained sample pages in `samples/`. Each sample pairs an HTML file with a TypeScript entry point. To view a sample, navigate to its HTML path, e.g. `http://localhost:5173/samples/forward_test.html`.
 
 ## 1.6 The Crafty Codebase at a Glance
 
@@ -131,7 +131,7 @@ The project root is organized as follows:
 
 ```
 crafty/
-├── book/                   # This book (literate programming)
+├── docs/                   # This book
 ├── src/                    # Core engine library
 │   ├── math/               # Vec3, Mat4, Quaternion, noise, random
 │   ├── engine/             # Scene graph, components, materials
@@ -139,12 +139,14 @@ crafty/
 │   ├── block/              # Voxel world, chunks, biomes
 │   └── renderer/           # WebGPU render graph and passes
 ├── crafty/                 # Game application
-│   ├── game/               # Multiplayer networking, player state
-│   ├── samples/            # Self-contained demo pages
+│   ├── config/             # Classes for storing various engine configurations.
+│   ├── game/               # Crafty game engine code
 │   └── ui/                 # HUD, hotbar, start screen
 ├── server/                 # WebSocket multiplayer server (Node.js)
+├── samples/                # Samples to test engine and rendering features
 ├── tests/                  # Unit tests (Vitest)
 ├── scripts/                # Build tools (texture atlas, etc.)
+├── dist/                   # The production build of Crafty
 ├── package.json
 ├── tsconfig.json
 └── vite.config.ts

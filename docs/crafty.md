@@ -47,29 +47,13 @@ No black boxes.  Every system is built from scratch — we import only the
 WebGPU API and the standard library.  If we use a third-party tool (e.g. a
 texture compressor), we explain why and how it fits.
 
-## Directory layout
-
-```
-crafty/
-├── docs/                  # This book
-├── src/                   # Core engine library
-│   ├── math/              # Vec3, Mat4, Quaternion, etc.
-│   ├── engine/            # Scene graph, components, materials
-│   ├── assets/            # Mesh, Texture, shader loading
-│   ├── block/             # Voxel world, chunks, biomes
-│   └── renderer/          # WebGPU render graph & passes
-├── crafty/                # Game application
-│   ├── game/              # Multiplayer, player, interactions
-│   ├── ui/                # HUD, hotbar, start screen
-├── samples/               # Self-contained demos
-└── server/                # Multiplayer server
-```
-
 ## Status
 
 This book is a work in progress.  Chapters are added as the engine evolves.
 
-## Table of Contents
+----
+
+## Table Of Contents
 
 ## I — Foundations
 
@@ -516,3 +500,5 @@ This book is a work in progress.  Chapters are added as the engine evolves.
 - [Appendix B: WebGPU API Reference](appendix/webgpu-ref.md)
 - [Appendix C: Mathematics Reference](appendix/math-ref.md)
 - [Appendix D: Glossary](appendix/glossary.md)
+
+
