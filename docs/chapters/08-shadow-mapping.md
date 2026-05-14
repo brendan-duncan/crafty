@@ -13,6 +13,7 @@ The fundamental idea of shadow mapping is simple: render the scene from the ligh
 In WGSL, this comparison is:
 
 ```wgsl
+// ── from the shadow shader ──
 let shadowUV = lightViewProj * worldPos;
 shadowUV.xyz = shadowUV.xyz / shadowUV.w;  // perspective divide
 shadowUV.xy = shadowUV.xy * 0.5 + 0.5;     // NDC to UV
@@ -28,6 +29,7 @@ let shadowFactor = fragmentDepth > shadowDepth + bias ? 0.0 : 1.0;
 A depth bias prevents **shadow acne** — self-shadowing artifacts caused by the limited precision of the depth buffer. WebGPU supports hardware depth bias:
 
 ```typescript
+// ── from the shadow render pipeline ──
 depthStencil: {
   format: 'depth32float',
   depthWriteEnabled: true,
@@ -50,6 +52,7 @@ A single shadow map for a directional light covers too large an area to be usefu
 The `ShadowPass` (`src/renderer/passes/shadow_pass.ts`) creates a `depth32float` 2D array texture with up to 4 layers:
 
 ```typescript
+// ── from src/renderer/passes/shadow_pass.ts ──
 const SHADOW_SIZE = 2048;
 const MAX_CASCADES = 4;
 
@@ -83,6 +86,7 @@ split[i] = lerp(logSplit, uniformSplit, lambda)  // blended (lambda ≈ 0.7)
 During execution, the `ShadowPass` iterates over cascades, setting the scissor rect and viewport to the full shadow map size and binding the appropriate layer:
 
 ```typescript
+// ── from src/renderer/passes/shadow_pass.ts ──
 for (let cascade = 0; cascade < this._cascadeCount; cascade++) {
   const pass = encoder.beginRenderPass({
     label: `ShadowCascade_${cascade}`,
@@ -104,6 +108,7 @@ for (let cascade = 0; cascade < this._cascadeCount; cascade++) {
 During the deferred lighting pass, each fragment determines which cascade to sample based on its view-space depth:
 
 ```wgsl
+// ── from src/shaders/lighting.wgsl ──
 let viewDepth = -camera.view[3].z;  // negative for right-handed
 
 // Select cascade based on view depth
@@ -128,6 +133,7 @@ Crafty uses **VSM** for point and spot light shadows. VSM stores the depth *and*
 ![VSM moments and Chebyshev's inequality: pMax = variance / (variance + d²) gives a smooth shadow falloff that grows wider with variance](../illustrations/08-vsm-chebyshev.svg)
 
 ```typescript
+// ── from src/shaders/point_spot_shadow.wgsl ──
 // Fragment shader writes depth and depth²
 // Shader output: rg16float
 output.depth = fragmentDepth;
@@ -137,6 +143,7 @@ output.depthSq = fragmentDepth * fragmentDepth;
 In the lighting shader, the shadow test uses Chebyshev's inequality to estimate the probability that the fragment is occluded:
 
 ```wgsl
+// ── from the lighting shader ──
 let moments = textureSample(vsmMap, sampler, uv).rg;
 let dist = fragmentDepth - moments.x;
 let variance = max(moments.y - moments.x * moments.x, 0.0001);
@@ -151,6 +158,7 @@ VSM's advantage is that the shadow map can be pre-filtered with a separable blur
 The `SpotShadowPass` (`src/renderer/passes/spot_shadow_pass.ts`) renders a single spot light's shadow into a 2D depth texture. It is a minimal depth-only pass:
 
 ```typescript
+// ── from src/renderer/passes/spot_shadow_pass.ts ──
 export class SpotShadowPass extends RenderPass {
   readonly name = 'SpotShadowPass';
 
@@ -181,6 +189,7 @@ export class SpotShadowPass extends RenderPass {
 The vertex shader for shadow mapping only needs the position attribute:
 
 ```typescript
+// ── from the shadow render pipeline ──
 vertex: {
   buffers: [{
     arrayStride: VERTEX_STRIDE,
@@ -207,6 +216,7 @@ for (let face = 0; face < 6; face++) {
 The cube map is sampled directly in the lighting shader using the direction from the light to the surface point:
 
 ```wgsl
+// ── from the lighting shader ──
 let shadowDir = surfacePos - light.position;     // Direction to sample
 let shadowDepth = textureSample(shadowCube, sampler, shadowDir).r;
 let fragDist = length(shadowDir);
@@ -224,6 +234,7 @@ For directional CSM shadows, Crafty uses hardware PCF with a `depth32float` text
 ![PCF with a Poisson disk: 16 jittered taps inside the filter radius produce a smooth penumbra instead of the stairsteps a regular grid would give](../illustrations/08-pcf-poisson.svg)
 
 ```typescript
+// ── from the shadow render pipeline ──
 const shadowSampler = device.createSampler({
   compare: 'less',  // Enables PCF
   magFilter: 'linear',
@@ -234,6 +245,7 @@ const shadowSampler = device.createSampler({
 A Poisson-disk kernel distributes samples within the filter radius to reduce banding:
 
 ```wgsl
+// ── from src/shaders/lighting.wgsl ──
 let shadow = 0.0;
 let kernelSize = 16;
 for (var i = 0u; i < kernelSize; i++) {
@@ -257,6 +269,7 @@ Crafty addresses shadow artifacts through two mechanisms:
 **Depth bias** (hardware, applied during shadow map rasterization) prevents acne on surfaces facing the light:
 
 ```typescript
+// ── from the shadow render pipeline ──
 depthBias: 1,
 depthBiasSlopeScale: 1.5,
 ```
@@ -266,6 +279,7 @@ depthBiasSlopeScale: 1.5,
 Crafty's CSM uses a **cascade border** — each cascade is rendered slightly larger than its theoretical frustum, and a blend region between cascades smooths the transition:
 
 ```wgsl
+// ── from src/shaders/lighting.wgsl ──
 // Blend between adjacent cascades near the split boundary
 let blend = smoothstep(cascadeSplits[cascadeIndex] - blendRegion,
                         cascadeSplits[cascadeIndex], viewDepth);
@@ -283,6 +297,7 @@ PCSS adds two steps before the standard PCF sample loop:
 **1. Blocker search.** A small fixed-radius search (8 taps, 0.3 world units) samples the shadow map around the fragment and averages the depth of all texels that are closer than the fragment. If no blockers are found, the fragment is fully lit and we skip PCF entirely:
 
 ```wgsl
+// ── from src/shaders/lighting.wgsl ──
 fn pcss_blocker_search(cascade: u32, sc: vec3f, search_radius: f32) -> f32 {
   var total = 0.0; var count = 0.0;
   for (var i = 0u; i < 8u; i++) {
@@ -298,6 +313,7 @@ fn pcss_blocker_search(cascade: u32, sc: vec3f, search_radius: f32) -> f32 {
 **2. Penumbra estimation.** The penumbra width is proportional to the distance from the fragment to the average blocker, multiplied by a configurable `shadowSoftness` factor. This width is converted from world units to texels in the selected cascade:
 
 ```wgsl
+// ── from src/shaders/lighting.wgsl ──
 let avg_blocker = pcss_blocker_search(cascade, sc0, search_tex);
 if (avg_blocker >= 0.0) {
   let occluder_dist = (sc0.z - avg_blocker) * depth_world;
@@ -309,6 +325,7 @@ if (avg_blocker >= 0.0) {
 **3. PCF with variable kernel.** The standard 16-tap Poisson-disk PCF loop runs with the per-fragment kernel radius:
 
 ```wgsl
+// ── from src/shaders/lighting.wgsl ──
 let s = pcf_shadow(cascade, sc0, bias, kernel, screen_pos);
 ```
 

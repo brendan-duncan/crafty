@@ -11,6 +11,7 @@ This chapter presents the architectural backbone of Crafty's renderer — the **
 The render graph (`src/renderer/render_graph.ts`) is a straightforward ordered sequence of render passes. It is deliberately simple — no automatic dependency analysis, no resource barrier management, no topological sort. Passes are registered in execution order and run sequentially.
 
 ```typescript
+// ── from src/renderer/render_graph.ts ──
 export class RenderGraph {
   private _passes: RenderPass[] = [];
 
@@ -73,6 +74,7 @@ Not all passes are always enabled. The composite pass, for instance, replaces th
 Every pass extends the abstract `RenderPass` base class (`src/renderer/render_pass.ts`):
 
 ```typescript
+// ── from src/renderer/render_pass.ts ──
 export abstract class RenderPass {
   abstract readonly name: string;
   enabled = true;
@@ -94,6 +96,7 @@ The interface is minimal by design. A pass is just something that:
 Every pass follows the same creation pattern: a **static `create()` factory** that allocates all GPU resources and returns a fully initialized instance. The constructor is private:
 
 ```typescript
+// ── from src/renderer/passes/geometry_pass.ts ──
 export class GeometryPass extends RenderPass {
   readonly name = 'GeometryPass';
 
@@ -183,6 +186,7 @@ Crafty renders in **HDR** (high dynamic range) throughout the lighting and post-
 The lighting pass creates an HDR color texture:
 
 ```typescript
+// ── from src/renderer/passes/deferred_lighting_pass.ts ──
 export const HDR_FORMAT: GPUTextureFormat = 'rgba16float';
 ```
 
@@ -206,6 +210,7 @@ DeferredLightingPass  ──►  HDR Texture (rgba16float)
 The final `CompositePass` converts HDR to SDR (or passes through if the swap chain is HDR):
 
 ```wgsl
+// ── from src/shaders/tonemap.wgsl ──
 // Tone-mapping in the composite pass (ACES filmic approximation)
 fn tonemap(color: vec3f) -> vec3f {
   let a = 2.51;
@@ -228,6 +233,7 @@ The G-buffer (`src/renderer/gbuffer.ts`) stores three textures sized to the canv
 | `depth` | `depth32float` | depth | Above passes write; later passes read |
 
 ```typescript
+// ── from src/renderer/gbuffer.ts ──
 export class GBuffer {
   readonly albedoRoughness: GPUTexture;
   readonly normalMetallic: GPUTexture;
@@ -262,6 +268,7 @@ This layering allows the pipeline to separate concerns — mesh geometry, voxel 
 The swap chain is configured when `RenderContext.create()` is called. Crafty attempts an HDR swap chain (`rgba16float` + `display-p3` + extended tone mapping) and falls back to SDR:
 
 ```typescript
+// ── from src/renderer/render_context.ts ──
 context.configure({
   device,
   format: 'rgba16float',
@@ -274,7 +281,7 @@ context.configure({
 The terminal pass of the render graph reads the current swap chain texture and writes the final composited image into it:
 
 ```typescript
-// from CompositePass
+// ── from src/renderer/passes/composite_pass.ts ──
 execute(encoder: GPUCommandEncoder, ctx: RenderContext): void {
   const swapChainTexture = ctx.getCurrentTexture();
   const swapChainView = swapChainTexture.createView();
@@ -289,6 +296,7 @@ WebGPU automatically presents the swap chain texture to the display when the com
 When the browser window is resized, Crafty updates the canvas pixel dimensions and reconstructs the render graph:
 
 ```typescript
+// ── from src/renderer/render_context.ts ──
 canvas.width = canvas.clientWidth * devicePixelRatio;
 canvas.height = canvas.clientHeight * devicePixelRatio;
 ```

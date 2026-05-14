@@ -31,6 +31,7 @@ The spawn and update shaders are **generated at pipeline creation time** from a 
 The particle system is described declaratively through the `ParticleGraphConfig` interface (`src/particles/particle_types.ts`):
 
 ```typescript
+// ── from src/particles/particle_types.ts ──
 interface ParticleGraphConfig {
   emitter: EmitterNode;
   modifiers: ModifierNode[];
@@ -44,6 +45,7 @@ interface ParticleGraphConfig {
 The emitter controls how many particles exist, how fast they spawn, their initial properties, and the geometric region they emerge from:
 
 ```typescript
+// ── from src/particles/particle_types.ts ──
 interface EmitterNode {
   maxParticles: number;           // GPU buffer capacity
   spawnRate: number;              // particles per second
@@ -79,6 +81,7 @@ Modifiers are per-frame behaviours applied in order during the update compute pa
 Controls how particles are rasterised:
 
 ```typescript
+// ── from src/particles/particle_types.ts ──
 type RenderNode =
   | { type: 'sprites'; blendMode: 'additive' | 'alpha';
       billboard: 'camera' | 'velocity';
@@ -101,6 +104,7 @@ Two render targets are supported:
 Every particle is a fixed-size 64-byte struct stored in a GPU storage buffer:
 
 ```wgsl
+// ── from the particle shaders ──
 struct Particle {
   position : vec3<f32>,  // offset  0
   life     : f32,        // offset 12  (-1 = dead)
@@ -142,6 +146,7 @@ The spawn shader is **generated** by `buildSpawnShader()` in `src/particles/part
 Each workgroup thread handles one new particle:
 
 ```wgsl
+// ── from src/particles/particle_builder.ts (generated) ──
 @compute @workgroup_size(64)
 fn cs_main(@builtin(global_invocation_id) gid: vec3<u32>) {
   if (gid.x >= uniforms.spawn_count) { return; }
@@ -184,6 +189,7 @@ The number of particles spawned this frame is computed on the CPU by accumulatin
 The update shader is also **generated** by `buildUpdateShader()`. It iterates every particle slot (not just alive ones — dead slots are skipped) and applies the configured modifiers in order:
 
 ```wgsl
+// ── from src/particles/particle_builder.ts (generated) ──
 @compute @workgroup_size(64)
 fn cs_main(@builtin(global_invocation_id) gid: vec3<u32>) {
   let idx = gid.x;
@@ -220,6 +226,7 @@ fn cs_main(@builtin(global_invocation_id) gid: vec3<u32>) {
 The `curl_noise` modifier generates turbulent flow patterns by taking the curl of a noise field — this produces divergence-free velocity fields that look like natural wind or water turbulence. The implementation computes the curl via finite differences of three decorrelated Perlin noise potentials:
 
 ```wgsl
+// ── from the particle update shader ──
 fn curl_noise(p: vec3<f32>) -> vec3<f32> {
   // Finite difference: sample noise at ±ε on each axis
   // curl(F) = ∇ × F = (dFz/dy - dFy/dz, dFx/dz - dFz/dx, dFy/dx - dFx/dy)
@@ -235,6 +242,7 @@ The `block_collision` modifier checks whether a particle has hit the terrain sur
 This heightmap is uploaded each frame via `ParticlePass.updateHeightmap()`, which reads the chunk data around the player to produce a compact elevation array. The check is a single texture-like lookup:
 
 ```wgsl
+// ── from the particle update shader ──
 let _bc_uv = (p.position.xz - vec2<f32>(hm.origin_x, hm.origin_z)) / (hm.extent * 2.0) + 0.5;
 if (all(_bc_uv >= vec2<f32>(0.0)) && all(_bc_uv <= vec2<f32>(1.0))) {
   let _bc_xi = clamp(u32(_bc_uv.x * f32(hm.resolution)), 0u, hm.resolution - 1u);
@@ -256,6 +264,7 @@ After update, the particle buffer contains a mix of alive and dead particles. Th
 **First dispatch** (`cs_compact`): every thread checks one particle slot. If alive, it atomically increments the counter and writes its index:
 
 ```wgsl
+// ── from src/shaders/particles/particle_compact.wgsl ──
 @compute @workgroup_size(64)
 fn cs_compact(@builtin(global_invocation_id) gid: vec3<u32>) {
   let idx = gid.x;
@@ -269,6 +278,7 @@ fn cs_compact(@builtin(global_invocation_id) gid: vec3<u32>) {
 **Second dispatch** (`cs_write_indirect`): a single workgroup copies the atomic counter into the indirect buffer's `instanceCount` field:
 
 ```wgsl
+// ── from src/shaders/particles/particle_compact.wgsl ──
 @compute @workgroup_size(1)
 fn cs_write_indirect() {
   indirect[1] = atomicLoad(&counter);
@@ -288,6 +298,7 @@ Particles are drawn via **indirect draw** — the `indirectBuffer` is bound as t
 For alpha-blended effects like rain and snow, the `particle_render_forward.wgsl` shader writes directly into the HDR color buffer with depth read-only:
 
 ```typescript
+// ── from src/renderer/passes/particle_pass.ts ──
 // Forward HDR pipeline: alpha blend, no depth write
 const renderPipeline = device.createRenderPipeline({
   vertex:   { module: renderModule, entryPoint: vsEntry },
@@ -308,6 +319,7 @@ const renderPipeline = device.createRenderPipeline({
 **Velocity billboard** (`vs_main`). The quad is aligned with the particle's velocity direction. The long axis stretches proportionally to speed, creating streak-shaped raindrops:
 
 ```wgsl
+// ── from src/shaders/particles/particle_render_forward.wgsl ──
 let vel_dir = normalize(velocity);
 let right   = normalize(cross(vel_dir, cam_dir));
 let stretch = 1.0 + speed * 0.04;
@@ -321,6 +333,7 @@ The fragment shader fades the alpha at the tips of the streak and multiplies the
 **Camera billboard** (`vs_camera`). The quad always faces the camera, creating a soft disc. Used for snow and smoke:
 
 ```wgsl
+// ── from src/shaders/particles/particle_render_forward.wgsl ──
 let right = camera.view[0].xyz;   // world-space right
 let up    = camera.view[1].xyz;   // world-space up
 let world_pos = p.position + right * ofs.x * p.size + up * ofs.y * p.size;
@@ -329,6 +342,7 @@ let world_pos = p.position + right * ofs.x * p.size + up * ofs.y * p.size;
 The snow fragment shader applies a radial alpha falloff from the center, producing circular flakes:
 
 ```wgsl
+// ── from src/shaders/particles/particle_render_forward.wgsl ──
 let uv = in.uv * 2.0 - 1.0;
 let d2 = dot(uv, uv);
 if (d2 > 1.0) { discard; }
@@ -340,6 +354,7 @@ let alpha = in.color.a * (1.0 - d2);
 For opaque billboard particles (debris, solid projectiles), the `particle_render.wgsl` shader writes into the G-buffer (albedo + normal) with full depth testing:
 
 ```typescript
+// ── from src/renderer/passes/particle_pass.ts ──
 // GBuffer pipeline: writes albedo+normal, depth write on
 targets: [
   { format: 'rgba8unorm'  },   // albedo_roughness
@@ -351,6 +366,7 @@ depthStencil: { format: 'depth32float', depthWriteEnabled: true, depthCompare: '
 The vertex shader constructs a camera-facing quad (identical to the camera billboard path). The fragment shader clips to a circle and encodes the face normal (camera-to-particle direction) into the G-buffer:
 
 ```wgsl
+// ── from src/shaders/particles/particle_render.wgsl ──
 @fragment
 fn fs_main(in: VertexOutput) -> GBufferOutput {
   let d = length(in.uv - 0.5) * 2.0;
@@ -375,6 +391,7 @@ The CPU's per-frame work is limited to one `writeBuffer` call for compute unifor
 6. Packs `CameraUniforms` (72 floats: view, proj, viewProj, invViewProj, camera position, near/far) and writes them to the GPU.
 
 ```typescript
+// ── from src/renderer/passes/particle_pass.ts ──
 update(ctx, dt, view, proj, viewProj, invViewProj, camPos, near, far, worldTransform): void {
   this._time += dt;
   this._spawnAccum += this._config.emitter.spawnRate * dt;
@@ -392,6 +409,7 @@ update(ctx, dt, view, proj, viewProj, invViewProj, camPos, near, far, worldTrans
 The `setSpawnRate()` method allows changing the particle emission rate without rebuilding the render graph:
 
 ```typescript
+// ── from src/renderer/passes/particle_pass.ts ──
 setSpawnRate(rate: number): void {
   this._config.emitter.spawnRate = rate;
 }
@@ -406,6 +424,7 @@ Crafty ships with two pre-defined particle configurations (`crafty/config/partic
 ### Rain
 
 ```typescript
+// ── from crafty/config/particle_configs.ts ──
 export const rainConfig: ParticleGraphConfig = {
   emitter: {
     maxParticles: 80000,
@@ -431,6 +450,7 @@ Rain uses a wide, flat box emitter (70×0.2×70 blocks), velocity-aligned billbo
 ### Snow
 
 ```typescript
+// ── from crafty/config/particle_configs.ts ──
 export const snowConfig: ParticleGraphConfig = {
   emitter: {
     maxParticles: 50000,

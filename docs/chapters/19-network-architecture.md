@@ -9,6 +9,7 @@ Crafty supports multiplayer through a WebSocket-based server written in Node.js.
 WebSocket provides a persistent, full-duplex connection between the browser and the server. Crafty's client (`crafty/game/network_client.ts`) establishes the connection:
 
 ```typescript
+// ── from crafty/game/network_client.ts ──
 class NetworkClient {
   private _ws: WebSocket;
   private _connected = false;
@@ -65,6 +66,7 @@ Client                    Server
 The server (`server/src/server.ts`) manages multiple world rooms:
 
 ```typescript
+// ── from server/src/server.ts ──
 class Server {
   private _rooms = new Map<string, WorldRoom>();
 
@@ -81,6 +83,7 @@ class Server {
 Each `WorldRoom` runs its own simulation loop, broadcasts snapshots, and validates block edits:
 
 ```typescript
+// ── from server/src/world_room.ts ──
 class WorldRoom {
   private _players: PlayerConn[] = [];
   private _world: World;  // Server-side world state
@@ -114,6 +117,7 @@ Block edits are validated on the server to prevent cheating. The server checks t
 Local worlds are saved to IndexedDB in the browser. Server-side worlds are persisted to disk as JSON or a simple binary format:
 
 ```typescript
+// ── from server/src/world_repository.ts ──
 class WorldRepository {
   async save(worldName: string, chunks: Chunk[]): Promise<void> {
     // Serialize chunk data and write to disk

@@ -14,7 +14,7 @@ WebGPU includes experimental support for ray tracing through the `"ray-tracing"`
 - **Path-traced preview** — a pure path tracing mode for offline-quality screenshots.
 
 ```typescript
-// Future: ray tracing pipeline
+// ── future: ray tracing pipeline ──
 const rtPipeline = device.createRayTracingPipeline({
   libraries: [shaderModule],
   maxPayloadSize: 16,
@@ -32,7 +32,7 @@ Several post-processing effects could benefit from compute shader implementation
 - **Compute TAA** — neighbourhood sampling with shared memory.
 
 ```typescript
-// Future: compute-based post-processing
+// ── future: compute-based post-processing ──
 const computePipeline = device.createComputePipeline({
   compute: { module: bloomComputeShader, entryPoint: 'cs_bloom' },
 });

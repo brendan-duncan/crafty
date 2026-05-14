@@ -12,6 +12,7 @@ The world is divided into **chunks** — fixed-size 3D arrays of block IDs. Each
 
 
 ```typescript
+// ── from src/block/chunk.ts ──
 class Chunk {
   readonly cx: number;       // Chunk X index
   readonly cz: number;       // Chunk Z index
@@ -29,6 +30,7 @@ Block types are stored as small integers (0 = air, 1 = grass, 2 = dirt, etc.). T
 Chunks are loaded and unloaded based on distance from the player. The `World` class maintains a map of loaded chunks:
 
 ```typescript
+// ── from src/block/world.ts ──
 class World {
   private _chunks = new Map<string, Chunk>();
 
@@ -41,6 +43,7 @@ class World {
 Chunk coordinates are computed from world position:
 
 ```typescript
+// ── from src/block/world.ts ──
 function worldToChunkCoord(worldX: number, worldZ: number): [number, number] {
   return [Math.floor(worldX / CHUNK_SIZE_X), Math.floor(worldZ / CHUNK_SIZE_Z)];
 }
@@ -57,6 +60,7 @@ Before rendering, each chunk is tested against the camera frustum. Only chunks t
 The world uses `perlinFbmNoise3` from `src/math/noise.ts` to generate terrain height:
 
 ```typescript
+// ── from src/block/generator.ts ──
 function generateHeight(worldX: number, worldZ: number): number {
   const n = perlinFbmNoise3(
     worldX * 0.01, worldZ * 0.01, 0,
@@ -73,6 +77,7 @@ function generateHeight(worldX: number, worldZ: number): number {
 All terrain generation uses `perlinNoise3Seed` — a seeded variant of Perlin noise — rather than the unseeded `perlinFbmNoise3`. Every noise call receives the world seed combined with a unique per-feature offset so that the same world seed always produces identical terrain:
 
 ```typescript
+// ── from src/block/generator.ts ──
 // Each terrain feature uses a unique seed offset
 const continentalness = perlinNoise3Seed(gx / 2048.0, 10, gz / 2048.0, 0, 0, 0, seed);
 const heightMult     = perlinNoise3Seed(gx / 1024.0, 0, gz / 1024.0, 0, 0, 0, seed);
@@ -103,6 +108,7 @@ Biomes are determined by a secondary noise layer that encodes temperature and hu
 
 
 ```typescript
+// ── from src/block/generator.ts ──
 function getBiome(worldX: number, worldZ: number): Biome {
   const temperature = perlinNoise3(worldX * 0.002, worldZ * 0.002, 42);
   const humidity = perlinNoise3(worldX * 0.002, worldZ * 0.002, 99);
@@ -172,6 +178,7 @@ Each vertex is encoded as five float32 values packed into a single interleaved b
 Texture coordinates are **not stored per vertex**. Instead, the fragment shader computes UVs from the world position and face normal using the `atlas_uv` function in `chunk_geometry.wgsl`:
 
 ```wgsl
+// ── from src/shaders/chunk_geometry.wgsl ──
 fn atlas_uv(world_pos: vec3<f32>, face: u32, block_type: u32) -> vec2<f32> {
   let bd = block_data[block_type];
   // Select tile based on face: bottomTile (face 4), topTile (face 5), sideTile (others)
@@ -221,6 +228,7 @@ Blocks are classified into four material categories, each producing a separate v
 **`chunk.ts` — Billboarding a prop block:**
 
 ```typescript
+// ── from src/block/chunk.ts ──
 if (isProp) {
   // Single camera-facing billboard quad centered in the block.
   for (let v = 0; v < 6; v++) {
@@ -237,6 +245,7 @@ if (isProp) {
 All six vertices share the same center position `(x+0.5, y+0.5, z+0.5)` and the marker face index `6`. The vertex shader `vs_prop` in `chunk_geometry.wgsl` expands them into a camera-facing quad:
 
 ```wgsl
+// ── from src/shaders/chunk_geometry.wgsl ──
 fn billboard_offset(vid: u32) -> vec2<f32> {
   switch vid % 6u {
     case 0u: { return vec2<f32>(-0.5, -0.5); }
@@ -287,6 +296,7 @@ For each face direction (6 directions), the algorithm:
 This reduces the vertex count by 10-100× compared to naive face-per-block rendering. The result is stored in a chunk's mesh, which is regenerated when blocks in the chunk change.
 
 ```typescript
+// ── from src/block/chunk.ts ──
 class ChunkMesh {
   vertexBuffer: GPUBuffer;
   indexBuffer: GPUBuffer;
@@ -309,6 +319,7 @@ The player interacts with blocks by aiming at them. A ray is cast from the camer
 
 
 ```typescript
+// ── from src/block/world.ts ──
 function raycastVoxels(origin: Vec3, direction: Vec3, world: World, maxDist: number): BlockHit | null {
   // DDA traversal through the voxel grid
   // Returns the first non-air block intersected, plus the face normal
@@ -339,6 +350,7 @@ On the server side (`server/src/world_state.ts`), edits are validated (integer c
 When the player holds left-click on a block within reach, the break timer advances each frame. The `BlockInteractionState` in `crafty/game/block_interaction.ts` tracks:
 
 ```typescript
+// ── from crafty/game/block_interaction.ts ──
 interface BlockInteractionState {
   targetBlock: Vec3 | null;
   breakProgress: number;        // accumulated ms spent mining this block
@@ -355,6 +367,7 @@ interface BlockInteractionState {
 The total time to break a block is determined from its hardness value in `blockHardness[]` (`src/block/block_type.ts`):
 
 ```typescript
+// ── from src/block/block_type.ts ──
 function getBreakTime(blockType: BlockType): number {
   return blockHardness[blockType] * 1500;  // ms
 }
@@ -376,6 +389,7 @@ A hardness of 0 means the block breaks instantly (no crack animation). Examples:
 Each frame, `updateBlockInteraction()` in `crafty/game/block_interaction.ts:233` accumulates breaking time:
 
 ```typescript
+// ── from crafty/game/block_interaction.ts ──
 // Called every frame with dt in seconds
 this.breakProgress += dt * 1000;
 ```
@@ -383,6 +397,7 @@ this.breakProgress += dt * 1000;
 The current crack stage is computed from progress:
 
 ```typescript
+// ── from crafty/game/block_interaction.ts ──
 const newStage = Math.floor(this.breakProgress / this.breakTime * 10);
 if (newStage !== this.crackStage && newStage < 10) {
   this.crackStage = newStage;
@@ -400,6 +415,7 @@ When the player releases the mouse button or looks away from the block, all brea
 The `BlockHighlightPass` (`src/renderer/passes/block_highlight_pass.ts`) renders a crack overlay on the targeted block face. The crack atlas occupies the rightmost column of the block texture atlas: 9 crack stages stacked vertically, mapped by `crackStage (0-9)`. The WGSL shader in `block_highlight.wgsl` samples this tile and composites a dark overlay with luminance-based alpha:
 
 ```wgsl
+// ── from src/shaders/block_highlight.wgsl ──
 // Crack alpha from luminance of the crack tile sample
 let crack_luma = dot(crack_sample.rgb, vec3<f32>(0.299, 0.587, 0.114));
 let crack_alpha = smoothstep(0.3, 0.7, crack_luma);
@@ -417,6 +433,7 @@ Block breaking produces two kinds of particles, both emitted through a dedicated
 Each time the crack stage advances (every 10% of break time), a burst of **4 particles** is emitted from the block center:
 
 ```typescript
+// ── from crafty/game/block_interaction.ts ──
 blockInteraction.onBlockChip = (x, y, z, blockType) => {
   const [r, g, b] = getBlockColor(blockType);
   passes.blockBreakPass?.burst(
@@ -438,6 +455,7 @@ When the block is fully broken, a larger burst of **14 particles** is emitted fr
 Both bursts use the `blockBreakConfig` in `crafty/config/particle_configs.ts`:
 
 ```typescript
+// ── from crafty/config/particle_configs.ts ──
 export const blockBreakConfig: ParticleGraphConfig = {
   emitter: {
     maxParticles: 1024,
@@ -469,6 +487,7 @@ Key properties:
 The `ParticlePass` (`src/renderer/passes/particle_pass.ts`) simulates particles entirely on the GPU via compute shaders generated by `ParticleBuilder` (`src/particles/particle_builder.ts`). The `burst()` method queues a one-shot spawn that replaces any prior pending burst:
 
 ```typescript
+// ── from src/renderer/passes/particle_pass.ts ──
 burst(position: Vec3, color: [number, number, number, number], count: number): void {
   this._pendingBurst = { position, color, count };
 }
@@ -496,6 +515,7 @@ Each block type maps to a `SurfaceGroup` via `blockTypeToSurface()` (`src/engine
 When a block is fully broken, the `onBlockBroken` callback fires:
 
 ```typescript
+// ── from crafty/game/block_interaction.ts ──
 blockInteraction.onBlockBroken = (x, y, z, blockType) => {
   const [r, g, b] = getBlockColor(blockType);
   passes.blockBreakPass?.burst(/* ... */, 14);     // break particles
@@ -507,6 +527,7 @@ blockInteraction.onBlockBroken = (x, y, z, blockType) => {
 `playDig()` selects a random audio buffer from the matching surface group's pre-loaded pool (`assets/sounds/player/dig/`) — each surface has 4 `.wav` variants for variety — and plays it as a spatial one-shot:
 
 ```typescript
+// ── from crafty/game/audio_manager.ts ──
 playDig(surface: SurfaceGroup, pos: Vec3): void {
   const list = this._digBuffers.get(surface);
   const buf = list[Math.floor(Math.random() * list.length)];
@@ -567,6 +588,7 @@ Torches and magma blocks create full `PointLight` components at runtime, produci
 **Runtime light management (`lights.ts`):**
 
 ```typescript
+// ── from crafty/game/lights.ts ──
 export function addTorchLight(bx: number, by: number, bz: number, scene: Scene): void {
   const go = new GameObject({ name: 'TorchLight' });
   go.position.set(bx + 0.5, by + 0.9, bz + 0.5);
@@ -594,6 +616,7 @@ Torch lights are positioned at `y + 0.9` (near the top of the block) and offset 
 Both light types animate via sinusoidal flicker, updated each frame in `updateTorchFlicker` and `updateMagmaFlicker` (`lights.ts`):
 
 ```typescript
+// ── from crafty/game/lights.ts ──
 export function updateTorchFlicker(t: number): void {
   for (const { pl, phase } of torchLights.values()) {
     const flicker = 1.0
@@ -612,6 +635,7 @@ Three summed sine waves with different frequencies produce a natural, non-repeti
 Point lights are evaluated in the deferred shading fragment shader (`point_spot_lighting.wgsl`). Each pixel loops over all active point lights, culling those outside their radius:
 
 ```wgsl
+// ── from src/shaders/point_spot_lighting.wgsl ──
 for (var i = 0u; i < lightCounts.numPoint; i++) {
   let pl   = pointLights[i];
   let diff = pl.position - world_pos;
@@ -654,6 +678,7 @@ Water spreads in a fixed priority order:
 3. **Horizontal spread.** If supported, water spreads to adjacent empty cells in the four horizontal directions (N, S, E, W). Only one direction is filled per tick to prevent instant flooding.
 
 ```typescript
+// ── from src/block/world.ts ──
 // In src/block/world.ts
 private _flowWater(wx: number, wy: number, wz: number): void {
   const below = this.getBlockType(wx, wy - 1, wz);
@@ -685,6 +710,7 @@ Before rendering water, the current HDR scene is copied to a `refractionTex`. Du
 ![Screen-space refraction: 3-step pipeline (render → copy → distort) and UV distortion visual](../illustrations/11-screen-space-refraction.svg)
 
 ```wgsl
+// ── from src/shaders/water.wgsl ──
 // Animated DUDV distortion — two-pass stacked sampling for complex ripples
 let base_uv = vec2<f32>(world_pos.x, world_pos.z) * (1.0 / 8.0);
 let d1 = textureSample(dudv_tex, samp, vec2<f32>(base_uv.x + water.time * 0.02, base_uv.y)).rg;
@@ -702,6 +728,7 @@ The DUDV map is sampled twice with different time offsets to create a more compl
 Water opacity and tint are determined by the **water depth** — the distance from the water surface to the solid geometry below, computed by linearizing the G-buffer depth and comparing it to the water fragment's depth:
 
 ```wgsl
+// ── from src/shaders/water.wgsl ──
 let water_depth = floor_lin - water_lin;
 const MURKY_DEPTH: f32 = 4.0;
 let murk_factor = clamp(water_depth / MURKY_DEPTH, 0.0, 1.0);
@@ -726,6 +753,7 @@ Reflections use a hybrid approach:
 The SSR implementation in `water.wgsl` uses a view-space ray march with 32 steps:
 
 ```wgsl
+// ── from src/shaders/water.wgsl ──
 fn ssr(world_pos: vec3<f32>, normal: vec3<f32>, view_dir: vec3<f32>) -> vec4<f32> {
   let reflect_dir = reflect(-view_dir, normal);
   let ray_vs = normalize((cam.view * vec4<f32>(reflect_dir, 0.0)).xyz);
@@ -753,6 +781,7 @@ fn ssr(world_pos: vec3<f32>, normal: vec3<f32>, view_dir: vec3<f32>) -> vec4<f32
 4. **Sky fallback.** On miss, the equirectangular HDR sky texture is sampled using the reflection direction:
 
 ```wgsl
+// ── from src/shaders/water.wgsl ──
 fn sky_uv(d: vec3<f32>) -> vec2<f32> {
   let u = 0.5 + atan2(d.z, d.x) / (2.0 * PI);
   let v = 0.5 - asin(clamp(d.y, -1.0, 1.0)) / PI;
@@ -772,6 +801,7 @@ SSR hits are not binary. The function returns `vec4(color, confidence)` where co
 The final reflection contribution is controlled by Schlick Fresnel with water's F₀ ≈ 0.02:
 
 ```wgsl
+// ── from src/shaders/water.wgsl ──
 let VdotN = clamp(dot(view_dir, normal), 0.0, 1.0);
 let fresnel_r = min(0.02 + 0.98 * pow(1.0 - VdotN, 5.0), 0.6);  // capped at 0.6
 let world_color = mix(tinted, reflection, fresnel_r);
@@ -796,6 +826,7 @@ Villages only spawn in the `GrassyPlains` biome. When a chunk loads, the generat
 3. **Probability roll.** 25% chance if all other conditions pass.
 
 ```typescript
+// ── from crafty/game/village_gen.ts ──
 const VILLAGE_CHANCE = 0.25;
 
 function _isFlatEnough(world: World, baseX: number, baseZ: number, refY: number): boolean {
@@ -818,6 +849,7 @@ When a village is selected, 2–4 houses are placed in a cluster around the chun
 3. **No water.** Scans a 5×5 grid of sample points one block below the house for water blocks.
 
 ```typescript
+// ── from crafty/game/village_gen.ts ──
 const placed: { x: number; z: number }[] = [];
 for (const p of placed) {
   if (hx < p.x + 8 && hx + 7 > p.x && hz < p.z + 6 && hz + 5 > p.z) {
@@ -847,6 +879,7 @@ Houses are simple 7×5×4 structures defined as layered arrays:
 | y=3 | Flat plank roof |
 
 ```typescript
+// ── from crafty/game/village_gen.ts ──
 const _WALL_L1: number[][] = [
   [1,1,1,2,1,1,1],  // z=0: back wall, glass at center x=3
   [1,0,0,0,0,0,1],

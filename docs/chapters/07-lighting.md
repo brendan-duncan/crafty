@@ -15,6 +15,7 @@ The BRDF has three terms, each evaluated from dot products of these vectors:
 **Normal distribution function** (GGX/Trowbridge-Reitz) — describes the statistical orientation of microfacets relative to the surface normal:
 
 ```wgsl
+// ── from the PBR lighting shader ──
 fn D_GGX(n dot h: f32, roughness: f32) -> f32 {
   let a = roughness * roughness;
   let a2 = a * a;
@@ -26,6 +27,7 @@ fn D_GGX(n dot h: f32, roughness: f32) -> f32 {
 **Geometry function** (Smith GGX with Schlick-GGX) — describes microfacet self-shadowing:
 
 ```wgsl
+// ── from the PBR lighting shader ──
 fn G_SmithGGX(n dot v: f32, n dot l: f32, roughness: f32) -> f32 {
   let a = roughness * roughness;
   let GGX = G_GGX(n dot v, a) * G_GGX(n dot l, a);
@@ -36,6 +38,7 @@ fn G_SmithGGX(n dot v: f32, n dot l: f32, roughness: f32) -> f32 {
 **Fresnel function** (Schlick approximation) — describes how reflectance varies with viewing angle:
 
 ```wgsl
+// ── from the PBR lighting shader ──
 fn F_Schlick(cosTheta: f32, F0: vec3f) -> vec3f {
   return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
@@ -44,6 +47,7 @@ fn F_Schlick(cosTheta: f32, F0: vec3f) -> vec3f {
 The full BRDF for a single light is:
 
 ```wgsl
+// ── from the PBR lighting shader ──
 let NdotL = max(dot(N, L), 0.0);
 let NdotV = max(dot(N, V), 0.0);
 let H = normalize(L + V);
@@ -62,6 +66,7 @@ return (diffuse + specular) * radiance * NdotL;
 The `metallic` parameter blends between dielectric behavior (specular highlights on a diffuse base) and metallic behavior (no diffuse, colored specular). `F0` is `0.04` for dielectrics and `albedo` for metals, interpolated by `metallic`:
 
 ```wgsl
+// ── from the PBR lighting shader ──
 let F0 = mix(vec3f(0.04), albedo, metallic);
 ```
 
@@ -74,6 +79,7 @@ Crafty supports three light types — directional, point, and spot — each with
 The directional light represents the sun — an infinitely distant light source with parallel rays. It is defined by the `DirectionalLight` interface (`src/renderer/directional_light.ts`):
 
 ```typescript
+// ── from src/renderer/directional_light.ts ──
 export interface DirectionalLight {
   direction: Vec3;
   intensity: number;
@@ -117,6 +123,7 @@ updateLight(
 A point light emits light equally in all directions from a position in space. It is defined by the `PointLight` interface (`src/renderer/point_light.ts`):
 
 ```typescript
+// ── from src/renderer/point_light.ts ──
 export interface PointLight {
   position: Vec3;
   range: number;
@@ -161,6 +168,7 @@ for (let face = 0; face < 6; face++) {
 In the lighting shader, the shadow is sampled by computing the vector from the light to the surface point and using it as the cube-map sampling direction:
 
 ```wgsl
+// ── from the lighting shader ──
 let shadowDir = surfacePos - light.position;
 let shadowDepth = textureSample(shadowCube, sampler, shadowDir).r;
 ```
@@ -170,6 +178,7 @@ let shadowDepth = textureSample(shadowCube, sampler, shadowDir).r;
 A spot light emits light in a cone from a position in a specific direction. Crafty's `SpotLight` class (`src/renderer/spot_light.ts`) includes a lazy view-projection matrix computation:
 
 ```typescript
+// ── from src/renderer/spot_light.ts ──
 export class SpotLight {
   position: Vec3;
   range: number;
@@ -190,6 +199,7 @@ export class SpotLight {
 The view-projection matrix is computed from the light's parameters:
 
 ```typescript
+// ── from src/renderer/spot_light.ts ──
 private _compute(near = 0.1): void {
   // Build a lookAt view from the light's position and direction
   const up = Math.abs(this.direction.y) > 0.99
@@ -213,6 +223,7 @@ The GPU evaluates spot light falloff using the inner and outer angles. A `smooth
 
 
 ```wgsl
+// ── from the spot light shader ──
 // Spot cone attenuation
 let cosAngle = dot(normalize(lightDirection), -toLightDir);
 let cosInner = cos(spotLight.innerAngle * PI / 180);
@@ -232,6 +243,7 @@ IBL requires three textures derived from the HDR sky cubemap — one for diffuse
 
 
 ```typescript
+// ── from src/assets/ibl.ts ──
 interface IblTextures {
   irradianceMap: GPUTexture;      // Diffuse irradiance (low-frequency)
   prefilterMap: GPUTexture;       // Specular prefilter (mipmapped)
@@ -242,6 +254,7 @@ interface IblTextures {
 **Irradiance map.** A heavily blurred version of the sky cubemap (lowest mip). Sampled by the surface normal to give diffuse ambient light:
 
 ```wgsl
+// ── from the lighting shader ──
 let irradiance = textureSample(irradianceMap, sampler, normal).rgb;
 let diffuseIBL = irradiance * albedo;
 ```
@@ -249,6 +262,7 @@ let diffuseIBL = irradiance * albedo;
 **Prefilter map.** A mipmapped cubemap where each mip level represents a different roughness. Sampled by the reflection direction and roughness level:
 
 ```wgsl
+// ── from the lighting shader ──
 let roughnessLevel = roughness * MAX_PREFILTER_MIP_LEVEL;
 let prefiltered = textureSampleLevel(prefilterMap, sampler, reflection, roughnessLevel);
 ```
@@ -256,6 +270,7 @@ let prefiltered = textureSampleLevel(prefilterMap, sampler, reflection, roughnes
 **BRDF LUT.** A 2D lookup table encoding the Fresnel-integral term of the split-sum approximation. Sampled by `NdotV` and roughness:
 
 ```wgsl
+// ── from the lighting shader ──
 let brdf = textureSample(brdfLut, sampler, vec2f(NdotV, roughness)).rg;
 let specularIBL = prefiltered * (F0 * brdf.r + brdf.g);
 ```
@@ -263,6 +278,7 @@ let specularIBL = prefiltered * (F0 * brdf.r + brdf.g);
 The complete IBL contribution is:
 
 ```wgsl
+// ── from the lighting shader ──
 let ibl = (1.0 - metallic) * diffuseIBL + specularIBL;
 ```
 
@@ -285,6 +301,7 @@ The `computeDirectLight` function composes the three terms and returns the final
 The `DeferredLightingPass` (`src/renderer/passes/deferred_lighting_pass.ts`) is the core of the deferred renderer. It renders a fullscreen triangle that samples the G-buffer and all shadow/lighting inputs:
 
 ```typescript
+// ── from src/renderer/passes/deferred_lighting_pass.ts ──
 export class DeferredLightingPass extends RenderPass {
   readonly hdrTexture: GPUTexture;      // Output: HDR color target
   readonly cameraBuffer: GPUBuffer;     // Shared with other passes
@@ -296,6 +313,7 @@ export class DeferredLightingPass extends RenderPass {
 The fullscreen triangle approach avoids a vertex buffer — three vertices cover the entire clip space:
 
 ```wgsl
+// ── from src/shaders/lighting.wgsl ──
 @vertex
 fn vs_main(@builtin(vertex_index) vi: u32) -> @builtin(position) vec4f {
   // Fullscreen triangle: covers NDC without a vertex buffer
@@ -307,6 +325,7 @@ fn vs_main(@builtin(vertex_index) vi: u32) -> @builtin(position) vec4f {
 Each fragment samples the G-buffer, reconstructs the world position from depth, evaluates the directional light with cascade shadow maps, adds AO/SSGI, adds IBL, and writes the HDR result:
 
 ```typescript
+// ── from the deferred lighting shader ──
 // Lighting pass fragment shader (conceptual flow):
 // 1. Sample G-buffer: albedo, normal, roughness, metallic, depth
 // 2. Reconstruct world position from depth + inverse view-proj
@@ -341,6 +360,7 @@ The three IBL textures — irradiance map, GGX prefiltered environment map, and 
 The split-sum BRDF lookup table is view-independent (depends only on NdotV and roughness), so it is computed once on the CPU and cached per device. For each texel `(NdotV, roughness)`, the function importance-samples the GGX distribution using a Hammersley low-discrepancy sequence and integrates the Smith G₂ visibility term weighted by the Fresnel coefficient:
 
 ```typescript
+// ── from src/assets/ibl.ts ──
 function computeBrdfLutData(outW: number, outH: number, samples: number): Float32Array {
   for (let py = 0; py < outH; py++) {
     for (let px = 0; px < outW; px++) {
@@ -361,6 +381,7 @@ The result is a 64×64 `rgba16float` texture (A in R, B in G). Because it depend
 The diffuse irradiance map is a heavily blurred version of the HDR sky that stores the cosine-weighted hemisphere integral at every direction. The `cs_irradiance` compute shader (`src/shaders/ibl.wgsl`) dispatches once per cube face (6 dispatches), each thread computing one output texel:
 
 ```wgsl
+// ── from src/shaders/ibl.wgsl ──
 @compute @workgroup_size(8, 8, 1)
 fn cs_irradiance(@builtin(global_invocation_id) id: vec3u) {
   let uv = (vec2f(id.xy) + 0.5) / f32(IRR_SIZE);
@@ -383,6 +404,7 @@ Each output direction `dir` is the center of a cube face texel transformed to a 
 The specular prefiltered cube follows the same pattern but uses importance sampling of the GGX distribution. Each mip level corresponds to a different roughness value (0, 0.25, 0.5, 0.75, 1.0), allowing the lighting shader to sample a mip level matching the surface roughness:
 
 ```wgsl
+// ── from src/shaders/ibl.wgsl ──
 @compute @workgroup_size(8, 8, 1)
 fn cs_prefilter(@builtin(global_invocation_id) id: vec3u) {
   let uv = (vec2f(id.xy) + 0.5) / f32(mipSize);
@@ -417,6 +439,7 @@ SSAO estimates ambient light occlusion by sampling the depth buffer around each 
 For each pixel, the shader samples the depth buffer at several positions within a sphere around the pixel's world position. The number of samples that fall inside the scene geometry (closer to the camera) determines the occlusion:
 
 ```wgsl
+// ── from the SSAO shader ──
 let occlusion = 0.0;
 let radius = 1.0;
 let samples = 16;
@@ -438,6 +461,7 @@ The sample kernel is oriented by the surface normal to bias samples toward the v
 The raw SSAO output is noisy and requires blurring. A separable bilateral blur preserves edges by weighting the blur kernel by the depth difference:
 
 ```wgsl
+// ── from the SSAO shader ──
 let weight = exp(-abs(depthCenter - depthNeighbour) * sigmaDepth);
 blurred += neighbourValue * weight * gaussianWeight;
 totalWeight += weight * gaussianWeight;
@@ -456,6 +480,7 @@ For each visible pixel, the shader reconstructs the world-space normal and view-
 ![SSGI ray sampling in screen space](../illustrations/07-ssgi-sampling.svg)
 
 ```wgsl
+// ── from src/shaders/ssgi.wgsl ──
 let vp = view_pos_at(in.uv, depth);
 let N_vs = normalize((u.view * vec4<f32>(N_world, 0.0)).xyz);
 
@@ -497,6 +522,7 @@ Frame 2: phi = 2π × fract(0 + 2 × 0.618)  →  ~124° rotation each frame
 **Tangent frame rotation.** A 4×4 random noise texture provides a per-pixel rotation angle for the tangent frame, decorrelating rays between adjacent pixels. Without this, nearby pixels would cast rays in nearly identical directions, producing visible banding in the raw output:
 
 ```wgsl
+// ── from src/shaders/ssgi.wgsl ──
 let noise_val = textureLoad(noise_tex, coord % 4, 0).rg;
 let cos_a = noise_val.x * 2.0 - 1.0;
 let sin_a = noise_val.y * 2.0 - 1.0;
@@ -511,6 +537,7 @@ let B = sin_a * T_raw + cos_a * B_raw;
 The raw SSGI output from a single frame is extremely noisy — only 4 rays per pixel. The temporal pass accumulates samples over many frames by reprojecting each pixel's SSGI into the previous frame and blending:
 
 ```wgsl
+// ── from src/shaders/ssgi_temporal.wgsl ──
 // Reproject to previous frame
 let world_pos = reconstructWorld(in.uv, depth);
 let prev_clip = u.prevViewProj * vec4<f32>(world_pos, 1.0);

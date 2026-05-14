@@ -54,6 +54,8 @@ static async create(canvas: HTMLCanvasElement, options: RenderContextOptions = {
 **Error handling.** When `enableErrorHandling` is true, the context registers an `uncapturederror` event listener on the device that logs validation, out-of-memory, and internal errors:
 
 ```typescript
+// ── from src/renderer/render_context.ts ──
+
 device.addEventListener('uncapturederror', (event) => {
   const err = event.error;
   if (err instanceof GPUValidationError) {
@@ -71,6 +73,8 @@ Validation errors are the most common — they occur when you misuse the API (e.
 Once we have a device, we configure the canvas to create a swap chain:
 
 ```typescript
+// ── from src/renderer/render_context.ts ──
+
 const context = canvas.getContext('webgpu') as GPUCanvasContext;
 
 // Attempt HDR canvas: rgba16float + display-p3 + extended tonemapping.
@@ -111,7 +115,8 @@ A `GPUBuffer` is a block of GPU-accessible memory. Buffers are the primary mecha
 Crafty provides a convenience wrapper `createBuffer` on `RenderContext`:
 
 ```typescript
-// from src/renderer/render_context.ts
+// ── from src/renderer/render_context.ts ──
+
 createBuffer(size: number, usage: GPUBufferUsageFlags, label?: string): GPUBuffer {
   return this.device.createBuffer({ size, usage, label });
 }
@@ -132,6 +137,8 @@ The `usage` parameter specifies how the buffer can be used:
 Example from the `GeometryPass` camera uniform buffer:
 
 ```typescript
+// ── from src/renderer/passes/geometry_pass.ts ──
+
 const cameraBuffer = device.createBuffer({
   label: 'GeomCameraBuffer',
   size: CAMERA_UNIFORM_SIZE,   // 4 mat4 + vec3 + near/far = 288 bytes
@@ -242,6 +249,8 @@ Key texture parameters:
 A `GPUTextureView` is a window into a texture — a specific subresource (mip level, array layer, aspect) that can be bound as a render target or shader input. Most of the time you just want the default view:
 
 ```typescript
+// ── from src/renderer/gbuffer.ts ──
+
 this.albedoRoughnessView = albedoRoughness.createView();
 ```
 
@@ -252,6 +261,8 @@ But some passes need specialized views — for example, reading only the depth a
 The lighting pass writes into an HDR color attachment with format `rgba16float`:
 
 ```typescript
+// ── HDR format constant ──
+
 export const HDR_FORMAT: GPUTextureFormat = 'rgba16float';
 ```
 
@@ -264,6 +275,8 @@ A `GPUSampler` controls how textures are sampled in shaders — filtering mode, 
 Typical creation pattern from Crafty's passes:
 
 ```typescript
+// ── sampler creation pattern ──
+
 const sampler = device.createSampler({
   addressModeU: 'repeat',
   addressModeV: 'repeat',
@@ -289,6 +302,8 @@ The bind group index from `setBindGroup(N, …)` on the CPU lines up with the `@
 Layouts are immutable descriptions of resource bindings. Here is the geometry pass creating layouts for its camera and model uniforms:
 
 ```typescript
+// ── bind group creation ──
+
 // from src/renderer/passes/geometry_pass.ts
 const cameraBGL = device.createBindGroupLayout({
   label: 'GeomCameraBGL',
@@ -322,6 +337,8 @@ Why does WebGPU use a BindGroupLayout, when a BindGroup should be enough? The an
 Bind groups are the actual resource handles bound to a layout:
 
 ```typescript
+// ── bind group creation ──
+
 const cameraBindGroup = device.createBindGroup({
   label: 'GeomCameraBindGroup',
   layout: cameraBGL,
@@ -334,6 +351,8 @@ const cameraBindGroup = device.createBindGroup({
 During draw, the pipeline sets bind groups at indices matching the WGSL `@group(N)` attribute:
 
 ```typescript
+// ── setBindGroup in draw loop ──
+
 pass.setBindGroup(0, this._cameraBindGroup);   // @group(0) in shader
 pass.setBindGroup(1, this._modelBindGroups[i]); // @group(1)
 pass.setBindGroup(2, item.material.getBindGroup(device)); // @group(2)
@@ -342,7 +361,8 @@ pass.setBindGroup(2, item.material.getBindGroup(device)); // @group(2)
 In the WGSL shader, these correspond to:
 
 ```wgsl
-// from src/shaders/geometry.wgsl
+// ── from src/shaders/geometry.wgsl ──
+
 @group(0) @binding(0) var<uniform> camera  : CameraUniforms;
 @group(1) @binding(0) var<uniform> model   : ModelUniforms;
 @group(2) @binding(0) var<uniform> material: MaterialUniforms;
@@ -424,6 +444,8 @@ Key WGSL features visible here:
 Shader modules are created from WGSL source code at runtime:
 
 ```typescript
+// ── shader module creation ──
+
 const shaderModule = device.createShaderModule({
   label: `GeometryShader[${material.shaderId}]`,
   code: material.getShaderCode(MaterialPassType.Geometry),
@@ -433,6 +455,8 @@ const shaderModule = device.createShaderModule({
 WebGPU validates WGSL to native GPU instructions as part of `createShaderModule()`. Compilation errors are reported through `getCompilationInfo()`:
 
 ```typescript
+// ── shader compilation info ──
+
 const info = shaderModule.getCompilationInfo();
 for (const msg of info.messages) {
   if (msg.type === 'error') {
@@ -446,6 +470,8 @@ Note that WebGPU doesn't actually compile the shader for the GPU backend (D3D, V
 Crafty loads shaders at module scope via Vite's `?raw` import syntax:
 
 ```typescript
+// ── Vite ?raw import ──
+
 import deferredLightingWgsl from '../../shaders/deferred_lighting.wgsl?raw';
 ```
 
@@ -479,6 +505,8 @@ Supported directives:
 The `#if` expression evaluator supports comparison operators (`==`, `!=`, `>`, `<`, `>=`, `<=`), logical operators (`!`, `&&`, `||`), parentheses for grouping, and the `defined(NAME)` function that returns `1` if the macro is defined and `0` otherwise. Macro names in expressions are automatically expanded to their defined values; undefined identifiers evaluate to `0`.
 
 ```wgsl
+// ── preprocessor directives example ──
+
 #define USE_SHADOWS 1
 #define SHADOW_QUALITY 2
 
@@ -506,6 +534,8 @@ During construction, `ShaderBlockManager` automatically loads every `.wgsl` file
 Block lookups are recursive — if block A imports block B, the manager will resolve B's imports as well. Each block is also preprocessed before insertion, so blocks can contain their own `#define`, `#ifdef`, and other directives.
 
 ```typescript
+// ── ShaderBlock registration ──
+
 // Register a custom block at runtime
 ctx.registerShaderBlock('my_utils', 'fn utility() {}');
 
@@ -518,6 +548,8 @@ ctx.registerShaderBlock('my_utils', 'fn utility() {}');
 Shader source files use `#import` to pull in blocks. Here is a complete example from `samples/procedural_test.wgsl`:
 
 ```wgsl
+// ── from samples/procedural_test.wgsl ──
+
 // samples/procedural_test.wgsl
 #import "camera.wgsl"
 #import "lighting.wgsl"
@@ -537,6 +569,8 @@ The `#import "lighting.wgsl"` line is of particular note. The `lighting.wgsl` bu
 Conditional imports are also supported. Because `importShaderBlocks` runs the preprocessor before resolving imports, `#import` lines inside `#ifdef` or `#else` branches are only resolved when their branch is active:
 
 ```wgsl
+// ── from samples/procedural_test.wgsl ──
+
 #define USE_LIGHTING
 #ifdef USE_LIGHTING
   #import "lighting.wgsl"
@@ -552,6 +586,8 @@ The `RenderContext` class owns a `ShaderBlockManager` instance as a public prope
 The key integration point is `RenderContext.createShaderModule`:
 
 ```typescript
+// ── from src/renderer/render_context.ts ──
+
 // from src/renderer/render_context.ts
 createShaderModule(code: string, label?: string, defines?: Record<string, string>): GPUShaderModule {
   code = this.shaderBlockManager.importShaderBlocks(code, defines);
@@ -562,6 +598,8 @@ createShaderModule(code: string, label?: string, defines?: Record<string, string
 This method runs the preprocessor and resolves all `#import` directives before passing the final WGSL to `device.createShaderModule`. Using `ctx.createShaderModule()` instead of `device.createShaderModule()` is all that is needed to enable the full preprocessor and shader block system:
 
 ```typescript
+// ── from src/renderer/render_context.ts ──
+
 // Without Crafty's system — raw WebGPU:
 const module = device.createShaderModule({ code: shaderSource, label });
 
@@ -719,6 +757,8 @@ pipeline = device.createRenderPipeline({
 Creating pipelines is expensive — compilation can take tens of milliseconds on complex shaders. Crafty caches pipelines in a `Map<string, GPURenderPipeline>` keyed by material shader ID:
 
 ```typescript
+// ── from src/renderer/passes/geometry_pass.ts ──
+
 private _pipelineCache = new Map<string, GPURenderPipeline>();
 
 private _getPipeline(device: GPUDevice, material: Material): GPURenderPipeline {
@@ -737,6 +777,8 @@ Materials that share the same WGSL shader source reuse the same pipeline.
 Compute pipelines are simpler — they have no vertex/fragment state, only a compute shader and layout:
 
 ```typescript
+// ── simple compute pipeline ──
+
 const computePipeline = device.createComputePipeline({
   layout: pipelineLayout,
   compute: {
@@ -787,6 +829,8 @@ Conceptually, a render pass is a transaction: you declare what surfaces you are 
 The `GPURenderPassEncoder` is the API object that represents this transaction. You create one by calling `encoder.beginRenderPass()` on a command encoder, record into it, and then call `pass.end()`:
 
 ```wgsl
+// ── render pass encoder pattern ──
+
 const pass = encoder.beginRenderPass(descriptor);
 // ... set pipeline, bind groups, buffers, issue draws ...
 pass.end();
@@ -802,6 +846,8 @@ Every render pass operates on one or more **attachments**. There are two categor
 An attachment is described by three fields:
 
 ```typescript
+// ── attachment descriptor fields ──
+
 {
   view: GPUTextureView,          // which texture (and subresource) to write into
   loadOp: 'clear' | 'load',     // what to do at the start of the pass
@@ -837,6 +883,8 @@ On tile-based GPUs, `'discard'` avoids the cost of flushing tile memory back to 
 A complete color attachment for the geometry pass looks like this:
 
 ```typescript
+// ── from src/renderer/passes/geometry_pass.ts ──
+
 {
   view: this._gbuffer.albedoRoughnessView,
   clearValue: [0, 0, 0, 1],
@@ -848,6 +896,8 @@ A complete color attachment for the geometry pass looks like this:
 And a subsequent pass that reads the G-buffer depth and writes additional geometry into it uses `'load'`:
 
 ```typescript
+// ── from src/renderer/passes/geometry_pass.ts ──
+
 {
   view: this._gbuffer.albedoRoughnessView,
   loadOp: 'load',   // preserve what the previous geometry pass wrote
@@ -858,6 +908,8 @@ And a subsequent pass that reads the G-buffer depth and writes additional geomet
 Depth/stencil attachments have separate `depthLoadOp` / `depthStoreOp` and `stencilLoadOp` / `stencilStoreOp` fields, along with `depthClearValue` (a float, typically `1.0` for a reverse-Z buffer or `0.0` for a standard near-to-far depth convention) and `stencilClearValue` (an integer):
 
 ```typescript
+// ── from src/renderer/passes/geometry_pass.ts ──
+
 depthStencilAttachment: {
   view: this._gbuffer.depthView,
   depthClearValue: 1.0,
@@ -878,6 +930,8 @@ The attachment configuration declared in `beginRenderPass()` must be compatible 
 WebGPU validates this compatibility when you call `setPipeline()` during the pass. If there is a mismatch, a validation error fires immediately. This is the key reason that pipelines encode format information: it allows the runtime to verify pipeline-attachment compatibility without deferring the check to draw time.
 
 ```typescript
+// ── render pipeline fragment targets ──
+
 // The pipeline's fragment targets...
 fragment: {
   module: shaderModule,
@@ -899,6 +953,8 @@ colorAttachments: [
 A single render pass can write to multiple color attachments simultaneously. In the fragment shader, each output is declared with a separate `@location(N)` attribute:
 
 ```wgsl
+// ── multiple render target fragment shader ──
+
 struct FragOutput {
   @location(0) albedo_roughness : vec4<f32>,  // → colorAttachments[0]
   @location(1) normal_metallic  : vec4<f32>,  // → colorAttachments[1]
@@ -920,6 +976,8 @@ This is how Crafty's G-buffer pass populates two separate textures in a single d
 Many render passes — the lighting pass, SSAO, bloom, tone mapping — do not draw any scene geometry. Instead they draw a single large triangle that covers the entire viewport, running the fragment shader once for every pixel. A common pattern is:
 
 ```typescript
+// ── fullscreen pass draw call ──
+
 // No vertex or index buffers; the shader generates a fullscreen triangle from @builtin(vertex_index)
 pass.draw(3); // Three vertices, one triangle
 ```
@@ -927,6 +985,8 @@ pass.draw(3); // Three vertices, one triangle
 In the vertex shader:
 
 ```wgsl
+// ── fullscreen triangle vertex shader ──
+
 @vertex
 fn vs_main(@builtin(vertex_index) idx: u32) -> @builtin(position) vec4<f32> {
   // Generates a CCW triangle that covers the clip-space square [-1,1]²
@@ -942,6 +1002,8 @@ These passes use `loadOp: 'clear'` on their output attachments (since they will 
 By default the render pass covers the entire attachment. You can restrict drawing to a subregion with `setViewport()` and `setScissorRect()`:
 
 ```typescript
+// ── viewport and scissor rect ──
+
 // Render into the top-left quarter of the attachment
 pass.setViewport(0, 0, width / 2, height / 2, 0.0, 1.0);
 
@@ -960,6 +1022,8 @@ Render passes optionally accept an **occlusion query set**, allowing the CPU to 
 Inside a render pass, the typical draw sequence is:
 
 ```typescript
+// ── draw call sequence ──
+
 pass.setPipeline(pipeline);
 pass.setBindGroup(0, cameraBindGroup);
 pass.setBindGroup(1, modelBindGroup);
@@ -978,6 +1042,8 @@ While render passes produce pixel output, **compute passes** run general-purpose
 A compute pass is created with `encoder.beginComputePass()` and records one or more `dispatchWorkgroups()` calls against a bound compute pipeline:
 
 ```typescript
+// ── compute pass recording ──
+
 const pass = encoder.beginComputePass({ label: 'ParticleUpdate' });
 pass.setPipeline(this._simulatePipeline);
 pass.setBindGroup(0, this._particleBindGroup);
@@ -992,6 +1058,8 @@ There are no draw calls, no vertex buffers, and no color attachments. The comput
 A compute shader runs as a three-dimensional grid of **workgroups**, each workgroup containing a fixed number of **invocations** (individual shader threads). The workgroup size is declared in WGSL with the `@workgroup_size` attribute:
 
 ```wgsl
+// ── compute shader entry point ──
+
 @compute @workgroup_size(64, 1, 1)
 fn cs_main(
   @builtin(global_invocation_id) gid: vec3<u32>,
@@ -1017,6 +1085,8 @@ Key built-in values:
 The total number of threads equals `dispatchWorkgroups(Wx, Wy, Wz)` × `@workgroup_size(Sx, Sy, Sz)`. If your data has `N` elements and your workgroup size is 64, you dispatch `ceil(N / 64)` workgroups and guard against out-of-bounds access:
 
 ```wgsl
+// ── out-of-bounds guard ──
+
 if (gid.x >= arrayLength(&particles)) { return; }
 ```
 
@@ -1025,6 +1095,8 @@ if (gid.x >= arrayLength(&particles)) { return; }
 Threads within the same workgroup can communicate through **workgroup-shared memory**, declared with the `var<workgroup>` address space:
 
 ```wgsl
+// ── workgroup shared memory ──
+
 var<workgroup> shared_data: array<f32, 64>;
 
 @compute @workgroup_size(64)
@@ -1052,6 +1124,8 @@ Compute shaders communicate with the rest of the frame through **storage buffers
 A storage buffer is declared with `var<storage, read_write>` (or `read` for read-only access):
 
 ```wgsl
+// ── storage buffer declaration ──
+
 struct Particle {
   position: vec3<f32>,
   velocity: vec3<f32>,
@@ -1065,6 +1139,8 @@ struct Particle {
 A storage texture is declared with `var<storage_texture, write>` (currently, most platforms support write-only storage textures in compute; read-write storage textures require the `"chromium-experimental-read-write-storage-texture"` feature):
 
 ```wgsl
+// ── storage texture declaration ──
+
 @group(0) @binding(0) var output_tex: texture_storage_2d<rgba8unorm, write>;
 
 @compute @workgroup_size(8, 8)
@@ -1077,6 +1153,8 @@ fn cs_main(@builtin(global_invocation_id) gid: vec3<u32>) {
 Storage textures use `textureStore()` rather than `textureSample()` — there is no sampler, filtering, or mip selection. For reading from a texture in a compute shader, you can bind it as a regular `texture_2d` with `textureLoad()` (which reads a specific texel without filtering):
 
 ```wgsl
+// ── textureLoad in compute shader ──
+
 @group(0) @binding(1) var input_tex: texture_2d<f32>;
 
 let texel = textureLoad(input_tex, vec2i(coord), 0); // mip level 0
@@ -1087,6 +1165,8 @@ let texel = textureLoad(input_tex, vec2i(coord), 0); // mip level 0
 `dispatchWorkgroups(x, y, z)` launches a 3D grid of workgroups. The `y` and `z` dimensions default to 1 if omitted:
 
 ```typescript
+// ── dispatchWorkgroups examples ──
+
 // 1D: particle simulation over N particles, 64 threads per workgroup
 pass.dispatchWorkgroups(Math.ceil(particleCount / 64));
 
@@ -1107,6 +1187,8 @@ pass.dispatchWorkgroups(
 For dynamic workload sizes determined by a previous compute pass (for example, the number of visible particles surviving a culling pass), use **indirect dispatch**:
 
 ```typescript
+// ── indirect dispatch ──
+
 // The compute shader wrote the workgroup counts into an INDIRECT buffer
 pass.dispatchWorkgroupsIndirect(indirectBuffer, byteOffset);
 ```
@@ -1118,6 +1200,8 @@ The buffer at `byteOffset` must contain three `uint32` values: `[workgroupCountX
 A `GPUComputePipeline` is simpler than a render pipeline — it has no vertex layout, no fragment targets, no depth state, and no primitive topology. It consists of a pipeline layout (bind group layouts) and a single compute shader entry point:
 
 ```typescript
+// ── compute pipeline creation ──
+
 const computePipeline = device.createComputePipeline({
   label: 'ParticleSimulate',
   layout: device.createPipelineLayout({
@@ -1135,6 +1219,8 @@ Like render pipelines, compute pipelines are immutable and expensive to create. 
 The `@workgroup_size` declared in the WGSL shader becomes part of the compiled pipeline. If you need the same algorithm to run efficiently at multiple workgroup sizes (for hardware that prefers different tile widths), you need separate pipeline objects — or use WGSL `override` constants:
 
 ```wgsl
+// ── WGSL override workgroup size ──
+
 override WORKGROUP_SIZE: u32 = 64;
 
 @compute @workgroup_size(WORKGROUP_SIZE)
@@ -1142,6 +1228,8 @@ fn cs_main(...) { ... }
 ```
 
 ```typescript
+// ── pipeline override constants ──
+
 device.createComputePipeline({
   compute: {
     module: shaderModule,
@@ -1163,6 +1251,8 @@ This is a significant simplification compared to Vulkan and D3D12, where explici
 However, within a single compute pass, there are no implicit barriers between `dispatchWorkgroups()` calls. If two dispatches in the same pass access the same storage buffer — one writing and one reading — you must split them into separate compute passes:
 
 ```typescript
+// ── compute pass recording ──
+
 // WRONG: second dispatch may read before first dispatch finishes writing
 const pass = encoder.beginComputePass();
 pass.dispatchWorkgroups(...); // writes buffer A
@@ -1184,6 +1274,8 @@ passB.end();
 The command encoder also supports copy operations. For example, copying the results of a compute shader into a storage buffer for indirect draw:
 
 ```typescript
+// ── copyBufferToBuffer ──
+
 encoder.copyBufferToBuffer(source, 0, dest, 0, size);
 ```
 
@@ -1194,6 +1286,8 @@ Crafty uses compute-to-buffer copies in the particle system to copy the computed
 The `RenderContext` class (`src/renderer/render_context.ts`) wraps the WebGPU device, queue, and canvas configuration into a single handle that flows through the entire render graph.
 
 ```typescript
+// ── from src/renderer/render_context.ts ──
+
 export class RenderContext {
   readonly device: GPUDevice;
   readonly queue: GPUQueue;

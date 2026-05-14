@@ -33,6 +33,7 @@ The HUD (`crafty/ui/hud.ts`) is a DOM overlay with:
 - **Chat area** — multiplayer chat messages.
 
 ```typescript
+// ── from crafty/ui/hud.ts ──
 class HUD {
   private _container: HTMLElement;
   private _hotbar: HotbarUI;
@@ -58,6 +59,7 @@ The start screen (`crafty/ui/start_screen.ts`) appears before the game loads. It
 - **Settings** — graphics quality, audio volume, controls.
 
 ```typescript
+// ── from crafty/ui/start_screen.ts ──
 class StartScreen {
   private _container: HTMLElement;
 
@@ -81,6 +83,7 @@ On connect to a multiplayer server, the start screen's name input is disabled to
 Settings are stored in `localStorage` and applied dynamically:
 
 ```typescript
+// ── from crafty/ui/settings.ts ──
 interface Settings {
   graphicsQuality: 'low' | 'medium' | 'high' | 'ultra';
   fov: number;

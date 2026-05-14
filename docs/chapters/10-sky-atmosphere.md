@@ -11,6 +11,7 @@ The sky is the largest object in any outdoor scene. Crafty supports multiple sky
 The simplest sky is a **fixed HDR cubemap** — a 360° photograph of a real sky, stored in the Radiance HDR format (.hdr). The `SkyTexturePass` renders this cubemap as a fullscreen background:
 
 ```wgsl
+// ── from src/shaders/sky.wgsl ──
 let skyDir = normalize(camera.viewToWorld * screenRay);
 let skyColor = textureSample(skyCubemap, skySampler, skyDir).rgb;
 ```
@@ -22,6 +23,7 @@ HDR maps preserve the full dynamic range of the sky, allowing the sun to be thou
 Radiance HDR files use RGBE encoding (one shared exponent for three color channels). Crafty decodes this on the GPU using `src/shaders/rgbe_decode.wgsl`:
 
 ```wgsl
+// ── from src/shaders/rgbe_decode.wgsl ──
 fn rgbeToFloat(rgbe: vec4f) -> vec3f {
   let exponent = rgbe.a * 255.0 - 128.0;
   return rgbe.rgb * pow(2.0, exponent);
@@ -37,6 +39,7 @@ The `AtmospherePass` (`src/renderer/passes/atmosphere_pass.ts`) renders a proced
 ### Single Scattering Approximation
 
 ```wgsl
+// ── from src/shaders/atmosphere.wgsl ──
 fn rayleighPhase(cosTheta: f32) -> f32 {
   return (3.0 / (16.0 * PI)) * (1.0 + cosTheta * cosTheta);
 }
@@ -58,6 +61,7 @@ The atmosphere pass writes directly into the HDR target with a fullscreen draw. 
 The `CloudPass` (`src/renderer/passes/cloud_pass.ts`) renders volumetric clouds using a raymarching technique. Cloud density is sampled from a 3D Perlin noise texture with multiple octaves:
 
 ```wgsl
+// ── from src/shaders/clouds.wgsl ──
 let cloudDensity = 0.0;
 for (var i = 0u; i < numOctaves; i++) {
   let samplePos = worldPos * cloudScale * pow(2.0, f32(i)) + windOffset;
@@ -73,6 +77,7 @@ The raymarch accumulates transmittance and color along the view ray, producing s
 Real clouds scatter light many times — single scattering alone is too dark because it ignores energy that bounces between droplets. Silver's approximation models multi-scattering as an additional isotropic ambient term added at each raymarch step, avoiding the cost of explicit secondary ray marches:
 
 ```wgsl
+// ── from src/shaders/clouds.wgsl ──
 // Per-step accumulation in the cloud raymarch
 let sun_energy = light.color * light.intensity * shadow_t * phase;
 let amb_energy = cloud.ambientColor * mix(0.5, 1.0, height_frac);
@@ -85,6 +90,7 @@ The direct `sun_energy` term uses the Henyey-Greenstein phase function for forwa
 The ambient color is derived from the cloud's extinction and the light color. Silver's key insight is that the ratio of multiply-scattered to singly-scattered light at a point depends primarily on the local optical depth and the scattering albedo — this can be pre-integrated or approximated as a function of density rather than computed recursively:
 
 ```wgsl
+// ── from src/shaders/clouds.wgsl ──
 let dens = sample_density(p);
 let opt  = dens * cloud.extinction * step_size;
 let t_step = exp(-opt);
@@ -111,6 +117,7 @@ The cloud density textures are generated on the CPU at startup by `src/assets/cl
 The Perlin implementation wraps lattice coordinates via modular arithmetic so the noise tiles seamlessly at the texture boundaries. Gradient vectors are drawn from the classic 12-edge set stored as parallel `Int8Array`s to avoid heap allocation on the hot path:
 
 ```typescript
+// ── from src/assets/cloud_noise.ts ──
 const GRAD3_X = new Int8Array([ 1, -1,  1, -1,  1, -1,  1, -1,  0,  0,  0,  0]);
 const GRAD3_Y = new Int8Array([ 1,  1, -1, -1,  0,  0,  0,  0,  1, -1,  1, -1]);
 const GRAD3_Z = new Int8Array([ 0,  0,  0,  0,  1,  1, -1, -1,  1,  1, -1, -1]);
@@ -127,6 +134,7 @@ function gradDot(lx, ly, lz, period, seed, dx, dy, dz) {
 Trilinear interpolation uses a quintic smoothstep (`6t⁵ - 15t⁴ + 10t³`) to eliminate second-order discontinuities at lattice boundaries:
 
 ```typescript
+// ── from src/assets/cloud_noise.ts ──
 function smoothstep5(t: number): number {
   return t * t * t * (t * (t * 6 - 15) + 10);
 }
@@ -137,6 +145,7 @@ function smoothstep5(t: number): number {
 Four octaves of Perlin noise are summed with halved amplitude and doubled frequency per octave, then remapped from the approximate range ±0.7 to [0, 1] for storage as `unorm8`:
 
 ```typescript
+// ── from src/assets/cloud_noise.ts ──
 function perlinGradFbmTile(px, py, pz, octaves, baseFreq, seed) {
   let v = 0, a = 0.5, f = 1, tot = 0;
   for (let i = 0; i < octaves; i++) {
@@ -153,6 +162,7 @@ function perlinGradFbmTile(px, py, pz, octaves, baseFreq, seed) {
 Worley (cellular) noise measures the distance to the nearest randomly-placed feature point in a 3D grid. Each cell contains one point at a hash-derived offset within the cell, and the search covers the 27-cell neighbourhood. The modulo-wrapped cell coordinates ensure seam-free tiling:
 
 ```typescript
+// ── from src/assets/cloud_noise.ts ──
 function worleyTile(px, py, pz, freq, seed) {
   const fx = px * freq, fy = py * freq, fz = pz * freq;
   const ix = Math.floor(fx), iy = Math.floor(fy), iz = Math.floor(fz);
@@ -181,6 +191,7 @@ function worleyTile(px, py, pz, freq, seed) {
 The generated noise arrays are uploaded to the GPU as `rgba8unorm` 3D textures with a single `queue.writeTexture()` call — no staging buffer needed for a one-time upload:
 
 ```typescript
+// ── from src/assets/cloud_noise.ts ──
 function make3dTexture(device, label, size, data) {
   const tex = device.createTexture({
     label, dimension: '3d',
@@ -201,6 +212,7 @@ function make3dTexture(device, label, size, data) {
 The four-channel packing means a single texture sample fetches both the bulk density (R) and three erosion frequencies (GBA) simultaneously — the shader combines them in the `sample_density()` function to carve realistic cloud shapes with wispy edges:
 
 ```wgsl
+// ── from src/shaders/clouds.wgsl ──
 fn sample_pw(samp_uv: vec3f) -> f32 {
   let s = textureSampleLevel(base_noise, noise_samp, samp_uv, 0.0);
   let w = s.g * 0.5 + s.b * 0.35 + s.a * 0.15;
@@ -217,6 +229,7 @@ This CPU-generation approach was chosen over GPU compute for simplicity — the 
 Fog is rendered as part of the final `CompositePass`. The fog density is computed from the fragment depth and mixed with the scene color:
 
 ```wgsl
+// ── from src/shaders/composite.wgsl ──
 let fogFactor = 1.0 - exp(-fogDensity * fogDensity * viewDepth * viewDepth);
 outputColor = mix(sceneColor, fogColor, fogFactor);
 ```
@@ -224,6 +237,7 @@ outputColor = mix(sceneColor, fogColor, fogFactor);
 Height-based fog varies the density with altitude, creating mist in valleys and clear air at higher elevations:
 
 ```wgsl
+// ── from src/shaders/composite.wgsl ──
 let heightFog = exp(-max(worldPos.y - seaLevel, 0.0) * fogHeightFalloff);
 fogDensity *= heightFog;
 ```
@@ -239,6 +253,7 @@ The `CloudShadowPass` renders a top-down cloud shadow map — a 2D texture stori
 The standard atmosphere model treats the ground as fully absorbing — light reaching the surface is lost. In reality, the ground reflects scattered sunlight back into the sky, brightening the lower atmosphere, especially near the horizon. An **Oren-Nayar BRDF** models this reflection more accurately than a simple Lambertian for rough surfaces like terrain.
 
 ```wgsl
+// ── from src/shaders/atmosphere.wgsl ──
 fn orenNayar(cosThetaI: f32, cosThetaR: f32, phiDiff: f32, roughness: f32) -> f32 {
   let sigma2 = roughness * roughness;
   let A = 1.0 - 0.5 * sigma2 / (sigma2 + 0.33);
@@ -252,6 +267,7 @@ fn orenNayar(cosThetaI: f32, cosThetaR: f32, phiDiff: f32, roughness: f32) -> f3
 The roughness parameter controls the surface microfacets: low roughness behaves close to Lambertian, while high roughness widens the reflection lobe, scattering light back across a broader angle. In the atmosphere pass, the Oren-Nayar contribution is added during the scattering integral by treating the ground as a secondary light source:
 
 ```wgsl
+// ── from src/shaders/atmosphere.wgsl ──
 // Ground-reflected radiance at the surface point
 let groundAlbedo = vec3f(0.2, 0.25, 0.15);  // terrain tint
 let groundIrradiance = SUN_INTENSITY * max(dot(normal, u.sunDir), 0.0);
@@ -267,6 +283,7 @@ Ozone in the stratosphere absorbs visible light in the **Chappuis band** (500–
 The absorption is modeled as an additional wavelength-dependent extinction coefficient added to the Rayleigh term in the ozone layer (20–40 km altitude):
 
 ```wgsl
+// ── from src/shaders/atmosphere.wgsl ──
 const OZONE_ABSORPTION : vec3f = vec3f(0.00065, 0.0044, 0.0125);
   // Per-metre absorption at 440/550/680 nm (weak in blue, strong in red)
 
@@ -282,6 +299,7 @@ fn ozoneOpticalDepth(pos: vec3f, sunDir: vec3f) -> f32 {
 The extinction from ozone is applied to the transmittance alongside Rayleigh and Mie:
 
 ```wgsl
+// ── from src/shaders/atmosphere.wgsl ──
 let transmittance = exp(
   -(BETA_R * odR + BETA_M * 1.1 * odM + OZONE_ABSORPTION * odOzone)
 );
@@ -294,12 +312,14 @@ This produces the characteristic **purple-pink zenith glow** at sunset that a Ra
 The day/night cycle is driven from the game loop in `crafty/main.ts`. A single linear angle `sunAngle` controls the entire cycle:
 
 ```typescript
+// ── from crafty/main.ts ──
 let sunAngle = welcome?.sunAngle ?? savedWorld?.sunAngle ?? Math.PI * 0.3;
 ```
 
 Each frame the angle advances at a fixed rate, giving a full cycle of roughly 10.5 minutes:
 
 ```typescript
+// ── from crafty/main.ts ──
 sunAngle += dt * 0.01;
 ```
 
@@ -308,6 +328,7 @@ sunAngle += dt * 0.01;
 The linear angle is skewed so the sun spends more time above the horizon than below, preventing unrealistically short days. A `_dayFraction` of 0.80 maps the first 80% of the linear cycle to the visible hemisphere (sun above horizon) and the remaining 20% to night:
 
 ```typescript
+// ── from crafty/main.ts ──
 const _dayFraction = 0.80;
 const _norm = ((sunAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
 const _dayPortion = _dayFraction * 2 * Math.PI;
@@ -323,6 +344,7 @@ const _skewed = _norm < _dayPortion
 The sun direction uses a fixed X component (the sun arcs across the sky rather than passing directly overhead) with Y and Z driven by the skewed angle:
 
 ```typescript
+// ── from crafty/main.ts ──
 const sinA = Math.sin(_skewed);
 const rawDirX = 0.25;
 const rawDirY = -sinA;
@@ -334,6 +356,7 @@ sun.direction.set(rawDirX / dLen, rawDirY / dLen, rawDirZ / dLen);
 The sun's elevation (`sinA`) directly controls intensity and color. Intensity ramps from 0 at the horizon to 6.0 at zenith. The color shifts from warm orange-red at sunrise/sunset to cool white at midday:
 
 ```typescript
+// ── from crafty/main.ts ──
 const elev = sinA;
 sun.intensity = Math.max(0, elev) * 6.0;
 const t = Math.max(0, elev);
@@ -347,6 +370,7 @@ At sunrise (`elev ≈ 0`) the color is `(1.0, 0.8, 0.6)` — warm amber. At noon
 The elevation also feeds into the cloud ambient color and water reflection brightness:
 
 ```typescript
+// ── from crafty/main.ts ──
 const dayT = Math.max(0, elev);
 const cloudAmbient: [number, number, number] =
   [0.02 + 0.38 * dayT, 0.03 + 0.52 * dayT, 0.05 + 0.65 * dayT];
@@ -364,6 +388,7 @@ The `sunAngle` is saved to `SavedWorld.sunAngle` each time the world is persiste
 The moon is rendered in the atmosphere shader (`src/shaders/atmosphere.wgsl`) as a disk antipodal to the sun direction. It fades in after sunset using a `night_t` factor:
 
 ```wgsl
+// ── from src/shaders/atmosphere.wgsl ──
 let moonDir = -u.sunDir;
 if (dot(rd, moonDir) > MOON_COS_THRESH) {
   let night_t = saturate((-u.sunDir.y - 0.05) * 10.0);
@@ -378,12 +403,14 @@ The `night_t` factor ramps from 0 to 1 as the sun drops below the horizon, so th
 Stars are rendered in the `CompositePass` (`src/renderer/passes/composite_pass.ts`) using a GPU-generated star field. The sun direction is uploaded to the star uniform buffer:
 
 ```typescript
+// ── from src/renderer/passes/composite_pass.ts ──
 data[20] = sunDir.x;  data[21] = sunDir.y;  data[22] = sunDir.z;  data[23] = 0;
 ```
 
 In the composite shader (`src/shaders/composite.wgsl`), stars are drawn only on sky pixels (`depth >= 1.0`) and faded by `night_t` computed from the sun's Y component:
 
 ```wgsl
+// ── from src/shaders/composite.wgsl ──
 if (depth >= 1.0) {
   let world_h = star_uni.invViewProj * vec4<f32>(in.uv * 2.0 - 1.0, 1.0, 1.0);
   let ray_dir = normalize(world_h.xyz / world_h.w - star_uni.cam_pos);
@@ -416,6 +443,7 @@ The `GodrayPass` (`src/renderer/passes/godray_pass.ts`) renders volumetric light
 The algorithm determines the sun's position in screen space, then samples the HDR target along rays radiating from that position:
 
 ```wgsl
+// ── from src/renderer/passes/godray_pass.ts ──
 let sunScreenPos = projectToScreen(sunDirection);
 let ray = sunScreenPos - uv;
 let step = ray / f32(numSamples);
@@ -431,6 +459,7 @@ godray = godray * decay / f32(numSamples);
 The result is composited additively onto the HDR target:
 
 ```wgsl
+// ── from src/renderer/passes/godray_pass.ts ──
 hdrColor += godrayColor * intensity;
 ```
 

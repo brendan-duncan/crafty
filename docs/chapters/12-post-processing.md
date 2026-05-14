@@ -34,6 +34,7 @@ This curve maps unlimited HDR input to [0, 1] with smooth saturation at the high
 When the swap chain is in HDR mode (`rgba16float` + `display-p3`), the composite pass can skip tonemapping entirely or apply only a small amount of output-referred grading:
 
 ```typescript
+// ── from src/renderer/passes/composite_pass.ts ──
 // If swap chain is HDR, write linear HDR values directly
 if (ctx.hdr) {
   // Passthrough — the display handles the EOTF
@@ -47,6 +48,7 @@ if (ctx.hdr) {
 For SDR output, the tone-mapped value is converted from linear to sRGB gamma space. This is done in the shader just before the final display by applying a gamma curve to the output color:
 
 ```typescript
+// ── from src/shaders/composite.wgsl ──
 return vec4<f32>(pow(max(ldr, vec3<f32>(0.0)), vec3<f32>(1.0 / 2.2)), 1.0);
 ```
 
@@ -60,6 +62,7 @@ Bloom simulates the scattering of bright light in a camera lens, creating a soft
 **1. Prefilter.** Extract bright pixels from the HDR target, applying a knee curve that smoothly transitions from unbloomed to bloomed:
 
 ```wgsl
+// ── from src/shaders/bloom.wgsl ──
 let luminance = dot(hdrColor, vec3f(0.2126, 0.7152, 0.0722));
 let knee = max(luminance - threshold, 0.0);
 let softKnee = knee / (knee + kneeThreshold);
@@ -76,6 +79,7 @@ BrightPass ──► Horizontal Blur ──► Vertical Blur ──► Blurred B
 The blur kernel is a 9-tap Gaussian:
 
 ```wgsl
+// ── from src/shaders/bloom.wgsl ──
 let weights = [0.061, 0.122, 0.183, 0.204, 0.183, 0.122, 0.061];
 // 7-tap separable — extend to 9 or 13 for stronger bloom
 ```
@@ -83,6 +87,7 @@ let weights = [0.061, 0.122, 0.183, 0.204, 0.183, 0.122, 0.061];
 **3. Composite.** The blurred bloom texture is added to the original HDR image:
 
 ```wgsl
+// ── from src/shaders/bloom.wgsl ──
 hdrColor += bloomColor * bloomIntensity;
 ```
 
@@ -100,6 +105,7 @@ TAA `TAAPass` reduces aliasing by averaging the current frame with previous fram
 The projection matrix is jittered by a sub-pixel offset each frame. The jitter pattern is a Halton sequence (2,3) that provides good temporal coverage:
 
 ```typescript
+// ── from src/renderer/passes/taa_pass.ts ──
 const jitterX = halton2(frameIndex) - 0.5;
 const jitterY = halton3(frameIndex) - 0.5;
 // Apply jitter to projection matrix
@@ -112,6 +118,7 @@ proj[9] += jitterY / height;  // column 2, row 1
 Each frame, the previous frame's color is reprojected into the current frame using the motion vector (the difference in clip-space position between frames):
 
 ```wgsl
+// ── from src/shaders/taa.wgsl ──
 // Sample history using motion vector
 let historyUV = currentUV + motionVector;
 let historyColor = textureSample(historyTexture, sampler, historyUV);
@@ -126,6 +133,7 @@ let result = lerp(historyColor, currentColor, 0.1);  // 0.1 = feedback factor
 To prevent ghosting from rapid scene changes, the history sample is clamped to the bounding box (AABB) of the current pixel's neighbourhood:
 
 ```wgsl
+// ── from src/shaders/taa.wgsl ──
 let neighbourhood = [
   textureSample(currentTexture, sampler, currentUV + vec2f( 1, 0) * texelSize),
   textureSample(currentTexture, sampler, currentUV + vec2f(-1, 0) * texelSize),
@@ -149,6 +157,7 @@ The `DofPass` (`src/renderer/passes/dof_pass.ts`) simulates camera lens defocus 
 The **circle of confusion** (CoC) is computed per pixel from the depth buffer:
 
 ```wgsl
+// ── from src/shaders/dof.wgsl ──
 let depth = linearizeDepth(textureSample(depthMap, sampler, uv).r);
 let coc = abs(depth - focalDepth) * cocScale;
 coc = clamp(coc, 0.0, maxCocRadius);
@@ -178,6 +187,7 @@ The `AutoExposurePass` (`src/renderer/passes/auto_exposure_pass.ts`) computes a 
 A compute shader divides the HDR image into workgroups and each thread computes the luminance of a pixel, incrementing a histogram bucket:
 
 ```wgsl
+// ── from src/shaders/auto_exposure.wgsl ──
 let luminance = dot(hdrColor, vec3f(0.2126, 0.7152, 0.0722));
 let bucket = u32(log2(luminance + 0.0001) * HISTOGRAM_SCALE + HISTOGRAM_OFFSET);
 atomicAdd(&histogram[bucket], 1u);
@@ -188,6 +198,7 @@ atomicAdd(&histogram[bucket], 1u);
 The histogram is read back to compute the average log-luminance, which is then smoothed temporally:
 
 ```typescript
+// ── from src/renderer/passes/auto_exposure_pass.ts ──
 let adaptedLuminance = lerp(previousLuminance, currentLuminance,
                             1.0 - exp(-deltaTime * adaptationSpeed));
 ```
@@ -195,6 +206,7 @@ let adaptedLuminance = lerp(previousLuminance, currentLuminance,
 The adapted luminance drives exposure:
 
 ```wgsl
+// ── from src/shaders/auto_exposure.wgsl ──
 let exposure = 1.0 / max(adaptedLuminance, 0.001);
 hdrColor *= exposure;
 ```
@@ -206,6 +218,7 @@ This provides a smooth, automatic transition between lighting conditions.
 The `CompositePass` optionally applies color grading via a **lookup table (LUT)**. A 3D LUT texture maps input colors to graded output colors, enabling cinematic color grading:
 
 ```wgsl
+// ── from src/shaders/composite.wgsl ──
 let gradedColor = textureSampleLevel(colorGradingLut, lutSampler,
   color * lutScale + lutOffset, 0.0).rgb;
 ```
@@ -221,6 +234,7 @@ When the camera is submerged, the `CompositePass` applies a series of screen-spa
 Before sampling the HDR scene, the UV coordinates are perturbed by a pair of animated sine/cosine waves that create a gentle, caustic-like shimmer:
 
 ```wgsl
+// ── from src/shaders/composite.wgsl ──
 if (params.is_underwater > 0.5) {
   let t = params.uw_time;
   let distort = vec2f(
@@ -238,6 +252,7 @@ The distortion is small (≤0.6% of screen width), anisotropic (horizontal disto
 After fog is applied, submerged fragments receive a strong blue-green color cast and a vignette that darkens the screen periphery:
 
 ```wgsl
+// ── from src/shaders/composite.wgsl ──
 if (params.is_underwater > 0.5) {
   scene = scene * vec3f(0.20, 0.55, 0.90);
   let d = length(in.uv * 2.0 - 1.0);

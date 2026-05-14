@@ -11,7 +11,7 @@ This chapter covers the profiling, optimization, and culling techniques used to 
 Crafty uses WebGPU timestamp queries to measure per-pass GPU execution time:
 
 ```typescript
-// Create query set
+// ── from src/renderer/profiling.ts ──
 const querySet = device.createQuerySet({
   type: 'timestamp',
   count: passCount * 2,  // begin + end per pass
@@ -42,6 +42,7 @@ Timestamp queries require the `'timestamp-query'` feature, which must be request
 Pipeline compilation is expensive. Crafty uses the `getCompilationInfo()` API to diagnose shader compile errors, and creates pipelines lazily (on first use) rather than upfront:
 
 ```typescript
+// ── from src/renderer/pipeline_cache.ts ──
 private _getPipeline(device: GPUDevice, material: Material): GPURenderPipeline {
   let pipeline = this._pipelineCache.get(material.shaderId);
   if (pipeline) return pipeline;
@@ -61,6 +62,7 @@ For materials that are always visible, pipelines can be compiled eagerly during 
 Every chunk and mesh is tested against the camera frustum before rendering. The test uses the six planes of the view-projection frustum:
 
 ```typescript
+// ── from src/renderer/culling.ts ──
 function isVisible(aabb: AABB, frustum: Plane[]): boolean {
   for (const plane of frustum) {
     // Compute the signed distance of the AABB's positive vertex
@@ -95,7 +97,7 @@ This is implemented as a compute pass that reads the depth buffer and writes an 
 Chunk rendering uses **indirect draw** to issue many draws with a single call. The chunk visibility and draw parameters are computed on the GPU:
 
 ```typescript
-// Indirect draw buffer: one draw command per visible chunk
+// ── from src/renderer/indirect_draw.wgsl ──
 struct DrawArraysIndirect {
   indexCount: u32;
   instanceCount: u32;
@@ -116,7 +118,7 @@ A compute shader performs frustum culling on the GPU and packs visible chunks in
 Many passes pre-allocate `Float32Array` / `Uint32Array` scratch buffers to avoid per-frame GC pressure:
 
 ```typescript
-// Reused per frame — never garbage collected
+// ── from src/renderer/pre_allocated.ts ──
 private readonly _modelData = new Float32Array(32);
 private readonly _cameraScratch = new Float32Array(CAMERA_UNIFORM_SIZE / 4);
 ```
@@ -126,6 +128,7 @@ private readonly _cameraScratch = new Float32Array(CAMERA_UNIFORM_SIZE / 4);
 Per-draw model uniform buffers are grown on demand but never freed during gameplay:
 
 ```typescript
+// ── from src/renderer/buffer_pool.ts ──
 private _ensureModelBuffers(device: GPUDevice, count: number): void {
   while (this._modelBuffers.length < count) {
     const buffer = device.createBuffer({ ... });
@@ -141,6 +144,7 @@ This avoids allocation and deallocation churn when the draw count varies between
 Textures are reference-counted and destroyed when no longer referenced. The asset manager caches loaded textures by URL:
 
 ```typescript
+// ── from crafty/game/texture_cache.ts ──
 class TextureCache {
   private _cache = new Map<string, Promise<GPUTexture>>();
 

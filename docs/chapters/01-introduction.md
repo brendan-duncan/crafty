@@ -101,10 +101,10 @@ The project uses the following toolchain:
 
 | Tool | Purpose |
 |------|---------|
-| **TypeScript** (v5.4+) | All source code, strict mode enabled |
-| **Vite** (v5.2+) | Development server and production bundler |
-| **Vitest** | Unit testing framework |
-| **@webgpu/types** | TypeScript type definitions for the WebGPU API |
+| **TypeScript** (https://www.typescriptlang.org) | All source code, strict mode enabled |
+| **Vite** (https://vite.dev) | Development server and production bundler |
+| **Vitest** (https://vitest.dev/) | Unit testing framework |
+| **@webgpu/types** (https://github.com/gpuweb/types) | TypeScript type definitions for the WebGPU API |
 
 You can run the test suite to verify your environment:
 

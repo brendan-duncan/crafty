@@ -25,6 +25,7 @@ GameObject
 ## 13.2 GameObject and Component
 
 ```typescript
+// ── from src/engine/game_object.ts ──
 class GameObject {
   readonly id: number;
   name: string;
@@ -44,6 +45,7 @@ class GameObject {
 Components attach to a GameObject and implement lifecycle methods:
 
 ```typescript
+// ── from src/engine/component.ts ──
 abstract class Component {
   readonly gameObject: GameObject;
 
@@ -60,6 +62,7 @@ abstract class Component {
 The `Scene` class manages the hierarchy of GameObjects:
 
 ```typescript
+// ── from src/engine/scene.ts ──
 class Scene {
   readonly root: GameObject;
 
@@ -82,6 +85,7 @@ The scene graph is a tree. Each `GameObject` has a local transform relative to i
 The main game loop (`crafty/main.ts`) follows the standard pattern:
 
 ```typescript
+// ── from crafty/main.ts ──
 function frame(time: number) {
   const dt = Math.min((time - lastTime) / 1000, 0.05);  // Cap at 50ms
   lastTime = time;
@@ -117,6 +121,7 @@ The frame rate is uncapped (tied to display refresh via `requestAnimationFrame`)
 Input is managed by the `Input` class, which aggregates keyboard, mouse, and touch events:
 
 ```typescript
+// ── Input class (conceptual) ──
 class Input {
   isKeyDown(key: string): boolean;
   wasKeyPressed(key: string): boolean;
@@ -133,6 +138,7 @@ The pointer lock API is used for first-person controls — the mouse cursor is h
 The `CameraController` component interprets input to move and rotate the camera. Yaw (horizontal) and pitch (vertical) are accumulated from mouse deltas:
 
 ```typescript
+// ── from src/engine/camera_controller.ts ──
 class CameraController extends Component {
   sensitivity = 0.002;
   yaw = 0;
@@ -156,6 +162,7 @@ class CameraController extends Component {
 The `PlayerController` extends camera controls with WASD movement, jumping, gravity, and collision:
 
 ```typescript
+// ── from src/engine/player_controller.ts ──
 class PlayerController extends Component {
   speed = 5;        // m/s
   jumpSpeed = 8;
@@ -195,7 +202,7 @@ Mobile devices get a completely separate input overlay (`crafty/game/touch_contr
 The overlay is **not** created at page load. Instead, `setupTouchControlsLazy` registers a one-shot `touchstart` listener on the window. The first real touch anywhere on the page creates the `TouchControls` instance and attaches all the DOM elements. This avoids adding unused DOM for desktop users and works around unreliable touch-detection APIs:
 
 ```typescript
-// crafty/game/touch_controls.ts
+// ── from crafty/game/touch_controls.ts ──
 export function setupTouchControlsLazy(canvas, opts, onInit?) {
   const listener = () => {
     handle.controls = new TouchControls(canvas, opts);
@@ -213,6 +220,7 @@ When the overlay initialises, it disables pointer lock on the player and camera 
 The left thumb controls movement via a virtual joystick — a 120px circular area positioned at the bottom-left. Touch position relative to the joystick center is normalized to `[-1, 1]` and written to `player.inputForward` / `player.inputStrafe`, which the `PlayerController.update` loop reads alongside keyboard input:
 
 ```typescript
+// ── from crafty/game/touch_controls.ts ──
 private _setMovement(strafe: number, forward: number): void {
   this._opts.player.inputForward = forward;
   this._opts.player.inputStrafe  = strafe;
@@ -228,6 +236,7 @@ The right half of the canvas acts as a touch-drag look area. Finger movement del
 Hold-type buttons (Sneak, Jump, Mine, Place) use `_bindHoldButton`, which fires a callback on `touchstart` and another on `touchend`/`touchcancel`:
 
 ```typescript
+// ── from crafty/game/touch_controls.ts ──
 private _bindHoldButton(el, onDown, onUp): void {
   el.addEventListener('touchstart', (e) => { e.preventDefault(); onDown(); });
   el.addEventListener('touchend',   (e) => { e.preventDefault(); onUp(); });
@@ -245,6 +254,7 @@ The action buttons are positioned with a `HOTBAR_CLEARANCE` of 70px from the bot
 Crafty saves local worlds in the browser's **IndexedDB** via the `WorldStorage` class (`crafty/game/world_storage.ts`). Each world is stored as a single record in a `worlds` object store keyed by a UUID:
 
 ```typescript
+// ── from crafty/game/world_storage.ts ──
 export interface SavedWorld {
   id: string;
   name: string;
@@ -264,6 +274,7 @@ export interface SavedWorld {
 The IndexedDB database is opened with a single object store. An `onupgradeneeded` handler creates the store if it doesn't exist — IndexedDB ignores duplicate creations, so repeated opens are safe:
 
 ```typescript
+// ── from crafty/game/world_storage.ts ──
 static open(): Promise<WorldStorage> {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open('crafty', 1);
@@ -284,6 +295,7 @@ static open(): Promise<WorldStorage> {
 All operations follow a consistent pattern: begin a transaction, get the object store, and wrap the request in a promise:
 
 ```typescript
+// ── from crafty/game/world_storage.ts ──
 save(world: SavedWorld): Promise<void> {
   return this._withStore('readwrite', (store) => {
     return new Promise((resolve, reject) => {
@@ -311,6 +323,7 @@ list(): Promise<SavedWorld[]> {
 Results are sorted by `lastPlayedAt` descending so the launcher can show the most recently played world first. The `_withStore` helper reduces boilerplate by wrapping the transaction + object store setup:
 
 ```typescript
+// ── from crafty/game/world_storage.ts ──
 private _withStore<T>(mode: IDBTransactionMode,
                       fn: (store: IDBObjectStore) => Promise<T>): Promise<T> {
   const tx = this._db.transaction('worlds', mode);
@@ -323,6 +336,7 @@ private _withStore<T>(mode: IDBTransactionMode,
 A `version` field on each record enables forward-compatible schema changes. Records with a missing or lower version are detected and migrated when loaded:
 
 ```typescript
+// ── from crafty/game/world_storage.ts ──
 export const CURRENT_FORMAT_VERSION = 1;
 ```
 
@@ -333,6 +347,7 @@ The version check happens in the load path — if `loaded.version < CURRENT_FORM
 Worlds are created via the factory function `createSavedWorld`, which populates sensible defaults for a fresh world:
 
 ```typescript
+// ── from crafty/game/world_storage.ts ──
 export function createSavedWorld(name: string, seed: number): SavedWorld {
   return {
     id: crypto.randomUUID(),

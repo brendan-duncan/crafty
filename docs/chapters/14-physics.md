@@ -11,6 +11,7 @@ Crafty implements a minimal physics system focused on player movement and block 
 The player's collision volume is an axis-aligned bounding box (AABB). Collision detection tests the player's AABB against solid blocks in the world:
 
 ```typescript
+// ── AABB collision (conceptual) ──
 class AABB {
   min: Vec3;
   max: Vec3;
@@ -43,6 +44,7 @@ Two interrelated mechanics make jumping feel responsive even with imperfect inpu
 **Coyote time** gives a short grace window (~100 ms) after the player walks off a ledge during which a jump still succeeds. This prevents the frustration of pressing jump a frame too late after stepping off an edge:
 
 ```typescript
+// ── from src/engine/player_controller.ts ──
 // Coyote timer: refreshed on landing, counts down while airborne
 if (landed) {
   this._coyoteFrames = 6;
@@ -67,11 +69,13 @@ The counter is refreshed to 6 frames whenever the player is grounded and decreme
 The auto-jump system augments this for mobile: when walking into a 1-block-high obstacle with air above it, a velocity of `AUTO_JUMP_VEL = 8.0 blocks/s` is applied automatically, stepping the player onto the block without explicit input:
 
 ```typescript
-if (this.autoJump && this._onGround && hSpeed > 0.5) {
-  const aheadX = Math.floor(fx + dx * (HALF_W + 0.3));
-  const aheadZ = Math.floor(fz + dz * (HALF_W + 0.3));
-  if (this._isSolid(aheadX, footY, aheadZ) && !this._isSolid(aheadX, footY + 1, aheadZ)) {
-    this._velY = AUTO_JUMP_VEL;
+// ── from crafty/game/block_interaction.ts ──
+function placeBlock(hit: BlockHit, blockType: BlockType) {
+  const nx = hit.x + hit.normal.x;
+  const ny = hit.y + hit.normal.y;
+  const nz = hit.z + hit.normal.z;
+  if (world.getBlock(nx, ny, nz) === BlockType.Air) {
+    world.setBlock(nx, ny, nz, blockType);
   }
 }
 ```
@@ -83,6 +87,7 @@ if (this.autoJump && this._onGround && hSpeed > 0.5) {
 To determine which block the player is looking at, a ray is cast from the camera through the crosshair. The DDA (Digital Differential Analyzer) algorithm traverses the voxel grid efficiently:
 
 ```typescript
+// ── from src/block/world.ts ──
 function raycastVoxels(origin: Vec3, dir: Vec3, world: World, maxDist: number): BlockHit | null {
   let x = Math.floor(origin.x), y = Math.floor(origin.y), z = Math.floor(origin.z);
   const stepX = sign(dir.x), stepY = sign(dir.y), stepZ = sign(dir.z);
@@ -113,6 +118,7 @@ The return value includes the block position and the face normal (which side was
 Block breaking uses a **progressive crack animation** — holding the mouse button on a block gradually breaks it:
 
 ```typescript
+// ── from crafty/game/block_interaction.ts ──
 // Block breaking state
 let breakProgress = 0;
 const breakTime = blockHardness * 1.5;  // Stone ~1.5s, dirt ~0.3s

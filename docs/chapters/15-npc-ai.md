@@ -9,6 +9,7 @@ Non-playable characters (NPCs) bring the world to life. Crafty's NPC system uses
 Every NPC is a `GameObject` with a `MeshRenderer` for its visual representation and an AI component that implements the `Component` interface:
 
 ```typescript
+// ── from src/engine/component.ts ──
 abstract class Component {
   readonly gameObject: GameObject;
   start?(): void;
@@ -44,6 +45,7 @@ The three NPC types implement one of two state-machine patterns:
 The NPC stands still, bobbing gently. A random timer counts down; when it expires, the NPC transitions to `wander`. In the three-state variant, the NPC also checks player distance each frame and enters `flee` immediately if the player comes within a threshold radius.
 
 ```typescript
+// ── from crafty/game/components/duck_ai.ts ──
 case 'idle': {
   this._timer -= dt;
   if (playerDist2 < 36) {           // 6 blocks — flee radius
@@ -60,6 +62,7 @@ case 'idle': {
 The NPC picks a random target position within a distance range and walks toward it at a constant speed:
 
 ```typescript
+// ── from crafty/game/components/duck_ai.ts ──
 private _pickWanderTarget(): void {
   const angle = Math.random() * Math.PI * 2;
   const dist  = 3 + Math.random() * 8;
@@ -74,6 +77,7 @@ private _pickWanderTarget(): void {
 Movement toward the target uses simple direct steering — the NPC moves in a straight line to the waypoint at a fixed speed:
 
 ```typescript
+// ── from crafty/game/components/duck_ai.ts ──
 const dx = this._targetX - gx;
 const dz = this._targetZ - gz;
 const dist = Math.sqrt(dist2);
@@ -89,6 +93,7 @@ The yaw is updated each frame so the NPC's model faces the direction of travel. 
 Ducks flee from the player when within detection range (6 blocks). The flee behavior moves the duck directly away from the player at a higher speed (4.0 m/s vs 1.5 m/s wander). Once the distance exceeds 14 blocks, the duck returns to `idle`:
 
 ```typescript
+// ── from crafty/game/components/duck_ai.ts ──
 case 'flee': {
   if (playerDist2 > 196) {         // 14 block safe distance
     this._enterIdle();
@@ -110,6 +115,7 @@ Pigs are docile — they never flee and remain in the two-state cycle indefinite
 Ducklings use a single-state `follow` behavior instead of the idle/wander pattern. Rather than selecting random targets, each duckling tracks its parent duck's position and maintains a polar offset so the brood spreads naturally around the parent:
 
 ```typescript
+// ── from crafty/game/components/duckling_ai.ts ──
 case 'follow': {
   this._offsetAngle += dt * 0.25;
   const tx = this._parent.position.x + Math.cos(this._offsetAngle) * this._followDist;
@@ -132,6 +138,7 @@ The duckling does not check player distance directly — it inherits the parent'
 Creepers (and future hostile mobs) add a `chase` state that preempts idle and wander when the player enters the detect radius (8 blocks). The creeper moves toward the player at a higher speed (1.8 m/s) and faces the player directly:
 
 ```typescript
+// ── from crafty/game/components/creeper_ai.ts ──
 case 'chase': {
   const dx = playerPos.x - go.position.x;
   const dz = playerPos.z - go.position.z;
@@ -152,6 +159,7 @@ Hysteresis between the detect radius (8 blocks) and lose radius (12 blocks) prev
 When the creeper reaches touching distance (1.8 blocks), it enters `detonate` — it stops moving and begins a 2.5-second fuse countdown. The creeper's body flashes between green and white at an accelerating rate:
 
 ```typescript
+// ── from crafty/game/components/creeper_ai.ts ──
 case 'detonate': {
   this._detonateElapsed += dt;
   if (playerDist2 > 36) { this._exitDetonate(); break; }     // player escaped
@@ -174,6 +182,7 @@ If the player retreats beyond 6 blocks during the fuse, the creeper cancels deto
 ![Concentric flee zones around the player (6-block trigger inside, 14-block safe ring outside) — the gap creates hysteresis so the duck doesn't flicker between flee and idle](../illustrations/15-duck-flee.svg)
 
 ```typescript
+// ── from crafty/game/components/duck_ai.ts ──
 // If the block below is water, float on the surface
 const blockBelow = this._world.getBlockType(
   Math.floor(gx), Math.floor(groundY - 1), Math.floor(gz));
@@ -187,6 +196,7 @@ if (blockBelow === BlockType.WATER) {
 The duck's model has a child GameObject named `Duck.Head` which is animated with a sinusoidal bob. The bob frequency and amplitude differ between idle and wander states:
 
 ```typescript
+// ── from crafty/game/components/duck_ai.ts ──
 this._bobPhase += dt * (this._state === 'wander' ? 6 : 2);
 const bobAmp = this._state === 'wander' ? 0.018 : 0.008;
 this._headGO.position.y = this._headBaseY + Math.sin(this._bobPhase) * bobAmp;
@@ -203,6 +213,7 @@ Player position is fed to ducks via a static field `DuckAI.playerPos`, written o
 ![Each duckling steers toward parent + polar offset; offsetAngle drifts at 0.25 rad/s so the brood gently swirls around the parent](../illustrations/15-duckling-follow.svg)
 
 ```typescript
+// ── from crafty/game/components/duckling_ai.ts ──
 constructor(parent: GameObject, world: World) {
   this._parent = parent;
   this._offsetAngle = Math.random() * Math.PI * 2;
@@ -213,6 +224,7 @@ constructor(parent: GameObject, world: World) {
 Each frame, the duckling computes its target position as the parent's position plus the polar offset, then steers toward it:
 
 ```typescript
+// ── from crafty/game/components/duckling_ai.ts ──
 this._offsetAngle += dt * 0.25;  // gentle swirl
 const tx = this._parent.position.x + Math.cos(this._offsetAngle) * this._followDist;
 const tz = this._parent.position.z + Math.sin(this._offsetAngle) * this._followDist;
@@ -221,6 +233,7 @@ const tz = this._parent.position.z + Math.sin(this._offsetAngle) * this._followD
 The duckling adjusts its speed based on distance — faster when lagging behind, creating a realistic catching-up motion:
 
 ```typescript
+// ── from crafty/game/components/duckling_ai.ts ──
 const speed = dist > 2.5 ? 3.5 : 1.8;
 go.position.x += nx * speed * dt;
 go.position.z += nz * speed * dt;
@@ -278,12 +291,14 @@ The pig's wander behavior is identical in structure to the duck's but uses sligh
 **Detonate.** The creeper stops moving and begins flashing between green and white at an accelerating rate — the flash interval starts at 0.5 s and decreases by 0.18 s per second elapsed, capped at 0.08 s:
 
 ```typescript
+// ── from crafty/game/components/creeper_ai.ts ──
 const flashInterval = Math.max(0.08, 0.5 - this._detonateElapsed * 0.18);
 ```
 
 While detonating, the creeper checks whether the player has retreated beyond the cancel radius (6 blocks). If so, it restores its green color and returns to `idle` with a short cooldown timer:
 
 ```typescript
+// ── from crafty/game/components/creeper_ai.ts ──
 if (playerDist2 > DETONATE_CANCEL_RADIUS_SQ) {
   this._exitDetonate();
   break;
@@ -315,6 +330,7 @@ This ensures creeper explosions are persisted in local saves and replicated to a
 The color change is applied directly to the child `MeshRenderer` materials at runtime:
 
 ```typescript
+// ── from crafty/game/components/creeper_ai.ts ──
 private _setColor(color: [number, number, number, number]): void {
   for (const child of go.children) {
     const renderer = child.getComponent(MeshRenderer);
@@ -333,6 +349,7 @@ The creeper uses a single `CREEPER_GREEN` color for both body and head (unlike e
 Creepers spawn during chunk generation with an 8% probability per XZ chunk column, using the same `AnimalMeshes` interface as passive mobs. Unlike ducks and pigs, they have **no biome filter** — they can appear in any biome:
 
 ```typescript
+// ── from crafty/game/animal_spawner.ts ──
 if (Math.random() < CREEPER_CHANCE) {
   const wx = Math.floor(baseX + Math.random() * CHUNK_SIZE);
   const wz = Math.floor(baseZ + Math.random() * CHUNK_SIZE);
@@ -353,6 +370,7 @@ The mesh stands twice as tall as a pig, with a body half-height of 0.60 and leg 
 Bees maintain altitude via terrain tracking rather than gravity. Each frame the ground height below the bee is sampled, and the bee's Y position is lerped toward the target height at 3× per second, giving smooth transitions:
 
 ```typescript
+// ── from crafty/game/components/bee_ai.ts ──
 this._verticalPhase += dt * 2.5;
 const hoverOffset = Math.sin(this._verticalPhase) * 0.15;
 const targetBase = this._flowerTarget
@@ -378,6 +396,7 @@ wander → (done)       → idle
 The bee hovers in place with a vertical bob. A random timer (3–6 seconds) counts down. When it expires, the bee scans for nearby flower blocks (6-block radius). If found, it enters the **approach** sub-mode: the wander target is set to the flower's XZ coordinates and the state switches to `wander`, causing the bee to fly toward the flower at 2.5 m/s. If no flower is found, a random wander target is picked instead:
 
 ```typescript
+// ── from crafty/game/components/bee_ai.ts ──
 case 'idle': {
   this._timer -= dt;
   if (this._timer <= 0) {
@@ -392,6 +411,7 @@ case 'idle': {
 ```
 
 ```typescript
+// ── from crafty/game/components/bee_ai.ts ──
 private _enterApproachFlower(): void {
   this._targetX = this._flowerTarget.x;
   this._targetZ = this._flowerTarget.z;
@@ -408,6 +428,7 @@ During the approach flight the terrain tracking targets `_flowerTarget.y - 0.1` 
 The bee flies toward a target position at 2.5 m/s. Directional yaw is computed from the movement vector:
 
 ```typescript
+// ── from crafty/game/components/bee_ai.ts ──
 private _pickWanderTarget(): void {
   const angle = Math.random() * Math.PI * 2;
   const dist  = 8 + Math.random() * 8;
@@ -423,6 +444,7 @@ private _pickWanderTarget(): void {
 Steering uses direct-to-target movement. When the target is reached (within 1.0 block in XZ), the bee checks whether a `_flowerTarget` is set — if so, it transitions to `hover` for fine positioning; otherwise it returns to `idle`:
 
 ```typescript
+// ── from crafty/game/components/bee_ai.ts ──
 case 'wander': {
   ...
   if (dist2 < 1.0) {

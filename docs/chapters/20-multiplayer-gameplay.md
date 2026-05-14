@@ -11,6 +11,7 @@ Multiplayer gameplay adds state synchronization, remote player rendering, and la
 The client sends its player state to the server at a fixed rate (typically 20 Hz):
 
 ```typescript
+// ── from crafty/game/network_client.ts ──
 class NetworkClient {
   private _lastSend = 0;
 
@@ -34,6 +35,7 @@ class NetworkClient {
 The server stores the latest state for each player and broadcasts snapshots to all clients:
 
 ```typescript
+// ── from server/src/world_room.ts ──
 class PlayerConn {
   lastState: {
     seq: number;
@@ -60,6 +62,7 @@ class PlayerConn {
 The client receives snapshots at 20 Hz but renders at 60+ Hz. Snapshot interpolation smooths the motion between received states:
 
 ```typescript
+// ── from crafty/game/snapshot_interpolator.ts ──
 class SnapshotInterpolator {
   private _history: Snapshot[] = [];
   private _renderDelay = 100;  // ms behind real-time
@@ -91,6 +94,7 @@ The 100 ms render delay gives the interpolation buffer time to fill. This introd
 Remote players are rendered as animated character meshes with name labels. The `RemotePlayer` component updates its position from the interpolated snapshot:
 
 ```typescript
+// ── from crafty/game/remote_player.ts ──
 class RemotePlayer {
   private _interpolator: SnapshotInterpolator;
 
@@ -116,6 +120,7 @@ class RemotePlayer {
 Each remote player has a name label rendered as a DOM element positioned above the player's head. The label position is projected from 3D world space to 2D screen space:
 
 ```typescript
+// ── from crafty/game/name_label.ts ──
 function updateNameLabel(label: HTMLElement, worldPos: Vec3, camera: Camera, canvas: HTMLCanvasElement): void {
   const screenPos = camera.worldToScreen(worldPos);
   label.style.display = screenPos.z > 0 ? 'block' : 'none';
@@ -133,7 +138,7 @@ The label fades with distance and is hidden when behind the camera. Player names
 When a player places or breaks a block, the client sends a `block_edit` message and immediately applies the change locally (client-side prediction). The server validates the edit and broadcasts a `block_update` to all other clients:
 
 ```typescript
-// Client sends:
+// ── from server/src/world_room.ts ──
 client.send({ type: 'block_edit', action: 'break', x, y, z });
 
 // Server receives, validates, broadcasts:

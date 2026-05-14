@@ -122,7 +122,7 @@ Vectors are everywhere in Crafty — not just for positions and directions, but 
 **Positions and translations.** A game object's position is a `Vec3`:
 
 ```typescript
-// from the engine component system
+// ── from the engine component system ──
 class GameObject {
   position: Vec3 = Vec3.zero();
   // ...
@@ -132,15 +132,15 @@ class GameObject {
 **Directions and normals.** Normal vectors are stored in the G-buffer as `Vec3` values encoded into `float16` textures:
 
 ```typescript
+// ── from src/renderer/gbuffer.ts ──
 // G-buffer normal packing: world-space normal in RGB
-// from src/renderer/gbuffer.ts
 // normalMetallic: rg16float — RGB = world-space normal
 ```
 
 **Colors.** RGB colors are also `Vec3` values, which makes arithmetic like `color.scale(intensity)` natural:
 
 ```typescript
-// from src/renderer/directional_light.ts
+// ── from src/renderer/directional_light.ts ──
 export interface DirectionalLight {
   direction: Vec3;
   intensity: number;
@@ -172,7 +172,7 @@ Column 3:  data[12] data[13] data[14] data[15]   (fourth column)
 This matches WebGPU's WGSL layout: `matrix<mat4x4<f32>>` arrays elements column-by-column in the default `@column_major` storage. The identity matrix is constructed as:
 
 ```typescript
-// from src/math/mat4.ts
+// ── from src/math/mat4.ts ──
 static identity(): Mat4 {
   return new Mat4([
     1, 0, 0, 0,   // column 0
@@ -188,8 +188,8 @@ static identity(): Mat4 {
 Matrix multiplication follows the column-major convention: `a.multiply(b)` computes `a * b`, meaning `b` is applied first when transforming vectors. This matches how we compose transforms in the scene graph:
 
 ```typescript
-// Composition: parent * local (parent is applied after local)
-// from engine scene graph
+  // Composition: parent * local (parent is applied after local)
+  // ── from engine scene graph ──
 localToWorld(): Mat4 {
   if (this._parent) {
     return this._parent.localToWorld().multiply(this.localTransform());
@@ -206,7 +206,7 @@ The `lookAt` view matrix constructs a right-handed view transformation. It build
 
 
 ```typescript
-// from src/math/mat4.ts
+// ── from src/math/mat4.ts ──
 static lookAt(eye: Vec3, target: Vec3, up: Vec3): Mat4 {
   const f = target.sub(eye).normalize();   // forward
   const r = f.cross(up).normalize();       // right
@@ -227,7 +227,7 @@ The `perspective` projection builds a right-handed frustum with WebGPU's [0, 1] 
 
 
 ```typescript
-// from src/math/mat4.ts
+// ── from src/math/mat4.ts ──
 static perspective(fovY: number, aspect: number, near: number, far: number): Mat4 {
   const f = 1 / Math.tan(fovY / 2);
   const nf = 1 / (near - far);
@@ -248,6 +248,7 @@ The `-1` at `data[11]` (column 2, row 3) is the key difference from OpenGL's pro
 The static `trs` method composes translation, rotation, and scale into a single matrix:
 
 ```typescript
+// ── from src/math/mat4.ts ──
 static trs(
   t: Vec3,
   qx: number, qy: number, qz: number, qw: number,
@@ -285,6 +286,7 @@ static trs(
 When transforming surface normals, we cannot use the same matrix as for positions. If the transform contains non-uniform scale, the normals must be transformed by the **inverse transpose** of the upper-left 3×3 submatrix:
 
 ```typescript
+// ── from src/math/mat4.ts ──
 normalMatrix(): Mat4 {
   // Extract upper-left 3x3, invert, transpose
   const m = this.invert();
@@ -311,6 +313,7 @@ The half-angles in the encoding are why two quaternions `q` and `−q` represent
 The default quaternion is the identity `(0, 0, 0, 1)` — representing no rotation:
 
 ```typescript
+// ── from src/math/quaternion.ts ──
 export class Quaternion {
   x: number;
   y: number;
@@ -326,6 +329,7 @@ export class Quaternion {
 The `fromEuler` static method converts intrinsic XYZ Euler angles (radians) to a quaternion. This is the primary way user input (yaw/pitch) becomes a rotation:
 
 ```typescript
+// ── from src/math/quaternion.ts ──
 static fromEuler(x: number, y: number, z: number): Quaternion {
   // x = pitch, y = yaw, z = roll
   // Intrinsic XYZ order: yaw (Y) * pitch (X) * roll (Z)
@@ -347,6 +351,7 @@ static fromEuler(x: number, y: number, z: number): Quaternion {
 Quaternion multiplication uses the Hamilton product. `a.multiply(b)` means `this` is applied **after** `b`:
 
 ```typescript
+// ── from src/math/quaternion.ts ──
 multiply(b: Quaternion): Quaternion {
   const ax = this.x, ay = this.y, az = this.z, aw = this.w;
   const bx = b.x, by = b.y, bz = b.z, bw = b.w;
@@ -363,6 +368,7 @@ multiply(b: Quaternion): Quaternion {
 To rotate a vector by a quaternion:
 
 ```typescript
+// ── from src/math/quaternion.ts ──
 rotateVec3(v: Vec3): Vec3 {
   // q * v * q^-1, implemented as:
   // v' = v + 2 * cross(q.xyz, cross(q.xyz, v) + q.w * v)
@@ -428,6 +434,7 @@ Every `GameObject` in the scene graph has a **local transform** built from its p
 
 
 ```typescript
+// ── from the engine scene graph ──
 // Composition order: T * R * S
 // In column-major convention, S is applied first (local scale),
 // then R (rotation around the scaled axes), then T (translation
@@ -445,6 +452,7 @@ localTransform(): Mat4 {
 The world transform composes parent and local transforms:
 
 ```typescript
+// ── from the engine scene graph ──
 localToWorld(): Mat4 {
   if (this._parent) {
     // parent * local — parent transform is applied after local
@@ -457,7 +465,7 @@ localToWorld(): Mat4 {
 To go from world space to the camera's view space, we invert the camera's local-to-world matrix:
 
 ```typescript
-// from the Camera component
+// ── from the Camera component ──
 viewMatrix(): Mat4 {
   return this.gameObject.localToWorld().invert();
 }
@@ -492,8 +500,7 @@ Screen space (pixels)
 In WGSL, this is:
 
 ```wgsl
-// Vertex shader transformation chain
-// from a typical Crafty vertex shader
+// ── from a typical Crafty vertex shader ──
 struct Uniforms {
   modelMatrix: mat4x4<f32>,
   viewMatrix: mat4x4<f32>,
@@ -519,6 +526,7 @@ Procedural generation is central to a voxel game — terrain height, biome distr
 The `Random` class implements the **xorshift128+** family (Xorwow variant) with explicit seeding. The instance itself is the state — it extends `Uint32Array(6)`:
 
 ```typescript
+// ── from src/math/random.ts ──
 export class Random extends Uint32Array {
   static global = new Random();
 

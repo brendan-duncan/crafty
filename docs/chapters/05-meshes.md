@@ -11,6 +11,7 @@ A mesh in WebGPU lives in two GPU buffers: a **vertex buffer** holding per-verte
 Crafty's `Mesh` class (`src/assets/mesh.ts`) owns these buffers:
 
 ```typescript
+// ── from src/assets/mesh.ts ──
 export class Mesh {
   readonly vertexBuffer: GPUBuffer;
   readonly indexBuffer: GPUBuffer;
@@ -35,6 +36,7 @@ Each vertex is 48 bytes — 12 consecutive 32-bit floats. The four attributes ar
 This is defined by the exported constants:
 
 ```typescript
+// ── from src/assets/mesh.ts ──
 export const VERTEX_STRIDE = 48;
 
 export const VERTEX_ATTRIBUTES: GPUVertexAttribute[] = [
@@ -48,6 +50,7 @@ export const VERTEX_ATTRIBUTES: GPUVertexAttribute[] = [
 The `shaderLocation` values correspond to `@location(N)` in the WGSL vertex shader input:
 
 ```wgsl
+// ── from src/shaders/geometry.wgsl ──
 struct VertexInput {
   @location(0) position: vec3<f32>,
   @location(1) normal  : vec3<f32>,
@@ -61,6 +64,7 @@ struct VertexInput {
 Meshes are created via `Mesh.fromData()`, which uploads CPU-side arrays to the GPU:
 
 ```typescript
+// ── from src/assets/mesh.ts ──
 static fromData(device: GPUDevice, vertices: Float32Array, indices: Uint32Array): Mesh {
   const vb = device.createBuffer({
     label: 'Mesh VertexBuffer',
@@ -89,6 +93,7 @@ Both buffers use `COPY_DST` so they can be populated with `queue.writeBuffer()`.
 The vertex buffer layout is specified when creating a render pipeline:
 
 ```typescript
+// ── from src/renderer/passes/geometry_pass.ts ──
 vertex: {
   module: shaderModule,
   entryPoint: 'vs_main',
@@ -114,6 +119,7 @@ Crafty's `Mesh` class is the sole mesh representation. There is no higher-level 
 The plane mesh is the simplest procedural geometry — two triangles forming a square:
 
 ```typescript
+// ── from src/assets/mesh.ts ──
 static createPlane(device: GPUDevice, size = 1): Mesh {
   const h = size / 2;
   // Four corners, two triangles
@@ -132,6 +138,7 @@ static createPlane(device: GPUDevice, size = 1): Mesh {
 ### Cube
 
 ```typescript
+// ── from src/assets/mesh.ts ──
 static createCube(device: GPUDevice, size = 1): Mesh {
   const h = size / 2;
   // Six faces, each with 4 vertices
@@ -174,6 +181,7 @@ This is important for correct lighting — without explicit per-face normals, a 
 
 
 ```typescript
+// ── from src/assets/mesh.ts ──
 static createSphere(device: GPUDevice, radius = 0.5,
                     latSegments = 32, lonSegments = 32): Mesh {
   const vertData: number[] = [];
@@ -246,6 +254,7 @@ The sphere is used for debug light markers (showing point/spot light positions a
 `Mesh.createCone(device, radius, height, segments)` generates a cone with its apex at `(0, height, 0)` and its base centerd at the origin on the XZ plane:
 
 ```typescript
+// ── from src/assets/mesh.ts ──
 static createCone(device: GPUDevice, radius = 0.5,
                   height = 1.0, segments = 16): Mesh {
   const vertData: number[] = [];
@@ -311,6 +320,7 @@ The cone is built from three parts: the **apex** (a single vertex at the tip), t
 **Side normals** are computed from the slope of the cone. For a cone with radius `r` and height `h`, the outward normal on the side has a horizontal component proportional to `h / sqrt(h² + r²)` and a vertical component proportional to `r / sqrt(h² + r²)`:
 
 ```typescript
+// ── from src/assets/mesh.ts ──
 const slope = Math.sqrt(height * height + radius * radius);
 const sn = height / slope;   // horizontal scale factor
 const cn = radius / slope;   // vertical (Y) component
@@ -334,6 +344,7 @@ Skinned meshes extend the basic mesh with **joint influences** — each vertex i
 
 
 ```typescript
+// ── from src/renderer/passes/skinned_geometry_pass.ts ──
 // Additional vertex attributes for skinned geometry
 // location 4: joint indices (uint32x4 packed)
 // location 5: joint weights (float32x4)
@@ -362,6 +373,7 @@ The `SkinnedGeometryPass` renders these meshes into the G-buffer, applying the j
 Animation in Crafty is stored as **clips** — sequences of joint transforms sampled at a fixed rate. Animation playback interpolates between keyframes:
 
 ```typescript
+// ── from src/engine/animation.ts ──
 // Animation clip playback
 class AnimationClip {
   // Samples per joint: translation, rotation (quaternion), scale
@@ -372,6 +384,7 @@ class AnimationClip {
 Joint transforms are computed on the CPU each frame and uploaded to a GPU storage buffer:
 
 ```typescript
+// ── from src/renderer/passes/skinned_geometry_pass.ts ──
 // Per frame: compute joint matrices, upload to GPU
 const jointCount = skeleton.jointCount;
 const jointBuffer = device.createBuffer({
@@ -407,6 +420,7 @@ A `.glb` file is a little-endian binary container with a 12-byte header followed
 The parser reads these chunks in sequence — the JSON chunk is decoded with `TextDecoder` and parsed, the BIN chunk is kept as an `ArrayBuffer` for direct `DataView` access:
 
 ```typescript
+// ── from src/assets/gltf_loader.ts ──
 const magic   = view.getUint32(0, true);
 const version = view.getUint32(4, true);
 if (magic !== 0x46546C67 || version !== 2) throw Error('Not a valid GLB 2.0');
@@ -435,6 +449,7 @@ glTF accessors describe typed views into the binary buffer. The loader handles a
 Accessors respect the buffer view's `byteStride`, allowing interleaved vertex data in the source file:
 
 ```typescript
+// ── from src/assets/gltf_loader.ts ──
 const n      = TYPE_COUNT[acc.type] ?? 1;
 const bv     = bufferViews[acc.bufferView!];
 const stride = bv.byteStride ?? (n * 4);
@@ -451,6 +466,7 @@ for (let i = 0; i < count; i++) {
 Many glTF files omit tangents, relying on the engine to generate them. Crafty's `computeTangents` implements the **MikkTSpace** algorithm — it accumulates per-triangle tangent/bitangent contributions into vertex arrays, then applies Gram-Schmidt orthonormalization and calculates the bitangent sign (`w`):
 
 ```typescript
+// ── from src/assets/gltf_loader.ts ──
 for each triangle (i0, i1, i2):
   const e1 = p1 - p0, e2 = p2 - p0;
   const duv1 = uv1 - uv0, duv2 = uv2 - uv0;
@@ -481,6 +497,7 @@ The loader packs parsed attributes into an 80-byte interleaved vertex (20 floats
 Joints and weights are packed at fixed offsets using a `Uint32Array` view over the same `Float32Array` buffer — a common pattern for writing uint data into an f32 array without allocation:
 
 ```typescript
+// ── from src/assets/gltf_loader.ts ──
 const vertBuf = new Float32Array(vertCount * 20);
 const vertU32 = new Uint32Array(vertBuf.buffer);
 
@@ -495,6 +512,7 @@ If the mesh has no joints or weights, a default weight of `1.0` is assigned to m
 PBR materials are constructed from the glTF metallic-roughness model. Base color and normal textures embedded in the BIN chunk are extracted as Blobs, decoded via `createImageBitmap`, and uploaded to the GPU as `Texture` objects:
 
 ```typescript
+// ── from src/assets/gltf_loader.ts ──
 if (img.bufferView != null) {
   const bv  = gltf.bufferViews![img.bufferView];
   const bytes = new Uint8Array(bin, bv.byteOffset, bv.byteLength);
@@ -511,6 +529,7 @@ External URI-based textures are loaded via `Texture.fromUrl` as a fallback.
 Skinning data is reconstructed from glTF's node hierarchy. The loader builds a `Skeleton` by mapping joint nodes, computing parent indices, and reading inverse bind matrices. A root transform accumulates ancestor nodes above the skeleton root that contribute to the model-space transform:
 
 ```typescript
+// ── from src/assets/gltf_loader.ts ──
 let rootTransform = identity();
 let anc = nodeParent[jointNodes[0]];
 while (anc >= 0) {

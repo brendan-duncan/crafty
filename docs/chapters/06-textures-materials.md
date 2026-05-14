@@ -16,6 +16,7 @@ Crafty supports three texture dimensionalities:
 **Cube textures** are used for the sky and image-based lighting (IBL). A cube texture has 6 array layers (one per face: +X, -X, +Y, -Y, +Z, -Z):
 
 ```typescript
+// ── from src/renderer/passes/sky_texture_pass.ts ──
 // HDR sky cubemap texture
 const skyTexture = device.createTexture({
   label: 'SkyCubemap',
@@ -28,6 +29,7 @@ const skyTexture = device.createTexture({
 Cube textures are sampled in WGSL with `texture_cube<f32>` using a direction vector, which can be thought of as a ray from the center of the cube that intersects through a particular texel of a side of the cube:
 
 ```wgsl
+// ── from src/shaders/lighting.wgsl ──
 @group(3) @binding(0) var sky_cube: texture_cube<f32>;
 // ...
 let skyColor = textureSample(sky_cube, sampler, direction);
@@ -36,6 +38,7 @@ let skyColor = textureSample(sky_cube, sampler, direction);
 **3D textures** are used for volumetric data like cloud noise. They have a depth dimension in addition to width and height. They are sampled in WGSL with a `texture_3d<f32>` using a normalized 3d coordinate in the range **0.0** to **1.0**.
 
 ```wgsl
+// ── from src/shaders/clouds.wgsl ──
 @group(0) @binding(0) var volumeSampler: sampler;
 @group(0) @binding(1) var volumeTexture3D: texture_3d<f32>;
 // ...
@@ -64,6 +67,7 @@ HDR environment maps (.hdr files) store a 360° panoramic image of a real-world 
 The `.hdr` file is a text header followed by binary pixel data. The parser reads scanlines with ASCII helpers:
 
 ```typescript
+// ── from src/assets/hdr_loader.ts ──
 const magic = readAsciiLine();
 if (!magic.startsWith('#?RADIANCE') && !magic.startsWith('#?RGBE'))
   throw Error('Not a Radiance HDR file');
@@ -80,6 +84,7 @@ const width  = parseInt(m[2], 10);
 Pixel data uses two encoding schemes detected at scanline granularity. The **new RLE format** stores each channel (R, G, B, E) as a separate interleaved RLE stream, flagged by the scanline prefix `[2, 2, W>>8, W&255]`:
 
 ```typescript
+// ── from src/assets/hdr_loader.ts ──
 if (r === 2 && g === 2 && (b & 0x80) === 0) {
   // New RLE scanline: 4 independent RLE streams (R, G, B, E)
   const sw = (b << 8) | e;  // stored width, must match header
@@ -90,6 +95,7 @@ if (r === 2 && g === 2 && (b & 0x80) === 0) {
 Each channel stream uses run-length encoding where `code > 128` means repeat the next byte `code - 128` times:
 
 ```typescript
+// ── from src/assets/hdr_loader.ts ──
 while (x < width) {
   const code = bytes[pos++];
   if (code > 128) {
@@ -110,6 +116,7 @@ The **old/uncompressed format** stores raw RGBE quads, with `[1, 1, 1, count]` s
 Rather than computing `Math.pow(2, e - 128)` per pixel on the CPU, the raw RGBE bytes are uploaded as an `rgba8uint` texture and decoded to `rgba16float` via a compute shader (`src/shaders/rgbe_decode.wgsl`):
 
 ```typescript
+// ── from src/assets/hdr_loader.ts ──
 // Upload raw RGBE bytes as uint texture — CPU does no math
 const srcTex = device.createTexture({
   format: 'rgba8uint',

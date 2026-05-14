@@ -10,8 +10,8 @@ Self-contained samples in `samples/` demonstrate individual features in isolatio
 
 ```
 samples/
-├── forward_pass.html
-├── forward_pass_sample.ts      — Forward renderer demo
+├── forward_test.html
+├── forward_tes.ts              — Forward renderer demo
 ├── engine_test.html
 ├── engine_test.ts              — Full deferred pipeline test
 ├── cascade_shadow_test.html
@@ -23,7 +23,7 @@ Samples share no state with each other or with the main game. Each creates its o
 To add a new sample, create two files:
 
 ```typescript
-// samples/my_feature.ts
+// ── from samples/my_feature.ts ──
 import { RenderContext, RenderGraph, ... } from '../../src/index.js';
 
 async function main() {
@@ -35,12 +35,30 @@ async function main() {
 main();
 ```
 
+And an associated html:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test My Feature</title>
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <script type="module" src="./my_feature.ts"></script>
+</body>
+</html>
+```
+
 ## 22.2 Testing Strategy
 
 Crafty uses **Vitest** for unit testing. Tests live in `tests/` and cover mathematical correctness, data structure invariants, and component behavior:
 
 ```typescript
-// tests/math/vec3.test.ts
+// ── from tests/math/vec3.test.ts ──
 test('cross product is right-handed', () => {
   const result = Vec3.up().cross(Vec3.forward());
   expect(result.x).toBeCloseTo(1);  // Should equal Vec3.right()
@@ -72,6 +90,7 @@ WebGPU-dependent features cannot be tested in Node.js. Those are tested via samp
 WebGPU validation errors are the primary debugging tool. With `enableErrorHandling: true`, Crafty wraps each pass in error scopes:
 
 ```typescript
+// ── from src/renderer/render_context.ts ──
 ctx.pushPassErrorScope('GeometryPass');
 pass.execute(encoder, ctx);
 await ctx.popPassErrorScope('GeometryPass');
@@ -84,6 +103,7 @@ This captures the exact pass that caused a validation error, along with the erro
 WGSL compilation errors are reported through `getCompilationInfo()`:
 
 ```typescript
+// ── from src/renderer/shader_debug.ts ──
 const info = shaderModule.getCompilationInfo();
 for (const msg of info.messages) {
   if (msg.type === 'error') {
