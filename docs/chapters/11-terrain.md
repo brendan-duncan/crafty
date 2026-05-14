@@ -216,6 +216,55 @@ Blocks are classified into four material categories, each producing a separate v
 
 **Props** are single-point billboards: each prop emits 6 vertices all at the block center position `(x+0.5, y+0.5, z+0.5)` with face index `6`. The vertex shader expands these into camera-facing quads using the `billboard_offset` function, which maps the vertex index modulo 6 to a corner offset scaled by the camera right/up vectors.
 
+### Prop Billboard Rendering
+
+**`chunk.ts` — Billboarding a prop block:**
+
+```typescript
+if (isProp) {
+  // Single camera-facing billboard quad centered in the block.
+  for (let v = 0; v < 6; v++) {
+    propBuffer[propIdx++] = x + 0.5;
+    propBuffer[propIdx++] = y + 0.5;
+    propBuffer[propIdx++] = z + 0.5;
+    propBuffer[propIdx++] = 6;         // face=6 signals billboard
+    propBuffer[propIdx++] = blockType;
+  }
+  continue;
+}
+```
+
+All six vertices share the same center position `(x+0.5, y+0.5, z+0.5)` and the marker face index `6`. The vertex shader `vs_prop` in `chunk_geometry.wgsl` expands them into a camera-facing quad:
+
+```wgsl
+fn billboard_offset(vid: u32) -> vec2<f32> {
+  switch vid % 6u {
+    case 0u: { return vec2<f32>(-0.5, -0.5); }
+    case 1u: { return vec2<f32>( 0.5, -0.5); }
+    case 2u: { return vec2<f32>(-0.5,  0.5); }
+    case 3u: { return vec2<f32>( 0.5, -0.5); }
+    case 4u: { return vec2<f32>( 0.5,  0.5); }
+    default: { return vec2<f32>(-0.5,  0.5); }
+  }
+}
+
+@vertex
+fn vs_prop(vin: VertexInput, @builtin(vertex_index) vid: u32) -> PropVertexOutput {
+  let center = vin.position + chunk.offset;
+  let cam_right = vec3<f32>(camera.view[0].x, camera.view[1].x, camera.view[2].x);
+  let cam_up    = vec3<f32>(camera.view[0].y, camera.view[1].y, camera.view[2].y);
+  let off = billboard_offset(vid);
+  let wp  = center + cam_right * off.x + cam_up * off.y;
+  // ...
+}
+```
+
+The camera right and up vectors are extracted from the view matrix (column-major storage), so the quad always faces the camera regardless of orientation. The UVs follow the same vertex-index pattern, mapping the atlas tile onto the expanded quad.
+
+Because props are alpha-tested (discarded below 0.5 alpha) and use `cullMode: none`, they work as thin billboards visible from both sides — ideal for grass blades, flowers, and torches.
+
+**Shadow passes** render props twice — once with `right=(1,0,0)` and once with `right=(0,0,1)` — forming a cross-shaped shadow that avoids the paper-thin appearance a single billboard would produce when viewed edge-on from the light source.
+
 ### Greedy Merge
 
 The mesher does not emit one quad per block face. Instead it scans each axis plane and merges adjacent faces of the same block type into the largest possible rectangle (the full algorithm is described in [11.5 Greedy Meshing](#115-greedy-meshing)). The merge is tracked with a `drawnFaces` bitfield (`uint16` per `(x, y, face)` combination, with the z bit marking faces that have already been claimed by a larger quad). This merge step is what makes chunk rendering viable — a flat terrain chunk may have only a few hundred quads instead of tens of thousands.
@@ -508,7 +557,94 @@ The listener position and orientation are updated each frame from the camera tra
 
 The Web Audio `AudioContext` is created lazily on the first user gesture (click/touch) in `crafty/main.ts:189` to comply with browser autoplay policies. Sound buffers are loaded asynchronously and cached in `AudioManager._digBuffers`, `_stepBuffers`, and `_fallBuffers` maps.
 
-## 11.8 Erosion Simulation
+## 11.8 Illuminated Blocks and Point Lights
+
+Certain block types emit light, adding dynamic illumination to the world. Light-emitting blocks fall into two categories: blocks whose glow is baked into the G-buffer emission channel, and blocks that create runtime `PointLight` components.
+
+### Emissive Blocks (G-Buffer)
+
+Blocks with `emitsLight = 1` in `blockMaterialData` write their emission color into the G-buffer's `normal_emission` target (`mer.g` channel), which is accumulated during the deferred lighting pass. These blocks glow without creating a dynamic light source — they illuminate only themselves, not the surrounding geometry:
+
+| Block | Color | Intensity |
+|-------|-------|-----------|
+| Glowstone | Warm yellow | 24.8 |
+| Obsidian | Purple | 12.0 |
+
+### Point Light Blocks
+
+Torches and magma blocks create full `PointLight` components at runtime, producing dynamic lighting that affects nearby geometry through the deferred lighting pass. The `PointLight` data (position, color, intensity, radius) is uploaded to a GPU storage buffer each frame and evaluated in the PBR lighting loop.
+
+**Light parameters (`blockLightData` in `block_type.ts`):**
+
+| Block | Color | Intensity | Radius |
+|-------|-------|-----------|--------|
+| Torch | Warm orange `(0.95, 0.56, 0.01)` | 4.0 | 3.22 |
+| Magma | Hot red `(0.95, 0.06, 0.12)` | 32.0 | 8.72 |
+
+**Runtime light management (`lights.ts`):**
+
+```typescript
+export function addTorchLight(bx: number, by: number, bz: number, scene: Scene): void {
+  const go = new GameObject({ name: 'TorchLight' });
+  go.position.set(bx + 0.5, by + 0.9, bz + 0.5);
+  const pl = go.addComponent(new PointLight());
+  pl.color = new Vec3(1.0, 0.52, 0.18);
+  pl.intensity = 4.0;
+  pl.radius = 6.0;
+  scene.add(go);
+}
+```
+
+Torch lights are positioned at `y + 0.9` (near the top of the block) and offset from each torch's base position by a unique phase value. Magma lights sit at `y + 0.5` (block center).
+
+**Lights are created and destroyed on block interaction:**
+
+| Event | Action |
+|-------|--------|
+| Player places torch | `addTorchLight()` called from `block_interaction.ts:143` |
+| Player breaks torch | `removeTorchLight()` called from `block_interaction.ts:81` |
+| Multiplayer remote edit | Same add/remove triggered from network handler |
+| Chunk load | All torch/magma blocks in the chunk spawn lights via `world.onChunkAdded` |
+
+### Flicker Animation
+
+Both light types animate via sinusoidal flicker, updated each frame in `updateTorchFlicker` and `updateMagmaFlicker` (`lights.ts`):
+
+```typescript
+export function updateTorchFlicker(t: number): void {
+  for (const { pl, phase } of torchLights.values()) {
+    const flicker = 1.0
+      + 0.08 * Math.sin(t * 11.7 + phase)
+      + 0.05 * Math.sin(t *  7.3 + phase * 1.7)
+      + 0.03 * Math.sin(t * 23.1 + phase * 0.5);
+    pl.intensity = 4.0 * flicker;
+  }
+}
+```
+
+Three summed sine waves with different frequencies produce a natural, non-repetitive flicker. Torch flicker has a small amplitude (±16%) for a steady candle-like glow. Magma flicker uses slower, deeper modulation (±34%) to simulate the pulsing of molten rock.
+
+### GPU Light Loop
+
+Point lights are evaluated in the deferred shading fragment shader (`point_spot_lighting.wgsl`). Each pixel loops over all active point lights, culling those outside their radius:
+
+```wgsl
+for (var i = 0u; i < lightCounts.numPoint; i++) {
+  let pl   = pointLights[i];
+  let diff = pl.position - world_pos;
+  let dist = length(diff);
+  if (dist >= pl.radius) { continue; }
+  let L     = diff / dist;
+  let NdotL = max(dot(N, L), 0.0);
+  if (NdotL <= 0.0) { continue; }
+  let att  = point_attenuation(dist, pl.radius);
+  accum += brdf * pl.color * pl.intensity * NdotL * att;
+}
+```
+
+The `point_attenuation` function applies a smooth falloff so light fades to zero at the radius boundary, avoiding hard cut-off lines. The per-frame loop in `main.ts:981` gathers all `PointLight` components from the scene and uploads them to the GPU via `point_spot_light_pass.ts`.
+
+## 11.9 Erosion Simulation
 
 Crafty includes an optional erosion simulation for more realistic terrain. A compute shader simulates water flow and sediment transport:
 
@@ -518,7 +654,7 @@ Crafty includes an optional erosion simulation for more realistic terrain. A com
 
 The simulation runs as a background compute pass and updates the terrain height map, which is sampled during chunk generation.
 
-## 11.9 Water Propagation
+## 11.10 Water Propagation
 
 When water blocks are placed or generated in the world, they spread according to a simple cellular automaton run on the CPU each tick. The algorithm lives in `World._tickWater()` in `src/block/world.ts`.
 
@@ -553,7 +689,7 @@ private _flowWater(wx: number, wy: number, wz: number): void {
 - **Early skip for chunks.** Chunks track their `waterBlocks` count — if zero, the chunk is skipped during scanning.
 - **Batched re-meshing.** Instead of regenerating a chunk's mesh every time a single water block changes, changes are accumulated in a `_dirtyChunks` set and re-meshed exactly once per tick.
 
-## 11.10 Water Rendering
+## 11.11 Water Rendering
 
 Water is a transparent block type rendered through the `WaterPass` (`src/renderer/passes/water_pass.ts`), a forward pass that runs after deferred lighting. It composites over the HDR buffer using `src-alpha` blending, combining screen-space refraction, depth-based murkiness, and screen-space reflections.
 
@@ -600,7 +736,7 @@ Reflections use a hybrid approach:
 1. **Screen-space reflection (SSR)** ray-marches the reflected view direction in view space, sampling the refraction texture (pre-water HDR scene).
 2. **HDR sky panorama** is used as a fallback for rays that miss scene geometry or leave the screen bounds.
 
-## 11.11 Screen-Space Reflections (SSR)
+## 11.12 Screen-Space Reflections (SSR)
 
 ![Screen-space reflection: view-space ray march, depth hit test, and equirectangular sky fallback](../illustrations/11-ssr.svg)
 
@@ -662,7 +798,7 @@ let world_color = mix(tinted, reflection, fresnel_r);
 
 Reflection is minimal when looking straight down (high V·N), rising towards grazing angles. The 0.6 cap prevents bright HDR sky values from washing out the water at shallow viewing angles.
 
-## 11.12 Village Generation
+## 11.13 Village Generation
 
 Villages are generated procedurally when chunks load, in `crafty/game/village_gen.ts`. The system hooks into the chunk load event and places clusters of houses under the right conditions.
 
@@ -739,14 +875,17 @@ const _WALL_L1: number[][] = [
 
 Currently, all houses use `SPRUCE_PLANKS` for structure and `GLASS` for windows.
 
-### 11.13 Summary
+### 11.14 Summary
 
 The voxel terrain system features:
 
 - **Chunked world**: 16×256×16 chunks stored as dense `Uint8Array` with load/unload by distance
 - **Procedural generation**: Noise-based height maps, biome selection from temperature/humidity, ore and cave placement
+- **Deterministic seeding**: Seeded Perlin noise with per-feature offsets for reproducible worlds
 - **Greedy meshing**: Mask-based quad merging for minimal triangle counts
+- **Prop billboarding**: Camera-facing quads for grass, flowers, and torches with cross-shaped shadow passes
 - **LOD system**: Three distance-based levels of detail
+- **Illuminated blocks**: Emissive G-buffer blocks (glowstone, obsidian) and dynamic point lights (torch, magma) with sinusoidal flicker animation
 - **Block interaction**: DDA ray casting for placement, progressive breaking with crack overlay (10 stages), hardness-based timers
 - **Break particles**: GPU-accelerated chip bursts on crack advance and break particles tinted to block color
 - **Break audio**: Spatial audio with HRTF panning, surface-group sound mapping (grass, sand, stone, wood)
@@ -756,12 +895,20 @@ The voxel terrain system features:
 
 **Further reading:**
 - `src/block/` — Block types, chunk, world classes
-- `src/block/chunk.ts` — Chunk data structure
+- `src/block/chunk.ts` — Chunk data structure, prop vertex generation
 - `src/block/mesher.ts` — Greedy meshing algorithm
 - `src/block/generator.ts` — Terrain generation
+- `src/block/block_type.ts` — Block material/light data tables, `isBlockProp`, `isBlockEmittingLight`
+- `crafty/game/lights.ts` — Point light creation, removal, and flicker animation for torch/magma
 - `crafty/game/village_gen.ts` — Village and house placement
-- `crafty/game/block_interaction.ts` — Block breaking/placement state machine and per-frame update
-- `src/block/block_type.ts` — `blockHardness[]` table defining break times
+- `crafty/game/block_interaction.ts` — Block breaking/placement state machine and per-frame update, light trigger on place/break
+- `src/renderer/passes/block_geometry_pass.ts` — Block G-buffer rendering, prop pipeline setup
+- `src/renderer/passes/block_shadow_pass.ts` — Prop shadow pass (cross-shaped billboard shadows)
+- `src/renderer/passes/point_spot_light_pass.ts` — Point light CPU→GPU upload
+- `src/shaders/chunk_geometry.wgsl` — Chunk G-buffer shader, `vs_prop` billboard expansion
+- `src/shaders/prop_shadow.wgsl` — Prop billboard shadow shader (X/Z dual orientation)
+- `src/shaders/point_spot_lighting.wgsl` — GPU point light PBR evaluation
+- `src/engine/components/point_light.ts` — PointLight engine component
 - `src/renderer/passes/block_highlight_pass.ts` — Crack overlay rendering (10-stage crack texture)
 - `src/shaders/block_highlight.wgsl` — Crack overlay WGSL shader
 - `crafty/config/particle_configs.ts` — `blockBreakConfig` particle emitter/modifier definitions
@@ -769,10 +916,8 @@ The voxel terrain system features:
 - `crafty/game/block_colors.ts` — Atlas-based block color extraction for particle tinting
 - `crafty/game/audio_manager.ts` — Spatial audio manager, `playDig()` and `playStep()`
 - `src/engine/audio_surface.ts` — `blockTypeToSurface()` mapping for dig/step sounds
-- `src/renderer/passes/block_geometry_pass.ts` — Block G-buffer rendering
 - `src/renderer/passes/water_pass.ts` — Water surface rendering
 - `src/shaders/water.wgsl` — Water shader (SSR, refraction, depth tinting)
-- `src/shaders/chunk_geometry.wgsl` — Chunk G-buffer shader
 
 ----
 [Contents](../crafty.md) | [10-Sky / Atmosphere](10-sky-atmosphere.md) | [12-Post-Processing](12-post-processing.md)
