@@ -260,7 +260,7 @@ function raycastVoxels(origin: Vec3, direction: Vec3, world: World, maxDist: num
 
 Right-clicking a block face places a new block adjacent to the targeted face. Placement is instantaneous — the block ID is written to the chunk's `blocks` array and the chunk mesh is marked dirty for regeneration. The `BlockInteractionState` fires an `onLocalEdit` callback with `{ kind: 'place', x, y, z, blockType }`.
 
-#### Instant Breaks
+### Instant Breaks
 
 Blocks with `hardness = 0` (props: flowers, torches, dead bushes; also water and air) are removed immediately with no crack animation. The `BlockInteractionState` detects hardness 0 and calls `completeBreak()` directly without entering the progressive mining loop.
 
