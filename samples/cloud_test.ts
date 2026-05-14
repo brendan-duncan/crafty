@@ -4,7 +4,7 @@ import { GameObject } from '../src/engine/game_object.js';
 import { Camera } from '../src/engine/components/camera.js';
 import { DirectionalLight } from '../src/engine/components/directional_light.js';
 import { MeshRenderer } from '../src/engine/components/mesh_renderer.js';
-import { CameraControls } from '../src/engine/camera_controls.js';
+import { CameraController } from '../src/engine/camera_controller.js';
 import { PbrMaterial } from '../src/renderer/materials/pbr_material.js';
 import {
   RenderContext, RenderGraph, GBuffer, ShadowPass,
@@ -69,8 +69,8 @@ async function main() {
   canvas.width = canvas.clientWidth;
   canvas.height = canvas.clientHeight;
 
-  const renderContext = await RenderContext.create(canvas, { enableErrorHandling: true });
-  const { device } = renderContext;
+  const ctx = await RenderContext.create(canvas, { enableErrorHandling: true });
+  const { device } = ctx;
 
   const scene = new Scene();
 
@@ -78,12 +78,12 @@ async function main() {
   const cameraGO = new GameObject('Camera');
   cameraGO.position.set(0, 10, 50);
   const camera = cameraGO.addComponent(
-    new Camera(60, 0.1, 500, renderContext.width / renderContext.height),
+    new Camera(60, 0.1, 500, ctx.width / ctx.height),
   );
-  // positive pitch = looking down (CameraControls uses -this.pitch in rotation)
-  const cameraControls = new CameraControls(0, 0.1, 20, 0.002);
-  cameraControls.attach(canvas);
-  cameraControls.update(cameraGO, 0);
+  // positive pitch = looking down (CameraController uses -this.pitch in rotation)
+  const cameraController = CameraController.create({ yaw: 0, pitch: 0.1, speed: 20, sensitivity: 0.002, pointerLock: false });
+  cameraController.attach(canvas);
+  cameraController.update(cameraGO, 0);
   scene.add(cameraGO);
 
   // Directional light (sun)
@@ -137,8 +137,8 @@ async function main() {
   };
 
   // Render resources
-  const gbuffer = GBuffer.create(renderContext);
-  const aoView = createAOTexture(device, renderContext.width, renderContext.height);
+  const gbuffer = GBuffer.create(ctx);
+  const aoView = createAOTexture(device, ctx.width, ctx.height);
 
   const exposureBuf = device.createBuffer({
     label: 'FixedExposure',
@@ -148,25 +148,25 @@ async function main() {
   device.queue.writeBuffer(exposureBuf, 0, new Float32Array([1.0, 0, 0, 0]));
 
   // Render passes
-  const shadowPass = ShadowPass.create(renderContext, 3);
-  const geometryPass = GeometryPass.create(renderContext, gbuffer);
-  const cloudShadowPass = CloudShadowPass.create(renderContext, cloudNoises);
+  const shadowPass = ShadowPass.create(ctx, 3);
+  const geometryPass = GeometryPass.create(ctx, gbuffer);
+  const cloudShadowPass = CloudShadowPass.create(ctx, cloudNoises);
 
   const lightingPass = DeferredLightingPass.create(
-    renderContext, gbuffer, shadowPass, aoView, cloudShadowPass.shadowView,
+    ctx, gbuffer, shadowPass, aoView, cloudShadowPass.shadowView,
   );
 
-  const cloudPass = CloudPass.create(renderContext, lightingPass.hdrView, gbuffer.depthView, cloudNoises);
-  const atmospherePass = AtmospherePass.create(renderContext, { output: lightingPass.hdrView });
+  const cloudPass = CloudPass.create(ctx, lightingPass.hdrView, gbuffer.depthView, cloudNoises);
+  const atmospherePass = AtmospherePass.create(ctx, { output: lightingPass.hdrView });
 
   const godrayPass = GodrayPass.create(
-    renderContext, gbuffer, shadowPass, lightingPass.hdrView,
+    ctx, gbuffer, shadowPass, lightingPass.hdrView,
     lightingPass.cameraBuffer, lightingPass.lightBuffer,
     cloudNoises,
   );
 
   const compositePass = CompositePass.create(
-    renderContext, lightingPass.hdrView, aoView, gbuffer.depthView,
+    ctx, lightingPass.hdrView, aoView, gbuffer.depthView,
     lightingPass.cameraBuffer, lightingPass.lightBuffer, exposureBuf,
   );
 
@@ -257,6 +257,8 @@ async function main() {
     const dt = (now - lastTime) * 0.001;
     lastTime = now;
 
+    ctx.update();
+
     frameCount++;
     fpsTime += dt;
     if (fpsTime >= 0.5) {
@@ -265,7 +267,7 @@ async function main() {
       fpsTime = 0;
     }
 
-    cameraControls.update(cameraGO, dt);
+    cameraController.update(cameraGO, dt);
     scene.update(dt);
 
     const camPos = camera.position();
@@ -288,7 +290,7 @@ async function main() {
     shadowPass.setSceneSnapshot(shadowItems);
     shadowPass.updateScene(scene, camera, sun, 200);
     geometryPass.setDrawItems(drawItems);
-    geometryPass.updateCamera(renderContext, view, proj, vp, invVP, camPos, camera.near, camera.far);
+    geometryPass.updateCamera(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far);
 
     if (effects.clouds) {
       cloudPass.enabled = true;
@@ -299,30 +301,30 @@ async function main() {
       cloudSettings.windOffset[0] += windSpeed * windDir[0] * dt;
       cloudSettings.windOffset[1] += windSpeed * windDir[1] * dt;
 
-      cloudShadowPass.update(renderContext, cloudSettings, [0, 0], 100);
-      godrayPass.updateCloudDensity(renderContext, cloudSettings);
-      cloudPass.updateCamera(renderContext, invVP, camPos, camera.near, camera.far);
-      cloudPass.updateLight(renderContext, sun.direction, sun.color, sun.intensity);
-      cloudPass.updateSettings(renderContext, cloudSettings);
+      cloudShadowPass.update(ctx, cloudSettings, [0, 0], 100);
+      godrayPass.updateCloudDensity(ctx, cloudSettings);
+      cloudPass.updateCamera(ctx, invVP, camPos, camera.near, camera.far);
+      cloudPass.updateLight(ctx, sun.direction, sun.color, sun.intensity);
+      cloudPass.updateSettings(ctx, cloudSettings);
     } else {
       cloudPass.enabled = false;
       atmospherePass.enabled = true;
-      atmospherePass.update(renderContext, invVP, camPos, sun.direction);
+      atmospherePass.update(ctx, invVP, camPos, sun.direction);
     }
 
     cloudShadowPass.enabled = effects.cloudShadow;
 
-    lightingPass.updateCamera(renderContext, view, proj, vp, invVP, camPos, camera.near, camera.far);
-    lightingPass.updateLight(renderContext, sun.direction, sun.color, sun.intensity, cascades, true, false);
-    lightingPass.updateCloudShadow(renderContext, 0, 0, effects.cloudShadow ? 100 : 0);
+    lightingPass.updateCamera(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far);
+    lightingPass.updateLight(ctx, sun.direction, sun.color, sun.intensity, cascades, true, false);
+    lightingPass.updateCloudShadow(ctx, 0, 0, effects.cloudShadow ? 100 : 0);
 
     godrayPass.enabled = effects.godray;
 
     // Disable depth fog so it doesn't wash out the ground shadows
     compositePass.depthFogEnabled = false;
-    compositePass.updateParams(renderContext, false, 0, true, false, renderContext.hdr);
+    compositePass.updateParams(ctx, false, 0, true, false, ctx.hdr);
 
-    await renderGraph.execute(renderContext);
+    await renderGraph.execute(ctx);
 
     // Read back the cloud shadow texture every 120 frames to verify content
     shadowReadbackFrame++;

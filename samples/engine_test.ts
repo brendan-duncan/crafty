@@ -11,7 +11,7 @@ import merAtlasUrl    from '../assets/cube_textures/simple_block_atlas_mer.png?u
 import heightAtlasUrl from '../assets/cube_textures/simple_block_atlas_heightmap.png?url';
 import foxUrl         from '../assets/fox.glb?url';
 import { Mat4, Vec3, Quaternion } from '../src/math/index.js';
-import { GameObject, Scene, Camera, DirectionalLight, MeshRenderer, CameraControls, AnimatedModel, PointLight, SpotLight } from '../src/engine/index.js';
+import { GameObject, Scene, Camera, DirectionalLight, MeshRenderer, CameraController, AnimatedModel, PointLight, SpotLight } from '../src/engine/index.js';
 import { PbrMaterial } from '../src/renderer/materials/pbr_material.js';
 import { RenderContext, RenderGraph, GBuffer, ShadowPass, SkyPass, GeometryPass, SkinnedGeometryPass, DeferredLightingPass, TAAPass, SSAOPass, SSGIPass, DofPass, BloomPass, CompositePass, DebugLightPass, ParticlePass, CloudPass, CloudShadowPass, AutoExposurePass, PointSpotShadowPass, PointSpotLightPass } from '../src/renderer/index.js';
 import type { CloudSettings } from '../src/renderer/index.js';
@@ -185,14 +185,17 @@ async function main() {
   let foxAnimated: AnimatedModel | null = null;
   GltfLoader.load(device, foxUrl).then(model => {
     foxModel = model;
-    console.log(foxModel);
-    if (!model.skin || model.meshes.length === 0) return;
+    if (!model.skin || model.meshes.length === 0) {
+      return;
+    }
     const foxGO = new GameObject('Fox');
     foxGO.position.set(5, 0, 2);
     foxGO.scale.set(1, 1, 1);
     foxAnimated = foxGO.addComponent(new AnimatedModel(model));
     const firstClip = model.clips[0]?.name;
-    if (firstClip) foxAnimated.play(firstClip, true);
+    if (firstClip) {
+      foxAnimated.play(firstClip, true);
+    }
     scene.add(foxGO);
   }).catch(err => console.error('fox.glb load failed:', err));
 
@@ -237,9 +240,8 @@ async function main() {
   const camera = cameraGO.addComponent(new Camera(60, 0.1, 100, ctx.width / ctx.height));
   scene.add(cameraGO);
 
-  const cameraControls = new CameraControls(Math.PI, 0.1);  // 5.7° down: upper ~50% is sky
-  cameraControls.usePointerLock = false;
-  cameraControls.attach(canvas);
+  const cameraController = CameraController.create({ yaw: Math.PI, pitch: 0.1, speed: 3, sensitivity: 0.002, pointerLock: false });  // 5.7° down: upper ~50% is sky
+  cameraController.attach(canvas);
 
   // --- Effect toggles ---
   const effects = { ssao: true, ssgi: true, shadows: true, dof: true, bloom: true, aces: true, ao_dbg: false, shd_dbg: false, hdr: true, clouds: false };
@@ -544,7 +546,7 @@ async function main() {
       go.rotation = Quaternion.fromAxisAngle(Vec3.up(), angle * cubeConfigs[i].speed);
     });
 
-    cameraControls.update(cameraGO, dt);
+    cameraController.update(cameraGO, dt);
 
     if (sun) {
       const sunAngle = angle * 0.4;

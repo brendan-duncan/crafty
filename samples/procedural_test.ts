@@ -6,7 +6,7 @@ import type { ForwardDrawItem } from '../src/renderer/passes/forward_pass.js';
 import { DirectionalShadowPass } from '../src/renderer/passes/directional_shadow_pass.js';
 import type { DirectionalShadowDrawItem } from '../src/renderer/passes/directional_shadow_pass.js';
 import { RenderContext } from '../src/renderer/render_context.js';
-import { CameraControls } from '../src/engine/camera_controls.js';
+import { CameraController } from '../src/engine/camera_controller.js';
 import { Mesh } from '../src/assets/mesh.js';
 import forwardProceduralWgsl from './forward_procedural.wgsl?raw';
 
@@ -153,8 +153,8 @@ async function main() {
 
   // Camera
   const camPos = new Vec3(0, 4, 12);
-  const cameraControls = new CameraControls(0, 0, 5, 0.002);
-  cameraControls.attach(canvas);
+  const cameraController = CameraController.create({ yaw: 0, pitch: 0, speed: 5, sensitivity: 0.002, pointerLock: false });
+  cameraController.attach(canvas);
 
   // Animation state
   let time = 0;
@@ -168,8 +168,9 @@ async function main() {
     lastTime = now;
     time += dt;
 
-    const currentTexture = ctx.getCurrentTexture();
-    const currentView = currentTexture.createView();
+    ctx.update();
+
+    const currentView = ctx.backbufferView;
 
     frameCount++;
     fpsAccum += dt;
@@ -199,12 +200,12 @@ async function main() {
       position: camPos,
       rotation: { x: 0, y: 0, z: 0, w: 1 },
     };
-    cameraControls.update(fakeGO as any, dt);
+    cameraController.update(fakeGO as any, dt);
 
-    const sinY = Math.sin(cameraControls.yaw);
-    const cosY = Math.cos(cameraControls.yaw);
-    const sinP = Math.sin(cameraControls.pitch);
-    const cosP = Math.cos(cameraControls.pitch);
+    const sinY = Math.sin(cameraController.yaw);
+    const cosY = Math.cos(cameraController.yaw);
+    const sinP = Math.sin(cameraController.pitch);
+    const cosP = Math.cos(cameraController.pitch);
     const forward = new Vec3(-sinY * cosP, -sinP, -cosY * cosP).normalize();
     const target = camPos.add(forward);
     const view = Mat4.lookAt(camPos, target, new Vec3(0, 1, 0));

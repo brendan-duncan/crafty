@@ -130,10 +130,10 @@ The pointer lock API is used for first-person controls — the mouse cursor is h
 
 ## 13.6 Camera Controls
 
-The `CameraControls` component interprets input to move and rotate the camera. Yaw (horizontal) and pitch (vertical) are accumulated from mouse deltas:
+The `CameraController` component interprets input to move and rotate the camera. Yaw (horizontal) and pitch (vertical) are accumulated from mouse deltas:
 
 ```typescript
-class CameraControls extends Component {
+class CameraController extends Component {
   sensitivity = 0.002;
   yaw = 0;
   pitch = 0;

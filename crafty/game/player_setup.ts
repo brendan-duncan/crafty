@@ -1,4 +1,4 @@
-import { GameObject, Camera, CameraControls, PlayerController, Scene, SpotLight } from '../../src/engine/index.js';
+import { GameObject, Camera, CameraController, PlayerController, Scene, SpotLight } from '../../src/engine/index.js';
 import { Vec3 } from '../../src/math/index.js';
 import type { World } from '../../src/block/index.js';
 
@@ -6,7 +6,7 @@ export interface PlayerSetup {
   cameraGO: GameObject;
   camera: Camera;
   player: PlayerController;
-  freeCamera: CameraControls;
+  freeCamera: CameraController;
   isPlayerMode: () => boolean;
   flashlight: SpotLight;
   isFlashlightEnabled: () => boolean;
@@ -48,7 +48,7 @@ export function setupPlayer(
   const player = new PlayerController(world, Math.PI, 0.1);
   player.attach(canvas);
 
-  const freeCamera = new CameraControls(Math.PI, 0.1, 15);
+  const freeCamera = CameraController.create({ yaw: Math.PI, pitch: 0.1, speed: 15, sensitivity: 0.002, pointerLock: true });
   let usePlayerController = true;
 
   const modeEl = document.createElement('div');

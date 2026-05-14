@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { CameraControls } from '../../src/engine/camera_controls.js';
+import { CameraController } from '../../src/engine/camera_controller.js';
 import { GameObject } from '../../src/engine/game_object.js';
 
-describe('CameraControls', () => {
+describe('CameraController', () => {
   describe('constructor', () => {
     it('should set defaults', () => {
-      const cc = new CameraControls();
+      const cc = new CameraController();
       expect(cc.yaw).toBe(0);
       expect(cc.pitch).toBe(0);
       expect(cc.speed).toBe(5);
@@ -13,7 +13,7 @@ describe('CameraControls', () => {
     });
 
     it('should accept custom values', () => {
-      const cc = new CameraControls(1, 0.5, 10, 0.001);
+      const cc = CameraController.create({ yaw: 1, pitch: 0.5, speed: 10, sensitivity: 0.001, pointerLock: false });
       expect(cc.yaw).toBe(1);
       expect(cc.pitch).toBe(0.5);
       expect(cc.speed).toBe(10);
@@ -22,7 +22,7 @@ describe('CameraControls', () => {
 
   describe('pressKey / update movement', () => {
     it('should move forward (KeyW) along -Z at yaw=0', () => {
-      const cc = new CameraControls(0, 0, 1);
+      const cc = CameraController.create({ yaw: 0, pitch: 0, speed: 1, sensitivity: 0.002, pointerLock: false });
       const go = new GameObject();
       cc.pressKey('KeyW');
       cc.update(go, 1);
@@ -31,7 +31,7 @@ describe('CameraControls', () => {
     });
 
     it('should move backward (KeyS) along +Z at yaw=0', () => {
-      const cc = new CameraControls(0, 0, 1);
+      const cc = CameraController.create({ yaw: 0, pitch: 0, speed: 1, sensitivity: 0.002, pointerLock: false });
       const go = new GameObject();
       cc.pressKey('KeyS');
       cc.update(go, 1);
@@ -39,7 +39,7 @@ describe('CameraControls', () => {
     });
 
     it('should move left (KeyA) along -X at yaw=0', () => {
-      const cc = new CameraControls(0, 0, 1);
+      const cc = CameraController.create({ yaw: 0, pitch: 0, speed: 1, sensitivity: 0.002, pointerLock: false });
       const go = new GameObject();
       cc.pressKey('KeyA');
       cc.update(go, 1);
@@ -47,7 +47,7 @@ describe('CameraControls', () => {
     });
 
     it('should move right (KeyD) along +X at yaw=0', () => {
-      const cc = new CameraControls(0, 0, 1);
+      const cc = CameraController.create({ yaw: 0, pitch: 0, speed: 1, sensitivity: 0.002, pointerLock: false });
       const go = new GameObject();
       cc.pressKey('KeyD');
       cc.update(go, 1);
@@ -55,7 +55,7 @@ describe('CameraControls', () => {
     });
 
     it('should move up (Space)', () => {
-      const cc = new CameraControls(0, 0, 1);
+      const cc = CameraController.create({ yaw: 0, pitch: 0, speed: 1, sensitivity: 0.002, pointerLock: false });
       const go = new GameObject();
       cc.pressKey('Space');
       cc.update(go, 1);
@@ -63,7 +63,7 @@ describe('CameraControls', () => {
     });
 
     it('should move down (ShiftLeft)', () => {
-      const cc = new CameraControls(0, 0, 1);
+      const cc = CameraController.create({ yaw: 0, pitch: 0, speed: 1, sensitivity: 0.002, pointerLock: false });
       const go = new GameObject();
       cc.pressKey('ShiftLeft');
       cc.update(go, 1);
@@ -71,7 +71,7 @@ describe('CameraControls', () => {
     });
 
     it('should respect dt scaling', () => {
-      const cc = new CameraControls(0, 0, 10);
+      const cc = CameraController.create({ yaw: 0, pitch: 0, speed: 10, sensitivity: 0.002, pointerLock: false });
       const go = new GameObject();
       cc.pressKey('KeyW');
       cc.update(go, 0.5);
@@ -84,7 +84,7 @@ describe('CameraControls', () => {
     });
 
     it('should not move when no key is pressed', () => {
-      const cc = new CameraControls(0, 0, 10);
+      const cc = CameraController.create({ yaw: 0, pitch: 0, speed: 10, sensitivity: 0.002, pointerLock: false });
       const go = new GameObject();
       cc.update(go, 1);
       expect(go.position.x).toBeCloseTo(0);
@@ -93,7 +93,7 @@ describe('CameraControls', () => {
     });
 
     it('should use fast multiplier with ControlLeft', () => {
-      const cc = new CameraControls(0, 0, 1);
+      const cc = CameraController.create({ yaw: 0, pitch: 0, speed: 1, sensitivity: 0.002, pointerLock: false });
       const go = new GameObject();
       cc.pressKey('KeyW');
       cc.pressKey('ControlLeft');
@@ -104,7 +104,7 @@ describe('CameraControls', () => {
     });
 
     it('should move at 45 deg with W+A', () => {
-      const cc = new CameraControls(0, 0, 1);
+      const cc = CameraController.create({ yaw: 0, pitch: 0, speed: 1, sensitivity: 0.002, pointerLock: false });
       const go = new GameObject();
       cc.pressKey('KeyW');
       cc.pressKey('KeyA');
@@ -117,7 +117,7 @@ describe('CameraControls', () => {
     });
 
     it('should rotate at yaw != 0', () => {
-      const cc = new CameraControls(Math.PI / 2, 0, 1);
+      const cc = CameraController.create({ yaw: Math.PI / 2, pitch: 0, speed: 1, sensitivity: 0.002, pointerLock: false });
       const go = new GameObject();
       cc.pressKey('KeyW');
       cc.update(go, 1);
@@ -129,7 +129,7 @@ describe('CameraControls', () => {
 
   describe('update rotation', () => {
     it('should set rotation from yaw and pitch', () => {
-      const cc = new CameraControls(0.5, 0.3);
+      const cc = CameraController.create({ yaw: 0.5, pitch: 0.3 });
       const go = new GameObject();
       cc.update(go, 1);
       expect(go.rotation.w).not.toBe(1); // rotated away from identity
@@ -139,19 +139,19 @@ describe('CameraControls', () => {
 
   describe('applyLookDelta', () => {
     it('should modify yaw and pitch', () => {
-      const cc = new CameraControls(0, 0, 1, 0.002);
+      const cc = CameraController.create({ yaw: 0, pitch: 0, speed: 1, sensitivity: 0.002 });
       cc.applyLookDelta(100, 0);
       expect(cc.yaw).toBeCloseTo(-0.2); // -dx * sensitivity = -100 * 0.002
     });
 
     it('should increment pitch downward', () => {
-      const cc = new CameraControls(0, 0, 1, 0.002);
+      const cc = CameraController.create({ yaw: 0, pitch: 0, speed: 1, sensitivity: 0.002 });
       cc.applyLookDelta(0, 50);
       expect(cc.pitch).toBeCloseTo(0.1); // dy * sensitivity = 50 * 0.002
     });
 
     it('should clamp pitch to ±89°', () => {
-      const cc = new CameraControls(0, 0, 1, 0.002);
+      const cc = CameraController.create({ yaw: 0, pitch: 0, speed: 1, sensitivity: 0.002 });
       cc.applyLookDelta(0, 999999);
       expect(cc.pitch).toBeLessThan(Math.PI / 2);
       expect(cc.pitch).toBeGreaterThan(0);
@@ -163,7 +163,7 @@ describe('CameraControls', () => {
 
   describe('inputForward/inputStrafe analog', () => {
     it('should move forward with inputForward', () => {
-      const cc = new CameraControls(0, 0, 1);
+      const cc = CameraController.create({ yaw: 0, pitch: 0, speed: 1, sensitivity: 0.002, pointerLock: false });
       cc.inputForward = 1;
       const go = new GameObject();
       cc.update(go, 1);
@@ -171,7 +171,7 @@ describe('CameraControls', () => {
     });
 
     it('should move right with inputStrafe', () => {
-      const cc = new CameraControls(0, 0, 1);
+      const cc = CameraController.create({ yaw: 0, pitch: 0, speed: 1, sensitivity: 0.002, pointerLock: false });
       cc.inputStrafe = 1;
       const go = new GameObject();
       cc.update(go, 1);
@@ -179,7 +179,7 @@ describe('CameraControls', () => {
     });
 
     it('should combine analog with keyboard', () => {
-      const cc = new CameraControls(0, 0, 1);
+      const cc = CameraController.create({ yaw: 0, pitch: 0, speed: 1, sensitivity: 0.002, pointerLock: false });
       cc.inputForward = 0.5;
       cc.inputUp = true;
       cc.inputFast = true;

@@ -336,7 +336,7 @@ export class ForwardPass extends RenderPass {
     );
   }
 
-  setOutput(outputTextureView: GPUTextureView, depthTexture: GPUTextureView): void {
+  setOutput(outputTextureView: GPUTextureView, depthTexture: GPUTextureView | null): void {
     this._outputView = outputTextureView;
     this._depthView = depthTexture;
   }
@@ -599,23 +599,38 @@ export class ForwardPass extends RenderPass {
       return;
     }
 
-    const pass = encoder.beginRenderPass({
-      label: 'ForwardRenderPass',
-      colorAttachments: [
-        {
-          view: colorView,
-          clearValue: this._clearColor ?? { r: 0.0, g: 0.0, b: 1.0, a: 1.0 },
-          loadOp: this._load,
-          storeOp: 'store',
+    let pass;
+    if (!depthAttachmentView) {
+      pass = encoder.beginRenderPass({
+        label: 'ForwardRenderPass',
+        colorAttachments: [
+          {
+            view: colorView,
+            clearValue: this._clearColor ?? { r: 0.0, g: 0.0, b: 1.0, a: 1.0 },
+            loadOp: this._load,
+            storeOp: 'store',
+          },
+        ]
+      });
+    } else {
+      pass = encoder.beginRenderPass({
+        label: 'ForwardRenderPass',
+        colorAttachments: [
+          {
+            view: colorView,
+            clearValue: this._clearColor ?? { r: 0.0, g: 0.0, b: 1.0, a: 1.0 },
+            loadOp: this._load,
+            storeOp: 'store',
+          },
+        ],
+        depthStencilAttachment: {
+          view: depthAttachmentView,
+          depthClearValue: 1.0,
+          depthLoadOp: 'clear',
+          depthStoreOp: 'store',
         },
-      ],
-      depthStencilAttachment: {
-        view: depthAttachmentView,
-        depthClearValue: 1.0,
-        depthLoadOp: 'clear',
-        depthStoreOp: 'store',
-      },
-    });
+      });
+    }
 
     pass.setBindGroup(0, this._cameraBindGroup);
     pass.setBindGroup(3, this._lightingIblBindGroup);

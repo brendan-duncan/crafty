@@ -41,7 +41,7 @@
         <text x="60"  y="66" fill="#1e3a8a">PlayerController</text>
 
         <rect x="128" y="46" width="120" height="32" fill="#dbeafe" stroke="#2563eb" stroke-width="1" rx="3"/>
-        <text x="188" y="66" fill="#1e3a8a">CameraControls</text>
+        <text x="188" y="66" fill="#1e3a8a">CameraController</text>
 
         <rect x="256" y="46" width="120" height="32" fill="#dbeafe" stroke="#2563eb" stroke-width="1" rx="3"/>
         <text x="316" y="66" fill="#1e3a8a">AudioSource</text>

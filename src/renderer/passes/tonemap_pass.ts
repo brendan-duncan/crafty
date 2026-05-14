@@ -163,14 +163,14 @@ export class TonemapPass extends RenderPass {
    * Records the full-screen tone-mapping draw into the current swapchain texture.
    *
    * @param encoder Command encoder to record into.
-   * @param ctx Render context used to acquire the current swapchain texture.
+   * @param ctx Render context used to acquire the current backbuffer texture.
    */
   execute(encoder: GPUCommandEncoder, ctx: RenderContext): void {
     const pass = encoder.beginRenderPass({
       label: 'TonemapPass',
       colorAttachments: [
         {
-          view: ctx.getCurrentTexture().createView(),
+          view: ctx.backbufferView,
           clearValue: [0, 0, 0, 1],
           loadOp: 'clear',
           storeOp: 'store',

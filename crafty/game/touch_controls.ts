@@ -1,4 +1,4 @@
-import type { PlayerController, CameraControls } from '../../src/engine/index.js';
+import type { PlayerController, CameraController } from '../../src/engine/index.js';
 import type { World, BlockType } from '../../src/block/index.js';
 import type { Scene } from '../../src/engine/index.js';
 import type { BlockInteractionState } from './block_interaction.js';
@@ -102,7 +102,7 @@ export interface TouchControlsOptions {
   /** Player controller (driven when player mode is active). */
   player?: PlayerController;
   /** Free-fly camera controls (driven when free mode is active). */
-  camera?: CameraControls;
+  camera?: CameraController;
   /** Returns the active controller — called every frame so mode toggles work transparently. */
   getActive?: () => 'player' | 'camera';
   /** World, scene, hotbar callback for mine/place. Required for action buttons to work. */
@@ -514,7 +514,7 @@ export class TouchControls {
     }
   };
 
-  // ── Bridges to PlayerController / CameraControls ─────────────────────────
+  // ── Bridges to PlayerController / CameraController ─────────────────────────
 
   private _activeIsCamera(): boolean {
     return (this._opts.getActive ? this._opts.getActive() : 'player') === 'camera';

@@ -4,7 +4,7 @@ import type { ForwardDrawItem } from '../src/renderer/passes/forward_pass.js';
 import { DirectionalShadowPass } from '../src/renderer/passes/directional_shadow_pass.js';
 import type { DirectionalShadowDrawItem } from '../src/renderer/passes/directional_shadow_pass.js';
 import { RenderContext, RenderGraph } from '../src/renderer/index.js';
-import { CameraControls } from '../src/engine/camera_controls.js';
+import { CameraController } from '../src/engine/camera_controller.js';
 import { Scene } from '../src/engine/scene.js';
 import { GameObject } from '../src/engine/game_object.js';
 import { MeshRenderer } from '../src/engine/components/mesh_renderer.js';
@@ -87,15 +87,6 @@ async function main() {
   const ctx = await RenderContext.create(canvas);
   const { device } = ctx;
 
-  // Create depth texture for rendering (will be recreated on resize)
-  let depthTexture = device.createTexture({
-    size: { width: ctx.width, height: ctx.height },
-    format: 'depth32float',
-    usage: 0x10, // RENDER_ATTACHMENT
-  });
-
-  let depthTextureView = depthTexture.createView();
-
   const planeMesh = Mesh.createPlane(device, 20, 20);
   const planeMaterial = new PbrMaterial({
     albedo: [0.5, 0.7, 0.5, 1.0],
@@ -132,9 +123,8 @@ async function main() {
 
   // Camera
   const camPos = new Vec3(0, 1.5, 3);
-  const cameraControls = new CameraControls(0, 0.5, 3, 0.002);
-  cameraControls.usePointerLock = false;
-  cameraControls.attach(canvas);
+  const cameraController = CameraController.create({ yaw: 0, pitch: 0.5, speed: 3, sensitivity: 0.002, pointerLock: false });
+  cameraController.attach(canvas);
 
   // Animation state
   let animState: AnimationState | null = null;
@@ -187,9 +177,9 @@ async function main() {
     const dt = (now - lastTime) * 0.001;
     lastTime = now;
 
-    const currentTexture = ctx.getCurrentTexture();
-    const currentView = currentTexture.createView();
-    forwardPass.setOutput(currentView, depthTextureView);
+    ctx.update();
+
+    forwardPass.setOutput(ctx.backbufferView, ctx.backbufferDepthView);
 
     frameCount++;
     fpsAccum += dt;
@@ -199,31 +189,17 @@ async function main() {
       fpsAccum = 0;
     }
 
-    if (ctx.canvas.width !== ctx.canvas.clientWidth || ctx.canvas.height !== ctx.canvas.clientHeight) {
-      ctx.canvas.width = ctx.canvas.clientWidth;
-      ctx.canvas.height = ctx.canvas.clientHeight;
-
-      // Recreate depth texture on resize
-      depthTexture.destroy();
-      depthTexture = device.createTexture({
-        size: { width: ctx.width, height: ctx.height },
-        format: 'depth32float',
-        usage: 0x10, // RENDER_ATTACHMENT
-      });
-      depthTextureView = depthTexture.createView();
-    }
-
     // Camera
     const fakeGO = {
       position: camPos,
       rotation: { x: 0, y: 0, z: 0, w: 1 },
     };
-    cameraControls.update(fakeGO as any, dt);
+    cameraController.update(fakeGO as any, dt);
 
-    const sinY = Math.sin(cameraControls.yaw);
-    const cosY = Math.cos(cameraControls.yaw);
-    const sinP = Math.sin(cameraControls.pitch);
-    const cosP = Math.cos(cameraControls.pitch);
+    const sinY = Math.sin(cameraController.yaw);
+    const cosY = Math.cos(cameraController.yaw);
+    const sinP = Math.sin(cameraController.pitch);
+    const cosP = Math.cos(cameraController.pitch);
     const forward = new Vec3(-sinY * cosP, -sinP, -cosY * cosP).normalize();
     const target = camPos.add(forward);
     const view = Mat4.lookAt(camPos, target, new Vec3(0, 1, 0));

@@ -10,7 +10,7 @@ import { SpotShadowPass } from '../src/renderer/passes/spot_shadow_pass.js';
 import { PointShadowPass } from '../src/renderer/passes/point_shadow_pass.js';
 import { RenderContext } from '../src/renderer/render_context.js';
 import { RenderGraph } from '../src/renderer/render_graph.js';
-import { CameraControls } from '../src/engine/camera_controls.js';
+import { CameraController } from '../src/engine/camera_controller.js';
 import { PbrMaterial } from '../src/renderer/materials/pbr_material.js';
 import { Mesh } from '../src/assets/mesh.js';
 
@@ -18,17 +18,8 @@ async function main() {
   const canvas = document.getElementById('canvas') as HTMLCanvasElement;
   const fpsElement = document.getElementById('fps')!;
 
-  const renderContext = await RenderContext.create(canvas);
-  const device = renderContext.device;
-
-  // Create depth texture for rendering (will be recreated on resize)
-  let depthTexture = device.createTexture({
-    size: { width: renderContext.width, height: renderContext.height },
-    format: 'depth32float',
-    usage: 0x10, // RENDER_ATTACHMENT
-  });
-
-  let depthTextureView = depthTexture.createView();
+  const ctx = await RenderContext.create(canvas);
+  const device = ctx.device;
 
   // Create meshes
   const cubeMesh = Mesh.createCube(device);
@@ -60,7 +51,7 @@ async function main() {
     metallic: 0.0,
   });
 
-  const forwardPass = ForwardPass.create(renderContext, { load: 'load' });
+  const forwardPass = ForwardPass.create(ctx, { load: 'load' });
 
   // Get shadow map array from forward pass and create layer views for shadow passes
   const shadowMapArray = forwardPass.shadowMapArray;
@@ -76,17 +67,17 @@ async function main() {
   });
 
   // Create shadow passes
-  const dirShadowPass = DirectionalShadowPass.create(renderContext, dirShadowMapView);
-  const spotShadowPass = SpotShadowPass.create(renderContext, spotShadowMapView);
+  const dirShadowPass = DirectionalShadowPass.create(ctx, dirShadowMapView);
+  const spotShadowPass = SpotShadowPass.create(ctx, spotShadowMapView);
 
   // Point light shadow passes share the forward pass's cube-array texture
   const pointShadowCubeArray = forwardPass.pointShadowCubeArray;
   const pointShadowPasses: PointShadowPass[] = [];
   for (let i = 0; i < 2; i++) {
-    pointShadowPasses.push(PointShadowPass.create(renderContext, pointShadowCubeArray, i * 6));
+    pointShadowPasses.push(PointShadowPass.create(ctx, pointShadowCubeArray, i * 6));
   }
 
-  const atmospherePass = AtmospherePass.create(renderContext, { load: 'clear' });
+  const atmospherePass = AtmospherePass.create(ctx, { load: 'clear' });
 
   // Create render graph
   const renderGraph = new RenderGraph();
@@ -100,8 +91,8 @@ async function main() {
 
   // Camera setup
   const camPos = new Vec3(0, 3, 8);
-  const cameraControls = new CameraControls(0, -20 * Math.PI / 180, 5, 0.002);
-  cameraControls.attach(renderContext.canvas);
+  const cameraController = CameraController.create({ yaw: 0, pitch: -20 * Math.PI / 180, speed: 5, sensitivity: 0.002, pointerLock: false });
+  cameraController.attach(ctx.canvas);
 
   // Animation state
   let time = 0;
@@ -145,51 +136,35 @@ async function main() {
       fpsTime = 0;
     }
 
-    const outputTexture = renderContext.getCurrentTexture();
-    const outputView = outputTexture.createView();
+    ctx.update();
 
-    // Handle canvas resize
-    const needsResize = renderContext.canvas.width !== renderContext.canvas.clientWidth ||
-                        renderContext.canvas.height !== renderContext.canvas.clientHeight;
-    if (needsResize) {
-      renderContext.canvas.width = renderContext.canvas.clientWidth;
-      renderContext.canvas.height = renderContext.canvas.clientHeight;
+    const backbufferView = ctx.backbufferView;
 
-      // Recreate depth texture with new dimensions
-      depthTexture.destroy();
-      depthTexture = device.createTexture({
-        size: { width: renderContext.width, height: renderContext.height },
-        format: 'depth32float',
-        usage: 0x10, // RENDER_ATTACHMENT
-      });
-      depthTextureView = depthTexture.createView();
-    }
+    forwardPass.setOutput(backbufferView, ctx.backbufferDepthView);
+    atmospherePass.setOutput(backbufferView);
 
-    forwardPass.setOutput(outputView, depthTextureView);
-    atmospherePass.setOutput(outputView);
-
-    // Update camera with CameraControls
+    // Update camera with CameraController
     const fakeGameObject = {
       position: camPos,
       rotation: { x: 0, y: 0, z: 0, w: 1 },
     };
-    cameraControls.update(fakeGameObject as any, dt);
+    cameraController.update(fakeGameObject as any, dt);
 
     // Build view matrix from yaw/pitch
-    const sinY = Math.sin(cameraControls.yaw);
-    const cosY = Math.cos(cameraControls.yaw);
-    const sinP = Math.sin(cameraControls.pitch);
-    const cosP = Math.cos(cameraControls.pitch);
+    const sinY = Math.sin(cameraController.yaw);
+    const cosY = Math.cos(cameraController.yaw);
+    const sinP = Math.sin(cameraController.pitch);
+    const cosP = Math.cos(cameraController.pitch);
 
     const forward = new Vec3(-sinY * cosP, -sinP, -cosY * cosP).normalize();
     const target = camPos.add(forward).add(new Vec3(0, -0.5, 0)); // Look slightly down
     const view = Mat4.lookAt(camPos, target, new Vec3(0, 1, 0));
-    const aspect = renderContext.width / renderContext.height;
+    const aspect = ctx.width / ctx.height;
     const proj = Mat4.perspective(60 * Math.PI / 180, aspect, 0.1, 100);
     const viewProj = proj.multiply(view);
     const invViewProj = viewProj.invert();
 
-    forwardPass.updateCamera(renderContext, view, proj, viewProj, invViewProj, camPos, 0.1, 100);
+    forwardPass.updateCamera(ctx, view, proj, viewProj, invViewProj, camPos, 0.1, 100);
 
     // Update lights
     const lightDir = new Vec3(-0.3, -0.8, -0.5).normalize();
@@ -279,7 +254,7 @@ async function main() {
     dirShadowPass.enabled = directionalLight.castShadows;
     if (directionalLight.castShadows) {
       dirShadowPass.setDrawItems(shadowDrawItems);
-      dirShadowPass.updateCamera(renderContext, lightViewProj);
+      dirShadowPass.updateCamera(ctx, lightViewProj);
     }
 
     // Spot light shadow pass
@@ -288,7 +263,7 @@ async function main() {
     if (spotShadowEnabled) {
       const spot = spotLights[0];
       spotShadowPass.setDrawItems(shadowDrawItems);
-      spotShadowPass.updateLight(renderContext, spot);
+      spotShadowPass.updateLight(ctx, spot);
     }
 
     // Point light shadow passes
@@ -326,7 +301,7 @@ async function main() {
         }
 
         pointShadowPasses[i].setDrawItems(shadowDrawItems);
-        pointShadowPasses[i].updateCamera(renderContext, lightPos, viewProjs, light.range);
+        pointShadowPasses[i].updateCamera(ctx, lightPos, viewProjs, light.range);
       }
     }
 
@@ -345,15 +320,15 @@ async function main() {
     }
 
     // Update forward pass
-    forwardPass.updateLights(renderContext, activeDirectionalLight, activePointLights, activeSpotLights);
+    forwardPass.updateLights(ctx, activeDirectionalLight, activePointLights, activeSpotLights);
     forwardPass.setDrawItems(drawItems);
 
-    atmospherePass.update(renderContext, invViewProj, camPos, lightDir);
+    atmospherePass.update(ctx, invViewProj, camPos, lightDir);
 
     // Manual execution to control pass order
     const encoder = device.createCommandEncoder({ label: 'MainEncoder' });
 
-    renderGraph.execute(renderContext);
+    renderGraph.execute(ctx);
 
     device.queue.submit([encoder.finish()]);
 

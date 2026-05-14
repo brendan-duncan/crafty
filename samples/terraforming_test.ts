@@ -1,7 +1,7 @@
 import { Mat4, Vec3 } from '../src/math/index.js';
 import { RenderPass } from '../src/renderer/render_pass.js';
 import { RenderContext } from '../src/renderer/render_context.js';
-import { CameraControls } from '../src/engine/index.js';
+import { CameraController } from '../src/engine/index.js';
 import { Mesh } from '../src/assets/mesh.js';
 
 import densityWgsl from './terraforming/mc_density.wgsl?raw';
@@ -637,20 +637,12 @@ async function main() {
   canvas.width = canvas.clientWidth * devicePixelRatio;
   canvas.height = canvas.clientHeight * devicePixelRatio;
 
-  const renderContext = await RenderContext.create(canvas, { enableErrorHandling: false });
-  const device = renderContext.device;
-
-  let depthTexture = device.createTexture({
-    label: 'McDepthTexture',
-    size: { width: renderContext.width, height: renderContext.height },
-    format: 'depth32float',
-    usage: GPUTextureUsage.RENDER_ATTACHMENT,
-  });
+  const ctx = await RenderContext.create(canvas, { enableErrorHandling: false });
+  const device = ctx.device;
 
   const camPos = new Vec3(0, 10, 25);
-  const cameraControls = new CameraControls(0, -15 * Math.PI / 180, 15);
-  cameraControls.usePointerLock = false;
-  cameraControls.attach(canvas);
+  const cameraController = CameraController.create({ yaw: 0, pitch: -15 * Math.PI / 180, speed: 15, sensitivity: 0.002, pointerLock: false });
+  cameraController.attach(canvas);
   const fakeGO = { position: camPos, rotation: { x: 0, y: 0, z: 0, w: 1 } };
 
   let brushRadius = 2.0;
@@ -691,11 +683,10 @@ async function main() {
     }
   });
 
-  const colorView = renderContext.getCurrentTexture().createView();
   const mcPass = MarchingCubesPass.create(
-    renderContext,
-    colorView,
-    depthTexture.createView(),
+    ctx,
+    ctx.backbufferView,
+    ctx.backbufferDepthView!
   );
 
   let time = 0;
@@ -721,52 +712,37 @@ async function main() {
       brushInfo.textContent = `Brush: ${mode} | Radius: ${brushRadius.toFixed(1)}`;
     }
 
-    const needsResize = renderContext.canvas.width !== renderContext.canvas.clientWidth * devicePixelRatio ||
-                        renderContext.canvas.height !== renderContext.canvas.clientHeight * devicePixelRatio;
-    if (needsResize) {
-      renderContext.canvas.width = renderContext.canvas.clientWidth * devicePixelRatio;
-      renderContext.canvas.height = renderContext.canvas.clientHeight * devicePixelRatio;
+    ctx.update();
 
-      depthTexture.destroy();
-      depthTexture = device.createTexture({
-        label: 'McDepthTexture',
-        size: { width: renderContext.width, height: renderContext.height },
-        format: 'depth32float',
-        usage: GPUTextureUsage.RENDER_ATTACHMENT,
-      });
-    }
+    cameraController.update(fakeGO as any, dt);
 
-    cameraControls.update(fakeGO as any, dt);
-
-    const sinY = Math.sin(cameraControls.yaw);
-    const cosY = Math.cos(cameraControls.yaw);
-    const sinP = Math.sin(cameraControls.pitch);
-    const cosP = Math.cos(cameraControls.pitch);
+    const sinY = Math.sin(cameraController.yaw);
+    const cosY = Math.cos(cameraController.yaw);
+    const sinP = Math.sin(cameraController.pitch);
+    const cosP = Math.cos(cameraController.pitch);
     const forward = new Vec3(-sinY * cosP, -sinP, -cosY * cosP).normalize();
     brushPosition = camPos.add(forward.scale(15.0));
     const target = camPos.add(forward);
     const view = Mat4.lookAt(camPos, target, new Vec3(0, 1, 0));
-    const aspect = renderContext.width / renderContext.height;
+    const aspect = ctx.width / ctx.height;
     const proj = Mat4.perspective(60 * Math.PI / 180, aspect, 0.1, 200);
     const viewProj = proj.multiply(view);
     const invViewProj = viewProj.invert();
 
     mcPass.updateCamera(
-      renderContext,
+      ctx,
       view, proj, viewProj, invViewProj,
       camPos, 0.1, 200,
     );
 
     mcPass.setBrush(brushPosition, brushRadius, brushStrength, brushActive);
 
-    const swapTexture = renderContext.getCurrentTexture();
-    const swapView = swapTexture.createView();
-    mcPass.updateAttachments(swapView, depthTexture.createView());
+    mcPass.updateAttachments(ctx.backbufferView, ctx.backbufferDepthView!);
 
     const encoder = device.createCommandEncoder({ label: 'McMainEncoder' });
 
     if (mcPass.enabled) {
-      mcPass.execute(encoder, renderContext);
+      mcPass.execute(encoder, ctx);
     }
 
     device.queue.submit([encoder.finish()]);

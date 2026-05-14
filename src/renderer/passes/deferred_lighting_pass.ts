@@ -33,13 +33,13 @@ export class DeferredLightingPass extends RenderPass {
   readonly name = 'DeferredLightingPass';
 
   /** HDR color target written by the lighting pass. */
-  readonly hdrTexture   : GPUTexture;
+  readonly hdrTexture: GPUTexture;
   /** Default view of `hdrTexture`. */
-  readonly hdrView      : GPUTextureView;
+  readonly hdrView: GPUTextureView;
   /** Per-frame camera uniform buffer; shared with other passes. */
-  readonly cameraBuffer : GPUBuffer;
+  readonly cameraBuffer: GPUBuffer;
   /** Per-frame directional-light + cascade uniform buffer; shared with other passes. */
-  readonly lightBuffer  : GPUBuffer;
+  readonly lightBuffer: GPUBuffer;
 
   private _pipeline: GPURenderPipeline;
   private _sceneBindGroup: GPUBindGroup;

@@ -6,6 +6,14 @@ const AXIS_X = new Vec3(1, 0, 0);
 
 const FLY_FAST_MULT = 3.0; // ControlLeft speed multiplier
 
+export interface CameraControllerOptions {
+  yaw?: number; // = 0;
+  pitch?: number; // = 0;
+  speed?: number; // = 5;
+  sensitivity?: number; // = 0.002;
+  pointerLock?: boolean; // = false;
+}
+
 /**
  * Free-fly debug/editor camera controller with FPS-style mouse look.
  *
@@ -14,43 +22,55 @@ const FLY_FAST_MULT = 3.0; // ControlLeft speed multiplier
  * When {@link usePointerLock} is true (default), clicking the canvas
  * acquires pointer lock and mouse motion drives yaw/pitch.  When false,
  * click-and-drag with the left mouse button controls the camera instead.
- * Call {@link CameraControls.attach} once, then {@link CameraControls.update}
+ * Call {@link CameraController.attach} once, then {@link CameraController.update}
  * every frame against the camera's GameObject.
  */
-export class CameraControls {
+export class CameraController {
   /** Yaw in radians, rotation around world Y. */
-  yaw        : number;
+  yaw: number;
   /** Pitch in radians, rotation around local X (clamped to ±89°). */
-  pitch      : number;
+  pitch: number;
   /** Movement speed in world units per second. */
-  speed      : number;
+  speed: number;
   /** Mouse sensitivity in radians per pixel of movement. */
   sensitivity: number;
 
   /** Analog forward input in [-1, 1] (touch joystick / programmatic). */
   inputForward = 0;
   /** Analog strafe input in [-1, 1] (positive = right). */
-  inputStrafe  = 0;
+  inputStrafe = 0;
   /** Held-up flag (OR-ed with Space). */
-  inputUp      = false;
+  inputUp = false;
   /** Held-down flag (OR-ed with ShiftLeft). */
-  inputDown    = false;
+  inputDown = false;
   /** Held-fast flag (OR-ed with ControlLeft / AltLeft). */
-  inputFast    = false;
+  inputFast = false;
 
-  private _keys     = new Set<string>();
-  private _canvas   : HTMLCanvasElement | null = null;
+  private _keys = new Set<string>();
+  private _canvas: HTMLCanvasElement | null = null;
   private _mouseBtn = false;
-  private _lastMX   = 0;
-  private _lastMY   = 0;
+  private _lastMX = 0;
+  private _lastMY = 0;
 
-  private readonly _onMouseDown : (e: MouseEvent) => void;
-  private readonly _onMouseUp   : (e: MouseEvent) => void;
-  private readonly _onMouseMove : (e: MouseEvent) => void;
-  private readonly _onKeyDown   : (e: KeyboardEvent) => void;
-  private readonly _onKeyUp     : (e: KeyboardEvent) => void;
-  private readonly _onClick     : () => void;
-  private readonly _onBlur      : () => void;
+  private readonly _onMouseDown: (e: MouseEvent) => void;
+  private readonly _onMouseUp: (e: MouseEvent) => void;
+  private readonly _onMouseMove: (e: MouseEvent) => void;
+  private readonly _onKeyDown: (e: KeyboardEvent) => void;
+  private readonly _onKeyUp: (e: KeyboardEvent) => void;
+  private readonly _onClick: () => void;
+  private readonly _onBlur: () => void;
+
+  /** Set false to suppress pointer-lock acquisition on canvas click (touch devices). */
+  usePointerLock = false;
+
+  static create(options: CameraControllerOptions = {}): CameraController {
+    return new CameraController(
+        options.yaw ?? 0,
+        options.pitch ?? 0,
+        options.speed ?? 5,
+        options.sensitivity ?? 0.002,
+        options.pointerLock ?? false);
+  }
 
   /**
    * @param yaw - Initial yaw in radians.
@@ -58,11 +78,12 @@ export class CameraControls {
    * @param speed - Base movement speed in units/sec.
    * @param sensitivity - Mouse sensitivity in radians per pixel.
    */
-  constructor(yaw = 0, pitch = 0, speed = 5, sensitivity = 0.002) {
-    this.yaw         = yaw;
-    this.pitch       = pitch;
-    this.speed       = speed;
+  constructor(yaw = 0, pitch = 0, speed = 5, sensitivity = 0.002, pointerLock = false) {
+    this.yaw = yaw;
+    this.pitch = pitch;
+    this.speed = speed;
     this.sensitivity = sensitivity;
+    this.usePointerLock = pointerLock;
 
     const HALF_PI = Math.PI / 2 - 0.001;
 
@@ -113,9 +134,6 @@ export class CameraControls {
       this._mouseBtn = false;
     };
   }
-
-  /** Set false to suppress pointer-lock acquisition on canvas click (touch devices). */
-  usePointerLock = true;
 
   /**
    * Registers DOM event listeners on the supplied canvas and document.

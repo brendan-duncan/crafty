@@ -12,7 +12,7 @@ import { GameObject } from '../src/engine/game_object.js';
 import { Camera } from '../src/engine/components/camera.js';
 import { DirectionalLight } from '../src/engine/components/directional_light.js';
 import { MeshRenderer } from '../src/engine/components/mesh_renderer.js';
-import { CameraControls } from '../src/engine/camera_controls.js';
+import { CameraController } from '../src/engine/camera_controller.js';
 import { GBuffer } from '../src/renderer/gbuffer.js';
 import { parseHdr, createHdrTexture } from '../src/assets/hdr_loader.js';
 import { computeIblGpu } from '../src/assets/ibl.js';
@@ -45,8 +45,8 @@ async function main() {
   canvas.width = canvas.clientWidth;
   canvas.height = canvas.clientHeight;
 
-  const renderContext = await RenderContext.create(canvas, { enableErrorHandling: true });
-  const device = renderContext.device;
+  const ctx = await RenderContext.create(canvas, { enableErrorHandling: true });
+  const device = ctx.device;
 
   // Load HDR sky texture and compute IBL
   const skyTexture = await createHdrTexture(device, parseHdr(await (await fetch(skyHdrUrl)).arrayBuffer()));
@@ -59,13 +59,13 @@ async function main() {
   const cameraGO = new GameObject('Camera');
   cameraGO.position.set(5, 8, 6); // Offset to the side and up
   const camera = cameraGO.addComponent(
-    new Camera(60, 0.1, 100, renderContext.width / renderContext.height)
+    new Camera(60, 0.1, 100, ctx.width / ctx.height)
   );
   // Point camera toward origin (ground plane center)
-  const cameraControls = new CameraControls(0.2, 0.5, 5, 0.002); // yaw to look left, pitch to look down
-  cameraControls.attach(renderContext.canvas);
+  const cameraController = CameraController.create({ yaw: 0.2, pitch: 0.5, speed: 5, sensitivity: 0.002, pointerLock: false });
+  cameraController.attach(ctx.canvas);
   // Initialize camera rotation to match controls
-  cameraControls.update(cameraGO, 0);
+  cameraController.update(cameraGO, 0);
   scene.add(cameraGO);
 
   // Create directional light (sun)
@@ -121,22 +121,19 @@ async function main() {
   // IBL textures loaded earlier from sky.hdr
 
   // Create GBuffer
-  const gbuffer = GBuffer.create(renderContext);
+  const gbuffer = GBuffer.create(ctx);
 
   // Create AO texture
-  const aoView = createAOTexture(device, renderContext.width, renderContext.height);
+  const aoView = createAOTexture(device, ctx.width, ctx.height);
 
   // Create render passes
-  const shadowPass = ShadowPass.create(renderContext, 3); // 3 cascades
-  const geometryPass = GeometryPass.create(renderContext, gbuffer);
-  const lightingPass = DeferredLightingPass.create(renderContext, gbuffer, shadowPass, aoView, undefined, iblTextures);
-  const tonemapPass = TonemapPass.create(
-    renderContext,
-    lightingPass.hdrView
-  );
+  const shadowPass = ShadowPass.create(ctx, 3); // 3 cascades
+  const geometryPass = GeometryPass.create(ctx, gbuffer);
+  const lightingPass = DeferredLightingPass.create(ctx, gbuffer, shadowPass, aoView, undefined, iblTextures);
+  const tonemapPass = TonemapPass.create(ctx, lightingPass.hdrView);
 
   // Create sky texture pass for HDR sky rendering
-  const skyTexturePass = SkyTexturePass.create(renderContext, lightingPass.hdrView, skyTexture);
+  const skyTexturePass = SkyTexturePass.create(ctx, lightingPass.hdrView, skyTexture);
 
   // Create render graph
   const renderGraph = new RenderGraph();
@@ -165,6 +162,8 @@ async function main() {
     const now = performance.now();
     const dt = (now - lastTime) * 0.001;
     lastTime = now;
+
+    ctx.update();
 
     // FPS counter
     frameCount++;
@@ -203,7 +202,7 @@ async function main() {
     sun.color.set(1.0, 0.8 + 0.2 * t, 0.6 + 0.4 * t);
 
     // Update camera controls
-    cameraControls.update(cameraGO, dt);
+    cameraController.update(cameraGO, dt);
 
     // Update scene
     scene.update(dt);
@@ -241,18 +240,18 @@ async function main() {
     shadowPass.updateScene(scene, camera, sun, 100);
 
     geometryPass.setDrawItems(drawItems);
-    geometryPass.updateCamera(renderContext, view, proj, vp, invVP, camPos, camera.near, camera.far);
+    geometryPass.updateCamera(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far);
 
-    skyTexturePass.updateCamera(renderContext, invVP, camPos, 0.2);
+    skyTexturePass.updateCamera(ctx, invVP, camPos, 0.2);
 
-    lightingPass.updateCamera(renderContext, view, proj, vp, invVP, camPos, camera.near, camera.far);
-    lightingPass.updateLight(renderContext, sun.direction, sun.color, sun.intensity, cascades, true, debugCascades);
-    lightingPass.updateCloudShadow(renderContext, 0, 0, 0);
+    lightingPass.updateCamera(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far);
+    lightingPass.updateLight(ctx, sun.direction, sun.color, sun.intensity, cascades, true, debugCascades);
+    lightingPass.updateCloudShadow(ctx, 0, 0, 0);
 
-    tonemapPass.updateParams(renderContext, 1.0, true, false);
+    tonemapPass.updateParams(ctx, 1.0, true, false);
 
     // Execute render graph
-    await renderGraph.execute(renderContext);
+    await renderGraph.execute(ctx);
 
     requestAnimationFrame(render);
   }

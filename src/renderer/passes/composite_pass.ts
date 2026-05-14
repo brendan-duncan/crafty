@@ -262,10 +262,10 @@ export class CompositePass extends RenderPass {
    * @param sunDir - Normalised sun direction (used to fade stars at dawn/dusk).
    */
   updateStars(
-    ctx        : RenderContext,
+    ctx : RenderContext,
     invViewProj: Mat4,
-    camPos     : { x: number; y: number; z: number },
-    sunDir     : { x: number; y: number; z: number },
+    camPos: { x: number; y: number; z: number },
+    sunDir: { x: number; y: number; z: number },
   ): void {
     const data = this._starScratch;
     data.set(invViewProj.data, 0);
@@ -275,16 +275,16 @@ export class CompositePass extends RenderPass {
   }
 
   /**
-   * Encodes the composite pass into the swap-chain texture for the current frame.
+   * Encodes the composite pass into the backbuffer texture for the current frame.
    *
    * @param encoder - GPU command encoder to record into.
-   * @param ctx - Active render context (used to acquire the current swap-chain texture).
+   * @param ctx - Active render context (used to acquire the current backbuffer texture).
    */
   execute(encoder: GPUCommandEncoder, ctx: RenderContext): void {
     const pass = encoder.beginRenderPass({
       label: 'CompositePass',
       colorAttachments: [{
-        view: ctx.getCurrentTexture().createView(),
+        view: ctx.backbufferView,
         clearValue: [0, 0, 0, 1],
         loadOp: 'clear',
         storeOp: 'store',

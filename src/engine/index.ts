@@ -9,7 +9,7 @@ export { SpotLight  } from './components/spot_light.js';
 export { MeshRenderer } from './components/mesh_renderer.js';
 export { AnimatedModel } from './components/animated_model.js';
 export { Skeleton } from './skeleton.js';
-export { CameraControls } from './camera_controls.js';
+export { CameraController } from './camera_controller.js';
 export { PlayerController } from './player_controller.js';
 export { AudioSource } from './components/audio_source.js';
 export type { SurfaceGroup } from './audio_surface.js';

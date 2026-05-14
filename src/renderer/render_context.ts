@@ -4,6 +4,7 @@
 export interface RenderContextOptions {
   /** Install an `uncapturederror` listener and enable per-pass/frame validation scopes. */
   enableErrorHandling?: boolean;
+  depthFormat?: GPUTextureFormat | null;  // defaults to 'depth32float'. Use null to disable depth.
 }
 
 /**
@@ -13,18 +14,26 @@ export interface RenderContextOptions {
  * buffer creation, swap-chain access and scoped validation error capture.
  */
 export class RenderContext {
+  static readonly DEFAULT_DEPTH_FORMAT: GPUTextureFormat = 'depth32float';
+
   readonly device: GPUDevice;
   readonly queue: GPUQueue;
   readonly context: GPUCanvasContext;
   readonly format: GPUTextureFormat;
+  readonly depthFormat: GPUTextureFormat | null;
   readonly canvas: HTMLCanvasElement;
   readonly hdr: boolean;
   readonly enableErrorHandling: boolean;
+
+  private _backbufferView: GPUTextureView | null = null;
+  private _backbufferDepth: GPUTexture | null = null;
+  private _backbufferDepthView: GPUTextureView | null = null;
 
   private constructor(
     device: GPUDevice,
     context: GPUCanvasContext,
     format: GPUTextureFormat,
+    depthFormat: GPUTextureFormat | null,
     canvas: HTMLCanvasElement,
     hdr: boolean,
     enableErrorHandling: boolean,
@@ -33,6 +42,7 @@ export class RenderContext {
     this.queue = device.queue;
     this.context = context;
     this.format = format;
+    this.depthFormat = depthFormat;
     this.canvas = canvas;
     this.hdr = hdr;
     this.enableErrorHandling = enableErrorHandling;
@@ -42,6 +52,73 @@ export class RenderContext {
   get width(): number { return this.canvas.width; }
   /** Backing canvas pixel height. */
   get height(): number { return this.canvas.height; }
+
+  /**
+   * Call each frame to detect canvas resizes and update the backbuffer depth texture accordingly.
+   * 
+   * @returns true if a resize was detected and handled, false otherwise.
+   */
+  update(): boolean {
+    // Invalidate backbuffer view to ensure it's recreated for the new texture after a resize.
+    this._backbufferView = null;
+
+    const needsResize = this.canvas.width !== this.canvas.clientWidth ||
+                        this.canvas.height !== this.canvas.clientHeight;
+
+    if (needsResize) {
+      this.canvas.width = this.canvas.clientWidth;
+      this.canvas.height = this.canvas.clientHeight;
+      this._backbufferDepth?.destroy();
+      this._backbufferDepth = null;
+      this._backbufferDepthView = null;
+    }
+
+    return needsResize;
+  }
+
+  /** Returns the swap chain texture for the current frame. */
+  get backbufferTexture(): GPUTexture {
+    return this.context.getCurrentTexture();
+  }
+
+  /** Returns the swap chain texture view for the current frame. */
+  get backbufferView(): GPUTextureView {
+    if (!this._backbufferView) {
+      this._backbufferView = this.backbufferTexture.createView();
+    }
+    return this._backbufferView;
+  }
+
+  /** Returns the depth texture for the current frame, or null if depth is not enabled. */
+  get backbufferDepth(): GPUTexture | null {
+    if (!this._backbufferDepth) {
+      this._createBackbufferDepth();
+    }
+    return this._backbufferDepth;
+  }
+
+  /** Returns the depth texture view for the current frame, or null if depth is not enabled. */
+  get backbufferDepthView(): GPUTextureView | null {
+    if (!this._backbufferDepth) {
+      this._createBackbufferDepth();
+    }
+    return this._backbufferDepthView;
+  }
+
+  private _createBackbufferDepth(): void {
+    this._backbufferDepth?.destroy();
+    this._backbufferDepth = null;
+    this._backbufferDepthView = null;
+
+    if (this.depthFormat) {
+      this._backbufferDepth = this.device.createTexture({
+        size: { width: this.width, height: this.height },
+        format: this.depthFormat,
+        usage: GPUTextureUsage.RENDER_ATTACHMENT,
+      });
+      this._backbufferDepthView = this._backbufferDepth.createView();
+    }
+  }
 
   /**
    * Requests a WebGPU adapter and device, configures the canvas swap chain and
@@ -92,15 +169,15 @@ export class RenderContext {
           console.error('[WebGPU Internal Error]', err);
         }
       });
-
     }
-    
+
     const context = canvas.getContext('webgpu') as GPUCanvasContext;
 
     // Attempt HDR canvas: rgba16float + display-p3 + extended tonemapping.
     // Falls back to the preferred SDR format if unsupported.
     let format: GPUTextureFormat;
     let hdr = false;
+
     try {
       (context as any).configure({
         device,
@@ -126,14 +203,8 @@ export class RenderContext {
     canvas.width = canvas.clientWidth * devicePixelRatio;
     canvas.height = canvas.clientHeight * devicePixelRatio;
 
-    return new RenderContext(device, context, format, canvas, hdr, options.enableErrorHandling ?? false);
-  }
-
-  /**
-   * Returns the swap chain texture for the current frame.
-   */
-  getCurrentTexture(): GPUTexture {
-    return this.context.getCurrentTexture();
+    return new RenderContext(device, context, format, options.depthFormat ?? RenderContext.DEFAULT_DEPTH_FORMAT,
+        canvas, hdr, options.enableErrorHandling ?? false);
   }
 
   /**
