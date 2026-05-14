@@ -141,17 +141,6 @@ The atlas generator outputs:
 - Atlas image (PNG): packed texture tiles.
 - Atlas metadata (JSON): per-block UV offsets and scales.
 
-### HDR Map Preprocessing
-
-HDR environment maps are processed offline to generate the IBL textures:
-
-1. Load `.hdr` file.
-2. Generate irradiance map (convolution with cosine-weighted hemisphere).
-3. Generate prefilter map (importance-sampled GGX mip chain).
-4. Generate BRDF LUT (2D texture).
-
-These are pre-computed once and loaded at runtime, rather than computing them on the GPU each session.
-
 ## 22.5 Continuous Integration
 
 The project uses GitHub Actions for CI. The workflow:

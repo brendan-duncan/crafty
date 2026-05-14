@@ -484,7 +484,6 @@ This book is a work in progress.  Chapters are added as the engine evolves.
     - [WebGPU Inspector (Chrome Extension)](chapters/22-tools.md#webgpu-inspector-chrome-extension)
   - [22.4 Asset Pipeline](chapters/22-tools.md#224-asset-pipeline)
     - [Texture Atlas Buidling](chapters/22-tools.md#texture-atlas-buidling)
-    - [HDR Map Preprocessing](chapters/22-tools.md#hdr-map-preprocessing)
   - [22.5 Continuous Integration](chapters/22-tools.md#225-continuous-integration)
   - [22.6 Summary](chapters/22-tools.md#226-summary)
 
