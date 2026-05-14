@@ -116,9 +116,9 @@ texture compressor), we explain why and how it fits.
     - [Dispatching Work](chapters/03-webgpu-fundamentals.md#dispatching-work)
     - [Synchronization Between Passes](chapters/03-webgpu-fundamentals.md#synchronization-between-passes)
     - [Copy Operations](chapters/03-webgpu-fundamentals.md#copy-operations)
-  - [3.10 The RenderContext Abstraction](chapters/03-webgpu-fundamentals.md#310-the-rendercontext-abstraction)
+  - [3.12 The RenderContext Abstraction](chapters/03-webgpu-fundamentals.md#312-the-rendercontext-abstraction)
     - [Lifecycle](chapters/03-webgpu-fundamentals.md#lifecycle)
-  - [3.11 Summary](chapters/03-webgpu-fundamentals.md#311-summary)
+  - [3.13 Summary](chapters/03-webgpu-fundamentals.md#313-summary)
 
 ## II — Rendering
 

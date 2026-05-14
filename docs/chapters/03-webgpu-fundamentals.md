@@ -1281,7 +1281,7 @@ encoder.copyBufferToBuffer(source, 0, dest, 0, size);
 
 Crafty uses compute-to-buffer copies in the particle system to copy the computed particle count into the indirect draw buffer.
 
-## 3.13 The RenderContext Abstraction
+## 3.12 The RenderContext Abstraction
 
 The `RenderContext` class (`src/renderer/render_context.ts`) wraps the WebGPU device, queue, and canvas configuration into a single handle that flows through the entire render graph.
 
@@ -1327,7 +1327,7 @@ RenderGraph  ─── owns ───►  RenderPass[]
 3. **Resize.** On canvas resize, the canvas pixel dimensions are updated and the graph is re-created (passes that depend on canvas size, like the GBuffer, reallocate their textures).
 4. **Destroy.** `RenderGraph.destroy()` calls `destroy()` on every pass, and the render context itself is discarded.
 
-### 3.14 Summary
+### 3.13 Summary
 
 In this chapter we covered every major WebGPU resource type and saw how Crafty uses them:
 
