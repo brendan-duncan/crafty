@@ -137,7 +137,7 @@ export class TAAPass extends RenderPass {
       ],
     });
 
-    const shader = device.createShaderModule({ label: 'TAAShader', code: taaWgsl });
+    const shader = ctx.createShaderModule(taaWgsl, 'TAAShader');
     const pipeline = device.createRenderPipeline({
       label: 'TAAPipeline',
       layout: device.createPipelineLayout({ bindGroupLayouts: [uniformBGL, textureBGL] }),

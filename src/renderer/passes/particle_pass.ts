@@ -449,7 +449,7 @@ export class ParticlePass extends RenderPass {
       const fsEntry = billboard === 'velocity'
         ? 'fs_main'
         : (shape === 'pixel' ? 'fs_pixel' : 'fs_snow');
-      const renderModule = device.createShaderModule({ label: 'ParticleRenderForward', code: renderForwardWgsl });
+      const renderModule = ctx.createShaderModule(renderForwardWgsl, 'ParticleRenderForward');
       const renderLayout = device.createPipelineLayout({
         bindGroupLayouts: [renderDataBGL, cameraRenderBGL],
       });
@@ -473,7 +473,7 @@ export class ParticlePass extends RenderPass {
       });
     } else {
       // GBuffer pipeline: camera-facing billboard, writes albedo+normal, depth write on.
-      const renderModule = device.createShaderModule({ label: 'ParticleRender', code: renderWgsl });
+      const renderModule = ctx.createShaderModule(renderWgsl, 'ParticleRender');
       const renderLayout = device.createPipelineLayout({
         bindGroupLayouts: [renderDataBGL, cameraRenderBGL, renderParamsBGL],
       });

@@ -103,10 +103,7 @@ export class TonemapPass extends RenderPass {
       ],
     });
 
-    const shader = device.createShaderModule({
-      label: 'TonemapShader',
-      code: tonemapWgsl,
-    });
+    const shader = ctx.createShaderModule(tonemapWgsl, 'TonemapShader');
 
     const layout = device.createPipelineLayout({
       bindGroupLayouts: [bgl0, bgl1],

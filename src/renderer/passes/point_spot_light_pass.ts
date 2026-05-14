@@ -194,7 +194,7 @@ export class PointSpotLightPass extends RenderPass {
       ],
     });
 
-    const shaderModule = device.createShaderModule({ label: 'PointSpotLightShader', code: lightingWgsl });
+    const shaderModule = ctx.createShaderModule(lightingWgsl, 'PointSpotLightShader');
 
     const pipeline = device.createRenderPipeline({
       label: 'PointSpotLightPipeline',

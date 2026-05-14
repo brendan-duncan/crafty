@@ -73,7 +73,7 @@ export class AtmospherePass extends RenderPass {
       entries: [{ binding: 0, resource: { buffer: uniformBuf } }],
     });
 
-    const shader = device.createShaderModule({ label: 'AtmosphereShader', code: atmosphereWgsl });
+    const shader = ctx.createShaderModule(atmosphereWgsl, 'AtmosphereShader');
 
     const pipeline = device.createRenderPipeline({
       label: 'AtmospherePipeline',

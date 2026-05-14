@@ -218,7 +218,7 @@ export class PointSpotShadowPass extends RenderPass {
     }
 
     const pipelineLayout = device.createPipelineLayout({ bindGroupLayouts: [shadowBGL, modelBGL] });
-    const shaderModule   = device.createShaderModule({ label: 'PointSpotShadowShader', code: shadowWgsl });
+    const shaderModule   = ctx.createShaderModule(shadowWgsl, 'PointSpotShadowShader');
 
     const vertexState = {
       module: shaderModule,

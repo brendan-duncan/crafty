@@ -215,20 +215,9 @@ class MarchingCubesPass extends RenderPass {
       ],
     });
 
-    const densityModule = device.createShaderModule({
-      label: 'McDensityShader',
-      code: densityWgsl,
-    });
-
-    const marchModule = device.createShaderModule({
-      label: 'McMarchShader',
-      code: marchWgsl,
-    });
-
-    const renderModule = device.createShaderModule({
-      label: 'McRenderShader',
-      code: renderWgsl,
-    });
+    const densityModule = ctx.createShaderModule(densityWgsl, 'McDensityShader');
+    const marchModule = ctx.createShaderModule(marchWgsl, 'McMarchShader');
+    const renderModule = ctx.createShaderModule(renderWgsl, 'McRenderShader');
 
     const densityLayout = device.createPipelineLayout({
       bindGroupLayouts: [densityBGL],
@@ -339,10 +328,7 @@ class MarchingCubesPass extends RenderPass {
 
     const sphereMesh = Mesh.createSphere(device, 1, 16, 16);
 
-    const brushSphereModule = device.createShaderModule({
-      label: 'McBrushSphereShader',
-      code: BRUSH_SPHERE_WGSL,
-    });
+    const brushSphereModule = ctx.createShaderModule(BRUSH_SPHERE_WGSL, 'McBrushSphereShader');
 
     const brushSphereBGL = device.createBindGroupLayout({
       label: 'McBrushSphereBGL',

@@ -175,7 +175,7 @@ export class BlockGeometryPass extends RenderPass {
       entries: [{ binding: 0, resource: { buffer: cameraBuffer } }],
     });
 
-    const shader = device.createShaderModule({ label: 'ChunkGeometryShader', code: chunkGeometryWgsl });
+    const shader = ctx.createShaderModule(chunkGeometryWgsl, 'ChunkGeometryShader');
     const layout = device.createPipelineLayout({ bindGroupLayouts: [cameraBGL, sharedBGL, chunkBGL] });
 
     const vertexLayout: GPUVertexBufferLayout = {

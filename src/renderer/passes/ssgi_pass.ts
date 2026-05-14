@@ -235,8 +235,8 @@ export class SSGIPass extends RenderPass {
       ],
     });
 
-    const ssgiShader    = device.createShaderModule({ label: 'SSGIShader',    code: ssgiWgsl         });
-    const temporalShader = device.createShaderModule({ label: 'SSGITempShader', code: ssgiTemporalWgsl });
+    const ssgiShader = ctx.createShaderModule(ssgiWgsl, 'SSGIShader');
+    const temporalShader = ctx.createShaderModule(ssgiTemporalWgsl, 'SSGITempShader');
 
     const ssgiPipeline = device.createRenderPipeline({
       label: 'SSGIPipeline',

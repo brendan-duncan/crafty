@@ -149,15 +149,15 @@ export class WaterPass extends RenderPass {
     const sampler = device.createSampler({ magFilter: 'linear', minFilter: 'linear', addressModeU: 'repeat', addressModeV: 'repeat' });
 
     const cameraBuffer = device.createBuffer({ label: 'WaterCameraBuffer', size: CAMERA_UNIFORM_SIZE, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
-    const waterBuffer  = device.createBuffer({ label: 'WaterUniformBuffer', size: WATER_UNIFORM_SIZE,  usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+    const waterBuffer = device.createBuffer({ label: 'WaterUniformBuffer', size: WATER_UNIFORM_SIZE,  usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
 
     const cameraBG = device.createBindGroup({ label: 'WaterCameraBG', layout: cameraBGL, entries: [{ binding: 0, resource: { buffer: cameraBuffer } }] });
-    const waterBG  = device.createBindGroup({ label: 'WaterUniformBG',  layout: waterBGL,  entries: [{ binding: 0, resource: { buffer: waterBuffer  } }] });
+    const waterBG = device.createBindGroup({ label: 'WaterUniformBG',  layout: waterBGL,  entries: [{ binding: 0, resource: { buffer: waterBuffer  } }] });
 
     const sceneBG = WaterPass._makeSceneBG(device, sceneBGL, refractionView, depthView, dudvTexture, gradientTexture, skyTexture, sampler);
 
-    const shader   = device.createShaderModule({ label: 'WaterShader', code: waterWgsl });
-    const layout   = device.createPipelineLayout({ bindGroupLayouts: [cameraBGL, waterBGL, chunkBGL, sceneBGL] });
+    const shader = ctx.createShaderModule(waterWgsl, 'WaterShader');
+    const layout = device.createPipelineLayout({ bindGroupLayouts: [cameraBGL, waterBGL, chunkBGL, sceneBGL] });
 
     const vertexLayout: GPUVertexBufferLayout = {
       arrayStride: BYTES_PER_VERT,
@@ -165,9 +165,9 @@ export class WaterPass extends RenderPass {
     };
 
     const pipeline = device.createRenderPipeline({
-      label   : 'WaterPipeline',
+      label: 'WaterPipeline',
       layout,
-      vertex  : { module: shader, entryPoint: 'vs_main', buffers: [vertexLayout] },
+      vertex: { module: shader, entryPoint: 'vs_main', buffers: [vertexLayout] },
       fragment: {
         module: shader, entryPoint: 'fs_main',
         targets: [{

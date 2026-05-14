@@ -160,7 +160,7 @@ export class BlockShadowPass extends RenderPass {
     });
 
     // Opaque pipeline: depth-only, no fragment shader, reads only xyz.
-    const opaqueShader = device.createShaderModule({ label: 'BlockShadowShader', code: shadowWgsl });
+    const opaqueShader = ctx.createShaderModule(shadowWgsl, 'BlockShadowShader');
     const opaqueLayout = device.createPipelineLayout({ bindGroupLayouts: [cascadeBGL, modelBGL] });
     const pipeline = device.createRenderPipeline({
       label   : 'BlockShadowPipeline',
@@ -177,7 +177,7 @@ export class BlockShadowPass extends RenderPass {
     });
 
     // Transparent pipeline: reads xyz + face + blockType, discards low-alpha texels.
-    const transpShader = device.createShaderModule({ label: 'BlockShadowTranspShader', code: chunkShadowWgsl });
+    const transpShader = ctx.createShaderModule(chunkShadowWgsl, 'BlockShadowTranspShader');
     const transpLayout = device.createPipelineLayout({ bindGroupLayouts: [cascadeBGL, modelBGL, atlasBGL] });
     const transparentPipeline = device.createRenderPipeline({
       label: 'BlockShadowTransparentPipeline',
@@ -212,7 +212,7 @@ export class BlockShadowPass extends RenderPass {
     const orientBG_X = makeOrientBG('BlockShadowOrientBG_X', 1, 0, 0);
     const orientBG_Z = makeOrientBG('BlockShadowOrientBG_Z', 0, 0, 1);
 
-    const propShader = device.createShaderModule({ label: 'BlockShadowPropShader', code: propShadowWgsl });
+    const propShader = ctx.createShaderModule(propShadowWgsl, 'BlockShadowPropShader');
     const propLayout = device.createPipelineLayout({ bindGroupLayouts: [cascadeBGL, modelBGL, atlasBGL, orientBGL] });
     const propPipeline = device.createRenderPipeline({
       label: 'BlockShadowPropPipeline',

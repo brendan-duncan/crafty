@@ -93,10 +93,7 @@ export class SpotShadowPass extends RenderPass {
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
-    const shaderModule = device.createShaderModule({
-      label: 'SpotShadowShader',
-      code: shadowWgsl,
-    });
+    const shaderModule = ctx.createShaderModule(shadowWgsl, 'SpotShadowShader');
 
     const pipeline = device.createRenderPipeline({
       label: 'SpotShadowPipeline',

@@ -114,10 +114,7 @@ export class PointShadowPass extends RenderPass {
       }));
     }
 
-    const shaderModule = device.createShaderModule({
-      label: 'PointShadowShader',
-      code: shadowCubeWgsl,
-    });
+    const shaderModule = ctx.createShaderModule(shadowCubeWgsl, 'PointShadowShader');
 
     const pipeline = device.createRenderPipeline({
       label: 'PointShadowPipeline',

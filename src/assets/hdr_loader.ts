@@ -179,8 +179,8 @@ function getOrCreateDecodeResources(device: GPUDevice): DecodeResources {
     }],
   });
 
-  const layout   = device.createPipelineLayout({ bindGroupLayouts: [srcBGL, dstBGL] });
-  const module   = device.createShaderModule({ label: 'RgbeDecode', code: rgbeDecodeWgsl });
+  const layout = device.createPipelineLayout({ bindGroupLayouts: [srcBGL, dstBGL] });
+  const module = device.createShaderModule({ label: 'RgbeDecode', code: rgbeDecodeWgsl });
   const pipeline = device.createComputePipeline({
     label: 'RgbeDecodePipeline', layout,
     compute: { module, entryPoint: 'cs_decode' },

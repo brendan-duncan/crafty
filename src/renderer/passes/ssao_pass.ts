@@ -171,8 +171,8 @@ export class SSAOPass extends RenderPass {
       ],
     });
 
-    const ssaoShader = device.createShaderModule({ label: 'SsaoShader', code: ssaoWgsl });
-    const blurShader = device.createShaderModule({ label: 'SsaoBlurShader', code: ssaoBlurWgsl });
+    const ssaoShader = ctx.createShaderModule(ssaoWgsl, 'SsaoShader');
+    const blurShader = ctx.createShaderModule(ssaoBlurWgsl, 'SsaoBlurShader');
 
     const ssaoPipeline = device.createRenderPipeline({
       label: 'SsaoPipeline',

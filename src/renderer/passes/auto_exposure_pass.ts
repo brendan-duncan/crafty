@@ -113,8 +113,8 @@ export class AutoExposurePass extends RenderPass {
       ],
     });
 
-    const layout   = device.createPipelineLayout({ bindGroupLayouts: [bgl] });
-    const module   = device.createShaderModule({ label: 'AutoExposure', code: autoExposureWgsl });
+    const layout = device.createPipelineLayout({ bindGroupLayouts: [bgl] });
+    const module = ctx.createShaderModule(autoExposureWgsl, 'AutoExposure');
 
     const histogramPipeline = device.createComputePipeline({
       label: 'AutoExposureHistogramPipeline', layout,

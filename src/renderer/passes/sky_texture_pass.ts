@@ -90,7 +90,7 @@ export class SkyTexturePass extends RenderPass {
       ],
     });
 
-    const shader = device.createShaderModule({ label: 'SkyShader', code: skyWgsl });
+    const shader = ctx.createShaderModule(skyWgsl, 'SkyShader');
     const pipeline = device.createRenderPipeline({
       label: 'SkyPipeline',
       layout: device.createPipelineLayout({ bindGroupLayouts: [uniformBGL, textureBGL] }),

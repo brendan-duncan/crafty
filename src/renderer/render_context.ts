@@ -208,6 +208,17 @@ export class RenderContext {
   }
 
   /**
+   * Creates a GPU shader module from the provided WGSL code.
+   *
+   * @param code - WGSL shader code
+   * @param label - optional debug label
+   * @returns GPUShaderModule instance
+   */
+  createShaderModule(code: string, label?: string): GPUShaderModule {
+    return this.device.createShaderModule({ code, label });
+  }
+
+  /**
    * Convenience wrapper around `device.createBuffer`.
    *
    * @param size - buffer size in bytes

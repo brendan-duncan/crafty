@@ -104,7 +104,7 @@ export class BlockHighlightPass extends RenderPass {
       ],
     });
 
-    const shader = device.createShaderModule({ label: 'BlockHighlightShader', code: blockHighlightWgsl });
+    const shader = ctx.createShaderModule(blockHighlightWgsl, 'BlockHighlightShader');
     const pipelineLayout = device.createPipelineLayout({ bindGroupLayouts: [bgl] });
 
     // The vertex shader applies a clip-space depth bias (clip.z -= 0.001 * clip.w)

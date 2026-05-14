@@ -115,7 +115,7 @@ export class ShadowPass extends RenderPass {
       }));
     }
 
-    const shaderModule = device.createShaderModule({ label: 'ShadowShader', code: shadowWgsl });
+    const shaderModule = ctx.createShaderModule(shadowWgsl, 'ShadowShader');
 
     const pipeline = device.createRenderPipeline({
       label: 'ShadowPipeline',
