@@ -5,7 +5,7 @@
 This book explores real-time graphics programming through the lens of **Crafty**,
 an open-source WebGPU voxel game engine written in TypeScript.
 
-![Crafty](images/crafty.png)
+![Crafty Voxel Game Engine](images/crafty.png)
 
 ## Status
 
@@ -13,10 +13,7 @@ This book is a work in progress. Chapters are added as the engine evolves.
 
 ## Who this is for
 
-You have written a few small graphics demos and want to understand how a
-complete, multi-pass deferred renderer works end-to-end. You are comfortable
-with TypeScript or a C-family language and have a basic understanding of linear
-algebra. You do *not* need prior WebGPU experience — we cover the API from the
+You are comfortable with TypeScript or a C-family language and have a basic understanding of linear algebra. You do *not* need prior WebGPU experience — we cover the API from the
 ground up.
 
 ## What you will learn
@@ -44,6 +41,18 @@ relevant source files — you are encouraged to open them side-by-side.
 Code blocks are either **annotated excerpts** (showing the key logic) or
 **complete listings** (the entire file). Excerpts use `// ── ... ──` markers
 to indicate elided boilerplate.
+
+```typescript
+// ── from src/block/chunk.ts ──
+class Chunk {
+  readonly cx: number;       // Chunk X index
+  readonly cz: number;       // Chunk Z index
+  readonly blocks: Uint8Array; // 16 × 256 × 16 = 65,536 blocks
+
+  getBlock(x: number, y: number, z: number): BlockType;
+  setBlock(x: number, y: number, z: number, type: BlockType): void;
+}
+```
 
 ## The Crafty philosophy
 
@@ -249,7 +258,7 @@ texture compressor), we explain why and how it fits.
     - [Cloud Noise Texture Generation](chapters/10-sky-atmosphere.md#cloud-noise-texture-generation)
   - [10.4 Volumetric Fog](chapters/10-sky-atmosphere.md#104-volumetric-fog)
   - [10.5 Cloud Shadows](chapters/10-sky-atmosphere.md#105-cloud-shadows)
-  - [10.6 Oren-Nayer Diffuse Ground](chapters/10-sky-atmosphere.md#106-oren-nayer-diffuse-ground)
+  - [10.6 Oren-Nayar Diffuse Ground](chapters/10-sky-atmosphere.md#106-oren-nayar-diffuse-ground)
   - [10.7 Ozone Absorption (Chappuis Band)](chapters/10-sky-atmosphere.md#107-ozone-absorption-chappuis-band)
   - [10.8 Day/Night Cycle and Star Rendering](chapters/10-sky-atmosphere.md#108-daynight-cycle-and-star-rendering)
     - [Sun Position Skew](chapters/10-sky-atmosphere.md#sun-position-skew)
@@ -335,7 +344,7 @@ texture compressor), we explain why and how it fits.
     - [Neighborhood Clamping](chapters/12-post-processing.md#neighborhood-clamping)
   - [12.4 Depth of Field (DOF)](chapters/12-post-processing.md#124-depth-of-field-dof)
     - [Circle of Confusion](chapters/12-post-processing.md#circle-of-confusion)
-    - [Seperable Blur](chapters/12-post-processing.md#seperable-blur)
+    - [Separable Blur](chapters/12-post-processing.md#separable-blur)
   - [12.5 Auto-Exposure](chapters/12-post-processing.md#125-auto-exposure)
     - [Histogram Computation](chapters/12-post-processing.md#histogram-computation)
     - [Average Luminance](chapters/12-post-processing.md#average-luminance)
@@ -481,7 +490,7 @@ texture compressor), we explain why and how it fits.
     - [Shader Debugging](chapters/22-tools.md#shader-debugging)
     - [WebGPU Inspector (Chrome Extension)](chapters/22-tools.md#webgpu-inspector-chrome-extension)
   - [22.4 Asset Pipeline](chapters/22-tools.md#224-asset-pipeline)
-    - [Texture Atlas Buidling](chapters/22-tools.md#texture-atlas-buidling)
+    - [Texture Atlas Building](chapters/22-tools.md#texture-atlas-building)
   - [22.5 Continuous Integration](chapters/22-tools.md#225-continuous-integration)
   - [22.6 Summary](chapters/22-tools.md#226-summary)
 
