@@ -1,6 +1,10 @@
 function _evaluateIf(condition: string, defines: Record<string, string>): boolean {
-  const expr = condition.replace(/defined\s*\(\s*(\w+)\s*\)/g, (_, name) =>
+  let expr = condition;
+  expr = expr.replace(/defined\s*\(\s*(\w+)\s*\)/g, (_, name) =>
     name in defines ? '1' : '0',
+  );
+  expr = expr.replace(/\b([a-zA-Z_]\w*)\b/g, (_, name) =>
+    name in defines ? (defines[name] || '1') : '0',
   );
   return !!new Function('return (' + expr + ')')();
 }

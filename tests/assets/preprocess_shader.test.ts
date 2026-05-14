@@ -220,6 +220,193 @@ describe('preprocessShader', () => {
     });
   });
 
+  describe('#if with comparison operators', () => {
+    it('should support == with numeric define values', () => {
+      const code = [
+        '#define X 5',
+        '#if X == 5',
+        'keep',
+        '#endif',
+      ].join('\n');
+      expect(preprocessShader(code)).toBe('keep');
+    });
+
+    it('should exclude when == does not match', () => {
+      const code = [
+        '#define X 5',
+        '#if X == 3',
+        'excluded',
+        '#endif',
+      ].join('\n');
+      expect(preprocessShader(code)).toBe('');
+    });
+
+    it('should support !=', () => {
+      const code = [
+        '#define X 5',
+        '#if X != 3',
+        'keep',
+        '#endif',
+      ].join('\n');
+      expect(preprocessShader(code)).toBe('keep');
+    });
+
+    it('should exclude when != matches', () => {
+      const code = [
+        '#define X 5',
+        '#if X != 5',
+        'excluded',
+        '#endif',
+      ].join('\n');
+      expect(preprocessShader(code)).toBe('');
+    });
+
+    it('should support >', () => {
+      const code = [
+        '#define X 5',
+        '#if X > 3',
+        'keep',
+        '#endif',
+      ].join('\n');
+      expect(preprocessShader(code)).toBe('keep');
+    });
+
+    it('should exclude when > is false', () => {
+      const code = [
+        '#define X 2',
+        '#if X > 3',
+        'excluded',
+        '#endif',
+      ].join('\n');
+      expect(preprocessShader(code)).toBe('');
+    });
+
+    it('should support <', () => {
+      const code = [
+        '#define X 2',
+        '#if X < 3',
+        'keep',
+        '#endif',
+      ].join('\n');
+      expect(preprocessShader(code)).toBe('keep');
+    });
+
+    it('should support >=', () => {
+      const code = [
+        '#define X 5',
+        '#if X >= 5',
+        'keep',
+        '#endif',
+      ].join('\n');
+      expect(preprocessShader(code)).toBe('keep');
+    });
+
+    it('should exclude when >= is false', () => {
+      const code = [
+        '#define X 4',
+        '#if X >= 5',
+        'excluded',
+        '#endif',
+      ].join('\n');
+      expect(preprocessShader(code)).toBe('');
+    });
+
+    it('should support <=', () => {
+      const code = [
+        '#define X 3',
+        '#if X <= 3',
+        'keep',
+        '#endif',
+      ].join('\n');
+      expect(preprocessShader(code)).toBe('keep');
+    });
+
+    it('should evaluate undefined identifiers as 0', () => {
+      const code = [
+        '#if UNDEFINED == 0',
+        'keep',
+        '#endif',
+      ].join('\n');
+      expect(preprocessShader(code)).toBe('keep');
+    });
+
+    it('should combine comparisons with &&', () => {
+      const code = [
+        '#define X 5',
+        '#define Y 10',
+        '#if X > 2 && Y < 20',
+        'keep',
+        '#endif',
+      ].join('\n');
+      expect(preprocessShader(code)).toBe('keep');
+    });
+
+    it('should combine comparisons with ||', () => {
+      const code = [
+        '#define X 1',
+        '#if X == 1 || X == 2',
+        'keep',
+        '#endif',
+      ].join('\n');
+      expect(preprocessShader(code)).toBe('keep');
+    });
+
+    it('should compare defines against each other', () => {
+      const code = [
+        '#define MIN 2',
+        '#define MAX 10',
+        '#if MIN < MAX',
+        'keep',
+        '#endif',
+      ].join('\n');
+      expect(preprocessShader(code)).toBe('keep');
+    });
+
+    it('should handle version number comparisons', () => {
+      const code = [
+        '#define VERSION 203',
+        '#if VERSION >= 200',
+        'keep',
+        '#endif',
+      ].join('\n');
+      expect(preprocessShader(code)).toBe('keep');
+    });
+
+    it('should handle #define with 0 in comparison', () => {
+      const code = [
+        '#define ENABLED 0',
+        '#if ENABLED == 0',
+        'keep',
+        '#endif',
+      ].join('\n');
+      expect(preprocessShader(code)).toBe('keep');
+    });
+
+    it('should work with defined() inside expressions alongside comparisons', () => {
+      const code = [
+        '#define X 5',
+        '#if defined(X) && X > 0',
+        'keep',
+        '#endif',
+      ].join('\n');
+      expect(preprocessShader(code)).toBe('keep');
+    });
+
+    it('should work with #elif using comparisons', () => {
+      const code = [
+        '#define MODE 2',
+        '#if MODE == 1',
+        'mode1',
+        '#elif MODE == 2',
+        'mode2',
+        '#else',
+        'default',
+        '#endif',
+      ].join('\n');
+      expect(preprocessShader(code)).toBe('mode2');
+    });
+  });
+
   describe('#ifdef', () => {
     it('should include code when defined', () => {
       const code = [

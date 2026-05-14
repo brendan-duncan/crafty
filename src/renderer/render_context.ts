@@ -1,4 +1,3 @@
-import { preprocessShader } from '../assets/preprocess_shader.js';
 import { ShaderBlockManager } from '../assets/shader_block_manager.js';
 
 /**

@@ -1,4 +1,4 @@
-var m=Object.defineProperty;var v=(u,o,n)=>o in u?m(u,o,{enumerable:!0,configurable:!0,writable:!0,value:n}):u[o]=n;var s=(u,o,n)=>v(u,typeof o!="symbol"?o+"":o,n);import{a as _}from"./mesh--BO67bWf.js";import{H as y}from"./deferred_lighting_pass-a_oL9lz9.js";const g=`// Physically based single-scattering atmosphere (Rayleigh + Mie).
+var m=Object.defineProperty;var v=(u,o,n)=>o in u?m(u,o,{enumerable:!0,configurable:!0,writable:!0,value:n}):u[o]=n;var s=(u,o,n)=>v(u,typeof o!="symbol"?o+"":o,n);import{a as _}from"./mesh-BK4JnZ1v.js";import{H as y}from"./deferred_lighting_pass-BBq3Yn03.js";const g=`// Physically based single-scattering atmosphere (Rayleigh + Mie).
 // Reference: Nishita 1993, Preetham 1999, Hillaire 2020 (simplified).
 //
 // World units are metres.  The ground sits at y ≈ 0 so the camera is placed at
