@@ -104,6 +104,7 @@ This book is a work in progress.  Chapters are added as the engine evolves.
     - [ShaderBlockManager](chapters/03-webgpu-fundamentals.md#shaderblockmanager)
     - [Using #Import in WGSL Shaders](chapters/03-webgpu-fundamentals.md#using-import-in-wgsl-shaders)
     - [RenderContext Integration](chapters/03-webgpu-fundamentals.md#rendercontext-integration)
+    - [Shader Variants](chapters/03-webgpu-fundamentals.md#shader-variants)
   - [3.8 GPURenderPipeline and GPUComputePipeline](chapters/03-webgpu-fundamentals.md#38-gpurenderpipeline-and-gpucomputepipeline)
   - [3.9 GPUCommandEncoder and GPUQueue](chapters/03-webgpu-fundamentals.md#39-gpucommandencoder-and-gpuqueue)
   - [3.10 Render Passes](chapters/03-webgpu-fundamentals.md#310-render-passes)

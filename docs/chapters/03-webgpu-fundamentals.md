@@ -571,6 +571,87 @@ const module = ctx.createShaderModule(shaderSource, label);
 
 The optional `defines` parameter allows the caller to inject initial macro definitions that the preprocessor uses before processing any `#define` directives in the shader source. This is useful when the host application needs to control shader features at runtime without modifying the WGSL files.
 
+#### Shader Variants
+
+The `defines` parameter makes it possible to generate multiple compiled variants of the same WGSL source without duplicating shader files. Instead of maintaining separate shaders for different feature levels, you write one shader that uses `#if` directives to guard feature-specific code, then compile variants by passing different define values to `createShaderModule`.
+
+This is how Crafty's material system handles optional features like shadow mapping, fog, and debug overlay modes. Each `Material` type declares the set of defines it needs, and the render pass compiles a variant for each combination:
+
+```wgsl
+// ── material shader skeleton ──
+
+#ifdef SHADOWS
+  #import "lighting.wgsl"
+  // shadow-aware PBR
+#else
+  // simple unlit shading
+#endif
+
+#ifdef FOG
+  fn apply_fog(color: vec3<f32>, depth: f32) -> vec3<f32> {
+    // ...
+  }
+#endif
+
+@fragment
+fn fs_main(...) -> @location(0) vec4<f32> {
+  var color = ...;
+#ifdef FOG
+  color = apply_fog(color, input.depth);
+#endif
+  return color;
+}
+```
+
+```typescript
+// ── compiling variants from the same source ──
+
+const baseShader = readShaderSource('materials/terrain.wgsl');
+
+const opaqueModule = ctx.createShaderModule(baseShader, 'TerrainOpaque', { SHADOWS: '1', FOG: '1' });
+const shadowModule = ctx.createShaderModule(baseShader, 'TerrainShadow', { SHADOWS: '0', FOG: '0' });
+const debugModule = ctx.createShaderModule(baseShader, 'TerrainDebug', { SHADOWS: '1', FOG: '0', DEBUG_NORMALS: '1' });
+```
+
+Each call produces a separate `GPUShaderModule` with only the code relevant to its feature set compiled in. The `#if SHADOWS` and `#ifdef FOG` branches are stripped or included at the source level, so the variant that does not need shadows never contains shadow-mapping code — the GPU driver sees a smaller, faster shader.
+
+These modules are then compiled into separate `GPURenderPipeline` objects and cached:
+
+```typescript
+// ── caching variant pipelines ──
+
+private _variantPipelines = new Map<string, GPURenderPipeline>();
+
+getOrCreatePipeline(ctx: RenderContext, defines: Record<string, string>): GPURenderPipeline {
+  const key = Object.entries(defines)
+    .sort(([a], [b]) => a < b ? -1 : 1)
+    .map(([k, v]) => `${k}=${v}`)
+    .join('|');
+
+  let pipeline = this._variantPipelines.get(key);
+  if (pipeline) return pipeline;
+
+  const module = ctx.createShaderModule(this._shaderSource, this._label, defines);
+  pipeline = ctx.device.createRenderPipeline({ /* ... */ vertex: { module }, fragment: { module } });
+  this._variantPipelines.set(key, pipeline);
+  return pipeline;
+}
+```
+
+The cache key is built from the sorted define pairs so that the same combination always reuses the same pipeline. This is important because pipeline creation is expensive — compiling variants from defines avoids duplicating WGSL source files while still keeping the number of pipelines bounded by the number of feature combinations actually used at runtime.
+
+Some common uses for shader variants in Crafty:
+
+| Variant | Defines | Purpose |
+|---------|---------|---------|
+| Shadow pass | `SHADOWS=0`, `FOG=0` | Depth-only shadow map rendering, minimal shader |
+| Opaque geometry | `SHADOWS=1`, `FOG=1` | Full PBR with shadow sampling and fog |
+| Transparent geometry | `SHADOWS=1`, `FOG=1`, `ALPHA=1` | Same as opaque but with alpha blending |
+| Debug normals | `SHADOWS=1`, `DEBUG_NORMALS=1` | Visualise world-space normals for debugging |
+| Debug UVs | `SHADOWS=0`, `DEBUG_UVS=1` | Visualise UV coordinates for texture debugging |
+
+Because the preprocessor runs before the `#import` resolution, defines also control which shader blocks are pulled in — a variant without shadows will never even parse the lighting block's bindings and structs. This keeps the compiled shader modules as lean as possible for each pipeline variant.
+
 ## 3.8 GPURenderPipeline and GPUComputePipeline
 
 Pipelines are the immutable, compiled representation of the entire GPU state for a draw or dispatch call.
