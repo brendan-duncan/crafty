@@ -216,13 +216,40 @@ export class RenderContext {
    *
    * @param code - WGSL shader code
    * @param label - optional debug label
+   * @param defines - optional preprocessor defines for shader block imports
    * @returns GPUShaderModule instance
    */
-  createShaderModule(code: string, label?: string): GPUShaderModule {
-    code = this.shaderBlockManager.importShaderBlocks(code);
+  createShaderModule(code: string, label?: string, defines?: Record<string,string>): GPUShaderModule {
+    code = this.shaderBlockManager.importShaderBlocks(code, defines);
     return this.device.createShaderModule({ code, label });
   }
 
+  /**
+   * Registers a shader block for later use in shader modules.
+   *
+   * @param name - unique identifier for the shader block
+   * @param code - WGSL code of the shader block
+   */
+  registerShaderBlock(name: string, code: string): void {
+    this.shaderBlockManager.registerShaderBlock(name, code);
+  }
+
+  /**
+   * Removes a previously registered shader block by name.
+   * @param name - name of the shader block to remove
+   */
+  removeShaderBlock(name: string): void {
+    this.shaderBlockManager.removeShaderBlock(name);
+  }
+
+  /**
+    * Retrieves the WGSL code for a registered shader block by name.
+    * @param name - name of the shader block
+    * @returns WGSL code of the shader block, or a placeholder comment if not found
+    */
+  getShaderBlock(name: string, defines?: Record<string, string>): string {
+    return this.shaderBlockManager.getShaderBlock(name, defines);
+  }
 
   /**
    * Convenience wrapper around `device.createBuffer`.

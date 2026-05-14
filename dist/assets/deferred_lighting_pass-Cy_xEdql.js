@@ -1,4 +1,4 @@
-var F=Object.defineProperty;var C=(p,u,s)=>u in p?F(p,u,{enumerable:!0,configurable:!0,writable:!0,value:s}):p[u]=s;var a=(p,u,s)=>C(p,typeof u!="symbol"?u+"":u,s);import{a as H}from"./mesh-BK4JnZ1v.js";const O=`// Deferred PBR lighting pass — fullscreen triangle, reads GBuffer + shadow maps + IBL.
+var F=Object.defineProperty;var C=(p,u,s)=>u in p?F(p,u,{enumerable:!0,configurable:!0,writable:!0,value:s}):p[u]=s;var a=(p,u,s)=>C(p,typeof u!="symbol"?u+"":u,s);import{a as H}from"./mesh-fdKArW9G.js";const O=`// Deferred PBR lighting pass — fullscreen triangle, reads GBuffer + shadow maps + IBL.
 
 const PI: f32 = 3.14159265358979323846;
 

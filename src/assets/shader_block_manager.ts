@@ -37,6 +37,14 @@ export class ShaderBlockManager {
     }
 
     /**
+     * Removes a registered shader block by name.
+     * @param name - name of the shader block to remove
+     */
+    removeShaderBlock(name: string): void {
+      delete this._blocks[name];
+    }
+
+    /**
      * Retrieves the WGSL code for a registered shader block by name.
      * @param name - name of the shader block
      * @returns WGSL code of the shader block, or a placeholder comment if not found
