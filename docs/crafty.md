@@ -1,5 +1,7 @@
 # Crafty: Building a WebGPU Voxel Game Engine
 
+### Brendan Duncan
+
 This book explores real-time graphics programming through the lens of **Crafty**,
 an open-source WebGPU voxel game engine written in TypeScript.
 
