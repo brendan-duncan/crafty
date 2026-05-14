@@ -10,6 +10,8 @@ export interface PlayerSetup {
   isPlayerMode: () => boolean;
   flashlight: SpotLight;
   isFlashlightEnabled: () => boolean;
+  isRunEnabled: () => boolean;
+  setRunEnabled: (enabled: boolean) => void;
   modeEl: HTMLDivElement;
   toggleController: () => void;
   setFlashlightEnabled: (enabled: boolean) => void;
@@ -44,6 +46,7 @@ export function setupPlayer(
   cameraGO.addChild(flashlightGO);
   scene.add(flashlightGO);
   let flashlightEnabled = false;
+  let runEnabled = false;
 
   const player = new PlayerController(world, Math.PI, 0.1);
   player.attach(canvas);
@@ -94,6 +97,11 @@ export function setupPlayer(
     flashlight.intensity = flashlightEnabled ? 25.0 : 0.0;
   }
 
+  function setRunEnabled(enabled: boolean): void {
+    runEnabled = enabled;
+    player.inputSprint = runEnabled;
+  }
+
   // Double-tap Space to toggle controller
   let lastSpaceUp = -Infinity;
   document.addEventListener('keyup', (e: KeyboardEvent) => {
@@ -125,6 +133,11 @@ export function setupPlayer(
       setFlashlightEnabled(!flashlightEnabled);
       console.log(`Flashlight ${flashlightEnabled ? 'ON' : 'OFF'} (intensity: ${flashlight.intensity})`);
     }
+    // Run toggle
+    if (e.code === 'KeyR' && !e.repeat) {
+      setRunEnabled(!runEnabled);
+      console.log(`Run ${runEnabled ? 'ON' : 'OFF'}`);
+    }
     // Ctrl+W to reload
     if (e.ctrlKey && e.key === 'w') {
       e.preventDefault();
@@ -140,6 +153,8 @@ export function setupPlayer(
     isPlayerMode: () => usePlayerController,
     flashlight,
     isFlashlightEnabled: () => flashlightEnabled,
+    isRunEnabled: () => runEnabled,
+    setRunEnabled,
     modeEl,
     toggleController,
     setFlashlightEnabled,

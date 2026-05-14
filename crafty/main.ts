@@ -128,10 +128,16 @@ async function main(): Promise<void> {
   });
 
   // Create UI
-  const hotbar = createHotbar(colorAtlasUrl, () => {
-    playerSetup.setFlashlightEnabled(!playerSetup.isFlashlightEnabled());
-    hotbar.setFlashlightState(playerSetup.isFlashlightEnabled());
-  });
+  const hotbar = createHotbar(colorAtlasUrl,
+    () => {
+      playerSetup.setFlashlightEnabled(!playerSetup.isFlashlightEnabled());
+      hotbar.setFlashlightState(playerSetup.isFlashlightEnabled());
+    },
+    () => {
+      playerSetup.setRunEnabled(!playerSetup.isRunEnabled());
+      hotbar.setRunState(playerSetup.isRunEnabled());
+    },
+  );
   const hud = createHud();
   const menu = createMenu(canvas, hud.reticle);
 
@@ -191,6 +197,9 @@ async function main(): Promise<void> {
     if (e.code === 'KeyF' && !e.repeat) {
       hotbar.setFlashlightState(playerSetup.isFlashlightEnabled());
     }
+    if (e.code === 'KeyR' && !e.repeat) {
+      hotbar.setRunState(playerSetup.isRunEnabled());
+    }
   });
 
   // Initialise audio context from the first click / touch interaction
@@ -224,6 +233,7 @@ async function main(): Promise<void> {
     player.autoJump = true;
     freeCamera.usePointerLock = false;
     hotbar.flashlightButton.style.display = 'none';
+    hotbar.runButton.style.display = 'none';
   });
 
   // Effects

@@ -23,9 +23,11 @@ export interface Hotbar {
   element: HTMLDivElement;
   flashlightButton: HTMLButtonElement;
   setFlashlightState: (on: boolean) => void;
+  runButton: HTMLButtonElement;
+  setRunState: (on: boolean) => void;
 }
 
-export function createHotbar(atlasUrl: string, onFlashlightToggle?: () => void): Hotbar {
+export function createHotbar(atlasUrl: string, onFlashlightToggle?: () => void, onRunToggle?: () => void): Hotbar {
   const N = HOTBAR_SLOTS.length;
   let selected = 0;
 
@@ -183,15 +185,51 @@ export function createHotbar(atlasUrl: string, onFlashlightToggle?: () => void):
   });
   document.body.appendChild(flashlightBtn);
 
-  // Re-position highlight & flashlight whenever the window resizes
+  // ── Run toggle button ──
+  const runBtn = document.createElement('button');
+  runBtn.textContent = '🏃(R)';
+  runBtn.title = 'Toggle Run (R)';
+  const RUN_ON  = '#5f5';
+  const RUN_OFF = '#a0a0a0';
+  runBtn.style.cssText = [
+    'position:fixed', 'bottom:12px',
+    'width:45px', 'height:32px', 'padding:0',
+    'background:#1a1a2e', 'border:1px solid ' + RUN_OFF,
+    'border-radius:4px',
+    'font-family:ui-monospace,monospace', 'font-size:13px', 'font-weight:bold',
+    'color:' + RUN_OFF,
+    'cursor:pointer', 'z-index:10',
+    'line-height:32px', 'text-align:center',
+    'user-select:none',
+  ].join(';');
+  let _runOn = false;
+
+  function refreshRun() {
+    runBtn.style.color = _runOn ? RUN_ON : RUN_OFF;
+    runBtn.style.borderColor = _runOn ? RUN_ON : RUN_OFF;
+  }
+
+  function updateRunPos() {
+    const flRect = flashlightBtn.getBoundingClientRect();
+    runBtn.style.left = (flRect.right + 8) + 'px';
+  }
+
+  runBtn.addEventListener('click', () => {
+    onRunToggle?.();
+  });
+  document.body.appendChild(runBtn);
+
+  // Re-position highlight, flashlight & run button whenever the window resizes
   window.addEventListener('resize', () => {
     updateSelection();
     updateFlashlightPos();
+    updateRunPos();
   });
   // Delay first position update until bar is laid out
   requestAnimationFrame(() => {
     updateSelection();
     updateFlashlightPos();
+    updateRunPos();
   });
 
   return {
@@ -206,6 +244,11 @@ export function createHotbar(atlasUrl: string, onFlashlightToggle?: () => void):
     setFlashlightState: (on: boolean) => {
       _flashlightOn = on;
       refreshFlashlight();
+    },
+    runButton: runBtn,
+    setRunState: (on: boolean) => {
+      _runOn = on;
+      refreshRun();
     },
   };
 }
