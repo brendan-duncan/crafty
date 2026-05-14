@@ -67,6 +67,13 @@ import type { RenderPasses } from './renderer_setup.js';
 import { halton, applyJitter } from './utils.js';
 
 async function main(): Promise<void> {
+  // Block Ctrl+W / Cmd+W from closing the tab
+  window.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.code === 'KeyW') {
+      e.preventDefault();
+    }
+  }, { capture: true });
+
   const canvas = document.getElementById('canvas') as HTMLCanvasElement;
   if (!canvas) {
     throw new Error('No canvas element');
@@ -797,6 +804,13 @@ async function main(): Promise<void> {
       doSave();
     }
   }
+
+  // Prompt before closing the tab — some browsers ignore preventDefault on
+  // Ctrl+W, so this catches those cases via the standard beforeunload dialog.
+  window.addEventListener('beforeunload', (e) => {
+    e.preventDefault();
+    e.returnValue = '';
+  });
 
   // Force a save when the tab is hidden or unloading. IDB put() is fire-and-
   // forget; the browser typically completes it during the unload pause.
