@@ -656,7 +656,7 @@ export class ForwardPass extends RenderPass {
     material.update?.(ctx.queue);
 
     // Compile (or fetch cached) pipeline for this material's shader.
-    pass.setPipeline(this._getPipeline(device, material, transparent));
+    pass.setPipeline(this._getPipeline(ctx, material, transparent));
 
     // Per-draw model uniform.
     this._modelData.set(item.modelMatrix.data, 0);
@@ -672,17 +672,15 @@ export class ForwardPass extends RenderPass {
     pass.drawIndexed(item.mesh.indexCount);
   }
 
-  private _getPipeline(device: GPUDevice, material: Material, transparent: boolean): GPURenderPipeline {
+  private _getPipeline(ctx: RenderContext, material: Material, transparent: boolean): GPURenderPipeline {
+    const device = ctx.device;
     const cache = transparent ? this._transparentPipelineCache : this._opaquePipelineCache;
     let pipeline = cache.get(material.shaderId);
     if (pipeline) {
       return pipeline;
     }
 
-    const shaderModule = device.createShaderModule({
-      label: `ForwardShader[${material.shaderId}]`,
-      code: material.getShaderCode(MaterialPassType.Forward),
-    });
+    const shaderModule = ctx.createShaderModule(material.getShaderCode(MaterialPassType.Forward), `ForwardShader[${material.shaderId}]`);
 
     const layout = device.createPipelineLayout({
       label: `ForwardPipelineLayout[${material.shaderId}]`,

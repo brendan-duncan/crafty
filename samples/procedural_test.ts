@@ -9,7 +9,7 @@ import { RenderContext } from '../src/renderer/render_context.js';
 import { CameraController } from '../src/engine/camera_controller.js';
 import { RenderGraph } from '../src/renderer/render_graph.js';
 import { Mesh } from '../src/assets/mesh.js';
-import forwardProceduralWgsl from './forward_procedural.wgsl?raw';
+import proceduralWgsl from './procedural_test.wgsl?raw';
 import { GameObject } from '../src/index.js';
 
 const ALIGNMENT = 256;
@@ -31,7 +31,7 @@ class ProceduralMaterial extends Material {
   private _dirty = true;
 
   getShaderCode(_passType: MaterialPassType): string {
-    return forwardProceduralWgsl;
+    return proceduralWgsl;
   }
 
   getBindGroupLayout(device: GPUDevice): GPUBindGroupLayout {

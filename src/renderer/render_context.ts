@@ -1,3 +1,6 @@
+import { preprocessShader } from '../assets/preprocess_shader.js';
+import { ShaderBlockManager } from '../assets/shader_block_manager.js';
+
 /**
  * Options accepted by {@link RenderContext.create}.
  */
@@ -24,6 +27,7 @@ export class RenderContext {
   readonly canvas: HTMLCanvasElement;
   readonly hdr: boolean;
   readonly enableErrorHandling: boolean;
+  readonly shaderBlockManager: ShaderBlockManager;
 
   private _backbufferView: GPUTextureView | null = null;
   private _backbufferDepth: GPUTexture | null = null;
@@ -46,6 +50,7 @@ export class RenderContext {
     this.canvas = canvas;
     this.hdr = hdr;
     this.enableErrorHandling = enableErrorHandling;
+    this.shaderBlockManager = new ShaderBlockManager();
   }
 
   /** Backing canvas pixel width. */
@@ -215,8 +220,10 @@ export class RenderContext {
    * @returns GPUShaderModule instance
    */
   createShaderModule(code: string, label?: string): GPUShaderModule {
+    code = this.shaderBlockManager.importShaderBlocks(code);
     return this.device.createShaderModule({ code, label });
   }
+
 
   /**
    * Convenience wrapper around `device.createBuffer`.

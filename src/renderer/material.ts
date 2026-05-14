@@ -23,7 +23,7 @@ export enum MaterialPassType {
  *
  * Subclasses provide WGSL plus a {@link MATERIAL_GROUP} bind group containing
  * their uniforms, textures, and samplers. Passes cache pipelines keyed by
- * {@link Material.shaderId}, so all instances sharing a `shaderId` must produce
+ * {@link shaderId}, so all instances sharing a `shaderId` must produce
  * the same shader code, the same bind group layout, and the same vertex
  * expectations as each other.
  */
