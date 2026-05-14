@@ -1,0 +1,250 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 500" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="820" height="500" fill="#ffffff"/>
+  <text x="410" y="28" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Face Culling: Only Visible Faces Produce Geometry</text>
+
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,1 L9,5 L0,9 z" fill="#374151"/>
+    </marker>
+  </defs>
+
+  <!-- ===== LEFT: Block grid (cross-section view) ===== -->
+  <!-- Grid: 6 cols × 5 rows, each cell 44×44 at (cellX, cellY) -->
+  <!-- Grid origin at (40, 55). Total grid: 264 wide × 220 tall -->
+  <g transform="translate(40, 55)">
+    <text x="132" y="-8" text-anchor="middle" font-weight="700" fill="#111827">Terrain cross-section (side view)</text>
+
+    <!--
+      Block layout 6×5:
+      Row 0: air (A) all 6
+      Row 1: grass (G) all 6
+      Row 2: dirt (D) all 6
+      Row 3: dirt(D) dirt(D) dirt(D) air(A) dirt(D) dirt(D)  — air pocket at col 3
+      Row 4: stone(S) all 6
+
+      Cell colors:
+      A = #ffffff (air, transparent)
+      G = #16a34a (grass green)
+      D = #92400e (dirt brown)
+      S = #6b7280 (stone gray)
+
+      Visible faces (get geometry) drawn with green thick stroke
+      Hidden faces (culled) drawn with thin gray stroke + small red indicator
+    -->
+
+    <!-- Row 0: air blocks (background shows through as white) -->
+    <g stroke="#d1d5db" stroke-width="0.8">
+      <rect x="0"   y="0"   width="44" height="44" fill="#ffffff"/>
+      <rect x="44"  y="0"   width="44" height="44" fill="#ffffff"/>
+      <rect x="88"  y="0"   width="44" height="44" fill="#ffffff"/>
+      <rect x="132" y="0"   width="44" height="44" fill="#ffffff"/>
+      <rect x="176" y="0"   width="44" height="44" fill="#ffffff"/>
+      <rect x="220" y="0"   width="44" height="44" fill="#ffffff"/>
+    </g>
+
+    <!-- Row 1: grass -->
+    <g stroke="#d1d5db" stroke-width="0.8">
+      <rect x="0"   y="44" width="44" height="44" fill="#16a34a" fill-opacity="0.75"/>
+      <rect x="44"  y="44" width="44" height="44" fill="#16a34a" fill-opacity="0.75"/>
+      <rect x="88"  y="44" width="44" height="44" fill="#16a34a" fill-opacity="0.75"/>
+      <rect x="132" y="44" width="44" height="44" fill="#16a34a" fill-opacity="0.75"/>
+      <rect x="176" y="44" width="44" height="44" fill="#16a34a" fill-opacity="0.75"/>
+      <rect x="220" y="44" width="44" height="44" fill="#16a34a" fill-opacity="0.75"/>
+    </g>
+
+    <!-- Row 2: dirt -->
+    <g stroke="#d1d5db" stroke-width="0.8">
+      <rect x="0"   y="88"  width="44" height="44" fill="#92400e" fill-opacity="0.7"/>
+      <rect x="44"  y="88"  width="44" height="44" fill="#92400e" fill-opacity="0.7"/>
+      <rect x="88"  y="88"  width="44" height="44" fill="#92400e" fill-opacity="0.7"/>
+      <rect x="132" y="88"  width="44" height="44" fill="#92400e" fill-opacity="0.7"/>
+      <rect x="176" y="88"  width="44" height="44" fill="#92400e" fill-opacity="0.7"/>
+      <rect x="220" y="88"  width="44" height="44" fill="#92400e" fill-opacity="0.7"/>
+    </g>
+
+    <!-- Row 3: dirt with air pocket at col 3 -->
+    <g stroke="#d1d5db" stroke-width="0.8">
+      <rect x="0"   y="132" width="44" height="44" fill="#92400e" fill-opacity="0.7"/>
+      <rect x="44"  y="132" width="44" height="44" fill="#92400e" fill-opacity="0.7"/>
+      <rect x="88"  y="132" width="44" height="44" fill="#92400e" fill-opacity="0.7"/>
+      <!-- col 3: air pocket — fill white / no fill -->
+      <rect x="132" y="132" width="44" height="44" fill="#ffffff"/>
+      <rect x="176" y="132" width="44" height="44" fill="#92400e" fill-opacity="0.7"/>
+      <rect x="220" y="132" width="44" height="44" fill="#92400e" fill-opacity="0.7"/>
+    </g>
+
+    <!-- Row 4: stone -->
+    <g stroke="#d1d5db" stroke-width="0.8">
+      <rect x="0"   y="176" width="44" height="44" fill="#6b7280" fill-opacity="0.6"/>
+      <rect x="44"  y="176" width="44" height="44" fill="#6b7280" fill-opacity="0.6"/>
+      <rect x="88"  y="176" width="44" height="44" fill="#6b7280" fill-opacity="0.6"/>
+      <rect x="132" y="176" width="44" height="44" fill="#6b7280" fill-opacity="0.6"/>
+      <rect x="176" y="176" width="44" height="44" fill="#6b7280" fill-opacity="0.6"/>
+      <rect x="220" y="176" width="44" height="44" fill="#6b7280" fill-opacity="0.6"/>
+    </g>
+
+    <!-- Row labels -->
+    <g font-size="11" fill="#6b7280" transform="translate(-30, 0)">
+      <text x="0" y="62">Grass</text>
+      <text x="0" y="106">Dirt</text>
+      <text x="0" y="150">Dirt</text>
+      <text x="0" y="194">Stone</text>
+    </g>
+
+    <!-- ===== VISIBLE FACE MARKERS (green thick lines) ===== -->
+
+    <!-- Top edge of grass row (row 1, all cols): visible — adjacent to air above -->
+    <g stroke="#16a34a" stroke-width="3" stroke-linecap="square">
+      <line x1="0"   y1="44" x2="44"  y2="44"/>
+      <line x1="44"  y1="44" x2="88"  y2="44"/>
+      <line x1="88"  y1="44" x2="132" y2="44"/>
+      <line x1="132" y1="44" x2="176" y2="44"/>
+      <line x1="176" y1="44" x2="220" y2="44"/>
+      <line x1="220" y1="44" x2="264" y2="44"/>
+    </g>
+
+    <!-- Left edge of col 0, rows 1-4: visible (chunk boundary) -->
+    <g stroke="#16a34a" stroke-width="3" stroke-linecap="square">
+      <line x1="0" y1="44"  x2="0"  y2="88"/>
+      <line x1="0" y1="88"  x2="0"  y2="132"/>
+      <line x1="0" y1="132" x2="0"  y2="176"/>
+      <line x1="0" y1="176" x2="0"  y2="220"/>
+    </g>
+
+    <!-- Right edge of col 5, rows 1-4: visible (chunk boundary) -->
+    <g stroke="#16a34a" stroke-width="3" stroke-linecap="square">
+      <line x1="264" y1="44"  x2="264" y2="88"/>
+      <line x1="264" y1="88"  x2="264" y2="132"/>
+      <line x1="264" y1="132" x2="264" y2="176"/>
+      <line x1="264" y1="176" x2="264" y2="220"/>
+    </g>
+
+    <!-- Top edge of dirt at air pocket (row 3, col 3): visible — adjacent to air pocket -->
+    <line x1="132" y1="132" x2="176" y2="132" stroke="#16a34a" stroke-width="3" stroke-linecap="square"/>
+
+    <!-- Bottom edge of row 4 (stone): visible (chunk bottom) -->
+    <g stroke="#16a34a" stroke-width="3" stroke-linecap="square">
+      <line x1="0"   y1="220" x2="44"  y2="220"/>
+      <line x1="44"  y1="220" x2="88"  y2="220"/>
+      <line x1="88"  y1="220" x2="132" y2="220"/>
+      <line x1="132" y1="220" x2="176" y2="220"/>
+      <line x1="176" y1="220" x2="220" y2="220"/>
+      <line x1="220" y1="220" x2="264" y2="220"/>
+    </g>
+
+    <!-- Bottom of air pocket at col 3 row 3 (top face of dirt col 3 row 4):
+         Actually the dirt at col 3 row 4 has its top face visible since adjacent to air pocket.
+         That's the top edge of the stone row... wait no, the air pocket is at row 3 col 3.
+         The block below it is stone at row 4 col 3. So the top face of stone at (4,3) is visible. -->
+    <line x1="132" y1="176" x2="176" y2="176" stroke="#16a34a" stroke-width="3" stroke-linecap="square"/>
+
+    <!-- Right face of dirt at col 2 row 3 (adjacent to air pocket at col 3): visible -->
+    <line x1="132" y1="132" x2="132" y2="176" stroke="#16a34a" stroke-width="3" stroke-linecap="square"/>
+
+    <!-- Left face of dirt at col 4 row 3 (adjacent to air pocket at col 3): visible -->
+    <line x1="176" y1="132" x2="176" y2="176" stroke="#16a34a" stroke-width="3" stroke-linecap="square"/>
+
+    <!-- ===== HIDDEN FACE MARKERS (red X on hidden faces) ===== -->
+    <g stroke="#dc2626" stroke-width="1.8" stroke-linecap="round">
+      <!-- Face between grass (row 1) and dirt (row 2): hidden — grass is solid above dirt -->
+      <line x1="105" y1="82" x2="123" y2="98"/>
+      <line x1="123" y1="82" x2="105" y2="98"/>
+
+      <!-- Face between dirt (row 2) and dirt (row 3): hidden — same type -->
+      <line x1="105" y1="126" x2="123" y2="142"/>
+      <line x1="123" y1="126" x2="105" y2="142"/>
+
+      <!-- Face between dirt (row 3) and stone (row 4): hidden — stone is solid -->
+      <line x1="105" y1="170" x2="123" y2="186"/>
+      <line x1="123" y1="170" x2="105" y2="186"/>
+
+      <!-- Interior vertical face between dirt at col 0-1 (row 2): hidden — both solid -->
+      <line x1="57" y1="95" x2="75" y2="111"/>
+      <line x1="75" y1="95" x2="57" y2="111"/>
+    </g>
+
+    <!-- Air pocket label -->
+    <g transform="translate(154, 150)">
+      <rect x="-32" y="-12" width="64" height="20" fill="#fef3c7" rx="4"/>
+      <text x="0" y="4" text-anchor="middle" font-size="11" fill="#92400e" font-weight="600">Air Pocket</text>
+    </g>
+
+    <!-- Callout: top face visible -->
+    <g transform="translate(80, 20)">
+      <rect x="-50" y="-12" width="100" height="18" fill="#dcfce7" rx="4"/>
+      <text x="0" y="2" text-anchor="middle" font-size="10" fill="#16a34a" font-weight="600">TOP FACE visible</text>
+      <line x1="0" y1="8" x2="22" y2="22" stroke="#16a34a" stroke-width="1.2" marker-end="url(#arr)"/>
+    </g>
+  </g>
+
+  <!-- ===== RIGHT: Legend ===== -->
+  <g transform="translate(390, 55)">
+    <rect width="390" height="440" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+
+    <text x="16" y="26" font-weight="700" fill="#111827">How face culling works</text>
+
+    <g transform="translate(16, 46)" font-size="12" fill="#374151">
+      <text x="0" y="0" font-weight="600">For each block, the mesher checks every</text>
+      <text x="0" y="16">face direction (6). A face produces geometry</text>
+      <text x="0" y="32">only when the <tspan font-weight="700">adjacent block is not solid</tspan>.</text>
+    </g>
+
+    <!-- Legend entries -->
+    <g transform="translate(16, 90)">
+      <text y="0" font-weight="600" font-size="13" fill="#111827">Legend</text>
+
+      <!-- Visible face -->
+      <g transform="translate(0, 24)">
+        <rect x="0" y="-8" width="40" height="16" fill="#dcfce7" stroke="#16a34a" stroke-width="2" rx="3"/>
+        <text x="50" y="5" font-size="12" fill="#16a34a">Visible face — produces quad</text>
+      </g>
+
+      <!-- Hidden face -->
+      <g transform="translate(0, 52)">
+        <rect x="0" y="-8" width="40" height="16" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5" rx="3"/>
+        <line x1="6" y1="-2" x2="34" y2="6" stroke="#dc2626" stroke-width="1.8" stroke-linecap="round"/>
+        <line x1="34" y1="-2" x2="6" y2="6" stroke="#dc2626" stroke-width="1.8" stroke-linecap="round"/>
+        <text x="50" y="5" font-size="12" fill="#dc2626">Hidden face — culled, no quad</text>
+      </g>
+
+      <!-- Block types -->
+      <g transform="translate(0, 84)">
+        <rect x="0" y="-8" width="16" height="16" fill="#16a34a" fill-opacity="0.75" rx="2"/>
+        <text x="24" y="5" font-size="12" fill="#374151">Grass (solid, opaque)</text>
+      </g>
+      <g transform="translate(0, 108)">
+        <rect x="0" y="-8" width="16" height="16" fill="#92400e" fill-opacity="0.7" rx="2"/>
+        <text x="24" y="5" font-size="12" fill="#374151">Dirt (solid, opaque)</text>
+      </g>
+      <g transform="translate(0, 132)">
+        <rect x="0" y="-8" width="16" height="16" fill="#6b7280" fill-opacity="0.6" rx="2"/>
+        <text x="24" y="5" font-size="12" fill="#374151">Stone (solid, opaque)</text>
+      </g>
+      <g transform="translate(0, 156)">
+        <rect x="0" y="-8" width="16" height="16" fill="#ffffff" stroke="#d1d5db" stroke-width="1" rx="2"/>
+        <text x="24" y="5" font-size="12" fill="#374151">Air (empty, produces no geometry)</text>
+      </g>
+    </g>
+
+    <!-- culling rules panel -->
+    <g transform="translate(16, 270)">
+      <rect width="358" height="165" fill="#ffffff" stroke="#d1d5db" stroke-width="1" rx="5"/>
+      <text x="12" y="20" font-weight="700" font-size="13" fill="#111827">skipCheck (b₁ = block, b₂ = neighbor)</text>
+
+      <g font-family="ui-monospace, Consolas, monospace" font-size="11" fill="#374151" transform="translate(12, 38)">
+        <text x="0" y="0" fill="#6b7280" font-style="italic">// Cull face when neighbor is solid</text>
+        <text x="0" y="20">skip when: b₂ ≠ NONE</text>
+        <text x="0" y="38">∧ b₁,b₂ not props</text>
+        <text x="0" y="56">∧ ¬(water(b₁) ∧ water(b₂))</text>
+        <text x="0" y="74">∧ ¬(opaque(b₁) ∧ semi(b₂))</text>
+        <text x="0" y="90" fill="#16a34a">→ face visible only when skipCheck = false</text>
+      </g>
+    </g>
+
+    <!-- Bottom note -->
+    <g transform="translate(30, 413)">
+      <text x="0" y="0" font-size="11" fill="#6b7280" font-style="italic">This culling eliminates 50–70% of potential faces,</text>
+      <text x="0" y="16" font-size="11" fill="#6b7280" font-style="italic">since interior blocks are fully surrounded by solids.</text>
+    </g>
+  </g>
+</svg>

@@ -89,7 +89,111 @@ Each biome has its own surface block type, tree generation rules, and color pale
 
 Underground features are generated using additional noise passes. Caves use a cellular/Perlin threshold that defines underground voids. Ore veins use clustered noise with biome-specific depth distributions.
 
-## 11.4 Greedy Meshing
+## 11.4 Chunk Meshing
+
+Before a chunk can be rendered, its block data must be converted into vertex buffers — a process called **meshing**. Each frame, every visible chunk submits its mesh as instanced draw calls in the block geometry pass. Meshes are regenerated whenever a block in the chunk changes (placement, breaking, water flow).
+
+### Face Culling
+
+The core principle of chunk meshing is to only generate geometry for faces that are actually visible. A block face should produce a quad only when the adjacent block in that direction is **not solid**. "Solid" here means a block whose faces would obstruct the view — opaque blocks are solid, semi-transparent blocks (leaves, glass) are not, and water is handled separately.
+
+![Greedy meshing: naive vs merged](../illustrations/11-face-culling.svg)
+
+The `skipCheck` function in `Chunk.generateVertices` encodes this logic:
+
+```
+b1 = current block type
+b2 = neighbor block type in the face direction
+
+skip face if:
+  b2 is not BlockType.NONE              (something is there)
+  AND neither b1 nor b2 is a prop       (props are always rendered as billboards)
+  AND (b1 is not water OR b2 is not water)   (water-water faces are hidden)
+  AND (b1 is not opaque OR b2 is not semi-transparent) (semi-transparent blocks
+       do not hide opaque faces behind them)
+```
+
+A face is only emitted when `skipCheck` returns false, meaning the neighbor is either air (`BlockType.NONE`), water adjacent to a non-water block, or a prop. This culling typically eliminates 50–70% of potential faces, since interior blocks are entirely surrounded by other solids.
+
+### The Padded Block Grid
+
+To avoid per-axis boundary checks in the hot mesher loop, the chunk first builds a **(W+2)×(H+2)×(D+2)** padded copy of its block array. The interior (indices `[1..W]×[1..H]×[1..D]`) is a direct copy of the chunk's own blocks. The six outer faces are filled from the `ChunkNeighbors` object, which exposes the raw `Uint8Array` block data of each adjacent chunk:
+
+```
+ChunkNeighbors:
+  negX, posX — east/west neighbor block arrays
+  negY, posY — bottom/top (depth) neighbor block arrays
+  negZ, posZ — north/south neighbor block arrays
+```
+
+![Greedy meshing: naive vs merged](../illustrations/11-padded-grid.svg)
+
+When a neighbor exists, its facing layer of blocks is copied into the padding. When no neighbor exists (chunk at world boundary), the padding remains `BlockType.NONE`, which causes all chunk-edge faces to emit geometry — the correct behavior for open edges.
+
+With this padded grid, the mesher always reads `getType(x, y, z)` via a single array index `padded[(x+1) + (y+1)*PW + (z+1)*PWPH]` with no conditional logic for chunk boundaries.
+
+### Vertex Layout
+
+Each vertex is encoded as five float32 values packed into a single interleaved buffer:
+
+| Component | Description |
+|-----------|-------------|
+| `x, y, z` | World-space position of the vertex (after greedy merge scaling) |
+| `face` | Face normal index: 0=back(-Z), 1=front(+Z), 2=left(-X), 3=right(+X), 4=bottom(-Y), 5=top(+Y), 6=billboard |
+| `blockType` | Numeric block type ID, used by the fragment shader to look up texture atlas tiles |
+
+Texture coordinates are **not stored per vertex**. Instead, the fragment shader computes UVs from the world position and face normal using the `atlas_uv` function in `chunk_geometry.wgsl`:
+
+```wgsl
+fn atlas_uv(world_pos: vec3<f32>, face: u32, block_type: u32) -> vec2<f32> {
+  let bd = block_data[block_type];
+  // Select tile based on face: bottomTile (face 4), topTile (face 5), sideTile (others)
+  var tile: u32;
+  if face == 4u      { tile = bd.bottomTile; }
+  else if face == 5u { tile = bd.topTile; }
+  else               { tile = bd.sideTile; }
+
+  // Compute local UV from fractional world position, mapping the face axis
+  var local_uv: vec2<f32>;
+  if face == 2u || face == 3u {           // left/right: ZY plane
+    local_uv = fract(world_pos.zy);
+  } else if face == 4u || face == 5u {   // bottom/top: XZ plane
+    local_uv = fract(world_pos.xz);
+  } else {                                // back/front: XY plane
+    local_uv = fract(world_pos.xy);
+  }
+
+  // Offset into the texture atlas by the block's tile indices
+  let tileX = f32(tile % ATLAS_COLS);
+  let tileY = f32(tile / ATLAS_COLS);
+  return (vec2<f32>(tileX, tileY) + local_uv) * vec2<f32>(INV_COLS, INV_ROWS);
+}
+```
+
+Each block type specifies three atlas tiles (`topTile`, `sideTile`, `bottomTile`) so that a grass block, for example, shows grass on top, dirt on the bottom, and a grass-dirt blend on the sides. The face index selects which tile to use. The local UV is derived from `fract(world_pos)` of the two axes that lie in the face plane, giving a continuous 0–1 tiling along each block face.
+
+### Mesh Categories
+
+Blocks are classified into four material categories, each producing a separate vertex buffer:
+
+| Category | Block types | Rendering | Vertex count |
+|----------|-------------|-----------|-------------|
+| **Opaque** | Dirt, stone, sand, planks, etc. | G-buffer (deferred) | 36 per non-culled face, merged into greedy quads |
+| **Semi-transparent** | Leaves, glass | G-buffer (deferred) with alpha test | Same as opaque |
+| **Water** | Water | Forward pass with refraction/SSR | 3 floats per vertex, 6 verts per face, no greedy merge |
+| **Prop** | Flowers, torches, dead bushes | Forward billboard | 6 verts per block at center position, expanded in vertex shader |
+
+**Opaque and semi-transparent** meshes use the same vertex layout (5 floats, greedy-merged quads) and are rendered together in the block geometry pass. The fragment shader discards fragments where the texture alpha is below 0.5, which handles leaf and glass edges naturally.
+
+**Water** is meshed as individual non-merged quads using a simpler 3-float layout (position only). The water surface always emits a top face, plus any side faces that are not adjacent to another water block. At chunk edges, water sides are only suppressed when the neighbor chunk is truly absent (not loaded), not merely when the neighbor has air — this prevents visual gaps at chunk boundaries.
+
+**Props** are single-point billboards: each prop emits 6 vertices all at the block center position `(x+0.5, y+0.5, z+0.5)` with face index `6`. The vertex shader expands these into camera-facing quads using the `billboard_offset` function, which maps the vertex index modulo 6 to a corner offset scaled by the camera right/up vectors.
+
+### Greedy Merge
+
+The mesher does not emit one quad per block face. Instead it scans each axis plane and merges adjacent faces of the same block type into the largest possible rectangle (the full algorithm is described in [11.5 Greedy Meshing](#115-greedy-meshing)). The merge is tracked with a `drawnFaces` bitfield (`uint16` per `(x, y, face)` combination, with the z bit marking faces that have already been claimed by a larger quad). This merge step is what makes chunk rendering viable — a flat terrain chunk may have only a few hundred quads instead of tens of thousands.
+
+## 11.5 Greedy Meshing
 
 Rendering each visible block face as two triangles creates millions of quads — far too many for real-time performance. **Greedy meshing** solves this by merging adjacent faces of the same block type into larger quads:
 
@@ -119,7 +223,7 @@ class ChunkMesh {
 
 Each chunk produces two meshes: one for opaque blocks (dirt, stone, etc.) and one for transparent/translucent blocks (water, leaves, glass). The opaque mesh writes depth and G-buffer normally. The transparent mesh uses alpha blending in the forward pass.
 
-## 11.5 Level-of-Detail (LOD)
+## 11.6 Level-of-Detail (LOD)
 
 Distant chunks use a simplified mesh to reduce triangle count. LOD levels merge 2×2×2 or 4×4×4 blocks into single blocks, reducing geometric detail where the player cannot perceive it. Concentric distance bands around the player select which LOD each chunk uses:
 
@@ -136,7 +240,7 @@ enum LODLevel {
 
 LOD selection is based on distance from the camera. Transitions between LOD levels use a slight mesh overlap with alpha dithering to hide pop-in.
 
-## 11.6 Block Interaction
+## 11.7 Block Interaction
 
 ### Ray Casting
 
@@ -162,7 +266,7 @@ When a block is broken or placed:
 
 Breaking blocks uses a gradual animation — the block shows cracks at progressive stages (mined over ~0.75 seconds for stone, instant for dirt).
 
-## 11.7 Erosion Simulation
+## 11.8 Erosion Simulation
 
 Crafty includes an optional erosion simulation for more realistic terrain. A compute shader simulates water flow and sediment transport:
 
@@ -172,7 +276,7 @@ Crafty includes an optional erosion simulation for more realistic terrain. A com
 
 The simulation runs as a background compute pass and updates the terrain height map, which is sampled during chunk generation.
 
-## 11.8 Water Propagation
+## 11.9 Water Propagation
 
 When water blocks are placed or generated in the world, they spread according to a simple cellular automaton run on the CPU each tick. The algorithm lives in `World._tickWater()` in `src/block/world.ts`.
 
@@ -207,7 +311,7 @@ private _flowWater(wx: number, wy: number, wz: number): void {
 - **Early skip for chunks.** Chunks track their `waterBlocks` count — if zero, the chunk is skipped during scanning.
 - **Batched re-meshing.** Instead of regenerating a chunk's mesh every time a single water block changes, changes are accumulated in a `_dirtyChunks` set and re-meshed exactly once per tick.
 
-## 11.9 Water Rendering
+## 11.10 Water Rendering
 
 Water is a transparent block type rendered through the `WaterPass` (`src/renderer/passes/water_pass.ts`), a forward pass that runs after deferred lighting. It composites over the HDR buffer using `src-alpha` blending, combining screen-space refraction, depth-based murkiness, and screen-space reflections.
 
@@ -254,7 +358,7 @@ Reflections use a hybrid approach:
 1. **Screen-space reflection (SSR)** ray-marches the reflected view direction in view space, sampling the refraction texture (pre-water HDR scene).
 2. **HDR sky panorama** is used as a fallback for rays that miss scene geometry or leave the screen bounds.
 
-## 11.10 Screen-Space Reflections (SSR)
+## 11.11 Screen-Space Reflections (SSR)
 
 ![Screen-space reflection: view-space ray march, depth hit test, and equirectangular sky fallback](../illustrations/11-ssr.svg)
 
@@ -316,7 +420,7 @@ let world_color = mix(tinted, reflection, fresnel_r);
 
 Reflection is minimal when looking straight down (high V·N), rising towards grazing angles. The 0.6 cap prevents bright HDR sky values from washing out the water at shallow viewing angles.
 
-## 11.11 Village Generation
+## 11.12 Village Generation
 
 Villages are generated procedurally when chunks load, in `crafty/game/village_gen.ts`. The system hooks into the chunk load event and places clusters of houses under the right conditions.
 
@@ -393,7 +497,7 @@ const _WALL_L1: number[][] = [
 
 Currently, all houses use `SPRUCE_PLANKS` for structure and `GLASS` for windows.
 
-### 11.12 Summary
+### 11.13 Summary
 
 The voxel terrain system features:
 
