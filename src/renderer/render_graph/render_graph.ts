@@ -473,6 +473,19 @@ export class RenderGraph {
           stack.push(p);
         }
       }
+      // A write of version V implicitly depends on the producer of V-1: the
+      // new attachment loads the previous version's contents (or the previous
+      // pass established the persistent resource). Without this edge, e.g.
+      // a sky-clear pass that produces v=1 gets culled when the lighting pass
+      // that loads it produces v=2 — leaving a stale or uncleared target.
+      for (const w of this._passes[i].writes) {
+        if (w.version <= 1) continue;
+        const p = producer.get(`${w.id}:${w.version - 1}`);
+        if (p !== undefined && !live.has(p)) {
+          live.add(p);
+          stack.push(p);
+        }
+      }
     }
 
     return this._passes.filter((_, i) => live.has(i));

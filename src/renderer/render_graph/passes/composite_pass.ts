@@ -68,7 +68,7 @@ export class CompositePass extends Pass<CompositeDeps, void> {
   private readonly _pipeline: GPURenderPipeline;
   private readonly _texturesBgl: GPUBindGroupLayout;
   private readonly _bufBgl: GPUBindGroupLayout;
-  private readonly _paramsBg: GPUBindGroup;
+  private readonly _paramsBgl: GPUBindGroupLayout;
   private readonly _paramsBuf: GPUBuffer;
   private readonly _starBuf: GPUBuffer;
   private readonly _sampler: GPUSampler;
@@ -82,7 +82,7 @@ export class CompositePass extends Pass<CompositeDeps, void> {
     pipeline: GPURenderPipeline,
     texturesBgl: GPUBindGroupLayout,
     bufBgl: GPUBindGroupLayout,
-    paramsBg: GPUBindGroup,
+    paramsBgl: GPUBindGroupLayout,
     paramsBuf: GPUBuffer,
     starBuf: GPUBuffer,
     sampler: GPUSampler,
@@ -92,7 +92,7 @@ export class CompositePass extends Pass<CompositeDeps, void> {
     this._pipeline = pipeline;
     this._texturesBgl = texturesBgl;
     this._bufBgl = bufBgl;
-    this._paramsBg = paramsBg;
+    this._paramsBgl = paramsBgl;
     this._paramsBuf = paramsBuf;
     this._starBuf = starBuf;
     this._sampler = sampler;
@@ -146,28 +146,11 @@ export class CompositePass extends Pass<CompositeDeps, void> {
       primitive: { topology: 'triangle-list' },
     });
 
-    // Pre-build a static "paramsBg" placeholder at construction time with
-    // both uniform buffers; the exposure buffer is wired per-frame.
-    // We keep paramsBgl reference inside the instance via closure:
-    //   stored via the inst._device pattern. (We rebuild bg2 each frame.)
-    const paramsBg = device.createBindGroup({
-      label: 'CompositeParamsBG.placeholder',
-      layout: paramsBgl,
-      entries: [
-        { binding: 0, resource: { buffer: paramsBuf } },
-        { binding: 1, resource: { buffer: starBuf } },
-        { binding: 2, resource: { buffer: paramsBuf } }, // placeholder, replaced per frame
-      ],
-    });
-
-    const inst = new CompositePass(device, pipeline, texturesBgl, bufBgl, paramsBg, paramsBuf, starBuf, sampler);
-    // Stash paramsBgl on the instance for per-frame bind-group rebuild.
-    (inst as unknown as { _paramsBgl: GPUBindGroupLayout })._paramsBgl = paramsBgl;
-    return inst;
+    // The bind group for params/stars/exposure is rebuilt each frame inside
+    // setExecute, since the exposure buffer comes from a virtual handle whose
+    // physical resource may differ from frame to frame.
+    return new CompositePass(device, pipeline, texturesBgl, bufBgl, paramsBgl, paramsBuf, starBuf, sampler);
   }
-
-  // Augmented at create() time.
-  private _paramsBgl!: GPUBindGroupLayout;
 
   /** Pack fog/underwater/tonemap parameters into the GPU uniform buffer. */
   updateParams(
@@ -234,10 +217,6 @@ export class CompositePass extends Pass<CompositeDeps, void> {
       });
 
       b.setExecute((pctx, res) => {
-        // Suppress unused warning — the placeholder _paramsBg was built at
-        // create() but bg2 is rebuilt per-frame to wire the live exposure buffer.
-        void this._paramsBg;
-
         const bg0 = this._device.createBindGroup({
           label: 'CompositeBG0',
           layout: this._texturesBgl,
