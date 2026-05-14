@@ -589,10 +589,10 @@ export class ForwardPass extends RenderPass {
    * @param outputView Optional override color attachment.
    * @param depthView Optional override depth attachment.
    */
-  execute(encoder: GPUCommandEncoder, ctx: RenderContext, outputView?: GPUTextureView, depthView?: GPUTextureView): void {
+  execute(encoder: GPUCommandEncoder, ctx: RenderContext): void {
     // If no output view provided and context is HDR-capable, render directly to canvas
-    const colorView = outputView ?? this._outputView;
-    const depthAttachmentView = depthView ?? this._depthView;
+    const colorView = this._outputView;
+    const depthAttachmentView = this._depthView;
 
     if (colorView == null || depthAttachmentView == null) {
       console.warn('ForwardPass: Missing output or depth view; skipping render.');

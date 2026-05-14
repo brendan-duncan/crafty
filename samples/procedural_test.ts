@@ -7,6 +7,7 @@ import { DirectionalShadowPass } from '../src/renderer/passes/directional_shadow
 import type { DirectionalShadowDrawItem } from '../src/renderer/passes/directional_shadow_pass.js';
 import { RenderContext } from '../src/renderer/render_context.js';
 import { CameraController } from '../src/engine/camera_controller.js';
+import { RenderGraph } from '../src/renderer/render_graph.js';
 import { Mesh } from '../src/assets/mesh.js';
 import forwardProceduralWgsl from './forward_procedural.wgsl?raw';
 
@@ -106,15 +107,6 @@ async function main() {
   const ctx = await RenderContext.create(canvas);
   const { device } = ctx;
 
-  // Create depth texture for rendering (will be recreated on resize)
-  let depthTexture = device.createTexture({
-    size: { width: ctx.width, height: ctx.height },
-    format: 'depth32float',
-    usage: 0x10, // RENDER_ATTACHMENT
-  });
-
-  let depthTextureView = depthTexture.createView();
-
   // Meshes
   const planeMesh = Mesh.createPlane(device, 30, 30);
   const cubeMesh = Mesh.createCube(device, 1.5);
@@ -140,16 +132,8 @@ async function main() {
   matC.edgeWidth = 0.08;
 
   // Forward pass + shadow pass
-  const SHADOW_SIZE = 2048;
   const forwardPass = ForwardPass.create(ctx, { clearColor: [0.2, 0.2, 0.45, 1.0] });
-  const dirShadowTex = device.createTexture({
-    label: 'DirShadowTex',
-    size: { width: SHADOW_SIZE, height: SHADOW_SIZE },
-    format: 'depth32float',
-    usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
-  });
-  const dirShadowView = dirShadowTex.createView();
-  const dirShadowPass = DirectionalShadowPass.create(ctx, dirShadowView);
+  const dirShadowPass = DirectionalShadowPass.create(ctx, forwardPass.getShadowMap(0));
 
   // Camera
   const camPos = new Vec3(0, 4, 12);
@@ -161,6 +145,10 @@ async function main() {
   let lastTime = performance.now();
   let frameCount = 0;
   let fpsAccum = 0;
+
+  const renderGraph = new RenderGraph();
+  renderGraph.addPass(dirShadowPass);
+  renderGraph.addPass(forwardPass);
 
   async function render() {
     const now = performance.now();
@@ -178,21 +166,6 @@ async function main() {
       fpsEl.textContent = `FPS: ${Math.round(frameCount / fpsAccum)}`;
       frameCount = 0;
       fpsAccum = 0;
-    }
-
-    // Resize
-    if (ctx.canvas.width !== ctx.canvas.clientWidth || ctx.canvas.height !== ctx.canvas.clientHeight) {
-      ctx.canvas.width = ctx.canvas.clientWidth;
-      ctx.canvas.height = ctx.canvas.clientHeight;
-
-      // Recreate depth texture on resize
-      depthTexture.destroy();
-      depthTexture = device.createTexture({
-        size: { width: ctx.width, height: ctx.height },
-        format: 'depth32float',
-        usage: 0x10, // RENDER_ATTACHMENT
-      });
-      depthTextureView = depthTexture.createView();
     }
 
     // Camera
@@ -231,7 +204,7 @@ async function main() {
       color: new Vec3(1.0, 0.95, 0.9),
       castShadows: true,
       lightViewProj,
-      shadowMap: dirShadowView,
+      shadowMap: forwardPass.getShadowMap(0),
     };
 
     // Animated objects
@@ -285,24 +258,15 @@ async function main() {
       modelMatrix: item.modelMatrix,
     }));
 
-    // Execute
-    const encoder = device.createCommandEncoder({ label: 'ProceduralDemoEncoder' });
-
+    // Render
     dirShadowPass.setDrawItems(shadowItems);
     dirShadowPass.updateCamera(ctx, lightViewProj);
-    if (dirShadowPass.enabled) {
-      dirShadowPass.execute(encoder, ctx);
-    }
-
-    // Copy directional shadow map into forward pass shadow array (layer 0)
-    forwardPass.copyShadowMapToArray(encoder, dirShadowTex, 0);
 
     forwardPass.updateLights(ctx, directionalLight, [], []);
     forwardPass.setDrawItems(items);
-    forwardPass.setOutput(currentView, depthTextureView);
-    forwardPass.execute(encoder, ctx);
+    forwardPass.setOutput(currentView, ctx.backbufferDepthView);
 
-    device.queue.submit([encoder.finish()]);
+    renderGraph.execute(ctx);
 
     requestAnimationFrame(render);
   }
