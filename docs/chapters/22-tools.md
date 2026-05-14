@@ -14,13 +14,15 @@ samples/
 ├── forward_tes.ts              — Forward renderer demo
 ├── engine_test.html
 ├── engine_test.ts              — Full deferred pipeline test
+├── animal_test.html
+├── animal_test.ts              — Test animal NPCs
 ├── cascade_shadow_test.html
 └── cascade_shadow_test.ts      — CSM visualization
 ```
 
 Samples share no state with each other or with the main game. Each creates its own `RenderContext`, builds a minimal render graph, and runs a dedicated frame loop. This makes them ideal for testing specific features in isolation.
 
-To add a new sample, create two files:
+To add a new sample, create two files. A typescript file:
 
 ```typescript
 // ── from samples/my_feature.ts ──
@@ -35,7 +37,7 @@ async function main() {
 main();
 ```
 
-And an associated html:
+With an associated html:
 
 ```html
 <!DOCTYPE html>
