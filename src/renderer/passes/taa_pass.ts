@@ -130,7 +130,7 @@ export class TAAPass extends RenderPass {
     const textureBG = device.createBindGroup({
       layout: textureBGL,
       entries: [
-        { binding: 0, resource: lightingPass.hdrView },
+        { binding: 0, resource: lightingPass.outputView },
         { binding: 1, resource: historyView },
         { binding: 2, resource: gbuffer.depthView },
         { binding: 3, resource: linearSampler },

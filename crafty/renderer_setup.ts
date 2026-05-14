@@ -133,24 +133,30 @@ export async function buildRenderTargets(
   const ssaoPass = SSAOPass.create(ctx, gbuffer);
 
   const cloudShadowPass = effects.clouds ? CloudShadowPass.create(ctx, cloudNoises) : null;
-  const lightingPass = DeferredLightingPass.create(ctx, gbuffer, passes.shadowPass!, ssaoPass.aoView, cloudShadowPass?.shadowView, iblTextures);
-  const godrayPass = effects.godrays ? GodrayPass.create(ctx, gbuffer, passes.shadowPass!, lightingPass.hdrView, lightingPass.cameraBuffer, lightingPass.lightBuffer, cloudNoises) : null;
-  const atmospherePass = AtmospherePass.create(ctx, { output: lightingPass.hdrView });
-  const cloudPass = effects.clouds ? CloudPass.create(ctx, lightingPass.hdrView, gbuffer.depthView, cloudNoises) : null;
+  const lightingPass = DeferredLightingPass.create(ctx, {
+    gbuffer, 
+    shadowPass: passes.shadowPass!, 
+    aoView: ssaoPass.aoView, 
+    cloudShadowView: cloudShadowPass?.shadowView, 
+    iblTextures
+   });
+  const godrayPass = effects.godrays ? GodrayPass.create(ctx, gbuffer, passes.shadowPass!, lightingPass.outputView, lightingPass.cameraBuffer, lightingPass.lightBuffer, cloudNoises) : null;
+  const atmospherePass = AtmospherePass.create(ctx, { output: lightingPass.outputView });
+  const cloudPass = effects.clouds ? CloudPass.create(ctx, lightingPass.outputView, gbuffer.depthView, cloudNoises) : null;
 
   ctx.pushInitErrorScope();
   const pointSpotShadowPass = PointSpotShadowPass.create(ctx);
   await ctx.popInitErrorScope('PointSpotShadowPass');
 
-  const pointSpotLightPass = PointSpotLightPass.create(ctx, gbuffer, pointSpotShadowPass, lightingPass.hdrView);
+  const pointSpotLightPass = PointSpotLightPass.create(ctx, gbuffer, pointSpotShadowPass, lightingPass.outputView);
   const taaPass = TAAPass.create(ctx, lightingPass, gbuffer);
   const ssgiPass = SSGIPass.create(ctx, gbuffer, taaPass.historyView);
   lightingPass.updateSSGI(ssgiPass.resultView);
 
   if (passes.waterPass) {
-    waterPass.updateRenderTargets(lightingPass.hdrTexture, lightingPass.hdrView, gbuffer.depthView, skyTexture);
+    waterPass.updateRenderTargets(lightingPass.outputTexture!, lightingPass.outputView, gbuffer.depthView, skyTexture);
   } else {
-    waterPass.updateRenderTargets(lightingPass.hdrTexture, lightingPass.hdrView, gbuffer.depthView, skyTexture);
+    waterPass.updateRenderTargets(lightingPass.outputTexture!, lightingPass.outputView, gbuffer.depthView, skyTexture);
   }
 
   let dofPass: DofPass | null = null;
@@ -164,7 +170,7 @@ export async function buildRenderTargets(
     : postInput;
 
   const blockHighlightPass = BlockHighlightPass.create(ctx, bloomOut, gbuffer.depthView, blockTexture.colorAtlas);
-  const autoExposurePass = AutoExposurePass.create(ctx, lightingPass.hdrTexture);
+  const autoExposurePass = AutoExposurePass.create(ctx, lightingPass.outputTexture!);
   autoExposurePass.enabled = effects.auto_exp;
   const compositePass = CompositePass.create(ctx, {
       inputView: bloomOut,
@@ -180,14 +186,14 @@ export async function buildRenderTargets(
   let rainPass: ParticlePass | null = null;
   if (effects.rain && currentWeatherEffect !== EnvironmentEffect.None) {
     const weatherConfig = currentWeatherEffect === EnvironmentEffect.Snow ? snowConfig : rainConfig;
-    rainPass = ParticlePass.create(ctx, weatherConfig, gbuffer, lightingPass.hdrView);
+    rainPass = ParticlePass.create(ctx, weatherConfig, gbuffer, lightingPass.outputView);
   }
 
   // Always-on burst-only particle pass for block-break debris.
-  const blockBreakPass = ParticlePass.create(ctx, blockBreakConfig, gbuffer, lightingPass.hdrView);
+  const blockBreakPass = ParticlePass.create(ctx, blockBreakConfig, gbuffer, lightingPass.outputView);
 
   // Always-on burst-only particle pass for creeper explosions.
-  const explosionPass = ParticlePass.create(ctx, explosionConfig, gbuffer, lightingPass.hdrView);
+  const explosionPass = ParticlePass.create(ctx, explosionConfig, gbuffer, lightingPass.outputView);
 
   // Build graph
   const { RenderGraph } = await import('../src/renderer/index.js');

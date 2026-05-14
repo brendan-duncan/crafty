@@ -127,13 +127,18 @@ async function main() {
   const aoView = createAOTexture(device, ctx.width, ctx.height);
 
   // Create render passes
-  const shadowPass = ShadowPass.create(ctx, 3); // 3 cascades
+  const shadowPass = ShadowPass.create(ctx, 4); // 4 cascades
   const geometryPass = GeometryPass.create(ctx, gbuffer);
-  const lightingPass = DeferredLightingPass.create(ctx, gbuffer, shadowPass, aoView, undefined, iblTextures);
-  const tonemapPass = TonemapPass.create(ctx, lightingPass.hdrView);
+  const lightingPass = DeferredLightingPass.create(ctx, {
+    gbuffer,
+    shadowPass,
+    aoView,
+    iblTextures
+  });
+  const tonemapPass = TonemapPass.create(ctx, lightingPass.outputView);
 
   // Create sky texture pass for HDR sky rendering
-  const skyTexturePass = SkyTexturePass.create(ctx, lightingPass.hdrView, skyTexture);
+  const skyTexturePass = SkyTexturePass.create(ctx, lightingPass.outputView, skyTexture);
 
   // Create render graph
   const renderGraph = new RenderGraph();

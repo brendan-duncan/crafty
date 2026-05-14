@@ -104,7 +104,7 @@ async function main() {
 
   const skyHdr    = parseHdr(await (await fetch(belfastUrl)).arrayBuffer());
   let skyTexture = await createHdrTexture(device, skyHdr);
-  let ibl: IblTextures = await computeIblGpu(device, skyTexture.gpuTexture);
+  let iblTextures: IblTextures = await computeIblGpu(device, skyTexture.gpuTexture);
 
   const cloudNoises: CloudNoiseTextures = createCloudNoiseTextures(device);
   const cloudSettings: CloudSettings = {
@@ -249,28 +249,28 @@ async function main() {
   // --- Renderer ---
   const shadowPass = ShadowPass.create(ctx, 3);
 
-  let gbuffer!: GBuffer;
-  let geometryPass!: GeometryPass;
-  let ssaoPass!: SSAOPass;
-  let skyPass         : SkyPass         | null = null;
-  let cloudShadowPass : CloudShadowPass | null = null;
-  let cloudPass       : CloudPass       | null = null;
-  let lightingPass!: DeferredLightingPass;
-  let taaPass!: TAAPass;
-  let dofPass             : DofPass             | null = null;
-  let bloomPass           : BloomPass           | null = null;
-  let debugLightPass!     : DebugLightPass;
-  let compositePass!      : CompositePass;
-  let firePass            : ParticlePass        | null = null;
-  let sparksPass          : ParticlePass        | null = null;
-  let rainPass            : ParticlePass        | null = null;
-  let snowPass            : ParticlePass        | null = null;
-  let ssgiPass            : SSGIPass            | null = null;
-  let autoExposurePass    : AutoExposurePass    | null = null;
-  let skinnedGeometryPass : SkinnedGeometryPass | null = null;
+  let gbuffer: GBuffer;
+  let geometryPass: GeometryPass;
+  let ssaoPass: SSAOPass;
+  let skyPass: SkyPass | null = null;
+  let cloudShadowPass: CloudShadowPass | null = null;
+  let cloudPass: CloudPass | null = null;
+  let lightingPass: DeferredLightingPass;
+  let taaPass: TAAPass;
+  let dofPass: DofPass | null = null;
+  let bloomPass: BloomPass | null = null;
+  let debugLightPass: DebugLightPass;
+  let compositePass: CompositePass;
+  let firePass: ParticlePass | null = null;
+  let sparksPass: ParticlePass | null = null;
+  let rainPass: ParticlePass | null = null;
+  let snowPass: ParticlePass | null = null;
+  let ssgiPass: SSGIPass | null = null;
+  let autoExposurePass: AutoExposurePass | null = null;
+  let skinnedGeometryPass: SkinnedGeometryPass | null = null;
   let pointSpotShadowPass: PointSpotShadowPass | null = null;
-  let pointSpotLightPass : PointSpotLightPass  | null = null;
-  let graph!: RenderGraph;
+  let pointSpotLightPass: PointSpotLightPass  | null = null;
+  let graph: RenderGraph;
   let prevViewProj: Mat4 | null = null;
 
   const fireConfig: ParticleGraphConfig = {
@@ -361,47 +361,73 @@ async function main() {
     gbuffer?.destroy();
     geometryPass?.destroy();
     ssaoPass?.destroy();
-    skyPass?.destroy();               skyPass               = null;
-    cloudShadowPass?.destroy();       cloudShadowPass       = null;
-    cloudPass?.destroy();             cloudPass             = null;
+    skyPass?.destroy();
+    skyPass = null;
+    cloudShadowPass?.destroy();
+    cloudShadowPass = null;
+    cloudPass?.destroy();
+    cloudPass = null;
     lightingPass?.destroy();
-    pointSpotShadowPass?.destroy();   pointSpotShadowPass   = null;
-    pointSpotLightPass?.destroy();    pointSpotLightPass    = null;
+    pointSpotShadowPass?.destroy();
+    pointSpotShadowPass = null;
+    pointSpotLightPass?.destroy();
+    pointSpotLightPass = null;
     debugLightPass?.destroy();
     taaPass?.destroy();
-    dofPass?.destroy();             dofPass             = null;
-    bloomPass?.destroy();           bloomPass           = null;
-    firePass?.destroy();            firePass            = null;
-    sparksPass?.destroy();          sparksPass          = null;
-    rainPass?.destroy();            rainPass            = null;
-    snowPass?.destroy();            snowPass            = null;
-    ssgiPass?.destroy();            ssgiPass            = null;
-    autoExposurePass?.destroy();    autoExposurePass    = null;
-    skinnedGeometryPass?.destroy(); skinnedGeometryPass = null;
+    dofPass?.destroy();
+    dofPass = null;
+    bloomPass?.destroy();
+    bloomPass = null;
+    firePass?.destroy();
+    firePass = null;
+    sparksPass?.destroy();
+    sparksPass = null;
+    rainPass?.destroy();
+    rainPass = null;
+    snowPass?.destroy();
+    snowPass = null;
+    ssgiPass?.destroy();
+    ssgiPass = null;
+    autoExposurePass?.destroy();
+    autoExposurePass = null;
+    skinnedGeometryPass?.destroy();
+    skinnedGeometryPass = null;
 
-    gbuffer             = GBuffer.create(ctx);
-    geometryPass        = GeometryPass.create(ctx, gbuffer);
+    gbuffer = GBuffer.create(ctx);
+    geometryPass = GeometryPass.create(ctx, gbuffer);
     skinnedGeometryPass = SkinnedGeometryPass.create(ctx, gbuffer);
-    firePass            = ParticlePass.create(ctx, fireConfig,   gbuffer);
-    sparksPass          = ParticlePass.create(ctx, sparksConfig, gbuffer);
+    firePass = ParticlePass.create(ctx, fireConfig,   gbuffer);
+    sparksPass = ParticlePass.create(ctx, sparksConfig, gbuffer);
     // rain is created after lightingPass so we can pass its hdrView; defer below
     ssaoPass = SSAOPass.create(ctx, gbuffer);
     if (effects.clouds) {
       cloudShadowPass = CloudShadowPass.create(ctx, cloudNoises);
-      lightingPass    = DeferredLightingPass.create(ctx, gbuffer, shadowPass, ssaoPass.aoView, cloudShadowPass.shadowView, ibl);
-      cloudPass       = CloudPass.create(ctx, lightingPass.hdrView, gbuffer.depthView, cloudNoises);
+      lightingPass = DeferredLightingPass.create(ctx, {
+        gbuffer,
+        shadowPass,
+        aoView: ssaoPass.aoView,
+        cloudShadowView: cloudShadowPass.shadowView,
+        iblTextures
+      });
+      cloudPass       = CloudPass.create(ctx, lightingPass.outputView, gbuffer.depthView, cloudNoises);
     } else {
-      lightingPass = DeferredLightingPass.create(ctx, gbuffer, shadowPass, ssaoPass.aoView, undefined, ibl);
-      skyPass      = SkyPass.create(ctx, lightingPass.hdrView, skyTexture);
+      lightingPass = DeferredLightingPass.create(ctx, {
+        gbuffer,
+        shadowPass,
+        aoView: ssaoPass.aoView,
+        cloudShadowView: undefined,
+        iblTextures
+      });
+      skyPass = SkyPass.create(ctx, lightingPass.outputView, skyTexture);
     }
     pointSpotShadowPass = PointSpotShadowPass.create(ctx);
-    pointSpotLightPass  = PointSpotLightPass.create(ctx, gbuffer, pointSpotShadowPass, lightingPass.hdrView);
+    pointSpotLightPass  = PointSpotLightPass.create(ctx, gbuffer, pointSpotShadowPass, lightingPass.outputView);
 
-    rainPass       = ParticlePass.create(ctx, rainConfig, gbuffer, lightingPass.hdrView);
-    snowPass       = ParticlePass.create(ctx, snowConfig, gbuffer, lightingPass.hdrView);
-    debugLightPass = DebugLightPass.create(ctx, lightingPass.hdrView, gbuffer.depthView);
+    rainPass = ParticlePass.create(ctx, rainConfig, gbuffer, lightingPass.outputView);
+    snowPass = ParticlePass.create(ctx, snowConfig, gbuffer, lightingPass.outputView);
+    debugLightPass = DebugLightPass.create(ctx, lightingPass.outputView, gbuffer.depthView);
     debugLightPass.setMesh(coneMesh);
-    taaPass  = TAAPass.create(ctx, lightingPass, gbuffer);
+    taaPass = TAAPass.create(ctx, lightingPass, gbuffer);
     ssgiPass = SSGIPass.create(ctx, gbuffer, taaPass.historyView);
     lightingPass.updateSSGI(ssgiPass.resultView);
 
@@ -414,7 +440,7 @@ async function main() {
       ? (bloomPass = BloomPass.create(ctx, postInput), bloomPass.resultView)
       : postInput;
 
-    autoExposurePass = AutoExposurePass.create(ctx, lightingPass.hdrTexture);
+    autoExposurePass = AutoExposurePass.create(ctx, lightingPass.outputTexture!);
     compositePass = CompositePass.create(ctx, {
       inputView: compositeInput,
       aoView: ssaoPass.aoView,
@@ -490,9 +516,9 @@ async function main() {
     const newTex = await createHdrTexture(device, hdr);
     const newIbl = await computeIblGpu(device, newTex.gpuTexture, 0.2);
     skyTexture.destroy();
-    ibl.destroy();
+    iblTextures.destroy();
     skyTexture = newTex;
-    ibl = newIbl;
+    iblTextures = newIbl;
     skyIndex = next;
     buildRenderTargets();
     skyLoading = false;
@@ -516,7 +542,9 @@ async function main() {
   const resizeObserver = new ResizeObserver(() => {
     const w = Math.max(1, Math.round(canvas.clientWidth * devicePixelRatio));
     const h = Math.max(1, Math.round(canvas.clientHeight * devicePixelRatio));
-    if (w === canvas.width && h === canvas.height) return;
+    if (w === canvas.width && h === canvas.height) {
+      return;
+    }
     canvas.width = w;
     canvas.height = h;
     buildRenderTargets();

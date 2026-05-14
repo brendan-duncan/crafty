@@ -152,21 +152,24 @@ async function main() {
   const geometryPass = GeometryPass.create(ctx, gbuffer);
   const cloudShadowPass = CloudShadowPass.create(ctx, cloudNoises);
 
-  const lightingPass = DeferredLightingPass.create(
-    ctx, gbuffer, shadowPass, aoView, cloudShadowPass.shadowView,
-  );
+  const lightingPass = DeferredLightingPass.create(ctx, {
+    gbuffer,
+    shadowPass,
+    aoView,
+    cloudShadowView: cloudShadowPass.shadowView,
+  });
 
-  const cloudPass = CloudPass.create(ctx, lightingPass.hdrView, gbuffer.depthView, cloudNoises);
-  const atmospherePass = AtmospherePass.create(ctx, { output: lightingPass.hdrView });
+  const cloudPass = CloudPass.create(ctx, lightingPass.outputView, gbuffer.depthView, cloudNoises);
+  const atmospherePass = AtmospherePass.create(ctx, { output: lightingPass.outputView });
 
   const godrayPass = GodrayPass.create(
-    ctx, gbuffer, shadowPass, lightingPass.hdrView,
+    ctx, gbuffer, shadowPass, lightingPass.outputView,
     lightingPass.cameraBuffer, lightingPass.lightBuffer,
     cloudNoises,
   );
 
   const compositePass = CompositePass.create(ctx, {
-    inputView: lightingPass.hdrView,
+    inputView: lightingPass.outputView,
     aoView: aoView,
     depthView: gbuffer.depthView,
     cameraBuffer: lightingPass.cameraBuffer,

@@ -20,10 +20,19 @@ const CAMERA_SIZE = 64 * 4 + 16 + 16;
 //   _pad(2)+cascadeDepthRanges(4)+cascadeTexelSizes(4) = 368 bytes
 const LIGHT_SIZE = 368;
 
+export interface DeferredLightingPassOptions {
+  gbuffer: GBuffer;
+  shadowPass: ShadowPass;
+  aoView: GPUTextureView;
+  cloudShadowView?: GPUTextureView;
+  iblTextures?: IblTextures;
+  outputView?: GPUTextureView;
+}
+
 /**
  * Deferred lighting pass: samples the G-buffer, cascade shadow maps, AO/SSGI,
  * cloud transmittance and IBL textures, then writes shaded HDR color into
- * `hdrTexture`.
+ * `outputTexture`.
  *
  * Runs as a fullscreen triangle. Camera and directional-light uniforms are
  * exposed as `cameraBuffer` / `lightBuffer` so other passes (e.g. godrays)
@@ -33,9 +42,9 @@ export class DeferredLightingPass extends RenderPass {
   readonly name = 'DeferredLightingPass';
 
   /** HDR color target written by the lighting pass. */
-  readonly hdrTexture: GPUTexture;
-  /** Default view of `hdrTexture`. */
-  readonly hdrView: GPUTextureView;
+  readonly outputTexture: GPUTexture | null;
+  /** Default view of `outputTexture`. */
+  readonly outputView: GPUTextureView;
   /** Per-frame camera uniform buffer; shared with other passes. */
   readonly cameraBuffer: GPUBuffer;
   /** Per-frame directional-light + cascade uniform buffer; shared with other passes. */
@@ -60,14 +69,14 @@ export class DeferredLightingPass extends RenderPass {
 
   // Reused per-frame staging buffers — avoid allocating typed arrays each
   // updateCamera / updateLight / updateCloudShadow call.
-  private readonly _cameraScratch       = new Float32Array(CAMERA_SIZE / 4);
-  private readonly _lightScratch        = new Float32Array(LIGHT_SIZE / 4);
-  private readonly _lightScratchU       = new Uint32Array(this._lightScratch.buffer);
-  private readonly _cloudShadowScratch  = new Float32Array(3);
+  private readonly _cameraScratch = new Float32Array(CAMERA_SIZE / 4);
+  private readonly _lightScratch = new Float32Array(LIGHT_SIZE / 4);
+  private readonly _lightScratchU = new Uint32Array(this._lightScratch.buffer);
+  private readonly _cloudShadowScratch = new Float32Array(3);
 
   private constructor(
-    hdrTexture: GPUTexture,
-    hdrView: GPUTextureView,
+    outputTexture: GPUTexture | null,
+    outputView: GPUTextureView,
     pipeline: GPURenderPipeline,
     sceneBindGroup: GPUBindGroup,
     gbufferBindGroup: GPUBindGroup,
@@ -86,8 +95,8 @@ export class DeferredLightingPass extends RenderPass {
     ssgiSampler: GPUSampler,
   ) {
     super();
-    this.hdrTexture = hdrTexture;
-    this.hdrView = hdrView;
+    this.outputTexture = outputTexture;
+    this.outputView = outputView;
     this._pipeline = pipeline;
     this._sceneBindGroup = sceneBindGroup;
     this._gbufferBindGroup = gbufferBindGroup;
@@ -119,16 +128,22 @@ export class DeferredLightingPass extends RenderPass {
    *   BRDF LUT). When omitted, 1×1 black fallbacks are used.
    * @returns A configured `DeferredLightingPass`.
    */
-  static create(ctx: RenderContext, gbuffer: GBuffer, shadowPass: ShadowPass, aoView: GPUTextureView, cloudShadowView?: GPUTextureView, iblTextures?: IblTextures): DeferredLightingPass {
+  static create(ctx: RenderContext, options: DeferredLightingPassOptions): DeferredLightingPass {
     const { device, width, height } = ctx;
 
-    const hdrTexture = device.createTexture({
-      label: 'HDR Texture',
-      size: { width, height },
-      format: HDR_FORMAT,
-      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC,
-    });
-    const hdrView = hdrTexture.createView();
+    let outputTexture: GPUTexture | null = null;
+    let outputView: GPUTextureView;
+    if (options.outputView) {
+      outputView = options.outputView;
+    } else {
+      outputTexture = device.createTexture({
+        label: 'HDR Texture',
+        size: { width, height },
+        format: HDR_FORMAT,
+        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC,
+      });
+      outputView = outputTexture.createView();
+    }
 
     const cameraBuffer = device.createBuffer({
       label: 'LightCameraBuffer', size: CAMERA_SIZE,
@@ -184,9 +199,11 @@ export class DeferredLightingPass extends RenderPass {
       format: 'r8unorm',
       usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
     });
+
     device.queue.writeTexture({ texture: defaultCloudShadow }, new Uint8Array([255]),
       { bytesPerRow: 1 }, { width: 1, height: 1 });
-    const resolvedCloudShadowView = cloudShadowView ?? defaultCloudShadow.createView();
+
+    const resolvedCloudShadowView = options.cloudShadowView ?? defaultCloudShadow.createView();
 
     // Group 2: AO (binding 0–1) + SSGI (binding 2–3) — merged to stay within 4-group limit
     const aoBGL = device.createBindGroupLayout({
@@ -236,9 +253,9 @@ export class DeferredLightingPass extends RenderPass {
     const iblBindGroup = device.createBindGroup({
       label: 'LightIblBG', layout: iblBGL,
       entries: [
-        { binding: 0, resource: iblTextures?.irradianceView  ?? defaultIblView },
-        { binding: 1, resource: iblTextures?.prefilteredView ?? defaultIblView },
-        { binding: 2, resource: iblTextures?.brdfLutView     ?? defaultBrdfLut.createView() },
+        { binding: 0, resource: options.iblTextures?.irradianceView  ?? defaultIblView },
+        { binding: 1, resource: options.iblTextures?.prefilteredView ?? defaultIblView },
+        { binding: 2, resource: options.iblTextures?.brdfLutView     ?? defaultBrdfLut.createView() },
         { binding: 3, resource: iblSampler },
       ],
     });
@@ -253,20 +270,20 @@ export class DeferredLightingPass extends RenderPass {
     const gbufferBindGroup = device.createBindGroup({
       layout: gbufferBGL,
       entries: [
-        { binding: 0, resource: gbuffer.albedoRoughnessView },
-        { binding: 1, resource: gbuffer.normalMetallicView },
-        { binding: 2, resource: gbuffer.depthView },
-        { binding: 3, resource: shadowPass.shadowMapView },
+        { binding: 0, resource: options.gbuffer.albedoRoughnessView },
+        { binding: 1, resource: options.gbuffer.normalMetallicView },
+        { binding: 2, resource: options.gbuffer.depthView },
+        { binding: 3, resource: options.shadowPass.shadowMapView },
         { binding: 4, resource: comparisonSampler },
         { binding: 5, resource: linearSampler },
-        { binding: 6, resource: resolvedCloudShadowView },
+        { binding: 6, resource: resolvedCloudShadowView ?? defaultCloudShadow },
       ],
     });
 
     const aoBindGroup = device.createBindGroup({
       label: 'LightAoBG', layout: aoBGL,
       entries: [
-        { binding: 0, resource: aoView },
+        { binding: 0, resource: options.aoView },
         { binding: 1, resource: aoSampler },
         { binding: 2, resource: defaultSsgi.createView() },
         { binding: 3, resource: ssgiSampler },
@@ -287,14 +304,24 @@ export class DeferredLightingPass extends RenderPass {
     });
 
     return new DeferredLightingPass(
-      hdrTexture, hdrView, pipeline,
-      sceneBindGroup, gbufferBindGroup, aoBindGroup, iblBindGroup,
-      cameraBuffer, lightBuffer,
-      cloudShadowView ? null : defaultCloudShadow,
+      outputTexture,
+      outputView,
+      pipeline,
+      sceneBindGroup,
+      gbufferBindGroup,
+      aoBindGroup,
+      iblBindGroup,
+      cameraBuffer,
+      lightBuffer,
+      resolvedCloudShadowView ? null : defaultCloudShadow,
       defaultSsgi,
-      iblTextures ? null : defaultIblCube,
-      iblTextures ? null : defaultBrdfLut,
-      device, aoBGL, aoView, aoSampler, ssgiSampler,
+      options.iblTextures ? null : defaultIblCube,
+      options.iblTextures ? null : defaultBrdfLut,
+      device,
+      aoBGL,
+      options.aoView,
+      aoSampler,
+      ssgiSampler,
     );
   }
 
@@ -424,7 +451,7 @@ export class DeferredLightingPass extends RenderPass {
     const pass = encoder.beginRenderPass({
       label: 'DeferredLightingPass',
       colorAttachments: [
-        { view: this.hdrView, loadOp: 'load', storeOp: 'store' },
+        { view: this.outputView, loadOp: 'load', storeOp: 'store' },
       ],
     });
     pass.setPipeline(this._pipeline);
@@ -441,7 +468,7 @@ export class DeferredLightingPass extends RenderPass {
    * and the 1×1 cloud-shadow / SSGI fallback textures (if they were created).
    */
   destroy(): void {
-    this.hdrTexture.destroy();
+    this.outputTexture?.destroy();
     this.cameraBuffer.destroy();
     this.lightBuffer.destroy();
     this._defaultCloudShadow?.destroy();
