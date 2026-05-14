@@ -311,9 +311,9 @@ export class PointSpotShadowPass extends RenderPass {
         continue;
       }
 
-      const pos       = pl.worldPosition();
-      const faceVPs   = pl.cubeFaceViewProjs();
-      const uniform   = this._shadowScratch;
+      const pos = pl.worldPosition();
+      const faceVPs = pl.cubeFaceViewProjs();
+      const uniform = this._shadowScratch;
       uniform[16] = pos.x; uniform[17] = pos.y; uniform[18] = pos.z;
       uniform[19] = pl.radius;
 

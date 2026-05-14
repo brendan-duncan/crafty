@@ -1,4 +1,4 @@
-var I=Object.defineProperty;var N=(d,i,r)=>i in d?I(d,i,{enumerable:!0,configurable:!0,writable:!0,value:r}):d[i]=r;var t=(d,i,r)=>N(d,typeof i!="symbol"?i+"":i,r);import{a as q}from"./mesh-BUGOzOTp.js";import{H as R}from"./deferred_lighting_pass-BJ2kCipp.js";const W=`// godray_march.wgsl — Half-resolution ray-march pass with 3D cloud-density shadowing
+var I=Object.defineProperty;var N=(d,i,r)=>i in d?I(d,i,{enumerable:!0,configurable:!0,writable:!0,value:r}):d[i]=r;var t=(d,i,r)=>N(d,typeof i!="symbol"?i+"":i,r);import{a as q}from"./mesh-DyFEfNnf.js";import{H as R}from"./deferred_lighting_pass-CyfAwJXo.js";const W=`// godray_march.wgsl — Half-resolution ray-march pass with 3D cloud-density shadowing
 
 const PI: f32 = 3.14159265358979;
 

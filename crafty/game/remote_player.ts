@@ -112,43 +112,43 @@ export class RemotePlayer
     this.name = name;
     this._scene = scene;
 
-    const root = new GameObject(`RemotePlayer.${playerId}`);
+    const root = new GameObject({ name: `RemotePlayer.${playerId}` });
     this.root = root;
 
     // Body — center sits 1.125 above the feet.
-    const body = new GameObject('RP.Body');
+    const body = new GameObject({ name: 'RP.Body' });
     body.position.set(0, 1.125, 0);
     body.addComponent(new MeshRenderer(meshes.body, new PbrMaterial({ albedo: SHIRT, roughness: 0.85 })));
     root.addChild(body);
 
     // Head — eye level ~1.625.
-    const head = new GameObject('RP.Head');
+    const head = new GameObject({ name: 'RP.Head' });
     head.position.set(0, 1.75, 0);
     head.addComponent(new MeshRenderer(meshes.head, new PbrMaterial({ albedo: SKIN, roughness: 0.80 })));
     root.addChild(head);
     this._head = head;
 
     // Arms — pivot at shoulder (top of arm box, hence pivot at 1.5).
-    const armL = new GameObject('RP.ArmL');
+    const armL = new GameObject({ name: 'RP.ArmL' });
     armL.position.set(-0.375, 1.5, 0);
     armL.addComponent(new MeshRenderer(meshes.arm, new PbrMaterial({ albedo: SHIRT, roughness: 0.85 })));
     root.addChild(armL);
     this._armL = armL;
 
-    const armR = new GameObject('RP.ArmR');
+    const armR = new GameObject({ name: 'RP.ArmR' });
     armR.position.set(0.375, 1.5, 0);
     armR.addComponent(new MeshRenderer(meshes.arm, new PbrMaterial({ albedo: SHIRT, roughness: 0.85 })));
     root.addChild(armR);
     this._armR = armR;
 
     // Legs — pivot at hip (top of leg box, hence pivot at 0.75).
-    const legL = new GameObject('RP.LegL');
+    const legL = new GameObject({ name: 'RP.LegL' });
     legL.position.set(-0.125, 0.75, 0);
     legL.addComponent(new MeshRenderer(meshes.leg, new PbrMaterial({ albedo: PANTS, roughness: 0.85 })));
     root.addChild(legL);
     this._legL = legL;
 
-    const legR = new GameObject('RP.LegR');
+    const legR = new GameObject({ name: 'RP.LegR' });
     legR.position.set(0.125, 0.75, 0);
     legR.addComponent(new MeshRenderer(meshes.leg, new PbrMaterial({ albedo: PANTS, roughness: 0.85 })));
     root.addChild(legR);

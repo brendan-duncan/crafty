@@ -11,8 +11,8 @@ import shadowWgsl      from '../../shaders/shadow.wgsl?raw';
 import chunkShadowWgsl from '../../shaders/chunk_shadow.wgsl?raw';
 import propShadowWgsl  from '../../shaders/prop_shadow.wgsl?raw';
 
-const MAX_CASCADES    = 4;
-const BYTES_PER_VERT  = 5 * 4;  // [x,y,z,face,blockType] — shadow shader only reads xyz
+const MAX_CASCADES = 4;
+const BYTES_PER_VERT = 5 * 4;  // [x,y,z,face,blockType] — shadow shader only reads xyz
 
 interface ChunkShadowGpu {
   ox: number;   // chunk world-space X origin (for distance culling)
@@ -47,45 +47,45 @@ export class BlockShadowPass extends RenderPass {
 
   private _camX = 0;
   private _camZ = 0;
-  private _device              : GPUDevice;
-  private _shadowMapArrayViews : GPUTextureView[];
-  private _pipeline            : GPURenderPipeline;
-  private _transparentPipeline : GPURenderPipeline;
-  private _propPipeline        : GPURenderPipeline;
-  private _cascadeBGs          : GPUBindGroup[];
-  private _cascadeBuffers      : GPUBuffer[];
-  private _modelBGL            : GPUBindGroupLayout;
-  private _atlasBG             : GPUBindGroup;
-  private _orientBG_X          : GPUBindGroup;  // right=(1,0,0) for XY-plane quads
-  private _orientBG_Z          : GPUBindGroup;  // right=(0,0,1) for ZY-plane quads
-  private _chunks              = new Map<Chunk, ChunkShadowGpu>();
-  private _cascades            : CascadeData[] = [];
+  private _device: GPUDevice;
+  private _shadowMapArrayViews: GPUTextureView[];
+  private _pipeline: GPURenderPipeline;
+  private _transparentPipeline: GPURenderPipeline;
+  private _propPipeline: GPURenderPipeline;
+  private _cascadeBGs: GPUBindGroup[];
+  private _cascadeBuffers: GPUBuffer[];
+  private _modelBGL: GPUBindGroupLayout;
+  private _atlasBG: GPUBindGroup;
+  private _orientBG_X: GPUBindGroup;  // right=(1,0,0) for XY-plane quads
+  private _orientBG_Z: GPUBindGroup;  // right=(0,0,1) for ZY-plane quads
+  private _chunks = new Map<Chunk, ChunkShadowGpu>();
+  private _cascades: CascadeData[] = [];
 
   private constructor(
-    device             : GPUDevice,
+    device: GPUDevice,
     shadowMapArrayViews: GPUTextureView[],
-    pipeline           : GPURenderPipeline,
+    pipeline: GPURenderPipeline,
     transparentPipeline: GPURenderPipeline,
-    propPipeline       : GPURenderPipeline,
-    cascadeBGs         : GPUBindGroup[],
-    cascadeBuffers     : GPUBuffer[],
-    modelBGL           : GPUBindGroupLayout,
-    atlasBG            : GPUBindGroup,
-    orientBG_X         : GPUBindGroup,
-    orientBG_Z         : GPUBindGroup,
+    propPipeline: GPURenderPipeline,
+    cascadeBGs: GPUBindGroup[],
+    cascadeBuffers: GPUBuffer[],
+    modelBGL: GPUBindGroupLayout,
+    atlasBG: GPUBindGroup,
+    orientBG_X: GPUBindGroup,
+    orientBG_Z: GPUBindGroup,
   ) {
     super();
-    this._device              = device;
+    this._device = device;
     this._shadowMapArrayViews = shadowMapArrayViews;
-    this._pipeline            = pipeline;
+    this._pipeline = pipeline;
     this._transparentPipeline = transparentPipeline;
-    this._propPipeline        = propPipeline;
-    this._cascadeBGs          = cascadeBGs;
-    this._cascadeBuffers      = cascadeBuffers;
-    this._modelBGL            = modelBGL;
-    this._atlasBG             = atlasBG;
-    this._orientBG_X          = orientBG_X;
-    this._orientBG_Z          = orientBG_Z;
+    this._propPipeline = propPipeline;
+    this._cascadeBGs = cascadeBGs;
+    this._cascadeBuffers = cascadeBuffers;
+    this._modelBGL = modelBGL;
+    this._atlasBG = atlasBG;
+    this._orientBG_X = orientBG_X;
+    this._orientBG_Z = orientBG_Z;
   }
 
   /**
@@ -228,9 +228,9 @@ export class BlockShadowPass extends RenderPass {
           ],
         }],
       },
-      fragment    : { module: propShader, entryPoint: 'fs_alpha_test', targets: [] },
+      fragment: { module: propShader, entryPoint: 'fs_alpha_test', targets: [] },
       depthStencil: { format: 'depth32float', depthWriteEnabled: true, depthCompare: 'less' },
-      primitive   : { topology: 'triangle-list', cullMode: 'none' },
+      primitive: { topology: 'triangle-list', cullMode: 'none' },
     });
 
     return new BlockShadowPass(device, shadowMapArrayViews, pipeline, transparentPipeline, propPipeline, cascadeBGs, cascadeBuffers, modelBGL, atlasBG, orientBG_X, orientBG_Z);
@@ -322,7 +322,7 @@ export class BlockShadowPass extends RenderPass {
         colorAttachments: [],
         depthStencilAttachment: {
           view: this._shadowMapArrayViews[c],
-          depthLoadOp : 'load',
+          depthLoadOp: 'load',
           depthStoreOp: 'store',
         },
       });

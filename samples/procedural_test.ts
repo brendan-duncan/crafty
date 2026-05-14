@@ -10,6 +10,7 @@ import { CameraController } from '../src/engine/camera_controller.js';
 import { RenderGraph } from '../src/renderer/render_graph.js';
 import { Mesh } from '../src/assets/mesh.js';
 import forwardProceduralWgsl from './forward_procedural.wgsl?raw';
+import { GameObject } from '../src/index.js';
 
 const ALIGNMENT = 256;
 
@@ -169,11 +170,8 @@ async function main() {
     }
 
     // Camera
-    const fakeGO = {
-      position: camPos,
-      rotation: { x: 0, y: 0, z: 0, w: 1 },
-    };
-    cameraController.update(fakeGO as any, dt);
+    const camera = new GameObject({ position: camPos });
+    cameraController.update(camera, dt);
 
     const sinY = Math.sin(cameraController.yaw);
     const cosY = Math.cos(cameraController.yaw);

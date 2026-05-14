@@ -17,30 +17,30 @@ const CLOUD_LIGHT_UNIFORM_SIZE = 32;
  * procedural sky lit alongside it.
  */
 export interface CloudSettings {
-  cloudBase   : number;               // world Y of cloud bottom (default 5)
-  cloudTop    : number;               // world Y of cloud top (default 15)
-  coverage    : number;               // [0, 1] (default 0.55)
-  density     : number;               // density multiplier (default 1.0)
-  windOffset  : [number, number];     // XZ animated offset (updated each frame)
-  anisotropy  : number;               // HG g-factor (default 0.85)
-  extinction  : number;               // absorption+scatter coefficient (default 0.25)
+  cloudBase: number;               // world Y of cloud bottom (default 5)
+  cloudTop: number;               // world Y of cloud top (default 15)
+  coverage: number;               // [0, 1] (default 0.55)
+  density: number;               // density multiplier (default 1.0)
+  windOffset: [number, number];     // XZ animated offset (updated each frame)
+  anisotropy: number;               // HG g-factor (default 0.85)
+  extinction: number;               // absorption+scatter coefficient (default 0.25)
   ambientColor: [number, number, number]; // sky ambient tint (default [0.4, 0.55, 0.7])
-  exposure    : number;               // HDR sky exposure (default 0.2)
+  exposure: number;               // HDR sky exposure (default 0.2)
 }
 
 /**
  * Reasonable default {@link CloudSettings} for a daytime overcast-leaning sky.
  */
 export const DEFAULT_CLOUD_SETTINGS: CloudSettings = {
-  cloudBase   : 5,
-  cloudTop    : 15,
-  coverage    : 0.55,
-  density     : 1.0,
-  windOffset  : [0, 0],
-  anisotropy  : 0.85,
-  extinction  : 0.25,
+  cloudBase: 5,
+  cloudTop: 15,
+  coverage: 0.55,
+  density: 1.0,
+  windOffset: [0, 0],
+  anisotropy: 0.85,
+  extinction: 0.25,
   ambientColor: [0.4, 0.55, 0.7],
-  exposure    : 0.2,
+  exposure: 0.2,
 };
 
 /**
@@ -56,40 +56,40 @@ export const DEFAULT_CLOUD_SETTINGS: CloudSettings = {
 export class CloudPass extends RenderPass {
   readonly name = 'CloudPass';
 
-  private _pipeline       : GPURenderPipeline;
-  private _hdrView        : GPUTextureView;
-  private _cameraBuffer   : GPUBuffer;
-  private _cloudBuffer    : GPUBuffer;
-  private _lightBuffer    : GPUBuffer;
-  private _sceneBG        : GPUBindGroup;  // group 0: camera + cloud
-  private _lightBG        : GPUBindGroup;  // group 1: light
-  private _depthBG        : GPUBindGroup;  // group 2: depth texture
-  private _noiseSkyBG     : GPUBindGroup;  // group 3: noises
-  private readonly _cameraScratch   = new Float32Array(CLOUD_CAMERA_UNIFORM_SIZE / 4);
-  private readonly _lightScratch    = new Float32Array(CLOUD_LIGHT_UNIFORM_SIZE / 4);
+  private _pipeline: GPURenderPipeline;
+  private _hdrView: GPUTextureView;
+  private _cameraBuffer: GPUBuffer;
+  private _cloudBuffer: GPUBuffer;
+  private _lightBuffer: GPUBuffer;
+  private _sceneBG: GPUBindGroup;  // group 0: camera + cloud
+  private _lightBG: GPUBindGroup;  // group 1: light
+  private _depthBG: GPUBindGroup;  // group 2: depth texture
+  private _noiseSkyBG: GPUBindGroup;  // group 3: noises
+  private readonly _cameraScratch = new Float32Array(CLOUD_CAMERA_UNIFORM_SIZE / 4);
+  private readonly _lightScratch = new Float32Array(CLOUD_LIGHT_UNIFORM_SIZE / 4);
   private readonly _settingsScratch = new Float32Array(CLOUD_UNIFORM_SIZE / 4);
 
   private constructor(
-    pipeline    : GPURenderPipeline,
-    hdrView     : GPUTextureView,
+    pipeline: GPURenderPipeline,
+    hdrView: GPUTextureView,
     cameraBuffer: GPUBuffer,
-    cloudBuffer : GPUBuffer,
-    lightBuffer : GPUBuffer,
-    sceneBG     : GPUBindGroup,
-    lightBG     : GPUBindGroup,
-    depthBG     : GPUBindGroup,
-    noiseSkyBG  : GPUBindGroup,
+    cloudBuffer: GPUBuffer,
+    lightBuffer: GPUBuffer,
+    sceneBG: GPUBindGroup,
+    lightBG: GPUBindGroup,
+    depthBG: GPUBindGroup,
+    noiseSkyBG: GPUBindGroup,
   ) {
     super();
-    this._pipeline    = pipeline;
-    this._hdrView     = hdrView;
+    this._pipeline = pipeline;
+    this._hdrView = hdrView;
     this._cameraBuffer = cameraBuffer;
-    this._cloudBuffer  = cloudBuffer;
-    this._lightBuffer  = lightBuffer;
-    this._sceneBG     = sceneBG;
-    this._lightBG     = lightBG;
-    this._depthBG     = depthBG;
-    this._noiseSkyBG  = noiseSkyBG;
+    this._cloudBuffer = cloudBuffer;
+    this._lightBuffer = lightBuffer;
+    this._sceneBG = sceneBG;
+    this._lightBG = lightBG;
+    this._depthBG = depthBG;
+    this._noiseSkyBG = noiseSkyBG;
   }
 
   /**
@@ -103,10 +103,10 @@ export class CloudPass extends RenderPass {
    * @returns A configured CloudPass.
    */
   static create(
-    ctx      : RenderContext,
-    hdrView  : GPUTextureView,
+    ctx: RenderContext,
+    hdrView: GPUTextureView,
     depthView: GPUTextureView,
-    noises   : CloudNoiseTextures,
+    noises: CloudNoiseTextures,
   ): CloudPass {
     const { device } = ctx;
 
@@ -214,11 +214,11 @@ export class CloudPass extends RenderPass {
    * @param far         Far plane distance.
    */
   updateCamera(
-    ctx        : RenderContext,
+    ctx: RenderContext,
     invViewProj: Mat4,
-    camPos     : { x: number; y: number; z: number },
-    near       : number,
-    far        : number,
+    camPos: { x: number; y: number; z: number },
+    near: number,
+    far: number,
   ): void {
     const data = this._cameraScratch;
     data.set(invViewProj.data, 0);
@@ -238,9 +238,9 @@ export class CloudPass extends RenderPass {
    * @param intensity Scalar light intensity.
    */
   updateLight(
-    ctx      : RenderContext,
-    dir      : { x: number; y: number; z: number },
-    color    : { x: number; y: number; z: number },
+    ctx: RenderContext,
+    dir: { x: number; y: number; z: number },
+    color: { x: number; y: number; z: number },
     intensity: number,
   ): void {
     const data = this._lightScratch;

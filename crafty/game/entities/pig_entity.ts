@@ -44,17 +44,17 @@ export class Pig extends NPCEntity {
     const headMesh = isBaby ? Pig._babyHead! : Pig._head!;
     const snoutMesh = isBaby ? Pig._babySnout! : Pig._snout!;
 
-    const body = new GameObject('Pig.Body');
+    const body = new GameObject({ name: 'Pig.Body' });
     body.position.set(0, 0.35 * s, 0);
     body.addComponent(new MeshRenderer(bodyMesh, new PbrMaterial({ albedo: PINK, roughness: 0.85 })));
     pig.addChild(body);
 
-    const head = new GameObject('Pig.Head');
+    const head = new GameObject({ name: 'Pig.Head' });
     head.position.set(0, 0.35 * s, -0.48 * s);
     head.addComponent(new MeshRenderer(headMesh, new PbrMaterial({ albedo: PINK, roughness: 0.85 })));
     pig.addChild(head);
 
-    const snout = new GameObject('Pig.Snout');
+    const snout = new GameObject({ name: 'Pig.Snout' });
     snout.position.set(0, 0.31 * s, -0.70 * s);
     snout.addComponent(new MeshRenderer(snoutMesh, new PbrMaterial({ albedo: SNOUT_PINK, roughness: 0.80 })));
     pig.addChild(snout);

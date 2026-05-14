@@ -19,7 +19,7 @@ class OtherComponent extends Component {}
 describe('GameObject', () => {
   describe('constructor', () => {
     it('should set default values', () => {
-      const go = new GameObject();
+      const go = new GameObject({ name: 'GameObject' });
       expect(go.name).toBe('GameObject');
       expect(go.position.x).toBe(0);
       expect(go.rotation.w).toBe(1);
@@ -29,7 +29,7 @@ describe('GameObject', () => {
     });
 
     it('should accept a custom name', () => {
-      const go = new GameObject('Player');
+      const go = new GameObject({ name: 'Player' });
       expect(go.name).toBe('Player');
     });
   });

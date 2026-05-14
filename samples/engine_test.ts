@@ -127,7 +127,7 @@ async function main() {
   // --- Scene setup ---
   const scene = new Scene();
 
-  const planeGO = new GameObject('Plane');
+  const planeGO = new GameObject({ name: 'Plane' });
   planeGO.position.set(0, 0, 0);
   const planeMesh = Mesh.createPlane(device, 100, 100, 4, 4);
   const [planeUvOx, planeUvOy, planeUvSx, planeUvSy] = blockTex.uvTransform(2);
@@ -154,7 +154,7 @@ async function main() {
   ];
   const cubeGOs = cubeConfigs.map(({ pos, blockId }, i) => {
     const [uvOffsetX, uvOffsetY, uvScaleX, uvScaleY] = blockTex.uvTransform(blockId);
-    const go = new GameObject(`Cube${i}`);
+    const go = new GameObject({ name: `Cube${i}` });
     go.position.set(pos[0], pos[1], pos[2]);
     go.addComponent(new MeshRenderer(cubeMesh, new PbrMaterial({
       albedo: [1, 1, 1, 1],
@@ -170,7 +170,7 @@ async function main() {
     return go;
   });
 
-  const sphereGO = new GameObject('MirrorSphere');
+  const sphereGO = new GameObject({ name: 'MirrorSphere' });
   sphereGO.position.set(0, 1, 4);
   const sphereMesh = Mesh.createSphere(device, 1, 64, 64);
   sphereGO.addComponent(new MeshRenderer(sphereMesh, new PbrMaterial({
@@ -188,7 +188,7 @@ async function main() {
     if (!model.skin || model.meshes.length === 0) {
       return;
     }
-    const foxGO = new GameObject('Fox');
+    const foxGO = new GameObject({ name: 'Fox' });
     foxGO.position.set(5, 0, 2);
     foxGO.scale.set(1, 1, 1);
     foxAnimated = foxGO.addComponent(new AnimatedModel(model));
@@ -199,10 +199,10 @@ async function main() {
     scene.add(foxGO);
   }).catch(err => console.error('fox.glb load failed:', err));
 
-  const fireEmitterGO = new GameObject('FireEmitter');
+  const fireEmitterGO = new GameObject({ name: 'FireEmitter' });
   fireEmitterGO.position.set(5, 0, 5);
 
-  const sparksEmitterGO = new GameObject('SparksEmitter');
+  const sparksEmitterGO = new GameObject({ name: 'SparksEmitter' });
   sparksEmitterGO.position.set(-3, 0, 2);
 
   let sun: DirectionalLight | null = null;
@@ -210,7 +210,7 @@ async function main() {
   sun = sunGO.addComponent(new DirectionalLight(new Vec3(0.3, -1, 0.5), Vec3.one(), 3, 3));
   scene.add(sunGO);*/
 
-  const torchGO = new GameObject('Torch');
+  const torchGO = new GameObject({ name: 'Torch' });
   torchGO.position.set(2, 1.5, 1);
   const torchLight = torchGO.addComponent(new PointLight());
   torchLight.color.set(1.0, 0.55, 0.15);
@@ -223,7 +223,7 @@ async function main() {
   torchDebugMR.castShadow = false;*/
   scene.add(torchGO);
 
-  const spotGO = new GameObject('Spot');
+  const spotGO = new GameObject({ name: 'Spot' });
   spotGO.position.set(-4, 6, 0);
   spotGO.rotation = Quaternion.fromAxisAngle(new Vec3(1, 0, 0), -Math.PI / 2);
   const spotLight = spotGO.addComponent(new SpotLight());
@@ -235,7 +235,7 @@ async function main() {
   spotLight.castShadow = true;
   scene.add(spotGO);
 
-  const cameraGO = new GameObject('Camera');
+  const cameraGO = new GameObject({ name: 'Camera' });
   cameraGO.position.set(0, 4, -8);
   const camera = cameraGO.addComponent(new Camera(60, 0.1, 100, ctx.width / ctx.height));
   scene.add(cameraGO);

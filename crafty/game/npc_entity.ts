@@ -12,7 +12,7 @@ export abstract class NPCEntity extends GameObject {
   isStatic = false;   // If true, the entity will stay in an idle state, or not otherwise move.
 
   constructor(name: string, world: World, scene: Scene) {
-    super(name);
+    super({ name });
     this.world = world;
     this.scene = scene;
   }

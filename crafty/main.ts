@@ -139,7 +139,7 @@ async function main(): Promise<void> {
   const scene = new Scene();
 
   // Setup sun
-  const sunGO = new GameObject('Sun');
+  const sunGO = new GameObject({ name: 'Sun' });
   const sun = sunGO.addComponent(new DirectionalLight(new Vec3(0.3, -1, 0.5), Vec3.one(), 6, 3));
   scene.add(sunGO);
 

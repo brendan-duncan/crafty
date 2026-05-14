@@ -1,31 +1,31 @@
-var m=Object.defineProperty;var v=(u,o,n)=>o in u?m(u,o,{enumerable:!0,configurable:!0,writable:!0,value:n}):u[o]=n;var s=(u,o,n)=>v(u,typeof o!="symbol"?o+"":o,n);import{a as _}from"./mesh-BUGOzOTp.js";import{H as y}from"./deferred_lighting_pass-BJ2kCipp.js";const g=`// Physically based single-scattering atmosphere (Rayleigh + Mie).
+var m=Object.defineProperty;var v=(u,o,n)=>o in u?m(u,o,{enumerable:!0,configurable:!0,writable:!0,value:n}):u[o]=n;var s=(u,o,n)=>v(u,typeof o!="symbol"?o+"":o,n);import{a as _}from"./mesh-DyFEfNnf.js";import{H as y}from"./deferred_lighting_pass-CyfAwJXo.js";const g=`// Physically based single-scattering atmosphere (Rayleigh + Mie).
 // Reference: Nishita 1993, Preetham 1999, Hillaire 2020 (simplified).
 //
 // World units are metres.  The ground sits at y ≈ 0 so the camera is placed at
 // (0, R_E + cameraPos.y, 0) in atmosphere space.
 
-const PI    : f32 = 3.14159265358979;
-const R_E   : f32 = 6360000.0;   // Earth radius (m)
-const R_A   : f32 = 6420000.0;   // Atmosphere top radius (m)
-const H_R   : f32 = 8500.0;      // Rayleigh scale height (m)
-const H_M   : f32 = 1200.0;      // Mie scale height (m)
-const G     : f32 = 0.758;       // Mie anisotropy (forward-scattering haze)
+const PI: f32 = 3.14159265358979;
+const R_E: f32 = 6360000.0;   // Earth radius (m)
+const R_A: f32 = 6420000.0;   // Atmosphere top radius (m)
+const H_R: f32 = 8500.0;      // Rayleigh scale height (m)
+const H_M: f32 = 1200.0;      // Mie scale height (m)
+const G: f32 = 0.758;       // Mie anisotropy (forward-scattering haze)
 // Rayleigh coefficients (per metre) tuned to 680 / 550 / 440 nm wavelengths.
-const BETA_R : vec3<f32> = vec3<f32>(5.5e-6, 13.0e-6, 22.4e-6);
+const BETA_R: vec3<f32> = vec3<f32>(5.5e-6, 13.0e-6, 22.4e-6);
 // Mie coefficient (per metre, wavelength-independent for haze).
-const BETA_M : f32 = 21.0e-6;
+const BETA_M: f32 = 21.0e-6;
 // Solar irradiance at top of atmosphere (in renderer HDR units).
-const SUN_INTENSITY : f32 = 20.0;
+const SUN_INTENSITY: f32 = 20.0;
 // Angular cosine thresholds for sun and moon disks.
-const SUN_COS_THRESH  : f32 = 0.9996;   // ~1.6° angular radius (~3× real sun)
-const MOON_COS_THRESH : f32 = 0.9997;   // slightly smaller than sun
+const SUN_COS_THRESH: f32 = 0.9996;   // ~1.6° angular radius (~3× real sun)
+const MOON_COS_THRESH: f32 = 0.9997;   // slightly smaller than sun
 
 struct Uniforms {
-  invViewProj : mat4x4<f32>,
-  cameraPos   : vec3<f32>,
-  _pad0       : f32,
-  sunDir      : vec3<f32>,  // unit vector pointing TOWARD the sun
-  _pad1       : f32,
+  invViewProj: mat4x4<f32>,
+  cameraPos: vec3<f32>,
+  _pad0: f32,
+  sunDir: vec3<f32>,  // unit vector pointing TOWARD the sun
+  _pad1: f32,
 }
 
 @group(0) @binding(0) var<uniform> u: Uniforms;

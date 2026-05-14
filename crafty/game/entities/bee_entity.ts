@@ -51,41 +51,41 @@ export class Bee extends NPCEntity {
     const brownMat = new PbrMaterial({ albedo: BEE_BROWN, roughness: ROUGH });
     const wingMat = new PbrMaterial({ albedo: WING_WHITE, roughness: 0.3, metallic: 0, transparent: true });
 
-    const body = new GameObject('Bee.Body');
+    const body = new GameObject({ name: 'Bee.Body' });
     body.addComponent(new MeshRenderer(Bee._body!, yellowMat));
     bee.addChild(body);
 
-    const stripe1 = new GameObject('Bee.Stripe1');
+    const stripe1 = new GameObject({ name: 'Bee.Stripe1' });
     stripe1.position.set(0, 0, 0.06);
     stripe1.addComponent(new MeshRenderer(Bee._stripe!, blackMat));
     bee.addChild(stripe1);
 
-    const stripe2 = new GameObject('Bee.Stripe2');
+    const stripe2 = new GameObject({ name: 'Bee.Stripe2' });
     stripe2.position.set(0, 0, 0.14);
     stripe2.addComponent(new MeshRenderer(Bee._stripe!, blackMat));
     bee.addChild(stripe2);
 
-    const head = new GameObject('Bee.Head');
+    const head = new GameObject({ name: 'Bee.Head' });
     head.position.set(0, 0.05, -0.19);
     head.addComponent(new MeshRenderer(Bee._head!, brownMat));
     bee.addChild(head);
 
-    const eyeL = new GameObject('Bee.EyeL');
+    const eyeL = new GameObject({ name: 'Bee.EyeL' });
     eyeL.position.set(-0.045, 0.05, -0.22);
     eyeL.addComponent(new MeshRenderer(Bee._eye!, blackMat));
     bee.addChild(eyeL);
 
-    const eyeR = new GameObject('Bee.EyeR');
+    const eyeR = new GameObject({ name: 'Bee.EyeR' });
     eyeR.position.set(0.045, 0.05, -0.22);
     eyeR.addComponent(new MeshRenderer(Bee._eye!, blackMat));
     bee.addChild(eyeR);
 
-    const wingL = new GameObject('Bee.WingL');
+    const wingL = new GameObject({ name: 'Bee.WingL' });
     wingL.position.set(-0.10, 0.10, 0);
     wingL.addComponent(new MeshRenderer(Bee._wing!, wingMat));
     bee.addChild(wingL);
 
-    const wingR = new GameObject('Bee.WingR');
+    const wingR = new GameObject({ name: 'Bee.WingR' });
     wingR.position.set(0.10, 0.10, 0);
     wingR.addComponent(new MeshRenderer(Bee._wing!, wingMat));
     bee.addChild(wingR);

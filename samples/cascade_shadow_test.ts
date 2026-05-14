@@ -56,7 +56,7 @@ async function main() {
   const scene = new Scene();
 
   // Create camera - position to look at the ground plane and cubes
-  const cameraGO = new GameObject('Camera');
+  const cameraGO = new GameObject({ name: 'Camera' });
   cameraGO.position.set(5, 8, 6); // Offset to the side and up
   const camera = cameraGO.addComponent(
     new Camera(60, 0.1, 100, ctx.width / ctx.height)
@@ -69,7 +69,7 @@ async function main() {
   scene.add(cameraGO);
 
   // Create directional light (sun)
-  const sunGO = new GameObject('Sun');
+  const sunGO = new GameObject({ name: 'Sun' });
   const sun = sunGO.addComponent(
     new DirectionalLight(new Vec3(0.3, -0.8, -0.5).normalize(), new Vec3(1.0, 0.95, 0.9), 1.0, 4)
   );
@@ -93,7 +93,7 @@ async function main() {
   });
 
   // Create ground plane
-  const groundGO = new GameObject('Ground');
+  const groundGO = new GameObject({ name: 'Ground' });
   const groundRenderer = groundGO.addComponent(new MeshRenderer(planeMesh, groundMaterial));
   groundRenderer.castShadow = false;
   scene.add(groundGO);
@@ -110,7 +110,7 @@ async function main() {
   ];
 
   for (let i = 0; i < cubePositions.length; i++) {
-    const cubeGO = new GameObject(`Cube${i}`);
+    const cubeGO = new GameObject({ name: `Cube${i}` });
     const pos = cubePositions[i];
     cubeGO.position.set(pos.x, pos.y, pos.z);
     const cubeRenderer = cubeGO.addComponent(new MeshRenderer(cubeMesh, cubeMaterial));

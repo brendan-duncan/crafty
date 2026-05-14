@@ -26,13 +26,13 @@ export function setupPlayer(
   reticleElement?: HTMLDivElement,
   hotbarElement?: HTMLDivElement,
 ): PlayerSetup {
-  const cameraGO = new GameObject('Camera');
+  const cameraGO = new GameObject({ name: 'Camera' });
   cameraGO.position.set(64, 25, 64);
   const camera = cameraGO.addComponent(new Camera(70, 0.1, 1000, canvasWidth / canvasHeight));
   scene.add(cameraGO);
 
   // Flashlight spotlight attached to camera
-  const flashlightGO = new GameObject('Flashlight');
+  const flashlightGO = new GameObject({ name: 'Flashlight' });
   const flashlight = flashlightGO.addComponent(new SpotLight());
   flashlight.color = new Vec3(1.0, 0.95, 0.9);
   flashlight.intensity = 0.0;

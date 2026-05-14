@@ -61,20 +61,20 @@ export class BloomPass extends RenderPass {
     compositeBG: GPUBindGroup,
   ) {
     super();
-    this._result    = result;
+    this._result = result;
     this.resultView = resultView;
-    this._half1     = half1;
+    this._half1 = half1;
     this._half1View = half1View;
-    this._half2     = half2;
+    this._half2 = half2;
     this._half2View = half2View;
-    this._prefilterPipeline  = prefilterPipeline;
-    this._blurHPipeline      = blurHPipeline;
-    this._blurVPipeline      = blurVPipeline;
-    this._compositePipeline  = compositePipeline;
+    this._prefilterPipeline = prefilterPipeline;
+    this._blurHPipeline = blurHPipeline;
+    this._blurVPipeline = blurVPipeline;
+    this._compositePipeline = compositePipeline;
     this._uniformBuffer = uniformBuffer;
     this._prefilterBG = prefilterBG;
-    this._blurHBG     = blurHBG;
-    this._blurVBG     = blurVBG;
+    this._blurHBG = blurHBG;
+    this._blurVBG = blurVBG;
     this._compositeBG = compositeBG;
   }
 
@@ -172,8 +172,8 @@ export class BloomPass extends RenderPass {
     }
 
     const prefilterBG = makeSingleBG(hdrView);
-    const blurHBG     = makeSingleBG(half1View);
-    const blurVBG     = makeSingleBG(half2View);
+    const blurHBG = makeSingleBG(half1View);
+    const blurVBG = makeSingleBG(half2View);
 
     const compositeBG = device.createBindGroup({
       layout: compositeBGL,

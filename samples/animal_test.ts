@@ -104,7 +104,7 @@ async function main() {
   Bee.initMeshes(device);
 
   // Plane ground (static)
-  const groundGO = new GameObject('Ground');
+  const groundGO = new GameObject({ name: 'Ground' });
   groundGO.position.set(0, PLANE_Y, 0);
   const groundRenderer = groundGO.addComponent(new MeshRenderer(planeMesh, planeMaterial));
   groundRenderer.castShadow = false;

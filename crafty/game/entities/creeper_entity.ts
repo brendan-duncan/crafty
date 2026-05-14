@@ -29,12 +29,12 @@ export class Creeper extends NPCEntity {
     const creeper = new Creeper(world, scene);
     creeper.position.set(wx + 0.5, topY, wz + 0.5);
 
-    const body = new GameObject('Creeper.Body');
+    const body = new GameObject({ name: 'Creeper.Body' });
     body.position.set(0, 0.90, 0);
     body.addComponent(new MeshRenderer(Creeper._body!, new PbrMaterial({ albedo: CREEPER_GREEN, roughness: 0.85 })));
     creeper.addChild(body);
 
-    const head = new GameObject('Creeper.Head');
+    const head = new GameObject({ name: 'Creeper.Head' });
     head.position.set(0, 1.28, -0.14);
     head.addComponent(new MeshRenderer(Creeper._head!, new PbrMaterial({ albedo: CREEPER_GREEN, roughness: 0.85 })));
     creeper.addChild(head);

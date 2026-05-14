@@ -38,17 +38,17 @@ export class Duck extends NPCEntity {
     const duck = new Duck(world, scene);
     duck.position.set(wx + 0.5, spawnY, wz + 0.5);
 
-    const body = new GameObject('Duck.Body');
+    const body = new GameObject({ name: 'Duck.Body' });
     body.position.set(0, 0.15, 0);
     body.addComponent(new MeshRenderer(Duck._body!, new PbrMaterial({ albedo: [0.93, 0.93, 0.93, 1], roughness: 0.9 })));
     duck.addChild(body);
 
-    const head = new GameObject('Duck.Head');
+    const head = new GameObject({ name: 'Duck.Head' });
     head.position.set(0, 0.32, -0.12);
     head.addComponent(new MeshRenderer(Duck._head!, new PbrMaterial({ albedo: [0.08, 0.32, 0.10, 1], roughness: 0.9 })));
     duck.addChild(head);
 
-    const bill = new GameObject('Duck.Bill');
+    const bill = new GameObject({ name: 'Duck.Bill' });
     bill.position.set(0, 0.27, -0.205);
     bill.addComponent(new MeshRenderer(Duck._bill!, new PbrMaterial({ albedo: [1.0, 0.55, 0.05, 1], roughness: 0.8 })));
     duck.addChild(bill);
@@ -89,17 +89,17 @@ export class Duckling extends NPCEntity {
     const duckling = new Duckling(world, scene);
     duckling.position.set(wx, topY, wz);
 
-    const body = new GameObject('Duckling.Body');
+    const body = new GameObject({ name: 'Duckling.Body' });
     body.position.set(0, 0.15 * s, 0);
     body.addComponent(new MeshRenderer(Duckling._body!, new PbrMaterial({ albedo: [0.95, 0.87, 0.25, 1], roughness: 0.9 })));
     duckling.addChild(body);
 
-    const head = new GameObject('Duckling.Head');
+    const head = new GameObject({ name: 'Duckling.Head' });
     head.position.set(0, 0.32 * s, -0.12 * s);
     head.addComponent(new MeshRenderer(Duckling._head!, new PbrMaterial({ albedo: [0.88, 0.78, 0.15, 1], roughness: 0.9 })));
     duckling.addChild(head);
 
-    const bill = new GameObject('Duckling.Bill');
+    const bill = new GameObject({ name: 'Duckling.Bill' });
     bill.position.set(0, 0.27 * s, -0.205 * s);
     bill.addComponent(new MeshRenderer(Duckling._bill!, new PbrMaterial({ albedo: [1.0, 0.55, 0.05, 1], roughness: 0.8 })));
     duckling.addChild(bill);

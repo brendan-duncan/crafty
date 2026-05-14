@@ -75,7 +75,7 @@ async function main() {
   const scene = new Scene();
 
   // Camera — looking down at the ground with clouds above
-  const cameraGO = new GameObject('Camera');
+  const cameraGO = new GameObject({ name: 'Camera' });
   cameraGO.position.set(0, 10, 50);
   const camera = cameraGO.addComponent(
     new Camera(60, 0.1, 500, ctx.width / ctx.height),
@@ -87,7 +87,7 @@ async function main() {
   scene.add(cameraGO);
 
   // Directional light (sun)
-  const sunGO = new GameObject('Sun');
+  const sunGO = new GameObject({ name: 'Sun' });
   const sun = sunGO.addComponent(
     new DirectionalLight(new Vec3(0.3, -0.8, -0.5).normalize(), new Vec3(1.0, 0.95, 0.9), 1.0, 4),
   );
@@ -100,7 +100,7 @@ async function main() {
     roughness: 0.9,
     metallic: 0.0,
   });
-  const groundGO = new GameObject('Ground');
+  const groundGO = new GameObject({ name: 'Ground' });
   groundGO.addComponent(new MeshRenderer(planeMesh, groundMat));
   scene.add(groundGO);
 
@@ -114,7 +114,7 @@ async function main() {
   for (let i = 0; i < 7; i++) {
     const angle = (i / 7) * Math.PI * 2;
     const radius = 15 + (i % 3) * 8;
-    const go = new GameObject(`Target${i}`);
+    const go = new GameObject({ name: `Target${i}` });
     go.position.set(Math.cos(angle) * radius, 1, Math.sin(angle) * radius);
     go.addComponent(new MeshRenderer(cubeMesh, cubeMat));
     scene.add(go);

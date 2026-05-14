@@ -13,7 +13,7 @@ export function addTorchLight(bx: number, by: number, bz: number, scene: Scene):
   if (torchLights.has(key)) {
     return;
   }
-  const go = new GameObject('TorchLight');
+  const go = new GameObject({ name: 'TorchLight' });
   go.position.set(bx + 0.5, by + 0.9, bz + 0.5);
   const pl = go.addComponent(new PointLight());
   pl.color = new Vec3(1.0, 0.52, 0.18);
@@ -50,7 +50,7 @@ export function addMagmaLight(bx: number, by: number, bz: number, scene: Scene):
   if (magmaLights.has(key)) {
     return;
   }
-  const go = new GameObject('MagmaLight');
+  const go = new GameObject({ name: 'MagmaLight' });
   go.position.set(bx + 0.5, by + 0.5, bz + 0.5);
   const pl = go.addComponent(new PointLight());
   pl.color = new Vec3(1.0, 0.28, 0.0);

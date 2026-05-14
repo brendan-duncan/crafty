@@ -148,16 +148,16 @@ export class CloudShadowPass extends RenderPass {
     worldOrigin: [number, number],
     worldExtent: number,
   ): void {
-    this._data[0]  = settings.cloudBase;
-    this._data[1]  = settings.cloudTop;
-    this._data[2]  = settings.coverage;
-    this._data[3]  = settings.density;
-    this._data[4]  = settings.windOffset[0];
-    this._data[5]  = settings.windOffset[1];
-    this._data[6]  = worldOrigin[0];
-    this._data[7]  = worldOrigin[1];
-    this._data[8]  = worldExtent;
-    this._data[9]  = settings.extinction;
+    this._data[0] = settings.cloudBase;
+    this._data[1] = settings.cloudTop;
+    this._data[2] = settings.coverage;
+    this._data[3] = settings.density;
+    this._data[4] = settings.windOffset[0];
+    this._data[5] = settings.windOffset[1];
+    this._data[6] = worldOrigin[0];
+    this._data[7] = worldOrigin[1];
+    this._data[8] = worldExtent;
+    this._data[9] = settings.extinction;
     // data[10] and data[11] = 0 (padding)
     ctx.queue.writeBuffer(this._uniformBuffer, 0, this._data.buffer as ArrayBuffer);
   }

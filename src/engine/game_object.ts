@@ -1,6 +1,13 @@
 import { Vec3, Quaternion, Mat4 } from '../math/index.js';
 import { Component } from './component.js';
 
+export interface GameObjectOptions {
+  name?: string;
+  position?: Vec3;
+  rotation?: Quaternion;
+  scale?: Vec3;
+}
+
 /**
  * Container for transform, children, and components.
  *
@@ -29,13 +36,13 @@ export class GameObject {
   private _components: Component[] = [];
 
   /**
-   * @param name - Optional display name; defaults to 'GameObject'.
+   * @param options - Optional parameters for initializing the GameObject.
    */
-  constructor(name = 'GameObject') {
-    this.name = name;
-    this.position = Vec3.zero();
-    this.rotation = Quaternion.identity();
-    this.scale = Vec3.one();
+  constructor(options: GameObjectOptions = {}) {
+    this.name = options.name ?? 'GameObject';
+    this.position = options.position ?? Vec3.zero();
+    this.rotation = options.rotation ?? Quaternion.identity();
+    this.scale = options.scale ?? Vec3.one();
   }
 
   /**
