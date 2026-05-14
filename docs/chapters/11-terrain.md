@@ -68,6 +68,33 @@ function generateHeight(worldX: number, worldZ: number): number {
 }
 ```
 
+### Deterministic Seed-Based Randomness
+
+All terrain generation uses `perlinNoise3Seed` — a seeded variant of Perlin noise — rather than the unseeded `perlinFbmNoise3`. Every noise call receives the world seed combined with a unique per-feature offset so that the same world seed always produces identical terrain:
+
+```typescript
+// Each terrain feature uses a unique seed offset
+const continentalness = perlinNoise3Seed(gx / 2048.0, 10, gz / 2048.0, 0, 0, 0, seed);
+const heightMult     = perlinNoise3Seed(gx / 1024.0, 0, gz / 1024.0, 0, 0, 0, seed);
+const temperature    = perlinNoise3Seed(gx / 512.0, -5, gz / 512.0, 0, 0, 0, seed + 31337);
+```
+
+Internally the seed is hashed into the permutation-table lookup (`seed & 0xFF`), shifting which gradient vectors are chosen at each lattice point. Two noise calls with different seeds sample independently and produce decorrelated values, even at the same spatial coordinate.
+
+**Why seed offsets matter.** If the same `seed` were used for every feature, the continental shelf, the mountain ridges, the biome temperature, and the cave networks would all share the same base pattern — a player would see ridges precisely where caves appear, for example. Each feature is given a large, prime-like offset (`seed + 777`, `seed + 13579`, `seed + 31337`, etc.) so the eight-bit hash lands on different permutation entries and the features are statistically independent:
+
+| Feature | Seed offset | Scale |
+|---------|-------------|-------|
+| Continental shape | `seed` | 2048 |
+| Height multiplier | `seed` | 1024 |
+| Temperature | `seed + 31337` | 512 |
+| Cheese caves | `seed + 777` | 75 |
+| Grand caverns | `seed + 1111` | 200 |
+| Spaghetti tunnels | `seed + 13579`, `seed + 24680` | 24 / 14 |
+| Underground lakes | `seed + 44444` | 100 |
+
+This approach gives **deterministic worlds**: any player visiting world `seed = 42` sees mountains at the same coordinates, the same cave systems, and the same village locations, regardless of platform or renderer.
+
 ### Biomes
 
 Biomes are determined by a secondary noise layer that encodes temperature and humidity. Each block of world space gets two independent noise values, and where it lands in temperature × humidity space picks the biome:

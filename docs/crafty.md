@@ -284,6 +284,7 @@ This book is a work in progress.  Chapters are added as the engine evolves.
     - [Frustum Culling](chapters/11-terrain.md#frustum-culling)
   - [11.3 Procedural World Generation](chapters/11-terrain.md#113-procedural-world-generation)
     - [Noise-Based Terrain](chapters/11-terrain.md#noise-based-terrain)
+      - [Deterministic Seed-Based Randomness](chapters/11-terrain.md#deterministic-seed-based-randomness)
     - [Biomes](chapters/11-terrain.md#biomes)
     - [Ores and Caves](chapters/11-terrain.md#ores-and-caves)
   - [11.4 Chunk Meshing](chapters/11-terrain.md#114-chunk-meshing)
