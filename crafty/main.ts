@@ -819,6 +819,9 @@ async function main(): Promise<void> {
     ctx.pushPassErrorScope('frame');
     const dt = Math.min((time - lastTime) / 1000, 0.1);
     lastTime = time;
+
+    ctx.update();
+
     const updateHud = time - lastHudUpdate >= 1000;
     if (updateHud) {
       lastHudUpdate = time;
