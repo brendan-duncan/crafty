@@ -299,24 +299,7 @@ class ChunkMesh {
 
 Each chunk produces two meshes: one for opaque blocks (dirt, stone, etc.) and one for transparent/translucent blocks (water, leaves, glass). The opaque mesh writes depth and G-buffer normally. The transparent mesh uses alpha blending in the forward pass.
 
-## 11.6 Level-of-Detail (LOD)
-
-Distant chunks use a simplified mesh to reduce triangle count. LOD levels merge 2×2×2 or 4×4×4 blocks into single blocks, reducing geometric detail where the player cannot perceive it. Concentric distance bands around the player select which LOD each chunk uses:
-
-![LOD distance bands around the player](../illustrations/11-lod-distance.svg)
-
-
-```typescript
-enum LODLevel {
-  Full = 0,    // 1:1 resolution
-  Medium = 1,  // 2×2×2 merged
-  Low = 2,     // 4×4×4 merged
-}
-```
-
-LOD selection is based on distance from the camera. Transitions between LOD levels use a slight mesh overlap with alpha dithering to hide pop-in.
-
-## 11.7 Block Interaction
+## 11.6 Block Interaction
 
 ### Ray Casting
 
@@ -557,7 +540,7 @@ The listener position and orientation are updated each frame from the camera tra
 
 The Web Audio `AudioContext` is created lazily on the first user gesture (click/touch) in `crafty/main.ts:189` to comply with browser autoplay policies. Sound buffers are loaded asynchronously and cached in `AudioManager._digBuffers`, `_stepBuffers`, and `_fallBuffers` maps.
 
-## 11.8 Illuminated Blocks and Point Lights
+## 11.7 Illuminated Blocks and Point Lights
 
 Certain block types emit light, adding dynamic illumination to the world. Light-emitting blocks fall into two categories: blocks whose glow is baked into the G-buffer emission channel, and blocks that create runtime `PointLight` components.
 
@@ -644,7 +627,7 @@ for (var i = 0u; i < lightCounts.numPoint; i++) {
 
 The `point_attenuation` function applies a smooth falloff so light fades to zero at the radius boundary, avoiding hard cut-off lines. The per-frame loop in `main.ts:981` gathers all `PointLight` components from the scene and uploads them to the GPU via `point_spot_light_pass.ts`.
 
-## 11.9 Erosion Simulation
+## 11.8 Erosion Simulation
 
 Crafty includes an optional erosion simulation for more realistic terrain. A compute shader simulates water flow and sediment transport:
 
@@ -654,7 +637,7 @@ Crafty includes an optional erosion simulation for more realistic terrain. A com
 
 The simulation runs as a background compute pass and updates the terrain height map, which is sampled during chunk generation.
 
-## 11.10 Water Propagation
+## 11.9 Water Propagation
 
 When water blocks are placed or generated in the world, they spread according to a simple cellular automaton run on the CPU each tick. The algorithm lives in `World._tickWater()` in `src/block/world.ts`.
 
@@ -689,7 +672,7 @@ private _flowWater(wx: number, wy: number, wz: number): void {
 - **Early skip for chunks.** Chunks track their `waterBlocks` count — if zero, the chunk is skipped during scanning.
 - **Batched re-meshing.** Instead of regenerating a chunk's mesh every time a single water block changes, changes are accumulated in a `_dirtyChunks` set and re-meshed exactly once per tick.
 
-## 11.11 Water Rendering
+## 11.10 Water Rendering
 
 Water is a transparent block type rendered through the `WaterPass` (`src/renderer/passes/water_pass.ts`), a forward pass that runs after deferred lighting. It composites over the HDR buffer using `src-alpha` blending, combining screen-space refraction, depth-based murkiness, and screen-space reflections.
 
@@ -736,7 +719,7 @@ Reflections use a hybrid approach:
 1. **Screen-space reflection (SSR)** ray-marches the reflected view direction in view space, sampling the refraction texture (pre-water HDR scene).
 2. **HDR sky panorama** is used as a fallback for rays that miss scene geometry or leave the screen bounds.
 
-## 11.12 Screen-Space Reflections (SSR)
+## 11.11 Screen-Space Reflections (SSR)
 
 ![Screen-space reflection: view-space ray march, depth hit test, and equirectangular sky fallback](../illustrations/11-ssr.svg)
 
@@ -798,7 +781,7 @@ let world_color = mix(tinted, reflection, fresnel_r);
 
 Reflection is minimal when looking straight down (high V·N), rising towards grazing angles. The 0.6 cap prevents bright HDR sky values from washing out the water at shallow viewing angles.
 
-## 11.13 Village Generation
+## 11.12 Village Generation
 
 Villages are generated procedurally when chunks load, in `crafty/game/village_gen.ts`. The system hooks into the chunk load event and places clusters of houses under the right conditions.
 
@@ -875,7 +858,7 @@ const _WALL_L1: number[][] = [
 
 Currently, all houses use `SPRUCE_PLANKS` for structure and `GLASS` for windows.
 
-### 11.14 Summary
+### 11.13 Summary
 
 The voxel terrain system features:
 
