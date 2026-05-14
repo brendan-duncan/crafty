@@ -446,10 +446,130 @@ Note that WebGPU doesn't actually compile the shader for the GPU backend (D3D, V
 Crafty loads shaders at module scope via Vite's `?raw` import syntax:
 
 ```typescript
-import lightingWgsl from '../../shaders/lighting.wgsl?raw';
+import deferredLightingWgsl from '../../shaders/deferred_lighting.wgsl?raw';
 ```
 
 This inlines the WGSL source as a string at build time, avoiding runtime fetch requests.
+
+### Preprocessor and Shader Blocks
+
+WebGPU does not include any built-in support for preprocessing shaders, or support for importing external shader code into shaders. This keeps the API simple, but it means that any mechanism for shader code reuse or conditional compilation must be provided by the application.
+
+As shaders become more complex, and the more shaders an application has, the more shader code duplication you will start find between shaders. If you have two material shaders that both use the lighting features of Crafty, then without any sort of shared code mechanism both shaders would need to have their own copy of the lighting code. This both makes writing shaders more complicated and becomes a maintenance burden as changing the lighting code now needs to be done in multiple places.
+
+Crafty includes its own system for preprocessing shaders and importing shader code blocks, exposed through two modules: `preprocessShader` and `ShaderBlockManager`.
+
+#### The Preprocessor
+
+The `preprocessShader` function (`src/assets/preprocess_shader.ts`) processes a WGSL source string line-by-line, interpreting lines starting with `#` as preprocessor directives. The output is a new string with all directives stripped and conditional branches resolved.
+
+Supported directives:
+
+| Directive | Description |
+|-----------|-------------|
+| `#define NAME` | Defines `NAME` with value `1` |
+| `#define NAME value` | Defines `NAME` with the given value |
+| `#undef NAME` | Removes a definition |
+| `#ifdef NAME` | Includes the block if `NAME` is defined |
+| `#if expr` | Includes the block if the expression is non-zero |
+| `#elif expr` | Alternative condition in an `#if`/`#ifdef` chain |
+| `#else` | Fallback branch |
+| `#endif` | Ends a conditional block |
+
+The `#if` expression evaluator supports comparison operators (`==`, `!=`, `>`, `<`, `>=`, `<=`), logical operators (`!`, `&&`, `||`), parentheses for grouping, and the `defined(NAME)` function that returns `1` if the macro is defined and `0` otherwise. Macro names in expressions are automatically expanded to their defined values; undefined identifiers evaluate to `0`.
+
+```wgsl
+#define USE_SHADOWS 1
+#define SHADOW_QUALITY 2
+
+#ifdef USE_SHADOWS
+  #if SHADOW_QUALITY >= 2
+    // high-quality shadow sampling code
+  #elif SHADOW_QUALITY == 1
+    // low-quality shadow sampling code
+  #else
+    // simplest shadow (if at all)
+  #endif
+#else
+  // no shadow code at all
+#endif
+```
+
+Preprocessor directives respect nesting — `#if` blocks can be nested inside other `#if` or `#ifdef` blocks, and each block tracks its own conditional state independently.
+
+#### ShaderBlockManager
+
+The `ShaderBlockManager` class (`src/assets/shader_block_manager.ts`) manages reusable WGSL code blocks. Blocks are identified by a string name and registered at runtime. When a shader source contains `#import "name.wgsl"`, the manager replaces that line with the block's preprocessed WGSL code.
+
+During construction, `ShaderBlockManager` automatically loads every `.wgsl` file from `src/shaders/modules/` using Vite's `import.meta.glob`, registering each file as a named block (the filename without the `.wgsl` extension). This means the three built-in modules — `camera.wgsl`, `lighting.wgsl`, and `model.wgsl` — are immediately available for import without any manual registration.
+
+Block lookups are recursive — if block A imports block B, the manager will resolve B's imports as well. Each block is also preprocessed before insertion, so blocks can contain their own `#define`, `#ifdef`, and other directives.
+
+```typescript
+// Register a custom block at runtime
+ctx.registerShaderBlock('my_utils', 'fn utility() {}');
+
+// Use it in a shader
+// #import "my_utils.wgsl"
+```
+
+#### Using #import in WGSL Shaders
+
+Shader source files use `#import` to pull in blocks. Here is a complete example from `samples/procedural_test.wgsl`:
+
+```wgsl
+// samples/procedural_test.wgsl
+#import "camera.wgsl"
+#import "lighting.wgsl"
+#import "model.wgsl"
+
+struct VertexInput {
+  @location(0) position: vec3<f32>,
+  @location(1) normal  : vec3<f32>,
+  @location(2) uv      : vec2<f32>,
+  @location(3) tangent : vec4<f32>,
+};
+// ... rest of the shader
+```
+
+The `#import "lighting.wgsl"` line is of particular note. The `lighting.wgsl` built-in block (220 lines) includes all of the PBR lighting infrastructure: light struct definitions (`PointLight`, `SpotLight`, `DirectionalLight`), the `LightingUniforms` struct, all 11 bind group entries at `@group(3)` for lights, shadow maps, IBL cubemaps and the BRDF LUT, plus all of the PBR calculation functions (`calculate_pbr_lighting`, `fresnel_schlick`, `distribution_ggx`, `geometry_smith`, shadow sampling functions). Any shader that needs to perform lighting in Crafty can include this single import rather than duplicating hundreds of lines of WGSL.
+
+Conditional imports are also supported. Because `importShaderBlocks` runs the preprocessor before resolving imports, `#import` lines inside `#ifdef` or `#else` branches are only resolved when their branch is active:
+
+```wgsl
+#define USE_LIGHTING
+#ifdef USE_LIGHTING
+  #import "lighting.wgsl"
+#else
+  // manual shading code
+#endif
+```
+
+#### RenderContext Integration
+
+The `RenderContext` class owns a `ShaderBlockManager` instance as a public property (`shaderBlockManager`), which is automatically initialized during context creation. It also provides convenience methods — `registerShaderBlock`, `getShaderBlock`, `removeShaderBlock` — that delegate to the manager.
+
+The key integration point is `RenderContext.createShaderModule`:
+
+```typescript
+// from src/renderer/render_context.ts
+createShaderModule(code: string, label?: string, defines?: Record<string, string>): GPUShaderModule {
+  code = this.shaderBlockManager.importShaderBlocks(code, defines);
+  return this.device.createShaderModule({ code, label });
+}
+```
+
+This method runs the preprocessor and resolves all `#import` directives before passing the final WGSL to `device.createShaderModule`. Using `ctx.createShaderModule()` instead of `device.createShaderModule()` is all that is needed to enable the full preprocessor and shader block system:
+
+```typescript
+// Without Crafty's system — raw WebGPU:
+const module = device.createShaderModule({ code: shaderSource, label });
+
+// With Crafty's system — preprocessing + imports:
+const module = ctx.createShaderModule(shaderSource, label);
+```
+
+The optional `defines` parameter allows the caller to inject initial macro definitions that the preprocessor uses before processing any `#define` directives in the shader source. This is useful when the host application needs to control shader features at runtime without modifying the WGSL files.
 
 ## 3.8 GPURenderPipeline and GPUComputePipeline
 
