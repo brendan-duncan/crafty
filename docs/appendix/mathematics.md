@@ -4,7 +4,7 @@
 
 This appendix presents the vector, matrix, and quaternion types that every system in Crafty depends on, along with the formulas and conventions used throughout the engine. It serves as both a tutorial introduction to 3D math for graphics and a quick-lookup reference.
 
-## C.1 Coordinate Systems and Conventions
+## A.1 Coordinate Systems and Conventions
 
 Crafty uses a **right-handed, Y-up, -Z-forward** coordinate system. This is the same convention used by OpenGL, Maya, and many game engines. WebGPU's native coordinate system is also right-handed with a [0, 1] depth range (unlike OpenGL's [-1, 1]).
 
@@ -55,7 +55,7 @@ The cross product formula above is the standard right-handed cross product. You 
 
 The cross product `a × b` produces a vector perpendicular to both inputs, with magnitude equal to the area of the parallelogram they span. The right-hand rule fixes the direction.
 
-## C.2 Vectors
+## A.2 Vectors
 
 ### Vec2, Vec3, Vec4
 
