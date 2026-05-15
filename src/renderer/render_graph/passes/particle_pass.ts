@@ -471,10 +471,20 @@ export class ParticlePass extends Pass<ParticleDeps, ParticleOutputs> {
   }
 
   addToGraph(graph: RenderGraph, deps: ParticleDeps): ParticleOutputs {
+    // Import the indirect buffer as an external graph resource so the compute
+    // pass and render pass can declare a read/write dependency on it. Without
+    // a graph dependency, the compute pass would be culled (it has no other
+    // outputs reachable from the backbuffer), leaving the indirect buffer
+    // empty and the draw rendering zero particles.
+    const indirectHandle = graph.importExternalBuffer(this._indirectBuffer, {
+      label: 'ParticleIndirect',
+      size: 16,
+    });
+
     // 1. Compute pass: spawn → update → compact → indirect.
+    let indirectAfterCompute!: ResourceHandle;
     graph.addPass(this.name + '.compute', 'compute', (b: PassBuilder) => {
-      // The compute work is internal to the pass (uses pass-owned buffers).
-      // Declare no graph reads/writes — particles' GPU state is encapsulated.
+      indirectAfterCompute = b.write(indirectHandle, 'storage-write');
       b.setExecute((pctx) => {
         const enc = pctx.computePassEncoder!;
         if (this._spawnCount > 0) {
@@ -512,6 +522,7 @@ export class ParticlePass extends Pass<ParticleDeps, ParticleOutputs> {
       graph.addPass(this.name + '.render', 'render', (b: PassBuilder) => {
         outHdr = b.write(hdrIn, 'attachment', { loadOp: 'load', storeOp: 'store' });
         b.read(depthIn, 'depth-read');
+        b.read(indirectAfterCompute, 'indirect');
         b.setExecute((pctx) => {
           const enc = pctx.renderPassEncoder!;
           enc.setPipeline(this._renderPipeline);
@@ -531,6 +542,7 @@ export class ParticlePass extends Pass<ParticleDeps, ParticleOutputs> {
         outAlbedo = b.write(albedoIn, 'attachment', { loadOp: 'load', storeOp: 'store' });
         outNormal = b.write(normalIn, 'attachment', { loadOp: 'load', storeOp: 'store' });
         outDepth = b.write(depthIn, 'depth-attachment', { depthLoadOp: 'load', depthStoreOp: 'store' });
+        b.read(indirectAfterCompute, 'indirect');
         b.setExecute((pctx) => {
           const enc = pctx.renderPassEncoder!;
           enc.setPipeline(this._renderPipeline);

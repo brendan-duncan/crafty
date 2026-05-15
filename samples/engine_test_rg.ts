@@ -2,7 +2,7 @@
  * Render-graph engine test, exercising every converted pass:
  *   ShadowPass + PointSpotShadowPass → GeometryPass + SkinnedGeometryPass
  *   + ParticlePass(deferred) → SSAOPass + SSGIPass
- *   → CloudShadowPass + CloudPass / AtmospherePass
+ *   → CloudShadowPass + CloudPass / SkyTexturePass
  *   → DeferredLightingPass → PointSpotLightPass → ParticlePass(forward HDR)
  *   → TAAPass → DofPass → BloomPass → AutoExposurePass → CompositePass → backbuffer
  *
@@ -10,6 +10,12 @@
  * orbiting torch (point) + downward spot light, fire + sparks emitters,
  * weather (rain/snow) toggle, optional volumetric clouds.
  */
+
+// Set to false to lock exposure at FIXED_EXPOSURE instead of letting the
+// histogram-based auto-exposure adapt frame-to-frame. Useful when comparing
+// frames or debugging tonemap.
+const USE_AUTO_EXPOSURE = true;
+const FIXED_EXPOSURE = 0.1;
 
 import belfastUrl from '../assets/cubemaps/hdr/belfast.hdr?url';
 import colorAtlasUrl from '../assets/cube_textures/simple_block_atlas.png?url';
@@ -42,7 +48,7 @@ import { SSAOPass } from '../src/renderer/render_graph/passes/ssao_pass.js';
 import { SSGIPass } from '../src/renderer/render_graph/passes/ssgi_pass.js';
 import { CloudShadowPass } from '../src/renderer/render_graph/passes/cloud_shadow_pass.js';
 import { CloudPass, type CloudSettings } from '../src/renderer/render_graph/passes/cloud_pass.js';
-import { AtmospherePass } from '../src/renderer/render_graph/passes/atmosphere_pass.js';
+import { SkyTexturePass } from '../src/renderer/render_graph/passes/sky_texture_pass.js';
 import { DeferredLightingPass } from '../src/renderer/render_graph/passes/deferred_lighting_pass.js';
 import { PointSpotLightPass } from '../src/renderer/render_graph/passes/point_spot_light_pass.js';
 import { TAAPass } from '../src/renderer/render_graph/passes/taa_pass.js';
@@ -294,7 +300,7 @@ async function main(): Promise<void> {
   const ssgiPass = SSGIPass.create(ctx);
   const cloudShadowPass = CloudShadowPass.create(ctx, cloudNoises);
   const cloudPass = CloudPass.create(ctx, cloudNoises);
-  const atmospherePass = AtmospherePass.create(ctx);
+  const skyPass = SkyTexturePass.create(ctx, skyTexture);
   const lightingPass = DeferredLightingPass.create(ctx);
   const pointSpotLightPass = PointSpotLightPass.create(ctx);
   const rainPass = ParticlePass.create(ctx, rainConfig);
@@ -303,6 +309,8 @@ async function main(): Promise<void> {
   const dofPass = DofPass.create(ctx);
   const bloomPass = BloomPass.create(ctx);
   const autoExposurePass = AutoExposurePass.create(ctx);
+  autoExposurePass.enabled = USE_AUTO_EXPOSURE;
+  autoExposurePass.setFixedExposure(FIXED_EXPOSURE);
   const compositePass = CompositePass.create(ctx);
 
   // ── UI ────────────────────────────────────────────────────────────────────
@@ -343,7 +351,7 @@ async function main(): Promise<void> {
   let angle = 0;
   let frameIndex = 0;
   let prevViewProj: Mat4 | null = null;
-  let loggedPasses = false;
+  let loggedPasses = '';
 
   function frame(time: number): void {
     const dt = (time - lastTime) / 1000;
@@ -426,7 +434,7 @@ async function main(): Promise<void> {
       cloudPass.updateLight(ctx, sun.direction, sun.color, sun.intensity);
       cloudPass.updateSettings(ctx, cloudSettings);
     } else {
-      atmospherePass.update(ctx, invVP, camPos, sun.direction);
+      skyPass.updateCamera(ctx, invVP, camPos);
     }
 
     lightingPass.updateCamera(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far);
@@ -491,7 +499,7 @@ async function main(): Promise<void> {
       cloudShadowHandle = cloudShadowPass.addToGraph(graph).shadow;
       hdrSky = cloudPass.addToGraph(graph, { depth: gbuffer.depth }).hdr;
     } else {
-      hdrSky = atmospherePass.addToGraph(graph).hdr;
+      hdrSky = skyPass.addToGraph(graph).hdr;
     }
 
     // 5. Deferred directional lighting (loads sky)
@@ -550,10 +558,10 @@ async function main(): Promise<void> {
     });
 
     const compiled = graph.compile();
-    if (!loggedPasses) {
-      const passes = compiled.passes.map(p => p.node.name).join(' → ');
-      console.log(`[engine_test_rg] passes after compile: ${passes}`);
-      loggedPasses = true;
+    const passSig = compiled.passes.map(p => p.node.name).join('|');
+    if (passSig !== loggedPasses) {
+      console.log(`[engine_test_rg] passes after compile: ${compiled.passes.map(p => p.node.name).join(' → ')}`);
+      loggedPasses = passSig;
     }
     void graph.execute(compiled);
 

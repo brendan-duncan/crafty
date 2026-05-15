@@ -195,7 +195,7 @@ Crafty uses dynamic offset uniform buffers in `BlockGeometryPass` to fit per-chu
 
 ## 2.4 GPUTexture
 
-A `GPUTexture` is a GPU image — a 2D, 3D, or cube-map array of texels used as render targets, depth buffers, or shader-readable inputs.
+A `GPUTexture` is a GPU image — a 1D, 2D, 3D array texels used as render targets, depth buffers, or shader-readable inputs.
 
 ### Texture Creation
 

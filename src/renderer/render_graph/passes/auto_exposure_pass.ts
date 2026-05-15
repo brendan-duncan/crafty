@@ -68,7 +68,24 @@ export class AutoExposurePass extends Pass<AutoExposureDeps, AutoExposureOutputs
   // Whether the exposure buffer has been initialized to a sane value.
   private _initialized = false;
 
-  private readonly _resetScratch = new Float32Array([1.0, 0, 0, 0]);
+  // Initial exposure tuned for typical outdoor HDR scenes. Starting at 1.0
+  // makes everything blow out for ~1s while the histogram adapts; 0.1 lands
+  // close to the steady-state target so the first frames don't blind the user.
+  // Also used as the value the buffer is force-set to when `enabled` is false.
+  private readonly _resetScratch = new Float32Array([0.1, 0, 0, 0]);
+
+  /**
+   * Override the exposure value used both for the initial buffer state and
+   * for the value written each frame when `enabled` is false. Pass a sensible
+   * fixed exposure (e.g. 0.1 for a bright outdoor scene) when locking the
+   * tonemap to a constant value.
+   */
+  setFixedExposure(value: number): void {
+    this._resetScratch[0] = value;
+    if (this._exposureBufferRef) {
+      this._device.queue.writeBuffer(this._exposureBufferRef, 0, this._resetScratch);
+    }
+  }
   private static _paramsScratch = new Float32Array(8);
 
   private constructor(

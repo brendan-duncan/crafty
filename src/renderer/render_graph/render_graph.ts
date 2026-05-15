@@ -268,6 +268,26 @@ export class RenderGraph {
       for (const a of pass.writes) usedIds.add(a.id);
     }
 
+    // Pre-aggregate usage flags across every virtual id that shares a
+    // persistentKey. Two callers (e.g. TAA pass + a separate import in the
+    // sample) requesting the same persistent resource with different usages
+    // would otherwise cause `getOrCreatePersistentTexture` to destroy and
+    // recreate the texture mid-compile, leaving earlier bindings dangling.
+    const persistentTextureUsage = new Map<string, GPUTextureUsageFlags>();
+    const persistentBufferUsage = new Map<string, GPUBufferUsageFlags>();
+    for (const id of usedIds) {
+      const res = this._resources.get(id)!;
+      if (!res.persistentKey) continue;
+      const usage = this._aggregateUsage(id, ordered);
+      if (res.kind === ResourceKind.Texture) {
+        const prev = persistentTextureUsage.get(res.persistentKey) ?? 0;
+        persistentTextureUsage.set(res.persistentKey, prev | (usage as GPUTextureUsageFlags));
+      } else {
+        const prev = persistentBufferUsage.get(res.persistentKey) ?? 0;
+        persistentBufferUsage.set(res.persistentKey, prev | (usage as GPUBufferUsageFlags));
+      }
+    }
+
     for (const id of usedIds) {
       const res = this._resources.get(id)!;
       const usage = this._aggregateUsage(id, ordered);
@@ -278,10 +298,11 @@ export class RenderGraph {
         } else if (res.externalTexture) {
           textureBindings.set(id, res.externalTexture);
         } else if (res.persistentKey) {
+          const aggregated = persistentTextureUsage.get(res.persistentKey)!;
           const tex = this.cache.getOrCreatePersistentTexture(
             res.persistentKey,
             res.desc as TextureDesc,
-            usage as GPUTextureUsageFlags,
+            aggregated,
           );
           textureBindings.set(id, tex);
         } else {
@@ -292,10 +313,11 @@ export class RenderGraph {
         if (res.externalBuffer) {
           bufferBindings.set(id, res.externalBuffer);
         } else if (res.persistentKey) {
+          const aggregated = persistentBufferUsage.get(res.persistentKey)!;
           const buf = this.cache.getOrCreatePersistentBuffer(
             res.persistentKey,
             res.desc as BufferDesc,
-            usage as GPUBufferUsageFlags,
+            aggregated,
           );
           bufferBindings.set(id, buf);
         } else {
@@ -437,10 +459,18 @@ export class RenderGraph {
       // No backbuffer set — keep everything (useful for tests / offscreen).
       return this._passes.slice();
     }
-    // Seed: every pass that writes the backbuffer or the backbuffer depth.
+    // Seed: every pass that writes the backbuffer or the backbuffer depth, plus
+    // every pass that writes to a persistent or external resource (those writes
+    // are observed by the next frame's graph, so they must not be culled even
+    // when nothing in the current graph reads the new version).
     const sinkIds = new Set<number>();
     sinkIds.add(this._backbufferHandle.id);
     if (this._backbufferDepthHandle) sinkIds.add(this._backbufferDepthHandle.id);
+    for (const res of this._resources.values()) {
+      if (res.persistentKey || res.externalTexture || res.externalBuffer) {
+        sinkIds.add(res.id);
+      }
+    }
 
     const stack: number[] = [];
     for (let i = 0; i < this._passes.length; i++) {
