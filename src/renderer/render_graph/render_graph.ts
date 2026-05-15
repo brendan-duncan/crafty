@@ -27,7 +27,7 @@ interface VirtualResource {
 }
 
 /** A {@link PassNode} after culling/sort, ready to execute. */
-interface CompiledPass {
+export interface CompiledPass {
   node: PassNode;
   /** Pre-resolved order index in the compiled execution list. */
   index: number;
@@ -75,6 +75,46 @@ export class RenderGraph {
   /** Backbuffer setup. Resolved at execute() time. */
   private _backbufferHandle: ResourceHandle | null = null;
   private _backbufferDepthHandle: ResourceHandle | null = null;
+
+  /** Returns every pass registered via {@link addPass} (pre-cull), in declaration order. */
+  get passList(): readonly PassNode[] {
+    return this._passes;
+  }
+
+  /**
+   * Returns descriptive info about the virtual resource identified by `id`,
+   * or `null` when the id is unknown.
+   */
+  getResourceInfo(id: number): {
+    kind: 'texture' | 'buffer';
+    label: string;
+    format?: string;
+    isBackbuffer?: boolean;
+    width?: number;
+    height?: number;
+    size?: number;
+  } | null {
+    const res = this._resources.get(id);
+    if (!res) return null;
+    if (res.kind === ResourceKind.Texture) {
+      const td = res.desc as TextureDesc;
+      return {
+        kind: 'texture',
+        format: td.format,
+        isBackbuffer: res.isBackbuffer,
+        label: res.persistentKey ?? (res.isBackbuffer ? 'Backbuffer' : td.format),
+        width: td.width,
+        height: td.height,
+      };
+    } else {
+      const bd = res.desc as BufferDesc;
+      return {
+        kind: 'buffer',
+        label: bd.label ?? `Buffer #${id}`,
+        size: bd.size,
+      };
+    }
+  }
 
   constructor(ctx: RenderContext, cache: PhysicalResourceCache) {
     this.ctx = ctx;

@@ -10,6 +10,10 @@ import type { RenderPass } from './render_pass.js';
 export class RenderGraph {
   private _passes: RenderPass[] = [];
 
+  get passes(): readonly RenderPass[] {
+    return this._passes;
+  }
+
   /**
    * Appends a pass to the end of the execution order.
    *

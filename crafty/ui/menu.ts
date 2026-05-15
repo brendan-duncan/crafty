@@ -4,6 +4,7 @@ export interface Menu {
   open: () => void;
   close: () => void;
   isOpen: () => boolean;
+  setSuppressAutoOpen: (v: boolean) => void;
 }
 
 export function createMenu(canvas: HTMLCanvasElement, reticle: HTMLDivElement): Menu {
@@ -69,6 +70,11 @@ export function createMenu(canvas: HTMLCanvasElement, reticle: HTMLDivElement): 
   menuCard.appendChild(resumeBtn);
 
   let menuOpenedAt = 0;
+  let _suppressAutoOpen = false;
+
+  function setSuppressAutoOpen(v: boolean): void {
+    _suppressAutoOpen = v;
+  }
 
   function open(): void {
     menuOpenedAt = performance.now();
@@ -87,6 +93,7 @@ export function createMenu(canvas: HTMLCanvasElement, reticle: HTMLDivElement): 
 
   // Pointer lock change handler
   document.addEventListener('pointerlockchange', () => {
+    if (_suppressAutoOpen) return;
     if (document.pointerLockElement === canvas) {
       close();
     } else {
@@ -105,5 +112,5 @@ export function createMenu(canvas: HTMLCanvasElement, reticle: HTMLDivElement): 
     }
   });
 
-  return { overlay: menuOverlay, card: menuCard, open, close, isOpen };
+  return { overlay: menuOverlay, card: menuCard, open, close, isOpen, setSuppressAutoOpen };
 }

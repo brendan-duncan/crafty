@@ -1,4 +1,4 @@
-var Z=Object.defineProperty;var ee=(r,o,e)=>o in r?Z(r,o,{enumerable:!0,configurable:!0,writable:!0,value:e}):r[o]=e;var n=(r,o,e)=>ee(r,typeof o!="symbol"?o+"":o,e);import{R as te,e as v,C as ne,V as m,M as a}from"./mesh-fdKArW9G.js";import{a as ae}from"./shadow-BSGgysNj.js";import{F as re,D as oe}from"./directional_shadow_pass-S6Qd-jBf.js";import{R as ie}from"./render_graph-Bg-a1vtx.js";import{G as se}from"./game_object-CA1tAz93.js";const le=`// Forward procedural shader — custom material demo
+var Z=Object.defineProperty;var ee=(r,o,e)=>o in r?Z(r,o,{enumerable:!0,configurable:!0,writable:!0,value:e}):r[o]=e;var n=(r,o,e)=>ee(r,typeof o!="symbol"?o+"":o,e);import{R as te,e as v,C as ne,V as m,M as a}from"./mesh-fdKArW9G.js";import{a as ae}from"./shadow-BSGgysNj.js";import{F as re,D as oe}from"./directional_shadow_pass-S6Qd-jBf.js";import{R as ie}from"./render_graph-Iq2DzviW.js";import{G as se}from"./game_object-CA1tAz93.js";const le=`// Forward procedural shader — custom material demo
 // Uses the forward renderer's lighting infrastructure (groups 0,1,3)
 // with a procedurally generated animated pattern in the fragment shader.
 
