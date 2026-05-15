@@ -177,7 +177,7 @@ A few conventions used everywhere in Crafty are worth noting up front:
 
 Crafty uses a **right-handed, Y-up, -Z-forward** coordinate system — the same convention as OpenGL. WebGPU itself is right-handed with a `[0, 1]` depth range (unlike OpenGL's `[-1, 1]`), and matrices are stored column-major to match WGSL's default layout. The math types live in `src/math/`: `Vec2`, `Vec3`, `Vec4`, `Mat4`, `Quaternion`, plus the procedural-generation helpers `Random` and the Perlin noise family in `noise.ts`.
 
-When something more involved comes up — the `lookAt` view matrix, quaternion SLERP, the inverse-transpose normal matrix, FBM noise — we will introduce just enough of the math to motivate the code, and link to [Appendix C](../appendix/mathematics.md) for the full derivation.
+When something more involved comes up — the `lookAt` view matrix, quaternion SLERP, the inverse-transpose normal matrix, FBM noise — we will introduce just enough of the math to motivate the code, and link to [Appendix A](../appendix/mathematics.md) for the full derivation.
 
 ## 1.8 Where We Go From Here
 
