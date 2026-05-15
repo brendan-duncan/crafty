@@ -496,9 +496,7 @@ texture compressor), we explain why and how it fits.
 
 ## Appendices
 
-- [Appendix A: WGSL Quick Reference](appendix/wgsl-ref.md)
+- [Appendix A: Mathematics Reference](appendix/mathematics.md)
 - [Appendix B: WebGPU API Reference](appendix/webgpu-ref.md)
-- [Appendix C: Mathematics Reference](appendix/math-ref.md)
+- [Appendix C: WGSL Quick Reference](appendix/wgsl-ref.md)
 - [Appendix D: Glossary](appendix/glossary.md)
-
-

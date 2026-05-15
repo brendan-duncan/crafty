@@ -1,4 +1,4 @@
-# Appendix A: WGSL Quick Reference
+# Appendix C: WGSL Quick Reference
 
 [Contents](../crafty.md) | [Next](webgpu-ref.md)
 

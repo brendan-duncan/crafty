@@ -1,4 +1,4 @@
-# Appendix C: Mathematics Reference
+# Appendix A: Mathematics Reference
 
 [Contents](../crafty.md) | [Previous](webgpu-ref.md) | [Next](glossary.md)
 

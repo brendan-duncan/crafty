@@ -160,7 +160,7 @@ These directories form a layered architecture — each layer depends only on the
 
 ## 1.7 A Note on Mathematics
 
-Real-time rendering rests on a foundation of 3D math — vectors, matrices, quaternions, and the conventions that tie them together. Rather than front-load a full math chapter, this book gets into the fun parts of the project as early as possible. The math you need is introduced in context as each subsystem is built, and the full reference lives in [Appendix C: Mathematics Reference](../appendix/math-ref.md).
+Real-time rendering rests on a foundation of 3D math — vectors, matrices, quaternions, and the conventions that tie them together. Rather than front-load a full math chapter, this book gets into the fun parts of the project as early as possible. The math you need is introduced in context as each subsystem is built, and the full reference lives in [Appendix C: Mathematics Reference](../appendix/mathematics.md).
 
 If you want a deeper grounding before continuing, that appendix covers `Vec2`/`Vec3`/`Vec4`, `Mat4`, `Quaternion`, transform composition, the coordinate-space transformation pipeline, the seeded random number generator (RNG) and Perlin noise used for procedural generation. It serves as both a tutorial and a quick lookup.
 
@@ -177,7 +177,7 @@ A few conventions used everywhere in Crafty are worth noting up front:
 
 Crafty uses a **right-handed, Y-up, -Z-forward** coordinate system — the same convention as OpenGL. WebGPU itself is right-handed with a `[0, 1]` depth range (unlike OpenGL's `[-1, 1]`), and matrices are stored column-major to match WGSL's default layout. The math types live in `src/math/`: `Vec2`, `Vec3`, `Vec4`, `Mat4`, `Quaternion`, plus the procedural-generation helpers `Random` and the Perlin noise family in `noise.ts`.
 
-When something more involved comes up — the `lookAt` view matrix, quaternion SLERP, the inverse-transpose normal matrix, FBM noise — we will introduce just enough of the math to motivate the code, and link to [Appendix C](../appendix/math-ref.md) for the full derivation.
+When something more involved comes up — the `lookAt` view matrix, quaternion SLERP, the inverse-transpose normal matrix, FBM noise — we will introduce just enough of the math to motivate the code, and link to [Appendix C](../appendix/mathematics.md) for the full derivation.
 
 ## 1.8 Where We Go From Here
 
