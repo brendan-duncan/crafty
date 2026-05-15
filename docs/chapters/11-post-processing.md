@@ -1,10 +1,10 @@
-# Chapter 12: Post-Processing
+# Chapter 11: Post-Processing
 
-[Contents](../crafty.md) | [11-Terrain](11-terrain.md) | [13-Game Engine](13-game-engine.md)
+[Contents](../crafty.md) | [10-Terrain](10-terrain.md) | [12-Game Engine](12-game-engine.md)
 
 After the scene is rendered into the HDR target, a series of post-processing passes refines the image. This chapter covers tonemapping, bloom, temporal anti-aliasing, and depth of field.
 
-## 12.1 Tone Mapping and HDR Display
+## 11.1 Tone Mapping and HDR Display
 
 The final step before presentation is **tone mapping** — converting HDR pixel values to the SDR (or HDR) display range. Crafty's `CompositePass` performs this as the last operation before the swap chain.
 
@@ -52,7 +52,7 @@ For SDR output, the tone-mapped value is converted from linear to sRGB gamma spa
 return vec4<f32>(pow(max(ldr, vec3<f32>(0.0)), vec3<f32>(1.0 / 2.2)), 1.0);
 ```
 
-## 12.2 Bloom
+## 11.2 Bloom
 
 Bloom simulates the scattering of bright light in a camera lens, creating a soft glow around bright regions. Crafty's `BloomPass` follows a standard three-step process — extract the bright pixels, blur them, and add the result back:
 
@@ -93,7 +93,7 @@ hdrColor += bloomColor * bloomIntensity;
 
 The bloom intensity and threshold are adjustable parameters exposed through the settings UI.
 
-## 12.3 Temporal Anti-Aliasing (TAA)
+## 11.3 Temporal Anti-Aliasing (TAA)
 
 TAA `TAAPass` reduces aliasing by averaging the current frame with previous frames, using sub-pixel jitter to shift the sample pattern each frame. The Halton (2,3) sequence spreads samples evenly within a pixel, so accumulating ~8 frames approximates 8× supersampling:
 
@@ -145,7 +145,7 @@ let maxColor = max(neighbourhood);
 historyColor = clamp(historyColor, minColor, maxColor);
 ```
 
-## 12.4 Depth of Field (DOF)
+## 11.4 Depth of Field (DOF)
 
 The `DofPass` (`src/renderer/passes/dof_pass.ts`) simulates camera lens defocus blur. Objects at a specific focal distance are sharp; objects farther or closer become increasingly blurred. Geometrically, off-focus points project to a disk on the sensor instead of a single point — that disk's diameter is the **circle of confusion**:
 
@@ -175,7 +175,7 @@ The DOF pass renders at half resolution for performance:
 
 The blur uses a Poisson-disk kernel where the number of samples is proportional to the CoC radius, capped at `maxCocRadius` (typically 8-16 texels).
 
-## 12.5 Auto-Exposure
+## 11.5 Auto-Exposure
 
 The `AutoExposurePass` (`src/renderer/passes/auto_exposure_pass.ts`) computes a scene-adaptive exposure value using compute shaders. It adapts the overall brightness when the scene changes (e.g., walking from indoors to sunlight). The mechanism is a per-frame log-luminance histogram, smoothed temporally so that exposure tracks scene changes without snapping:
 
@@ -213,7 +213,7 @@ hdrColor *= exposure;
 
 This provides a smooth, automatic transition between lighting conditions.
 
-## 12.6 Color Grading
+## 11.6 Color Grading
 
 The `CompositePass` optionally applies color grading via a **lookup table (LUT)**. A 3D LUT texture maps input colors to graded output colors, enabling cinematic color grading:
 
@@ -225,7 +225,7 @@ let gradedColor = textureSampleLevel(colorGradingLut, lutSampler,
 
 When no LUT is active, the composite pass applies a simple contrast, saturation, and vibrance adjustment as a post-tonemapping step.
 
-## 12.7 Underwater Screen-Space Effects
+## 11.7 Underwater Screen-Space Effects
 
 When the camera is submerged, the `CompositePass` applies a series of screen-space effects that simulate the visual experience of being underwater. These are implemented as a single extra code path in the composite fragment shader (`src/shaders/composite.wgsl`).
 
@@ -264,7 +264,7 @@ The tint absorbs red light preferentially (0.20× red vs 0.90× blue), mimicking
 
 The `is_underwater` flag is set per-frame by the game code when the camera position is below the water surface, and `uw_time` provides the animation time for the distortion.
 
-### 12.8 Summary
+### 11.8 Summary
 
 Post-processing transforms the raw HDR render into the final image. The diagram below shows how the passes chain together — every post-FX stage reads from and writes back to the HDR target until the composite pass produces SDR output for the swap chain:
 
@@ -288,4 +288,4 @@ Post-processing transforms the raw HDR render into the final image. The diagram 
 - `src/shaders/composite.wgsl` — Composite shader
 
 ----
-[Contents](../crafty.md) | [11-Terrain](11-terrain.md) | [13-Game Engine](13-game-engine.md)
+[Contents](../crafty.md) | [10-Terrain](10-terrain.md) | [12-Game Engine](12-game-engine.md)

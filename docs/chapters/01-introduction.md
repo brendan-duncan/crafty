@@ -1,6 +1,6 @@
 # Chapter 1: Introduction
 
-[Contents](../crafty.md) | [02-Mathematics](02-mathematics.md)
+[Contents](../crafty.md) | [02-WebGPU Fundamentals](02-webgpu-fundamentals.md)
 
 ## 1.1 What is Crafty?
 
@@ -158,17 +158,40 @@ These directories form a layered architecture — each layer depends only on the
 
 ![Crafty module architecture](../illustrations/01-engine-architecture.svg)
 
-**Where we go from here.** This book proceeds in five parts:
+## 1.7 A Note on Mathematics
 
-1. **Foundations** (Chapters 1–3): Mathematics, WebGPU API fundamentals.
-2. **Rendering** (Chapters 4–11): The render graph, meshes, textures, lighting, shadows, post-processing, sky, terrain.
-3. **Game Engine** (Chapters 12–15): Components, scenes, physics, audio, UI.
-4. **Multiplayer** (Chapters 16–17): WebSocket networking, state sync, snapshot interpolation.
-5. **Advanced Topics** (Chapters 18–20): Performance, tools, and future directions.
+Real-time rendering rests on a foundation of 3D math — vectors, matrices, quaternions, and the conventions that tie them together. Rather than front-load a full math chapter, this book gets into the fun parts of the project as early as possible. The math you need is introduced in context as each subsystem is built, and the full reference lives in [Appendix C: Mathematics Reference](../appendix/math-ref.md).
+
+If you want a deeper grounding before continuing, that appendix covers `Vec2`/`Vec3`/`Vec4`, `Mat4`, `Quaternion`, transform composition, the coordinate-space transformation pipeline, the seeded random number generator (RNG) and Perlin noise used for procedural generation. It serves as both a tutorial and a quick lookup.
+
+A few conventions used everywhere in Crafty are worth noting up front:
+
+| Convention | Crafty choice |
+|------------|--------------|
+| Handedness | Right-handed |
+| Up | +Y `(0, 1, 0)` |
+| Forward | -Z `(0, 0, -1)` |
+| Matrix storage | Column-major in `Float32Array` |
+| Depth range | [0, 1] (WebGPU) |
+| Winding order | Counter-clockwise (front faces) |
+
+Crafty uses a **right-handed, Y-up, -Z-forward** coordinate system — the same convention as OpenGL. WebGPU itself is right-handed with a `[0, 1]` depth range (unlike OpenGL's `[-1, 1]`), and matrices are stored column-major to match WGSL's default layout. The math types live in `src/math/`: `Vec2`, `Vec3`, `Vec4`, `Mat4`, `Quaternion`, plus the procedural-generation helpers `Random` and the Perlin noise family in `noise.ts`.
+
+When something more involved comes up — the `lookAt` view matrix, quaternion SLERP, the inverse-transpose normal matrix, FBM noise — we will introduce just enough of the math to motivate the code, and link to [Appendix C](../appendix/math-ref.md) for the full derivation.
+
+## 1.8 Where We Go From Here
+
+This book proceeds in five parts:
+
+1. **Foundations** (Chapters 1–2): Introduction and WebGPU API fundamentals.
+2. **Rendering** (Chapters 3–11): The render graph, meshes, textures, lighting, shadows, particles, sky and atmosphere, terrain, post-processing.
+3. **Game Engine** (Chapters 12–17): Components, scenes, physics, NPC AI, weather, audio, UI.
+4. **Multiplayer** (Chapters 18–19): WebSocket networking, state sync, snapshot interpolation.
+5. **Advanced Topics** (Chapters 20–22): Performance, tools, and future directions.
 
 ![Reading roadmap by part and chapter](../illustrations/01-book-roadmap.svg)
 
 By the end, you will understand how every pixel on the screen got there — from the WGSL shader that computed it to the WebGPU pipeline that rasterized it to the game engine that placed the object in the world.
 
 ----
-[Contents](../crafty.md) | [02-Mathematics](02-mathematics.md)
+[Contents](../crafty.md) | [02-WebGPU Fundamentals](02-webgpu-fundamentals.md)

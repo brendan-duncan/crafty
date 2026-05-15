@@ -1,10 +1,10 @@
-# Chapter 18: User Interface
+# Chapter 17: User Interface
 
-[Contents](../crafty.md) | [17-Audio](17-audio.md) | [19-Network Architecture](19-network-architecture.md)
+[Contents](../crafty.md) | [16-Audio](16-audio.md) | [18-Network Architecture](18-network-architecture.md)
 
 Crafty uses a hybrid UI approach: HTML/DOM for the menus and HUD, in-game overlays for crosshair and block interactions.
 
-## 18.1 DOM-Based UI vs. In-Game UI
+## 17.1 DOM-Based UI vs. In-Game UI
 
 ![Exploded layers showing the WebGPU canvas at the bottom (3D scene + crosshair/highlight overlays) with the HTML/DOM layer (HUD, hotbar, chat, menus) stacked on top — pointer-events let clicks pass through transparent regions](../illustrations/18-ui-layers.svg)
 
@@ -20,7 +20,7 @@ Crafty uses a hybrid UI approach: HTML/DOM for the menus and HUD, in-game overla
 
 The DOM approach gives us accessibility (screen readers, browser zoom) and familiar styling via CSS. The in-game approach ensures the crosshair and block highlight are correctly aligned with the 3D scene without latency.
 
-## 18.2 The HUD
+## 17.2 The HUD
 
 ![Screen mockup showing the HUD's anchored regions: crosshair centered, hotbar bottom-center, stats bottom-left, debug overlay top-left, chat bottom-left — each region is a DOM element positioned with CSS, transparent to mouse events](../illustrations/18-hud-layout.svg)
 
@@ -50,7 +50,7 @@ class HUD {
 
 The HUD is styled with CSS to be transparent to mouse events (except for interactive elements like the chat input).
 
-## 18.3 The Start Screen
+## 17.3 The Start Screen
 
 The start screen (`crafty/ui/start_screen.ts`) appears before the game loads. It provides:
 
@@ -78,7 +78,7 @@ class StartScreen {
 
 On connect to a multiplayer server, the start screen's name input is disabled to indicate the name was already sent and cannot be changed mid-session.
 
-## 18.4 The Settings Panel
+## 17.4 The Settings Panel
 
 Settings are stored in `localStorage` and applied dynamically:
 
@@ -96,7 +96,7 @@ interface Settings {
 
 Quality presets control shadow resolution, SSAO samples, bloom intensity, and particle counts.
 
-## 18.5 The Block Manager
+## 17.5 The Block Manager
 
 ![Categorised grid of block thumbnails (Natural, Stone, Wood, etc.) with the selected block flowing down into a hotbar slot — clicking a tile assigns that block type to the active slot](../illustrations/18-block-manager.svg)
 
@@ -104,7 +104,7 @@ The block manager UI (`crafty/ui/block_manager.ts`) allows the player to select 
 
 In creative mode, all block types are available. In survival mode, only blocks the player has collected are shown. The selected slot determines which block is placed on right-click.
 
-### 18.6 Summary
+### 17.6 Summary
 
 The UI follows a hybrid approach combining DOM and GPU-rendered elements:
 
@@ -122,4 +122,4 @@ The UI follows a hybrid approach combining DOM and GPU-rendered elements:
 - `crafty/ui/block_manager.ts` — Block selection grid
 
 ----
-[Contents](../crafty.md) | [17-Audio](17-audio.md) | [19-Network Architecture](19-network-architecture.md)
+[Contents](../crafty.md) | [16-Audio](16-audio.md) | [18-Network Architecture](18-network-architecture.md)

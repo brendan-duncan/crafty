@@ -1,10 +1,10 @@
-# Chapter 7: Lighting
+# Chapter 6: Lighting
 
-[Contents](../crafty.md) | [06-Textures / Materials](06-textures-materials.md) | [08-Shadow Mapping](08-shadow-mapping.md)
+[Contents](../crafty.md) | [05-Textures / Materials](05-textures-materials.md) | [07-Shadow Mapping](07-shadow-mapping.md)
 
 Lighting is the heart of any renderer. Crafty implements a full physically-based shading pipeline supporting directional (sun), point, and spot lights, plus image-based lighting from environment maps.
 
-## 7.1 Physically-Based Rendering Theory
+## 6.1 Physically-Based Rendering Theory
 
 Crafty uses the **Cook-Torrance** microfacet BRDF (bidirectional reflectance distribution function), which models a surface as a collection of microscopic facets. Every PBR shading calculation revolves around four vectors at the surface point — the surface normal, the directions to the light and the viewer, and the half-vector between them:
 
@@ -70,7 +70,7 @@ The `metallic` parameter blends between dielectric behavior (specular highlights
 let F0 = mix(vec3f(0.04), albedo, metallic);
 ```
 
-## 7.2 The Directional Light (Sun)
+## 6.2 The Directional Light (Sun)
 
 Crafty supports three light types — directional, point, and spot — each with a distinct geometry and falloff model:
 
@@ -118,7 +118,7 @@ updateLight(
 }
 ```
 
-## 7.3 Point Lights
+## 6.3 Point Lights
 
 A point light emits light equally in all directions from a position in space. It is defined by the `PointLight` interface (`src/renderer/point_light.ts`):
 
@@ -173,7 +173,7 @@ let shadowDir = surfacePos - light.position;
 let shadowDepth = textureSample(shadowCube, sampler, shadowDir).r;
 ```
 
-## 7.4 Spot Lights
+## 6.4 Spot Lights
 
 A spot light emits light in a cone from a position in a specific direction. Crafty's `SpotLight` class (`src/renderer/spot_light.ts`) includes a lazy view-projection matrix computation:
 
@@ -233,7 +233,7 @@ let spotFactor = smoothstep(cosOuter, cosInner, cosAngle);
 let attenuation = spotFactor / (distSq + 0.01);
 ```
 
-## 7.5 Image-Based Lighting (IBL)
+## 6.5 Image-Based Lighting (IBL)
 
 Image-based lighting uses an HDR environment map to illuminate surfaces with distant light. This provides ambient lighting that matches the sky and surrounding environment.
 
@@ -282,7 +282,7 @@ The complete IBL contribution is:
 let ibl = (1.0 - metallic) * diffuseIBL + specularIBL;
 ```
 
-## 7.6 The BRDF
+## 6.6 The BRDF
 
 The Crafty BRDF implementation lives inside the lighting and forward shaders. The key functions are shared across shaders:
 
@@ -296,7 +296,7 @@ The Crafty BRDF implementation lives inside the lighting and forward shaders. Th
 
 The `computeDirectLight` function composes the three terms and returns the final radiance for a single light.
 
-## 7.7 The Deferred Lighting Pass
+## 6.7 The Deferred Lighting Pass
 
 The `DeferredLightingPass` (`src/renderer/passes/deferred_lighting_pass.ts`) is the core of the deferred renderer. It renders a fullscreen triangle that samples the G-buffer and all shadow/lighting inputs:
 
@@ -336,7 +336,7 @@ Each fragment samples the G-buffer, reconstructs the world position from depth, 
 // 7. Write HDR color
 ```
 
-## 7.8 The Forward Lighting Path
+## 6.8 The Forward Lighting Path
 
 Transparent objects cannot use deferred shading (the G-buffer stores only one surface per pixel). Crafty's `ForwardPass` evaluates the same PBR lighting model but in a forward rendering path.
 
@@ -349,7 +349,7 @@ The forward pass handles:
 
 The forward pass uses the same camera and light uniform buffers as the deferred passes, ensuring consistent lighting between opaque and transparent objects.
 
-## 7.9 GPU-Based IBL Pre-Computation
+## 6.9 GPU-Based IBL Pre-Computation
 
 The three IBL textures — irradiance map, GGX prefiltered environment map, and BRDF LUT — could be pre-computed offline and shipped as assets, but Crafty computes them at runtime on the GPU. This allows the IBL to adapt to the current sky (procedural or HDR) without managing additional texture assets per environment.
 
@@ -428,7 +428,7 @@ The dispatch is 6 faces × 5 roughness levels = 30 workgroups, each sampling 256
 
 These compute dispatches run once when the sky changes (e.g., on world load or a new HDR map), and the results persist until the next rebuild. The `computeIblGpu()` function in `src/assets/ibl.ts` orchestrates the entire pipeline and awaits `onSubmittedWorkDone()` before returning the ready-to-use textures.
 
-## 7.10 Screen-Space Ambient Occlusion (SSAO)
+## 6.10 Screen-Space Ambient Occlusion (SSAO)
 
 SSAO estimates ambient light occlusion by sampling the depth buffer around each pixel. The `SSAOPass` (`src/renderer/passes/ssao_pass.ts`) computes an occlusion factor for each screen pixel by sending sample rays into a hemisphere oriented to the surface normal:
 
@@ -467,7 +467,7 @@ blurred += neighbourValue * weight * gaussianWeight;
 totalWeight += weight * gaussianWeight;
 ```
 
-## 7.11 Screen-Space Global Illumination (SSGI)
+## 6.11 Screen-Space Global Illumination (SSGI)
 
 Screen-space global illumination approximates one-bounce indirect light from the scene itself rather than from a pre-computed environment map. The `SSGIPass` (`src/renderer/passes/ssgi_pass.ts`) casts stochastic rays in screen space against the previous frame's lit radiance, then accumulates the result temporally using a reprojected history:
 
@@ -582,7 +582,7 @@ A `copyTextureToTexture` copies the final result texture into the history textur
 
 These are exposed through the `SSGISettings` interface and can be adjusted at runtime via `SSGIPass.updateSettings()`.
 
-## 7.12 Summary
+## 6.12 Summary
 
 Lighting is a composition of several systems:
 
@@ -612,4 +612,4 @@ All paths share the same PBR BRDF functions, ensuring consistent appearance rega
 - `src/shaders/ssgi_temporal.wgsl` — SSGI temporal accumulation shader
 
 ----
-[Contents](../crafty.md) | [06-Textures / Materials](06-textures-materials.md) | [08-Shadow Mapping](08-shadow-mapping.md)
+[Contents](../crafty.md) | [05-Textures / Materials](05-textures-materials.md) | [07-Shadow Mapping](07-shadow-mapping.md)

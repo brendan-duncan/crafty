@@ -1,10 +1,10 @@
-# Chapter 4: Rendering Architecture
+# Chapter 3: Rendering Architecture
 
-[Contents](../crafty.md) | [03-Webgpu Fundamentals](03-webgpu-fundamentals.md) | [05-Meshes](05-meshes.md)
+[Contents](../crafty.md) | [02-WebGPU Fundamentals](02-webgpu-fundamentals.md) | [04-Meshes](04-meshes.md)
 
 This chapter presents the architectural backbone of Crafty's renderer — the **render graph**, its **passes**, and how they compose to produce every frame.
 
-## 4.1 The Render Graph
+## 3.1 The Render Graph
 
 ![Render graph: 21 passes grouped into 7 phases, all sharing one GPUCommandEncoder](../illustrations/04-render-graph.svg)
 
@@ -69,7 +69,7 @@ The key design decisions are:
 
 Not all passes are always enabled. The composite pass, for instance, replaces the legacy `TonemapPass` and encompasses fog, stars, underwater effects, and tone-mapping in a single shader.
 
-## 4.2 Render Passes
+## 3.2 Render Passes
 
 Every pass extends the abstract `RenderPass` base class (`src/renderer/render_pass.ts`):
 
@@ -135,7 +135,7 @@ pass.updateCamera(ctx, view, proj, viewProj, invViewProj, cameraPos, near, far);
 
 This separation of **update** (uploading uniforms to GPU buffers) and **execute** (encoding draw commands) mirrors the GPU's own separation of upload and execution work.
 
-## 4.3 Multi-Pass Deferred Rendering
+## 3.3 Multi-Pass Deferred Rendering
 
 ![Forward vs deferred: lighting baked into geometry pass vs lighting decoupled into a screen-space pass that reads the G-buffer](../illustrations/04-deferred-vs-forward.svg)
 
@@ -175,7 +175,7 @@ Crafty also supports forward rendering for special cases:
 
 These forward passes run after the deferred passes are complete, typically with additive blending or depth tests configured for transparency.
 
-## 4.4 HDR Rendering Pipeline
+## 3.4 HDR Rendering Pipeline
 
 ![HDR target as central buffer: lighting writes, post passes ping-pong, composite tonemaps to swap chain](../illustrations/04-hdr-target-flow.svg)
 
@@ -222,7 +222,7 @@ fn tonemap(color: vec3f) -> vec3f {
 }
 ```
 
-## 4.5 The GBuffer
+## 3.5 The GBuffer
 
 The G-buffer (`src/renderer/gbuffer.ts`) stores three textures sized to the canvas:
 
@@ -263,7 +263,7 @@ Multiple passes write into the same G-buffer attachments:
 
 This layering allows the pipeline to separate concerns — mesh geometry, voxel geometry, and animated geometry all have different shaders and vertex formats, but they all write the same G-buffer structure.
 
-## 4.6 Swap Chain and Presentation
+## 3.6 Swap Chain and Presentation
 
 The swap chain is configured when `RenderContext.create()` is called. Crafty attempts an HDR swap chain (`rgba16float` + `display-p3` + extended tone mapping) and falls back to SDR:
 
@@ -303,7 +303,7 @@ canvas.height = canvas.clientHeight * devicePixelRatio;
 
 All passes that depend on canvas size (GBuffer, HDR texture, SSAO textures, etc.) are destroyed and re-created. The render graph is rebuilt with the same pass structure but new resource sizes.
 
-### 4.7 Summary
+### 3.7 Summary
 
 The render graph architecture is deliberately minimal. There is no automatic dependency tracking or barrier management. Instead, passes are ordered explicitly and agree on a shared resource convention:
 
@@ -321,4 +321,4 @@ This simplicity makes the rendering pipeline easy to debug — each pass is an i
 - `src/renderer/passes/` — All concrete pass implementations
 
 ----
-[Contents](../crafty.md) | [03-Webgpu Fundamentals](03-webgpu-fundamentals.md) | [05-Meshes](05-meshes.md)
+[Contents](../crafty.md) | [02-WebGPU Fundamentals](02-webgpu-fundamentals.md) | [04-Meshes](04-meshes.md)

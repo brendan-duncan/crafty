@@ -1,10 +1,10 @@
-# Chapter 23: The Road Ahead
+# Chapter 22: The Road Ahead
 
-[Contents](../crafty.md) | [22-Tools](22-tools.md)
+[Contents](../crafty.md) | [21-Tools](21-tools.md)
 
 Crafty is a living project. This chapter outlines the planned features and directions for future development.
 
-## 23.1 Ray Tracing with WebGPU
+## 22.1 Ray Tracing with WebGPU
 
 WebGPU includes experimental support for ray tracing through the `"ray-tracing"` feature flag (available in Chrome Canary). Future versions of Crafty could implement:
 
@@ -23,7 +23,7 @@ const rtPipeline = device.createRayTracingPipeline({
 });
 ```
 
-## 23.2 Compute Shader Post-Processing
+## 22.2 Compute Shader Post-Processing
 
 Several post-processing effects could benefit from compute shader implementations:
 
@@ -38,7 +38,7 @@ const computePipeline = device.createComputePipeline({
 });
 ```
 
-## 23.3 Procedural Generation at Scale
+## 22.3 Procedural Generation at Scale
 
 The terrain generation system will be extended with:
 
@@ -48,11 +48,11 @@ The terrain generation system will be extended with:
 - **Structure generation** — trees, villages, dungeons placed by rule-based and template-based generation.
 - **LOD system for generation** — distant chunks use lower-octave noise for faster generation.
 
-## 23.4 WebXR
+## 22.4 WebXR
 
 - **WebXR integration** — immersive VR mode using `XRSession` with WebGPU as the rendering backend. The renderer would output to the WebXR framebuffer with the correct projection and view matrices for each eye.
 
-## 23.5 Closing Thoughts
+## 22.5 Closing Thoughts
 
 Crafty began as an experiment — could we build a complete, modern renderer from scratch on the web platform? The answer is yes, and the code is here for you to read, modify, and learn from.
 
@@ -60,7 +60,7 @@ The rendering techniques covered in this book — deferred shading, PBR, CSM, TA
 
 The source code at `https://github.com/brendan-duncan/crafty` will continue to evolve. The book will be updated as new features are added. Contributions, issues, and forks are welcome.
 
-### 23.6 Summary
+### 22.6 Summary
 
 Crafty's future directions and closing reflections:
 
@@ -76,4 +76,4 @@ Crafty's future directions and closing reflections:
 - Physically Based Rendering (Pharr, Jakob, Humphreys): <https://pbr-book.org/>
 
 ----
-[Contents](../crafty.md) | [22-Tools](22-tools.md)
+[Contents](../crafty.md) | [21-Tools](21-tools.md)

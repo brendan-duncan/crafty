@@ -1,10 +1,10 @@
-# Chapter 14: Physics and Interaction
+# Chapter 13: Physics and Interaction
 
-[Contents](../crafty.md) | [13-Game Engine](13-game-engine.md) | [15-NPC AI](15-npc-ai.md)
+[Contents](../crafty.md) | [12-Game Engine](12-game-engine.md) | [14-NPC AI](14-npc-ai.md)
 
 Crafty implements a minimal physics system focused on player movement and block interaction. There is no general-purpose physics engine — only what the gameplay requires.
 
-## 14.1 Collision Detection (AABB)
+## 13.1 Collision Detection (AABB)
 
 ![Player AABB on a voxel grid: only the cells that overlap the box (≤ 2 × 2 × 2) need to be tested for solidity](../illustrations/14-aabb-collision.svg)
 
@@ -23,7 +23,7 @@ class AABB {
 
 The **sweep test** moves the AABB along the velocity vector and finds the first collision. This allows the player to slide along walls — if the velocity has an X component that causes collision, the X component is zeroed and the remaining Y/Z sweep continues.
 
-## 14.2 Player Movement and Gravity
+## 13.2 Player Movement and Gravity
 
 ![Collide-and-slide: subtract the velocity component along the wall normal so the tangential motion (v_slide) survives](../illustrations/14-collide-and-slide.svg)
 
@@ -80,7 +80,7 @@ function placeBlock(hit: BlockHit, blockType: BlockType) {
 }
 ```
 
-## 14.3 Block Ray Casting
+## 13.3 Block Ray Casting
 
 ![DDA stepping through voxels (cells 1 → 6) until hitting a solid block, returning both the block coords and the face normal](../illustrations/14-block-raycast.svg)
 
@@ -111,7 +111,7 @@ function raycastVoxels(origin: Vec3, dir: Vec3, world: World, maxDist: number): 
 
 The return value includes the block position and the face normal (which side was hit), used for placing new blocks adjacent to the hit face.
 
-## 14.4 Block Interaction
+## 13.4 Block Interaction
 
 ![Progressive crack stages 0 → 9 over breakTime ms, then setBlock(Air); placement uses hit + normal to find the adjacent empty cell](../illustrations/14-block-interaction.svg)
 
@@ -147,7 +147,7 @@ function placeBlock(hit: BlockHit, blockType: BlockType) {
   }
 }
 
-### 14.5 Summary
+### 13.5 Summary
 
 The physics and interaction system is deliberately minimal for a creative-mode voxel game:
 
@@ -162,4 +162,4 @@ The physics and interaction system is deliberately minimal for a creative-mode v
 - `src/renderer/passes/block_highlight_pass.ts` — Crack overlay rendering
 
 ----
-[Contents](../crafty.md) | [13-Game Engine](13-game-engine.md) | [15-NPC AI](15-npc-ai.md)
+[Contents](../crafty.md) | [12-Game Engine](12-game-engine.md) | [14-NPC AI](14-npc-ai.md)

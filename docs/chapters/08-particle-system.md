@@ -1,10 +1,10 @@
-# Chapter 9: GPU Particle System
+# Chapter 8: GPU Particle System
 
-[Contents](../crafty.md) | [08-Shadow Mapping](08-shadow-mapping.md) | [10-Sky Atmosphere](10-sky-atmosphere.md)
+[Contents](../crafty.md) | [07-Shadow Mapping](07-shadow-mapping.md) | [09-Sky / Atmosphere](09-sky-atmosphere.md)
 
 Particle effects bring a scene to life — rain streaking past the player, snow drifting through the air, smoke rising from an explosion, sparks flying from a mining pick. Crafty implements a **fully GPU-driven particle system** where every phase (spawn, update, compaction, render) runs on the GPU via compute shaders. There is no CPU readback of particle state and no per-particle CPU work at runtime.
 
-## 9.1 Architecture Overview
+## 8.1 Architecture Overview
 
 ![Five GPU stages (spawn → update → compact → indirect → render) operating on four GPU buffers, with no CPU readback](../illustrations/09-pipeline-stages.svg)
 
@@ -26,7 +26,7 @@ Each stage is a compute (or render) pass that operates on GPU-resident buffers. 
 
 The spawn and update shaders are **generated at pipeline creation time** from a `ParticleGraphConfig` description, producing specialized WGSL that inlines only the needed modifiers — no runtime branching over uniforms.
 
-## 9.2 Particle Graph Config
+## 8.2 Particle Graph Config
 
 The particle system is described declaratively through the `ParticleGraphConfig` interface (`src/particles/particle_types.ts`):
 
@@ -97,7 +97,7 @@ Two render targets are supported:
 - **`hdr`** — forward alpha-blended rendering into the HDR color buffer (transparent effects).
 - **`gbuffer`** — deferred opaque rendering into the G-buffer (hard billboards, e.g. debris).
 
-## 9.3 The Particle Struct
+## 8.3 The Particle Struct
 
 ![64-byte particle layout: position, life, velocity, max_life, color, size, rotation, padding](../illustrations/09-particle-struct.svg)
 
@@ -121,7 +121,7 @@ The `life` field serves double duty: a value of `-1.0` marks the slot as dead (a
 
 On construction, the entire particle buffer is initialized with `life = -1.0` so every slot starts dead.
 
-## 9.4 GPU Buffers
+## 8.4 GPU Buffers
 
 Each `ParticlePass` owns five GPU buffers:
 
@@ -135,7 +135,7 @@ Each `ParticlePass` owns five GPU buffers:
 
 The indirect draw buffer layout is `[vertexCount, instanceCount, firstVertex, firstInstance]`. It is initialized to `[6, 0, 0, 0]` — six vertices (two triangles for a quad) with zero instances. The compact pass writes the live particle count into the `instanceCount` field.
 
-## 9.5 The Spawn Stage
+## 8.5 The Spawn Stage
 
 The spawn shader is **generated** by `buildSpawnShader()` in `src/particles/particle_builder.ts`. It inlines:
 
@@ -184,7 +184,7 @@ The number of particles spawned this frame is computed on the CPU by accumulatin
 
 **Box.** Uniformly samples `[-hx, hx] × [-hy, hy] × [-hz, hz]`, rotates the offset by the emitter quaternion, and adds it to the emitter position. The velocity direction is always `world_up` (used for rain/snow falling from a horizontal plane).
 
-## 9.6 The Update Stage
+## 8.6 The Update Stage
 
 The update shader is also **generated** by `buildUpdateShader()`. It iterates every particle slot (not just alive ones — dead slots are skipped) and applies the configured modifiers in order:
 
@@ -255,7 +255,7 @@ if (all(_bc_uv >= vec2<f32>(0.0)) && all(_bc_uv <= vec2<f32>(1.0))) {
 
 Only particles within the heightmap's axis-aligned rectangle are tested — particles outside pass through unchanged.
 
-## 9.7 The Compact Stage
+## 8.7 The Compact Stage
 
 ![Compact stage: sparse particleBuffer → dense aliveList via atomic counter → indirect draw parameters](../illustrations/09-compact-stage.svg)
 
@@ -287,7 +287,7 @@ fn cs_write_indirect() {
 
 The counter buffer is reset to zero at the start of each frame (written by the CPU before the compute pass).
 
-## 9.8 The Render Stage
+## 8.8 The Render Stage
 
 ![Camera-facing discs (snow/smoke) vs velocity-aligned streaks (rain/sparks) — same vertex skeleton, different basis vectors](../illustrations/09-billboard-modes.svg)
 
@@ -379,7 +379,7 @@ fn fs_main(in: VertexOutput) -> GBufferOutput {
 
 This allows opaque particles to receive lighting from the deferred shading pass naturally.
 
-## 9.9 Per-Frame CPU Upload
+## 8.9 Per-Frame CPU Upload
 
 The CPU's per-frame work is limited to one `writeBuffer` call for compute uniforms and one for camera uniforms. The `ParticlePass.update()` method:
 
@@ -404,7 +404,7 @@ update(ctx, dt, view, proj, viewProj, invViewProj, camPos, near, far, worldTrans
 }
 ```
 
-## 9.10 Runtime Spawn Rate Adjustment
+## 8.10 Runtime Spawn Rate Adjustment
 
 The `setSpawnRate()` method allows changing the particle emission rate without rebuilding the render graph:
 
@@ -417,7 +417,7 @@ setSpawnRate(rate: number): void {
 
 This is used by the weather system to adjust rain/snow intensity dynamically. Changing the rate only writes a new float in the config object — no shader regeneration, no pipeline rebuild, no buffer reallocation. The new rate takes effect on the next frame's spawn accumulation.
 
-## 9.11 Rain and Snow Configurations
+## 8.11 Rain and Snow Configurations
 
 Crafty ships with two pre-defined particle configurations (`crafty/config/particle_configs.ts`):
 
@@ -473,7 +473,7 @@ export const snowConfig: ParticleGraphConfig = {
 
 Snow uses camera-facing billboards (soft discs), very slow fall speed (gravity 1.5 m/s², high drag), long lifetimes (30–45 seconds), and curl noise turbulence for drifting motion.
 
-### 9.12 Summary
+### 8.12 Summary
 
 The GPU-driven particle system features:
 
@@ -503,4 +503,4 @@ The GPU-driven particle system features:
 - `crafty/game/weather_system.ts` — Weather integration with particle passes
 
 ----
-[Contents](../crafty.md) | [08-Shadow Mapping](08-shadow-mapping.md) | [10-Sky Atmosphere](10-sky-atmosphere.md)
+[Contents](../crafty.md) | [07-Shadow Mapping](07-shadow-mapping.md) | [09-Sky / Atmosphere](09-sky-atmosphere.md)

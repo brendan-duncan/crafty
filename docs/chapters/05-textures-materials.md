@@ -1,10 +1,10 @@
-# Chapter 6: Textures and Materials
+# Chapter 5: Textures and Materials
 
-[Contents](../crafty.md) | [05-Meshes](05-meshes.md) | [07-Lighting](07-lighting.md)
+[Contents](../crafty.md) | [04-Meshes](04-meshes.md) | [06-Lighting](06-lighting.md)
 
 Textures provide surface detail beyond what geometry alone can express. Materials bundle shaders, textures, and parameters into a unit the renderer can consume. This chapter shows how Crafty loads, manages, and binds textures and materials.
 
-## 6.1 2D, 3D, and Cube Textures
+## 5.1 2D, 3D, and Cube Textures
 
 Crafty supports three texture dimensionalities:
 
@@ -46,7 +46,7 @@ let volumeCoords = vec3<f32>(0.5, 0.5, 0.5); // sample the center of the volume
 let color: vec4<f32> = textureSample(volumeTexture3D, mySvolumeSamplerampler, volumeCoords);
 ```
 
-## 6.2 Texture Loading
+## 5.2 Texture Loading
 
 ### Runtime Loading
 
@@ -193,7 +193,7 @@ let uv = input.uv * material.uvScale + material.uvOffset;
 let albedo = textureSample(albedo_map, mat_samp, uv);
 ```
 
-## 6.3 Textures in the GBuffer
+## 5.3 Textures in the GBuffer
 
 The deferred G-buffer writes two color textures that encode surface properties for the lighting pass:
 
@@ -215,7 +215,7 @@ A = metallic (0 = dielectric, 1 = metal)
 
 The `rgba16float` format for the normal-metallic texture is critical — world-space normals can be negative and require higher precision than `unorm` provides.
 
-## 6.4 The PBR Material System
+## 5.4 The PBR Material System
 
 The `Material` abstract class (`src/engine/material.ts`) defines the interface that all materials must implement:
 
@@ -325,7 +325,7 @@ for (let i = 0; i < this._drawItems.length; i++) {
 
 This pattern allows materials to lazily update GPU uniform buffers only when their CPU-side properties change, using a dirty flag internally.
 
-## 6.5 Material Passes
+## 5.5 Material Passes
 
 Different render passes use different subsets of the material system. The mesh kind (static / skinned / voxel) and the `transparent` flag determine which pass actually draws an object:
 
@@ -352,7 +352,7 @@ fragment: {
 },
 ```
 
-## 6.6 Shader Management and Caching
+## 5.6 Shader Management and Caching
 
 WGSL shaders are stored in `src/shaders/` and loaded at module scope via Vite's `?raw` import:
 
@@ -380,7 +380,7 @@ struct CameraUniforms {
 
 Each `Material` subclass returns complete WGSL source from `getShaderCode()`, which may concatenate shared code with specific implementations. Reinventing this per material avoids the complexity of a full shader include system while keeping the shader source self-contained.
 
-### 6.7 Summary
+### 5.7 Summary
 
 The material system decouples surface appearance from the renderer:
 
@@ -397,4 +397,4 @@ The material system decouples surface appearance from the renderer:
 - `src/shaders/common.wgsl` — Shared struct definitions
 
 ----
-[Contents](../crafty.md) | [05-Meshes](05-meshes.md) | [07-Lighting](07-lighting.md)
+[Contents](../crafty.md) | [04-Meshes](04-meshes.md) | [06-Lighting](06-lighting.md)

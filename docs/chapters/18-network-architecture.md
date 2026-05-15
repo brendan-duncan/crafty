@@ -1,10 +1,10 @@
-# Chapter 19: Network Architecture
+# Chapter 18: Network Architecture
 
-[Contents](../crafty.md) | [18-User Interface](18-user-interface.md) | [20-Multiplayer Gameplay](20-multiplayer-gameplay.md)
+[Contents](../crafty.md) | [17-User Interface](17-user-interface.md) | [19-Multiplayer Gameplay](19-multiplayer-gameplay.md)
 
 Crafty supports multiplayer through a WebSocket-based server written in Node.js. The protocol is minimal and message-oriented.
 
-## 19.1 WebSocket Fundamentals
+## 18.1 WebSocket Fundamentals
 
 WebSocket provides a persistent, full-duplex connection between the browser and the server. Crafty's client (`crafty/game/network_client.ts`) establishes the connection:
 
@@ -27,7 +27,7 @@ class NetworkClient {
 }
 ```
 
-## 19.2 Message Protocol Design
+## 18.2 Message Protocol Design
 
 ![Eight typed JSON frames split into client-to-server (hello, input, block_edit, chat) and server-to-client (welcome, snapshot, block_update, chat) — each frame is a small example payload showing the `type` discriminator and its fields](../illustrations/19-message-protocol.svg)
 
@@ -44,7 +44,7 @@ Messages are JSON objects with a `type` field and type-specific payload. All mes
 | C2S | `chat` | `{ message }` | Send chat message |
 | S2C | `chat` | `{ from, message }` | Broadcast chat message |
 
-## 19.3 Connection Lifecycle
+## 18.3 Connection Lifecycle
 
 ```
 Client                    Server
@@ -59,7 +59,7 @@ Client                    Server
   │◄───── block_update ───│  Broadcast to all clients
 ```
 
-## 19.4 The Server Architecture
+## 18.4 The Server Architecture
 
 ![One Node.js Server process holding a Map of WorldRooms; each room owns its own simulation loop, world state, and player connection list, with incoming sockets routed from a Lobby into a named room](../illustrations/19-server-rooms.svg)
 
@@ -112,7 +112,7 @@ class WorldRoom {
 
 Block edits are validated on the server to prevent cheating. The server checks that the block being broken is within the player's reach distance and that the block being placed is adjacent to an existing block and within reach.
 
-## 19.5 World State Persistence
+## 18.5 World State Persistence
 
 Local worlds are saved to IndexedDB in the browser. Server-side worlds are persisted to disk as JSON or a simple binary format:
 
@@ -131,7 +131,7 @@ class WorldRepository {
 
 Auto-save runs every 30 seconds, writing only the chunks that have been modified since the last save. The server also saves on graceful shutdown.
 
-### 19.6 Summary
+### 18.6 Summary
 
 The multiplayer architecture uses WebSockets with a dedicated Node.js server:
 
@@ -146,4 +146,4 @@ The multiplayer architecture uses WebSockets with a dedicated Node.js server:
 - `crafty/game/network_client.ts` — Client-side networking
 
 ----
-[Contents](../crafty.md) | [18-User Interface](18-user-interface.md) | [20-Multiplayer Gameplay](20-multiplayer-gameplay.md)
+[Contents](../crafty.md) | [17-User Interface](17-user-interface.md) | [19-Multiplayer Gameplay](19-multiplayer-gameplay.md)

@@ -1,10 +1,10 @@
-# Chapter 15: NPC AI
+# Chapter 14: NPC AI
 
-[Contents](../crafty.md) | [14-Physics](14-physics.md) | [16-Weather System](16-weather-system.md)
+[Contents](../crafty.md) | [13-Physics](13-physics.md) | [15-Weather System](15-weather-system.md)
 
 Non-playable characters (NPCs) bring the world to life. Crafty's NPC system uses lightweight state-machine components that attach to `GameObject` entities, driving movement, rotation, and animation. This chapter covers the three built-in NPC types — ducks, ducklings, and pigs — and shows how the pattern can be extended for more complex behaviors.
 
-## 15.1 NPC Architecture
+## 14.1 NPC Architecture
 
 Every NPC is a `GameObject` with a `MeshRenderer` for its visual representation and an AI component that implements the `Component` interface:
 
@@ -27,7 +27,7 @@ All NPC components share common infrastructure:
 - **Yaw rotation** — computed from movement direction and applied via `Quaternion.fromAxisAngle`.
 - **Head animation** — sinusoidal bob on a named child `GameObject`.
 
-## 15.2 The AI State Machine
+## 14.2 The AI State Machine
 
 ![Two state-machine variants: ducks have idle/wander/flee with player-distance preemption; pigs have just idle/wander](../illustrations/15-state-machine.svg)
 
@@ -173,7 +173,7 @@ case 'detonate': {
 
 If the player retreats beyond 6 blocks during the fuse, the creeper cancels detonation and returns to `idle`. If the full 2.5 seconds elapse, the creeper explodes — destroying blocks within a 4-block spherical radius and emitting an 80-particle fire burst. See §15.6 for the full explosion mechanics.
 
-## 15.3 Duck AI
+## 14.3 Duck AI
 
 ![Duck AI](../images/duck.png)
 
@@ -204,7 +204,7 @@ this._headGO.position.y = this._headBaseY + Math.sin(this._bobPhase) * bobAmp;
 
 Player position is fed to ducks via a static field `DuckAI.playerPos`, written once per frame by the game loop. This avoids coupling the AI to a specific player component.
 
-## 15.4 Duckling AI
+## 14.4 Duckling AI
 
 ![Ducling AI](../images/duckling.png)
 
@@ -241,7 +241,7 @@ go.position.z += nz * speed * dt;
 
 Ducklings do not check for the player directly — they simply follow their parent, so they inherit the parent's flee behavior automatically.
 
-## 15.5 Pig AI
+## 14.5 Pig AI
 
 ![Ducling AI](../images/pig.png)
 
@@ -261,7 +261,7 @@ Ducklings do not check for the player directly — they simply follow their pare
 
 The pig's wander behavior is identical in structure to the duck's but uses slightly different parameters: slower speed, longer wander distances, and a different head bob signature.
 
-## 15.6 Creeper AI
+## 14.6 Creeper AI
 
 ![Creeper AI](../images/creeper.png)
 
@@ -359,7 +359,7 @@ if (Math.random() < CREEPER_CHANCE) {
 
 The mesh stands twice as tall as a pig, with a body half-height of 0.60 and leg half-height of 0.20, giving the creeper its distinctive towering silhouette.
 
-## 15.7 Bee AI
+## 14.7 Bee AI
 
 ![Bee AI](../images/bee.png)
 
@@ -593,7 +593,7 @@ if (Math.random() < BEE_CHANCE) {
 }
 ```
 
-## 15.8 Gravity and Ground Collision
+## 14.8 Gravity and Ground Collision
 
 All NPC components share the same gravity and ground collision logic:
 
@@ -617,7 +617,7 @@ The +4 offset in `getTopBlockY` provides a search range above the NPC's current 
 
 Ducks extend this with a water check — if the block directly below is `BlockType.WATER`, the duck floats at the water's surface instead of sinking.
 
-## 15.9 Head Bob Animation
+## 14.9 Head Bob Animation
 
 ![Six waveforms: each NPC has its own amplitude/frequency in idle and wander, giving each a distinct gait without skeletal animation](../illustrations/15-head-bob.svg)
 
@@ -637,7 +637,7 @@ onAttach(): void {
 
 The bob is a simple sine wave whose frequency and amplitude vary by state — faster and larger when the NPC is moving, slower and subtler when idle. This gives each NPC a distinctive gait without requiring skeletal animation.
 
-## 15.10 Animated Models and Skeletal Animation
+## 14.10 Animated Models and Skeletal Animation
 
 ![AnimatedModel pipeline: sample clip at time t into per-joint TRS arrays, walk the skeleton to compute joint matrices, upload to GPU for skinned vertex transformation](../illustrations/15-skeletal-animation.svg)
 
@@ -676,7 +676,7 @@ update(dt: number): void {
 
 The joint matrices are consumed by the skinned variant of the world geometry pass, which renders the animated mesh with GPU skinning. NPCs that need full-body animation (e.g. a character walking, waving, or performing actions) use `AnimatedModel` instead of the simple head-bob approach.
 
-## 15.11 Mob Spawning Mechanics
+## 14.11 Mob Spawning Mechanics
 
 Rather than scanning the world periodically, Crafty spawns mobs as a **side effect of chunk generation**. The `setupAnimalSpawning()` function in `crafty/game/animal_spawner.ts` hooks into the `World.onChunkAdded` callback so every new chunk triggers a spawn attempt for its XZ column:
 
@@ -786,7 +786,7 @@ Chunk generated
 Mob spawning is strictly a generation-time event — there is no respawn timer or despawn-on-distance system. Once spawned, NPCs persist in the scene until the world is unloaded.
 
 
-## 15.12 Extending the NPC System
+## 14.12 Extending the NPC System
 
 The component-based architecture makes it straightforward to add new NPC types:
 
@@ -802,7 +802,7 @@ Future NPC types could include:
 
 Each new type follows the same pattern: a state machine + `Component.update()` + `World` queries, with visual variety provided by different meshes, animations, and parameter tuning.
 
-### 15.13 Summary
+### 14.13 Summary
 
 The NPC AI system demonstrates several patterns:
 
@@ -824,4 +824,4 @@ The NPC AI system demonstrates several patterns:
 - `src/engine/component.ts` — Base `Component` class
 
 ----
-[Contents](../crafty.md) | [14-Physics](14-physics.md) | [16-Weather System](16-weather-system.md)
+[Contents](../crafty.md) | [13-Physics](13-physics.md) | [15-Weather System](15-weather-system.md)

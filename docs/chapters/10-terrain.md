@@ -1,10 +1,10 @@
-# Chapter 11: Terrain and Voxel World
+# Chapter 10: Terrain and Voxel World
 
-[Contents](../crafty.md) | [10-Sky / Atmosphere](10-sky-atmosphere.md) | [12-Post-Processing](12-post-processing.md)
+[Contents](../crafty.md) | [09-Sky / Atmosphere](09-sky-atmosphere.md) | [11-Post-Processing](11-post-processing.md)
 
 The voxel world is what distinguishes Crafty from a generic rendering demo. This chapter covers the data structures, generation, and rendering of a block-based terrain.
 
-## 11.1 Voxel Data Structure
+## 10.1 Voxel Data Structure
 
 The world is divided into **chunks** — fixed-size 3D arrays of block IDs. Each chunk is a 16×256×16 volume (X, Y, Z):
 
@@ -25,7 +25,7 @@ class Chunk {
 
 Block types are stored as small integers (0 = air, 1 = grass, 2 = dirt, etc.). The `BlockType` enum maps to material and rendering properties: color, texture atlas tile, opacity, hardness, and so on.
 
-## 11.2 Chunk Management
+## 10.2 Chunk Management
 
 Chunks are loaded and unloaded based on distance from the player. The `World` class maintains a map of loaded chunks:
 
@@ -53,7 +53,7 @@ function worldToChunkCoord(worldX: number, worldZ: number): [number, number] {
 
 Before rendering, each chunk is tested against the camera frustum. Only chunks that intersect the view frustum are submitted to the GPU. This culling is performed on the CPU each frame.
 
-## 11.3 Procedural World Generation
+## 10.3 Procedural World Generation
 
 ### Noise-Based Terrain
 
@@ -122,7 +122,7 @@ Each biome has its own surface block type, tree generation rules, and color pale
 
 Underground features are generated using additional noise passes. Caves use a cellular/Perlin threshold that defines underground voids. Ore veins use clustered noise with biome-specific depth distributions.
 
-## 11.4 Chunk Meshing
+## 10.4 Chunk Meshing
 
 Before a chunk can be rendered, its block data must be converted into vertex buffers — a process called **meshing**. Each frame, every visible chunk submits its mesh as instanced draw calls in the block geometry pass. Meshes are regenerated whenever a block in the chunk changes (placement, breaking, water flow).
 
@@ -276,9 +276,9 @@ Because props are alpha-tested (discarded below 0.5 alpha) and use `cullMode: no
 
 ### Greedy Merge
 
-The mesher does not emit one quad per block face. Instead it scans each axis plane and merges adjacent faces of the same block type into the largest possible rectangle (the full algorithm is described in [11.5 Greedy Meshing](#115-greedy-meshing)). The merge is tracked with a `drawnFaces` bitfield (`uint16` per `(x, y, face)` combination, with the z bit marking faces that have already been claimed by a larger quad). This merge step is what makes chunk rendering viable — a flat terrain chunk may have only a few hundred quads instead of tens of thousands.
+The mesher does not emit one quad per block face. Instead it scans each axis plane and merges adjacent faces of the same block type into the largest possible rectangle (the full algorithm is described in [10.5 Greedy Meshing](#105-greedy-meshing)). The merge is tracked with a `drawnFaces` bitfield (`uint16` per `(x, y, face)` combination, with the z bit marking faces that have already been claimed by a larger quad). This merge step is what makes chunk rendering viable — a flat terrain chunk may have only a few hundred quads instead of tens of thousands.
 
-## 11.5 Greedy Meshing
+## 10.5 Greedy Meshing
 
 Rendering each visible block face as two triangles creates millions of quads — far too many for real-time performance. **Greedy meshing** solves this by merging adjacent faces of the same block type into larger quads:
 
@@ -309,7 +309,7 @@ class ChunkMesh {
 
 Each chunk produces two meshes: one for opaque blocks (dirt, stone, etc.) and one for transparent/translucent blocks (water, leaves, glass). The opaque mesh writes depth and G-buffer normally. The transparent mesh uses alpha blending in the forward pass.
 
-## 11.6 Block Interaction
+## 10.6 Block Interaction
 
 ### Ray Casting
 
@@ -561,7 +561,7 @@ The listener position and orientation are updated each frame from the camera tra
 
 The Web Audio `AudioContext` is created lazily on the first user gesture (click/touch) in `crafty/main.ts:189` to comply with browser autoplay policies. Sound buffers are loaded asynchronously and cached in `AudioManager._digBuffers`, `_stepBuffers`, and `_fallBuffers` maps.
 
-## 11.7 Illuminated Blocks and Point Lights
+## 10.7 Illuminated Blocks and Point Lights
 
 Certain block types emit light, adding dynamic illumination to the world. Light-emitting blocks fall into two categories: blocks whose glow is baked into the G-buffer emission channel, and blocks that create runtime `PointLight` components.
 
@@ -651,7 +651,7 @@ for (var i = 0u; i < lightCounts.numPoint; i++) {
 
 The `point_attenuation` function applies a smooth falloff so light fades to zero at the radius boundary, avoiding hard cut-off lines. The per-frame loop in `main.ts:981` gathers all `PointLight` components from the scene and uploads them to the GPU via `point_spot_light_pass.ts`.
 
-## 11.8 Erosion Simulation
+## 10.8 Erosion Simulation
 
 Crafty includes an optional erosion simulation for more realistic terrain. A compute shader simulates water flow and sediment transport:
 
@@ -661,7 +661,7 @@ Crafty includes an optional erosion simulation for more realistic terrain. A com
 
 The simulation runs as a background compute pass and updates the terrain height map, which is sampled during chunk generation.
 
-## 11.9 Water Propagation
+## 10.9 Water Propagation
 
 When water blocks are placed or generated in the world, they spread according to a simple cellular automaton run on the CPU each tick. The algorithm lives in `World._tickWater()` in `src/block/world.ts`.
 
@@ -697,7 +697,7 @@ private _flowWater(wx: number, wy: number, wz: number): void {
 - **Early skip for chunks.** Chunks track their `waterBlocks` count — if zero, the chunk is skipped during scanning.
 - **Batched re-meshing.** Instead of regenerating a chunk's mesh every time a single water block changes, changes are accumulated in a `_dirtyChunks` set and re-meshed exactly once per tick.
 
-## 11.10 Water Rendering
+## 10.10 Water Rendering
 
 Water is a transparent block type rendered through the `WaterPass` (`src/renderer/passes/water_pass.ts`), a forward pass that runs after deferred lighting. It composites over the HDR buffer using `src-alpha` blending, combining screen-space refraction, depth-based murkiness, and screen-space reflections.
 
@@ -746,7 +746,7 @@ Reflections use a hybrid approach:
 1. **Screen-space reflection (SSR)** ray-marches the reflected view direction in view space, sampling the refraction texture (pre-water HDR scene).
 2. **HDR sky panorama** is used as a fallback for rays that miss scene geometry or leave the screen bounds.
 
-## 11.11 Screen-Space Reflections (SSR)
+## 10.11 Screen-Space Reflections (SSR)
 
 ![Screen-space reflection: view-space ray march, depth hit test, and equirectangular sky fallback](../illustrations/11-ssr.svg)
 
@@ -811,7 +811,7 @@ let world_color = mix(tinted, reflection, fresnel_r);
 
 Reflection is minimal when looking straight down (high V·N), rising towards grazing angles. The 0.6 cap prevents bright HDR sky values from washing out the water at shallow viewing angles.
 
-## 11.12 Village Generation
+## 10.12 Village Generation
 
 Villages are generated procedurally when chunks load, in `crafty/game/village_gen.ts`. The system hooks into the chunk load event and places clusters of houses under the right conditions.
 
@@ -891,7 +891,7 @@ const _WALL_L1: number[][] = [
 
 Currently, all houses use `SPRUCE_PLANKS` for structure and `GLASS` for windows.
 
-### 11.13 Summary
+### 10.13 Summary
 
 The voxel terrain system features:
 
@@ -936,4 +936,4 @@ The voxel terrain system features:
 - `src/shaders/water.wgsl` — Water shader (SSR, refraction, depth tinting)
 
 ----
-[Contents](../crafty.md) | [10-Sky / Atmosphere](10-sky-atmosphere.md) | [12-Post-Processing](12-post-processing.md)
+[Contents](../crafty.md) | [09-Sky / Atmosphere](09-sky-atmosphere.md) | [11-Post-Processing](11-post-processing.md)

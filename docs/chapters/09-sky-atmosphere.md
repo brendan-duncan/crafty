@@ -1,10 +1,10 @@
-# Chapter 10: Sky and Atmosphere
+# Chapter 9: Sky and Atmosphere
 
-[Contents](../crafty.md) | [09-Particle System](09-particle-system.md) | [11-Terrain](11-terrain.md)
+[Contents](../crafty.md) | [08-Particle System](08-particle-system.md) | [10-Terrain](10-terrain.md)
 
 The sky is the largest object in any outdoor scene. Crafty supports multiple sky rendering techniques: HDR environment maps, procedural atmospheric sky, and volumetric clouds.
 
-## 10.1 HDR Environment Maps
+## 9.1 HDR Environment Maps
 
 ![HDR cubemap unfolded into 6 faces, with RGBE byte layout and decode steps](../illustrations/10-hdr-cubemap.svg)
 
@@ -30,7 +30,7 @@ fn rgbeToFloat(rgbe: vec4f) -> vec3f {
 }
 ```
 
-## 10.2 Atmospheric Sky
+## 9.2 Atmospheric Sky
 
 ![Path length through the atmosphere shifts color from blue to red, and Rayleigh vs Mie phase functions in polar form](../illustrations/10-rayleigh-mie-scattering.svg)
 
@@ -54,7 +54,7 @@ fn miePhase(cosTheta: f32) -> f32 {
 
 The atmosphere pass writes directly into the HDR target with a fullscreen draw. It supports a day/night cycle driven by the sun's elevation angle.
 
-## 10.3 Cloud Rendering
+## 9.3 Cloud Rendering
 
 ![Volumetric cloud raymarch: a view ray steps through the volume, sampling density and accumulating transmittance](../illustrations/10-cloud-raymarch.svg)
 
@@ -222,7 +222,7 @@ fn sample_pw(samp_uv: vec3f) -> f32 {
 
 This CPU-generation approach was chosen over GPU compute for simplicity — the noise is generated once at boot and needs no runtime modification. For a 64³ base texture and a 32³ detail texture, the total generation time is ~5 ms on a modern CPU.
 
-## 10.4 Volumetric Fog
+## 9.4 Volumetric Fog
 
 ![Fog falloff: squared exponential distance curve and a height-based density gradient over a mountain silhouette](../illustrations/10-fog-distance-height.svg)
 
@@ -242,13 +242,13 @@ let heightFog = exp(-max(worldPos.y - seaLevel, 0.0) * fogHeightFalloff);
 fogDensity *= heightFog;
 ```
 
-## 10.5 Cloud Shadows
+## 9.5 Cloud Shadows
 
 ![Top-down cloud density map projected as shadow patches on the ground in the lighting pass](../illustrations/10-cloud-shadow.svg)
 
 The `CloudShadowPass` renders a top-down cloud shadow map — a 2D texture storing cloud density as seen from above. The lighting pass samples this texture at the surface position to modulate direct sunlight, producing dynamic cloud shadows on the terrain.
 
-## 10.6 Oren-Nayar Diffuse Ground
+## 9.6 Oren-Nayar Diffuse Ground
 
 The standard atmosphere model treats the ground as fully absorbing — light reaching the surface is lost. In reality, the ground reflects scattered sunlight back into the sky, brightening the lower atmosphere, especially near the horizon. An **Oren-Nayar BRDF** models this reflection more accurately than a simple Lambertian for rough surfaces like terrain.
 
@@ -276,7 +276,7 @@ let groundReflected = groundAlbedo * groundIrradiance * orenNayar(..., roughness
 
 This adds a subtle warm tint to the lower sky that improves realism, particularly during sunrise and sunset when the ground reflection path is longest.
 
-## 10.7 Ozone Absorption (Chappuis Band)
+## 9.7 Ozone Absorption (Chappuis Band)
 
 Ozone in the stratosphere absorbs visible light in the **Chappuis band** (500–700 nm, peak ~600 nm). While the effect is negligible at high sun angles, it becomes visible at twilight when sunlight travels through a long path in the ozone layer. The absorption gives the zenith sky a subtle purple-pink hue at sunset.
 
@@ -307,7 +307,7 @@ let transmittance = exp(
 
 This produces the characteristic **purple-pink zenith glow** at sunset that a Rayleigh+Mie-only model misses.
 
-## 10.8 Day/Night Cycle and Star Rendering
+## 9.8 Day/Night Cycle and Star Rendering
 
 The day/night cycle is driven from the game loop in `crafty/main.ts`. A single linear angle `sunAngle` controls the entire cycle:
 
@@ -432,7 +432,7 @@ Three factors gate star visibility:
 
 The `sample_stars()` function (in the same shader) generates a procedural star field using a pseudo-random hash of the view direction, producing thousands of stars of varying brightness without any texture. This keeps the star field crisp at any resolution.
 
-## 10.9 God Rays (Crepuscular Rays)
+## 9.9 God Rays (Crepuscular Rays)
 
 The `GodrayPass` (`src/renderer/passes/godray_pass.ts`) renders volumetric light shafts — rays of light that appear when sunlight filters through semitransparent occluders (clouds, tree leaves). The trick is that we don't actually march through 3D space: we just sample the screen-space HDR image along a 1D ray pointing back toward the sun, accumulating luminance as we go:
 
@@ -465,7 +465,7 @@ hdrColor += godrayColor * intensity;
 
 The sun screen position, density, decay, and intensity are configurable parameters that produce different godray effects — from subtle shafts to dramatic crepuscular rays.
 
-### 10.10 Summary
+### 9.10 Summary
 
 The sky and atmosphere system combines several layered techniques:
 
@@ -487,4 +487,4 @@ The sky and atmosphere system combines several layered techniques:
 - `src/shaders/clouds.wgsl` — Cloud raymarching shader
 
 ----
-[Contents](../crafty.md) | [09-Particle System](09-particle-system.md) | [11-Terrain](11-terrain.md)
+[Contents](../crafty.md) | [08-Particle System](08-particle-system.md) | [10-Terrain](10-terrain.md)

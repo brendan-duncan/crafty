@@ -1,10 +1,10 @@
-# Chapter 13: Game Engine Design
+# Chapter 12: Game Engine Design
 
-[Contents](../crafty.md) | [12-Post-Processing](12-post-processing.md) | [14-Physics](14-physics.md)
+[Contents](../crafty.md) | [11-Post-Processing](11-post-processing.md) | [13-Physics](13-physics.md)
 
 The game engine provides the structure for placing objects in the world, updating them each frame, and responding to user input.
 
-## 13.1 The Component/Entity System
+## 12.1 The Component/Entity System
 
 ![GameObject as a transform-plus-components container, with three example objects (Player, Sun, Torch) showing different attached components](../illustrations/13-component-entity.svg)
 
@@ -22,7 +22,7 @@ GameObject
 └── AudioSource      — spatial audio emitter
 ```
 
-## 13.2 GameObject and Component
+## 12.2 GameObject and Component
 
 ```typescript
 // ── from src/engine/game_object.ts ──
@@ -55,7 +55,7 @@ abstract class Component {
 }
 ```
 
-## 13.3 The Scene Graph
+## 12.3 The Scene Graph
 
 ![Hierarchy of GameObjects with parent-child links, plus a worked-out localToWorld() matrix multiplication walking from HeldTorch up through Player to root](../illustrations/13-scene-graph.svg)
 
@@ -78,7 +78,7 @@ class Scene {
 
 The scene graph is a tree. Each `GameObject` has a local transform relative to its parent. The `localToWorld()` method walks up the tree to compute the absolute transform.
 
-## 13.4 The Game Loop
+## 12.4 The Game Loop
 
 ![Six phases per requestAnimationFrame tick: input → scene → world → feed passes → render → schedule next frame](../illustrations/13-game-loop.svg)
 
@@ -116,7 +116,7 @@ function frame(time: number) {
 
 The frame rate is uncapped (tied to display refresh via `requestAnimationFrame`). `dt` is capped to prevent physics explosion on tab-switch.
 
-## 13.5 Input Handling
+## 12.5 Input Handling
 
 Input is managed by the `Input` class, which aggregates keyboard, mouse, and touch events:
 
@@ -133,7 +133,7 @@ class Input {
 
 The pointer lock API is used for first-person controls — the mouse cursor is hidden and mouse movement is reported as deltas.
 
-## 13.6 Camera Controls
+## 12.6 Camera Controls
 
 The `CameraController` component interprets input to move and rotate the camera. Yaw (horizontal) and pitch (vertical) are accumulated from mouse deltas:
 
@@ -155,7 +155,7 @@ class CameraController extends Component {
 }
 ```
 
-## 13.7 The Player Controller
+## 12.7 The Player Controller
 
 ![Three input sources (keyboard, mouse, touch) feed the PlayerController, which integrates velocity with gravity and collide-and-slide before writing back to the GameObject transform](../illustrations/13-player-controller.svg)
 
@@ -191,7 +191,7 @@ class PlayerController extends Component {
 }
 ```
 
-## 13.8 Touch Controls (Mobile)
+## 12.8 Touch Controls (Mobile)
 
 ![Phone mockup of the touch overlay: joystick (bottom-left), 3×2 action button grid (bottom-right), menu button (top-right), and look-drag area (right half) above the hotbar](../illustrations/13-touch-overlay.svg)
 
@@ -249,7 +249,7 @@ Toggle-type buttons use `_bindToggleButton`. The Run button (`>>`) toggles `play
 
 The action buttons are positioned with a `HOTBAR_CLEARANCE` of 70px from the bottom of the screen, keeping them above the 44px fixed hotbar. The virtual joystick uses the same clearance. A `resize` listener on the highlight overlay recalculates its position after orientation or resolution changes so the visual selection tracks the correct slot.
 
-## 13.9 World Persistence (IndexedDB)
+## 12.9 World Persistence (IndexedDB)
 
 Crafty saves local worlds in the browser's **IndexedDB** via the `WorldStorage` class (`crafty/game/world_storage.ts`). Each world is stored as a single record in a `worlds` object store keyed by a UUID:
 
@@ -366,7 +366,7 @@ During gameplay, the world record is updated periodically (every ~5 seconds) thr
 
 The start screen uses `storage.list()` to populate the saved-world selector and `storage.delete()` to remove worlds, with the screenshot Blob providing a visual thumbnail for each entry.
 
-### 13.10 Summary
+### 12.10 Summary
 
 The game engine layer provides:
 
@@ -384,4 +384,4 @@ The game engine layer provides:
 - `crafty/main.ts` — Touch control initialization and audio context bootstrap
 
 ----
-[Contents](../crafty.md) | [12-Post-Processing](12-post-processing.md) | [14-Physics](14-physics.md)
+[Contents](../crafty.md) | [11-Post-Processing](11-post-processing.md) | [13-Physics](13-physics.md)

@@ -1,10 +1,10 @@
-# Chapter 17: Audio
+# Chapter 16: Audio
 
-[Contents](../crafty.md) | [16-Weather System](16-weather-system.md) | [18-User Interface](18-user-interface.md)
+[Contents](../crafty.md) | [15-Weather System](15-weather-system.md) | [17-User Interface](17-user-interface.md)
 
 Audio in Crafty uses the Web Audio API for spatialised sound effects and background music. Audio playback is triggered by game events and positioned in 3D space relative to the listener (the player's camera).
 
-## 17.1 Web Audio API Fundamentals
+## 16.1 Web Audio API Fundamentals
 
 ![Two routes through the AudioContext: spatial SFX (Buffer → BufferSource → Panner → destination) and music (Buffer → BufferSource → Gain → destination), with the listener and bootstrap notes on the side](../illustrations/17-audio-graph.svg)
 
@@ -25,7 +25,7 @@ async function loadSound(url: string): Promise<AudioBuffer> {
 }
 ```
 
-## 17.2 Spatial Audio
+## 16.2 Spatial Audio
 
 ![Top-down listener with three sources at different angles; HRTF panning produces per-ear gain values driven by the listener's orientation](../illustrations/17-spatial-panning.svg)
 
@@ -67,7 +67,7 @@ The HRTF panning model provides realistic directional audio — sounds to the le
 
 ![Inverse distance rolloff curve: gain stays at 1.0 inside refDistance (5 m), then falls off as 5/d, clamping at maxDistance (50 m, gain ≈ 0.1)](../illustrations/17-distance-rolloff.svg)
 
-## 17.3 Sound Effect Triggers
+## 16.3 Sound Effect Triggers
 
 ![Event flow: game events on the left feed AudioManager.playAt(), which spins up a one-shot BufferSource → Panner → destination chain that disposes itself on "ended"](../illustrations/17-event-flow.svg)
 
@@ -93,7 +93,7 @@ class AudioManager {
 
 Footstep sounds are triggered by the player controller when the player moves and is on the ground. The sound varies based on the surface block type (grass, stone, wood).
 
-## 17.4 Ambient and Music
+## 16.4 Ambient and Music
 
 Background music and ambient sounds use looping playback with gain nodes for volume control:
 
@@ -118,7 +118,7 @@ class MusicPlayer {
 
 Ambient sounds (wind, birds, water near rivers) use spatial audio sources positioned at relevant locations in the world. Multiple ambient sources fade based on the player's proximity to biomes and features.
 
-### 17.5 Summary
+### 16.5 Summary
 
 The audio system uses the Web Audio API for spatial and ambient sound:
 
@@ -132,4 +132,4 @@ The audio system uses the Web Audio API for spatial and ambient sound:
 - `src/engine/components/audio_source.ts` — Spatial audio component
 
 ----
-[Contents](../crafty.md) | [16-Weather System](16-weather-system.md) | [18-User Interface](18-user-interface.md)
+[Contents](../crafty.md) | [15-Weather System](15-weather-system.md) | [17-User Interface](17-user-interface.md)

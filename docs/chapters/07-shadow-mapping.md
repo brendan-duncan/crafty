@@ -1,10 +1,10 @@
-# Chapter 8: Shadow Mapping
+# Chapter 7: Shadow Mapping
 
-[Contents](../crafty.md) | [07-Lighting](07-lighting.md) | [09-Particle System](09-particle-system.md)
+[Contents](../crafty.md) | [06-Lighting](06-lighting.md) | [08-Particle System](08-particle-system.md)
 
 Shadows are essential for spatial perception. Crafty implements three shadow techniques: **cascaded shadow maps** (CSM) for the directional sun light, **variance shadow maps** (VSM) for point and spot lights, and basic depth-only shadow maps for individual shadow-casting lights.
 
-## 8.1 Shadow Map Theory
+## 7.1 Shadow Map Theory
 
 The fundamental idea of shadow mapping is simple: render the scene from the light's perspective into a depth buffer (the shadow map), then during shading, compare each surface point's depth against the shadow map at the corresponding light-space coordinate. If the surface point is farther from the light than the closest surface recorded in the shadow map, it is in shadow.
 
@@ -41,7 +41,7 @@ depthStencil: {
 
 The `depthBiasSlopeScale` term adds bias proportional to the polygon's slope relative to the light direction, preventing "Peter Panning" (shadows detaching from the caster) on flat surfaces while avoiding excessive bias on steep ones.
 
-## 8.2 Cascade Shadow Maps (CSM)
+## 7.2 Cascade Shadow Maps (CSM)
 
 A single shadow map for a directional light covers too large an area to be useful — texels near the camera appear blocky. Cascade shadow maps split the view frustum into multiple depth ranges, each rendered into its own shadow map with texel density matched to that range.
 
@@ -126,7 +126,7 @@ let shadowUV = cascadeViewProj[cascadeIndex] * worldPos;
 
 The cascade count, split depths, and per-cascade view-projection matrices are uploaded to the light uniform buffer each frame.
 
-## 8.3 Variance Shadow Maps (VSM)
+## 7.3 Variance Shadow Maps (VSM)
 
 Crafty uses **VSM** for point and spot light shadows. VSM stores the depth *and* depth-squared in a `rg16float` texture, and uses variance-based filtering to produce soft, pre-filtered shadows without hardware PCF:
 
@@ -153,7 +153,7 @@ return smoothstep(0.4, 1.0, pMax);  // Soft shadow
 
 VSM's advantage is that the shadow map can be pre-filtered with a separable blur (like a Gaussian), producing soft, band-limited shadows without expensive PCF sampling. The `PointSpotShadowPass` (`src/renderer/passes/point_spot_shadow_pass.ts`) renders all active point and spot light shadows into a single VSM atlas.
 
-## 8.4 Spot Light Shadows
+## 7.4 Spot Light Shadows
 
 The `SpotShadowPass` (`src/renderer/passes/spot_shadow_pass.ts`) renders a single spot light's shadow into a 2D depth texture. It is a minimal depth-only pass:
 
@@ -200,7 +200,7 @@ vertex: {
 
 No fragment shader output is needed (depth-only), so `targets: []` is used in the pipeline.
 
-## 8.5 Point Light (Omnidirectional) Shadows
+## 7.5 Point Light (Omnidirectional) Shadows
 
 Point light shadows use a **cube-map depth texture** — 6 faces rendered from the light position, each covering a 90° field of view:
 
@@ -225,7 +225,7 @@ let shadow = fragDist > shadowDepth + bias ? 0.0 : 1.0;
 
 Cube shadow maps are expensive — they require 6 draw calls per light per frame. Crafty limits point light shadows to a small number of active lights.
 
-## 8.6 Shadow Sampling and Filtering
+## 7.6 Shadow Sampling and Filtering
 
 ### Percentage-Closer Filtering (PCF)
 
@@ -260,7 +260,7 @@ shadow /= f32(kernelSize);
 
 VSM shadows are blurred with a separable Gaussian kernel (two-pass: horizontal + vertical). The `PointSpotShadowPass` performs this blur in the same pass by writing to an intermediate `rg16float` render target and then to the final VSM atlas.
 
-## 8.7 Shadow Acne and Peter Panning
+## 7.7 Shadow Acne and Peter Panning
 
 ![Shadow bias trade-off: no bias gives self-shadowing acne, too much bias detaches the shadow from the caster, slope-scaled bias adapts per-polygon](../illustrations/08-shadow-bias.svg)
 
@@ -286,7 +286,7 @@ let blend = smoothstep(cascadeSplits[cascadeIndex] - blendRegion,
 shadow = mix(shadowCascade, shadowNextCascade, blend);
 ```
 
-## 8.8 Percentage-Closer Soft Shadows (PCSS)
+## 7.8 Percentage-Closer Soft Shadows (PCSS)
 
 Standard PCF uses a fixed kernel radius, producing shadows that are equally soft everywhere. In reality, shadows are sharper near the occluder and softer farther away. **Percentage-Closer Soft Shadows (PCSS)** approximate this by estimating the penumbra width per-fragment and scaling the PCF kernel accordingly.
 
@@ -333,7 +333,7 @@ The penumbra estimation runs in world units and is converted to per-cascade texe
 
 Crafty applies PCSS to the directional sun light's cascaded shadow maps. The `shadowSoftness` parameter is exposed through the settings UI (`effect_settings.ts`), giving the player control over how quickly shadows transition from sharp to soft.
 
-### 8.9 Summary
+### 7.9 Summary
 
 | Technique | Used for | Texture | Resolution | Filtering |
 |-----------|----------|---------|------------|-----------|
@@ -352,4 +352,4 @@ Crafty applies PCSS to the directional sun light's cascaded shadow maps. The `sh
 - `src/shaders/point_spot_shadow.wgsl` — VSM shadow shader
 
 ----
-[Contents](../crafty.md) | [07-Lighting](07-lighting.md) | [09-Particle System](09-particle-system.md)
+[Contents](../crafty.md) | [06-Lighting](06-lighting.md) | [08-Particle System](08-particle-system.md)

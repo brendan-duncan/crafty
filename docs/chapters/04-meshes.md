@@ -1,10 +1,10 @@
-# Chapter 5: Meshes and Geometry
+# Chapter 4: Meshes and Geometry
 
-[Contents](../crafty.md) | [04-Rendering Architecture](04-rendering-architecture.md) | [06-Textures / Materials](06-textures-materials.md)
+[Contents](../crafty.md) | [03-Rendering Architecture](03-rendering-architecture.md) | [05-Textures / Materials](05-textures-materials.md)
 
 Every visible object in Crafty is represented by a **mesh** — a collection of vertices and indices that define its shape. This chapter covers how meshes are defined, uploaded to the GPU, and rendered.
 
-## 5.1 Vertex and Index Buffers
+## 4.1 Vertex and Index Buffers
 
 A mesh in WebGPU lives in two GPU buffers: a **vertex buffer** holding per-vertex data (positions, normals, UVs, tangents) and an **index buffer** specifying which vertices form triangles.
 
@@ -88,7 +88,7 @@ static fromData(device: GPUDevice, vertices: Float32Array, indices: Uint32Array)
 
 Both buffers use `COPY_DST` so they can be populated with `queue.writeBuffer()`. This is a one-time upload — once populated, the vertex and index data lives entirely on the GPU.
 
-## 5.2 Vertex Attributes and Layouts
+## 4.2 Vertex Attributes and Layouts
 
 The vertex buffer layout is specified when creating a render pipeline:
 
@@ -108,11 +108,11 @@ vertex: {
 
 WebGPU supports multiple vertex buffers (for separate position/normal/UV streams), but Crafty uses **interleaved** vertices — all attributes for a single vertex are packed into one buffer entry. This is simpler and more cache-efficient for the typical rendering pattern of iterating vertices sequentially.
 
-## 5.3 The Mesh Asset Type
+## 4.3 The Mesh Asset Type
 
 Crafty's `Mesh` class is the sole mesh representation. There is no higher-level "model" class — a model is simply a collection of `Mesh` + `Material` pairs enumerated during rendering.
 
-## 5.4 Procedural Geometry
+## 4.4 Procedural Geometry
 
 ### Plane
 
@@ -336,7 +336,7 @@ This produces normals that are perpendicular to the cone's slanted surface, givi
 
 The cone is useful for rendering volumetric light cones (spot lights), particle emission cones, and any conical procedural shape.
 
-## 5.5 Skinned Meshes and Skeletons
+## 4.5 Skinned Meshes and Skeletons
 
 Skinned meshes extend the basic mesh with **joint influences** — each vertex is bound to up to four bones with corresponding weights. The actual deformation happens entirely on the GPU: every vertex carries 4 joint indices and 4 weights, and the vertex shader looks up the matching joint matrices in a storage buffer to produce the final position:
 
@@ -368,7 +368,7 @@ fn skin_position(position: vec3f, joints: vec4u, weights: vec4f) -> vec3f {
 
 The `SkinnedGeometryPass` renders these meshes into the G-buffer, applying the joint transform before the standard vertex transform chain.
 
-## 5.6 Animation
+## 4.6 Animation
 
 Animation in Crafty is stored as **clips** — sequences of joint transforms sampled at a fixed rate. Animation playback interpolates between keyframes:
 
@@ -396,7 +396,7 @@ queue.writeBuffer(jointBuffer, 0, jointMatrices.buffer);
 
 The storage buffer is bound at group 3 of the skinned geometry pipeline, separate from the group-2 material bindings, so the same material system works for both static and skinned meshes.
 
-## 5.7 GLTF 2.0 Binary Loader
+## 4.7 GLTF 2.0 Binary Loader
 
 Crafty's `GltfLoader` (`src/assets/gltf_loader.ts`) loads animated, skinned models from binary glTF 2.0 (`.glb`) files. It parses the GLB container, decodes accessors, generates tangents, and produces GPU-ready meshes, materials, skeletons, and animation clips.
 
@@ -541,7 +541,7 @@ skeleton = new Skeleton(parentIndices, invBindMats, restT, restR, restS, rootTra
 
 Animation channels are grouped into `AnimationClip` objects, each containing per-joint keyframe sequences with configurable interpolation (LINEAR, STEP, CUBICSPLINE). The loader returns all parsed resources in a `GltfModel` object that owns the GPU buffers — the caller must call `model.destroy()` to release them.
 
-### 5.8 Summary
+### 4.8 Summary
 
 The mesh system is self-contained and minimal:
 
@@ -560,4 +560,4 @@ Meshes are drawn by render passes that iterate `DrawItem` lists — each item pa
 - `src/renderer/passes/skinned_geometry_pass.ts` — Draws skinned meshes into the G-buffer
 
 ----
-[Contents](../crafty.md) | [04-Rendering Architecture](04-rendering-architecture.md) | [06-Textures / Materials](06-textures-materials.md)
+[Contents](../crafty.md) | [03-Rendering Architecture](03-rendering-architecture.md) | [05-Textures / Materials](05-textures-materials.md)

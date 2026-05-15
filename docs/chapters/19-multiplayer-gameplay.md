@@ -1,10 +1,10 @@
-# Chapter 20: Multiplayer Gameplay
+# Chapter 19: Multiplayer Gameplay
 
-[Contents](../crafty.md) | [19-Network Architecture](19-network-architecture.md) | [21-Performance](21-performance.md)
+[Contents](../crafty.md) | [18-Network Architecture](18-network-architecture.md) | [20-Performance](20-performance.md)
 
 Multiplayer gameplay adds state synchronization, remote player rendering, and latency compensation.
 
-## 20.1 Player State Synchronization
+## 19.1 Player State Synchronization
 
 ![Multiple clients sending input frames up at 20 Hz to a central server, which broadcasts merged snapshots back down at 20 Hz to every client — fan-in / fan-out shape with sequence numbers on each frame](../illustrations/20-state-sync.svg)
 
@@ -55,7 +55,7 @@ class PlayerConn {
 }
 ```
 
-## 20.2 Snapshot Interpolation
+## 19.2 Snapshot Interpolation
 
 ![Timeline showing snapshots arriving every 50 ms; the render cursor sits 100 ms behind real-time and lerps between the two bracketing snapshots so motion stays smooth even as packets arrive irregularly](../illustrations/20-snapshot-interpolation.svg)
 
@@ -89,7 +89,7 @@ class SnapshotInterpolator {
 
 The 100 ms render delay gives the interpolation buffer time to fill. This introduces a small but imperceptible input lag while eliminating visible jitter.
 
-## 20.3 Remote Player Rendering
+## 19.3 Remote Player Rendering
 
 Remote players are rendered as animated character meshes with name labels. The `RemotePlayer` component updates its position from the interpolated snapshot:
 
@@ -113,7 +113,7 @@ class RemotePlayer {
 }
 ```
 
-## 20.4 Name Labels
+## 19.4 Name Labels
 
 ![A 3D world position above a remote player's head is multiplied by the camera's view-projection matrix, divided by w to get NDC, then mapped to canvas pixels — a DOM label is positioned at that pixel and hidden when z ≤ 0 (behind the camera)](../illustrations/20-name-label-projection.svg)
 
@@ -131,7 +131,7 @@ function updateNameLabel(label: HTMLElement, worldPos: Vec3, camera: Camera, can
 
 The label fades with distance and is hidden when behind the camera. Player names are sent once in the `hello` message and stored on the server; the name input is disabled after connecting to prevent confusion.
 
-## 20.5 Block Edit Replication
+## 19.5 Block Edit Replication
 
 ![Editor client predicts the change locally and ships block_edit to the server; server validates, applies to authoritative world, fans out block_update to all peers, and acks the originator with block_ack](../illustrations/20-block-edit-replication.svg)
 
@@ -152,7 +152,7 @@ server.onBlockEdit(player, msg) {
 }
 ```
 
-## 20.6 Latency Compensation
+## 19.6 Latency Compensation
 
 Crafty does not implement server-side rewind (lag compensation) for block interactions. Instead, the client uses a simple interpolation delay that trades a small amount of latency for smoothness:
 
@@ -162,7 +162,7 @@ Crafty does not implement server-side rewind (lag compensation) for block intera
 
 This approach is sufficient for a creative-mode voxel game where precise frame-perfect interaction timing is not critical.
 
-### 20.7 Summary
+### 19.7 Summary
 
 Multiplayer gameplay builds on the network architecture with:
 
@@ -178,4 +178,4 @@ Multiplayer gameplay builds on the network architecture with:
 - `server/src/world_room.ts` — Server-side broadcast
 
 ----
-[Contents](../crafty.md) | [19-Network Architecture](19-network-architecture.md) | [21-Performance](21-performance.md)
+[Contents](../crafty.md) | [18-Network Architecture](18-network-architecture.md) | [20-Performance](20-performance.md)
