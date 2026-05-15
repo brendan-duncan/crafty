@@ -11,7 +11,7 @@ export { RenderPass } from './render_pass.js';
 export { RenderGraph } from './render_graph.js';
 export { GBuffer } from './gbuffer.js';
 export { ShadowPass } from './passes/shadow_pass.js';
-export { SkyTexturePass as SkyPass } from './passes/sky_texture_pass.js';
+export { SkyTexturePass } from './passes/sky_texture_pass.js';
 export { AtmospherePass } from './passes/atmosphere_pass.js';
 export { BlockHighlightPass } from './passes/block_highlight_pass.js';
 export { CloudPass } from './passes/cloud_pass.js';

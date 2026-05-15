@@ -13,7 +13,7 @@ import foxUrl         from '../assets/fox.glb?url';
 import { Mat4, Vec3, Quaternion } from '../src/math/index.js';
 import { GameObject, Scene, Camera, DirectionalLight, MeshRenderer, CameraController, AnimatedModel, PointLight, SpotLight } from '../src/engine/index.js';
 import { PbrMaterial } from '../src/renderer/materials/pbr_material.js';
-import { RenderContext, RenderGraph, GBuffer, ShadowPass, SkyPass, GeometryPass, SkinnedGeometryPass, DeferredLightingPass, TAAPass, SSAOPass, SSGIPass, DofPass, BloomPass, CompositePass, DebugLightPass, ParticlePass, CloudPass, CloudShadowPass, AutoExposurePass, PointSpotShadowPass, PointSpotLightPass } from '../src/renderer/index.js';
+import { RenderContext, RenderGraph, GBuffer, ShadowPass, SkyTexturePass, GeometryPass, SkinnedGeometryPass, DeferredLightingPass, TAAPass, SSAOPass, SSGIPass, DofPass, BloomPass, CompositePass, DebugLightPass, ParticlePass, CloudPass, CloudShadowPass, AutoExposurePass, PointSpotShadowPass, PointSpotLightPass } from '../src/renderer/index.js';
 import type { CloudSettings } from '../src/renderer/index.js';
 import type { ParticleGraphConfig } from '../src/particles/index.js';
 import { Mesh, BlockTexture, GltfLoader, createCloudNoiseTextures } from '../src/assets/index.js';
@@ -252,7 +252,7 @@ async function main() {
   let gbuffer: GBuffer;
   let geometryPass: GeometryPass;
   let ssaoPass: SSAOPass;
-  let skyPass: SkyPass | null = null;
+  let skyPass: SkyTexturePass | null = null;
   let cloudShadowPass: CloudShadowPass | null = null;
   let cloudPass: CloudPass | null = null;
   let lightingPass: DeferredLightingPass;
@@ -418,7 +418,7 @@ async function main() {
         cloudShadowView: undefined,
         iblTextures
       });
-      skyPass = SkyPass.create(ctx, lightingPass.outputView, skyTexture);
+      skyPass = SkyTexturePass.create(ctx, lightingPass.outputView, skyTexture);
     }
     pointSpotShadowPass = PointSpotShadowPass.create(ctx);
     pointSpotLightPass  = PointSpotLightPass.create(ctx, gbuffer, pointSpotShadowPass, lightingPass.outputView);
