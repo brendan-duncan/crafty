@@ -19,9 +19,15 @@ export default defineConfig({
          cascade_shadow_test: 'samples/cascade_shadow_test.html',
          forward_test: 'samples/forward_test.html',
          procedural_test: 'samples/procedural_test.html',
-         terraforming_test: 'samples/terraforming_test.html',
-         animal_test: 'samples/animal_test.html',
-       }
+          terraforming_test: 'samples/terraforming_test.html',
+          animal_test: 'samples/animal_test.html',
+          rg_procedural: 'samples/rg_procedural.html',
+          rg_forward: 'samples/rg_forward.html',
+          rg_forward_cascade_shadow: 'samples/rg_forward_cascade_shadow.html',
+          rg_deferred: 'samples/rg_deferred.html',
+          rg_sky_dof: 'samples/rg_sky_dof.html',
+          rg_full: 'samples/rg_full.html',
+        }
     }
   },
   assetsInclude: ['**/*.wav'],
