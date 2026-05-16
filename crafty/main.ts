@@ -34,7 +34,6 @@ import { createHotbar } from './ui/hotbar.js';
 import { createBlockManager } from './ui/block_manager.js';
 import { createControlPanel } from './ui/control_panel.js';
 import { createMenu } from './ui/menu.js';
-import { createRenderGraphViz } from '../src/renderer/render_graph/ui/render_graph_viz.js';
 import { createHud } from './ui/hud.js';
 
 // Game logic imports
@@ -142,19 +141,6 @@ async function main(): Promise<void> {
   const hud = createHud();
   const menu = createMenu(canvas, hud.reticle);
 
-  const graphViz = createRenderGraphViz(hud.reticle, {
-    onBeforeOpen: () => {
-      menu.setSuppressAutoOpen(true);
-      if (document.pointerLockElement === canvas) {
-        document.exitPointerLock();
-      }
-    },
-    onAfterClose: () => {
-      menu.setSuppressAutoOpen(false);
-      canvas.requestPointerLock();
-    },
-  });
-
   // Create world and scene
   const worldSeed = welcome?.seed ?? savedWorld?.seed ?? 13;
   const world = new World(worldSeed);
@@ -213,14 +199,6 @@ async function main(): Promise<void> {
     }
     if (e.code === 'KeyR' && !e.repeat) {
       hotbar.setRunState(playerSetup.isRunEnabled());
-    }
-    if (e.code === 'KeyG' && !e.repeat) {
-      if (graphViz.isOpen()) {
-        graphViz.close();
-      } else {
-        graphViz.setGraph(passes.graph!);
-        graphViz.open();
-      }
     }
   });
 
