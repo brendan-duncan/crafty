@@ -142,36 +142,21 @@ async function main() {
   cameraController.attach(canvas);
 
   // Animation state
-  let time = 0;
-  let lastTime = performance.now();
-  let frameCount = 0;
-  let fpsAccum = 0;
 
   const renderGraph = new RenderGraph();
   renderGraph.addPass(dirShadowPass);
   renderGraph.addPass(forwardPass);
 
   async function render() {
-    const now = performance.now();
-    const dt = (now - lastTime) * 0.001;
-    lastTime = now;
-    time += dt;
-
     ctx.update();
 
     const currentView = ctx.backbufferView;
 
-    frameCount++;
-    fpsAccum += dt;
-    if (fpsAccum >= 0.5) {
-      fpsEl.textContent = `FPS: ${Math.round(frameCount / fpsAccum)}`;
-      frameCount = 0;
-      fpsAccum = 0;
-    }
+    fpsEl.textContent = `FPS: ${ctx.fps}`;
 
     // Camera
     const camera = new GameObject({ position: camPos });
-    cameraController.update(camera, dt);
+    cameraController.update(camera, ctx.deltaTime);
 
     const sinY = Math.sin(cameraController.yaw);
     const cosY = Math.cos(cameraController.yaw);
@@ -217,7 +202,7 @@ async function main() {
       {
         mesh: cubeMesh,
         modelMatrix: Mat4.translation(0, 1.5, 0).multiply(
-          Mat4.rotationY(time * 40 * Math.PI / 180),
+          Mat4.rotationY(ctx.elapsedTime * 40 * Math.PI / 180),
         ),
         normalMatrix: Mat4.identity(),
         material: matB,
@@ -225,9 +210,9 @@ async function main() {
       {
         mesh: sphereMesh,
         modelMatrix: Mat4.translation(
-          Math.sin(time * 0.6) * spread, 1.5, Math.cos(time * 0.6) * spread,
+          Math.sin(ctx.elapsedTime * 0.6) * spread, 1.5, Math.cos(ctx.elapsedTime * 0.6) * spread,
         ).multiply(
-          Mat4.rotationY(time * 60 * Math.PI / 180),
+          Mat4.rotationY(ctx.elapsedTime * 60 * Math.PI / 180),
         ),
         normalMatrix: Mat4.identity(),
         material: matC,
@@ -235,7 +220,7 @@ async function main() {
       {
         mesh: coneMesh,
         modelMatrix: Mat4.translation(
-          Math.sin(time * 0.6 + Math.PI) * spread, 1.5, Math.cos(time * 0.6 + Math.PI) * spread,
+          Math.sin(ctx.elapsedTime * 0.6 + Math.PI) * spread, 1.5, Math.cos(ctx.elapsedTime * 0.6 + Math.PI) * spread,
         ),
         normalMatrix: Mat4.identity(),
         material: matA,
@@ -243,9 +228,9 @@ async function main() {
     ];
 
     // Update procedural material time uniform
-    matA.time = time;
-    matB.time = time;
-    matC.time = time;
+    matA.time = ctx.elapsedTime;
+    matB.time = ctx.elapsedTime;
+    matC.time = ctx.elapsedTime;
     matA.markDirty();
     matB.markDirty();
     matC.markDirty();

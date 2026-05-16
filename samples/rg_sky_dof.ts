@@ -83,22 +83,17 @@ async function main(): Promise<void> {
     }
   });
 
-  let lastTime = 0;
   let smoothFps = 0;
 
-  function frame(time: number): void {
-    const dt = (time - lastTime) / 1000;
-    lastTime = time;
-
+  function frame(): void {
     ctx.update();
-    if (dt > 0) {
-      smoothFps += (1 / dt - smoothFps) * 0.1;
+    if (ctx.deltaTime > 0) {
+      smoothFps += (1 / ctx.deltaTime - smoothFps) * 0.1;
       statsEl.textContent = `${smoothFps.toFixed(0)} fps | Forward PBR + Sky + DOF`;
     }
 
-    const t = time * 0.001;
-    const sunAngle = t * 0.3;
-    cameraController.update(cameraGO, dt);
+    const sunAngle = ctx.elapsedTime * 0.3;
+    cameraController.update(cameraGO, ctx.deltaTime);
 
     const aspect = ctx.width / ctx.height;
     const proj = Mat4.perspective(60 * Math.PI / 180, aspect, 0.1, 100);

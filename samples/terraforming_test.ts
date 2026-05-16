@@ -675,32 +675,15 @@ async function main() {
     ctx.backbufferDepthView!
   );
 
-  let time = 0;
-  let lastTime = performance.now();
-  let frameCount = 0;
-  let fpsTime = 0;
-
   async function render() {
-    const now = performance.now();
-    const dt = (now - lastTime) * 0.001;
-    lastTime = now;
-    time += dt;
-
-    frameCount++;
-    fpsTime += dt;
-    if (fpsTime >= 0.5) {
-      const fps = Math.round(frameCount / fpsTime);
-      fpsElement.textContent = `FPS: ${fps}`;
-      frameCount = 0;
-      fpsTime = 0;
-      const brushInfo = document.getElementById('brush-info')!;
-      const mode = brushStrength > 0 ? 'Add' : 'Remove';
-      brushInfo.textContent = `Brush: ${mode} | Radius: ${brushRadius.toFixed(1)}`;
-    }
-
     ctx.update();
 
-    cameraController.update(fakeGO as any, dt);
+    fpsElement.textContent = `FPS: ${ctx.fps}`;
+    const brushInfo = document.getElementById('brush-info')!;
+    const mode = brushStrength > 0 ? 'Add' : 'Remove';
+    brushInfo.textContent = `Brush: ${mode} | Radius: ${brushRadius.toFixed(1)}`;
+
+    cameraController.update(fakeGO as any, ctx.deltaTime);
 
     const sinY = Math.sin(cameraController.yaw);
     const cosY = Math.cos(cameraController.yaw);

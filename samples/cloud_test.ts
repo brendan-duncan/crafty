@@ -255,27 +255,14 @@ async function main() {
   let shadowReadbackFrame = 0;
 
   // Render loop
-  let lastTime = performance.now();
-  let frameCount = 0;
-  let fpsTime = 0;
 
   async function render() {
-    const now = performance.now();
-    const dt = (now - lastTime) * 0.001;
-    lastTime = now;
-
     ctx.update();
 
-    frameCount++;
-    fpsTime += dt;
-    if (fpsTime >= 0.5) {
-      fpsElement.textContent = `FPS: ${Math.round(frameCount / fpsTime)}`;
-      frameCount = 0;
-      fpsTime = 0;
-    }
+    fpsElement.textContent = `FPS: ${ctx.fps}`;
 
-    cameraController.update(cameraGO, dt);
-    scene.update(dt);
+    cameraController.update(cameraGO, ctx.deltaTime);
+    scene.update(ctx.deltaTime);
 
     const camPos = camera.position();
     const view = camera.viewMatrix();
@@ -305,8 +292,8 @@ async function main() {
 
       const windSpeed = 0.03;
       const windDir: [number, number] = [1, 0.3];
-      cloudSettings.windOffset[0] += windSpeed * windDir[0] * dt;
-      cloudSettings.windOffset[1] += windSpeed * windDir[1] * dt;
+      cloudSettings.windOffset[0] += windSpeed * windDir[0] * ctx.deltaTime;
+      cloudSettings.windOffset[1] += windSpeed * windDir[1] * ctx.deltaTime;
 
       cloudShadowPass.update(ctx, cloudSettings, [0, 0], 100);
       godrayPass.updateCloudDensity(ctx, cloudSettings);

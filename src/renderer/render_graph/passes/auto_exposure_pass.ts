@@ -149,11 +149,11 @@ export class AutoExposurePass extends Pass<AutoExposureDeps, AutoExposureOutputs
     );
   }
 
-  /** Update auto-exposure settings and the per-frame delta time. */
-  update(_ctx: RenderContext, dt: number, settings: AutoExposureSettings = DEFAULT_AUTO_EXPOSURE): void {
-    this._dt = dt;
+  /** Update auto-exposure settings. Delta time is read from {@link RenderContext.deltaTime}. */
+  update(ctx: RenderContext, settings: AutoExposureSettings = DEFAULT_AUTO_EXPOSURE): void {
+    this._dt = ctx.deltaTime;
     this._settings = settings;
-    AutoExposurePass._writeParams(this._device, this._paramsBuffer, dt, settings);
+    AutoExposurePass._writeParams(this._device, this._paramsBuffer, ctx.deltaTime, settings);
   }
 
   addToGraph(graph: RenderGraph, deps: AutoExposureDeps): AutoExposureOutputs {

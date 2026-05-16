@@ -149,9 +149,6 @@ async function main() {
   renderGraph.addPass(tonemapPass);
 
   // Frame state
-  let lastTime = performance.now();
-  let frameCount = 0;
-  let fpsTime = 0;
   let debugCascades = false;
   let sunAngle = Math.PI * 0.3; // Start at ~30 degrees above horizon
 
@@ -164,24 +161,12 @@ async function main() {
   });
 
   async function render() {
-    const now = performance.now();
-    const dt = (now - lastTime) * 0.001;
-    lastTime = now;
-
     ctx.update();
 
-    // FPS counter
-    frameCount++;
-    fpsTime += dt;
-    if (fpsTime >= 0.5) {
-      const fps = Math.round(frameCount / fpsTime);
-      fpsElement.textContent = `FPS: ${fps}`;
-      frameCount = 0;
-      fpsTime = 0;
-    }
+    fpsElement.textContent = `FPS: ${ctx.fps}`;
 
     // Animate sun
-    sunAngle += dt * 0.05; // Faster than main demo for testing
+    sunAngle += ctx.deltaTime * 0.05; // Faster than main demo for testing
 
     // Skew so day lasts ~⅔ of the cycle, night ~⅓.
     const _dayFraction = 0.65;
@@ -207,10 +192,10 @@ async function main() {
     sun.color.set(1.0, 0.8 + 0.2 * t, 0.6 + 0.4 * t);
 
     // Update camera controls
-    cameraController.update(cameraGO, dt);
+    cameraController.update(cameraGO, ctx.deltaTime);
 
     // Update scene
-    scene.update(dt);
+    scene.update(ctx.deltaTime);
 
     // Update camera matrices
     const camPos = camera.position();

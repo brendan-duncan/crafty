@@ -370,34 +370,30 @@ async function main(): Promise<void> {
   resizeObserver.observe(canvas);
 
   // ── Frame loop ────────────────────────────────────────────────────────────
-  let lastTime = 0;
   let smoothFps = 0;
   let angle = 0;
   let frameIndex = 0;
   let prevViewProj: Mat4 | null = null;
   let loggedPasses = '';
 
-  function frame(time: number): void {
-    const dt = (time - lastTime) / 1000;
-    lastTime = time;
-
+  function frame(): void {
     ctx.update();
-    if (dt > 0) {
-      smoothFps += (1 / dt - smoothFps) * 0.1;
+    if (ctx.deltaTime > 0) {
+      smoothFps += (1 / ctx.deltaTime - smoothFps) * 0.1;
       fpsEl.textContent = `${smoothFps.toFixed(0)} fps`;
     }
-    angle += dt;
+    angle += ctx.deltaTime;
 
     fireEmitterGO.position.set(5 + Math.cos(angle) * 2, 0, 5 + Math.sin(angle) * 2);
     sparksEmitterGO.position.set(-3 + Math.cos(angle * 1.5) * 1.5, 0, 2 + Math.sin(angle * 1.5) * 1.5);
     cubeGOs.forEach((go, i) => {
       go.rotation = Quaternion.fromAxisAngle(Vec3.up(), angle * cubeConfigs[i].speed);
     });
-    cameraController.update(cameraGO, dt);
+    cameraController.update(cameraGO, ctx.deltaTime);
 
     const sunAngle = angle * 0.4;
     sun.direction.set(Math.cos(sunAngle), -0.8, Math.sin(sunAngle));
-    scene.update(dt);
+    scene.update(ctx.deltaTime);
 
     // Camera matrices (with Halton jitter for TAA).
     const hi = (frameIndex % 16) + 1;
@@ -451,8 +447,8 @@ async function main(): Promise<void> {
     pointSpotLightPass.updateLights(ctx, pointLights, spotLights);
 
     if (effects.clouds) {
-      cloudSettings.windOffset[0] += cloudWindSpeed * cloudWindDir[0] * dt;
-      cloudSettings.windOffset[1] += cloudWindSpeed * cloudWindDir[1] * dt;
+      cloudSettings.windOffset[0] += cloudWindSpeed * cloudWindDir[0] * ctx.deltaTime;
+      cloudSettings.windOffset[1] += cloudWindSpeed * cloudWindDir[1] * ctx.deltaTime;
       cloudShadowPass.update(ctx, cloudSettings, [0, 0], 60);
       cloudPass.updateCamera(ctx, invVP, camPos, camera.near, camera.far);
       cloudPass.updateLight(ctx, sun.direction, sun.color, sun.intensity);
@@ -470,15 +466,15 @@ async function main(): Promise<void> {
     ssgiPass.updateSettings({ strength: effects.ssgi ? 1.0 : 0.0 });
     ssgiPass.updateCamera(ctx, view, proj, invProj, invVP, prevViewProj ?? vp, camPos);
 
-    firePass.update(ctx, dt, view, proj, vp, invVP, camPos, camera.near, camera.far, fireEmitterGO.localToWorld());
-    sparksPass.update(ctx, dt, view, proj, vp, invVP, camPos, camera.near, camera.far, sparksEmitterGO.localToWorld());
+    firePass.update(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far, fireEmitterGO.localToWorld());
+    sparksPass.update(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far, sparksEmitterGO.localToWorld());
     const rainMat = new Mat4([1,0,0,0, 0,1,0,0, 0,0,1,0, camPos.x, camPos.y + 8, camPos.z, 1]);
-    rainPass.update(ctx, dt, view, proj, vp, invVP, camPos, camera.near, camera.far, rainMat);
+    rainPass.update(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far, rainMat);
     const snowMat = new Mat4([1,0,0,0, 0,1,0,0, 0,0,1,0, camPos.x, camPos.y + 8, camPos.z, 1]);
-    snowPass.update(ctx, dt, view, proj, vp, invVP, camPos, camera.near, camera.far, snowMat);
+    snowPass.update(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far, snowMat);
 
     taaPass.updateCamera(ctx, invVP, prevViewProj ?? vp);
-    autoExposurePass.update(ctx, dt);
+    autoExposurePass.update(ctx);
     compositePass.updateParams(ctx, false, 0, true, false, ctx.hdr);
     compositePass.updateStars(ctx, invVP, camPos, new Vec3(0, 1, 0));
 

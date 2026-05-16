@@ -717,8 +717,6 @@ async function main(): Promise<void> {
   resizeObserver.observe(canvas);
 
   // Frame loop state
-  let lastTime = 0;
-  let smoothFps = 0;
   let lastHudUpdate = -Infinity;
   let sunAngle = welcome?.sunAngle ?? savedWorld?.sunAngle ?? Math.PI * 0.3;
   let waterTime = 0;
@@ -842,21 +840,16 @@ async function main(): Promise<void> {
     });
   }
 
-  async function frame(time: number): Promise<void> {
+  async function frame(): Promise<void> {
     ctx.pushPassErrorScope('frame');
-    const dt = Math.min((time - lastTime) / 1000, 0.1);
-    lastTime = time;
-
     ctx.update();
 
-    const updateHud = time - lastHudUpdate >= 1000;
-    if (updateHud) {
-      lastHudUpdate = time;
-    }
-    if (dt > 0) {
-      smoothFps += (1 / dt - smoothFps) * 0.1;
-    }
+    const dt = Math.min(ctx.deltaTime, 0.1);
 
+    const updateHud = ctx.elapsedTime - lastHudUpdate >= 1.0;
+    if (updateHud) {
+      lastHudUpdate = ctx.elapsedTime;
+    }
     sunAngle  += dt * 0.01;
     waterTime += dt;
     cloudWindX += dt * 1.5;
@@ -888,8 +881,8 @@ async function main(): Promise<void> {
     } else {
       freeCamera.update(cameraGO, dt);
     }
-    updateTorchFlicker(time / 1000);
-    updateMagmaFlicker(time / 1000);
+    updateTorchFlicker(ctx.elapsedTime);
+    updateMagmaFlicker(ctx.elapsedTime);
 
     const camPos = camera.position();
 
@@ -941,7 +934,7 @@ async function main(): Promise<void> {
     cloudTop  += (targetBounds.cloudTop  - cloudTop)  * Math.min(1, 0.3 * dt);
 
     if (updateHud) {
-      hud.fps.textContent = `${smoothFps.toFixed(0)} fps`;
+      hud.fps.textContent = `${ctx.fps.toFixed(0)} fps`;
       const kTris = (passes.blockGeometryPass!.triangles / 1000).toFixed(1);
       hud.stats.textContent = `${passes.blockGeometryPass!.drawCalls} draws  ${kTris}k tris\n${world.chunkCount} chunks  ${world.pendingChunks} pending`;
       hud.biome.textContent = BiomeType[biome];
@@ -1028,22 +1021,22 @@ async function main(): Promise<void> {
     passes.blockHighlightPass!.setCrackStage(blockInteraction.crackStage);
     passes.blockHighlightPass!.update(ctx, vp, highlightBlock);
 
-    updateBlockInteraction(dt, time, blockInteraction, world, () => hotbar.getSelected(), scene);
+    updateBlockInteraction(dt, performance.now(), blockInteraction, world, () => hotbar.getSelected(), scene);
 
     if (passes.rainPass) {
       heightmap.update(camPos.x, camPos.z, world);
       passes.rainPass.updateHeightmap(ctx, heightmap.data, camPos.x, camPos.z, heightmap.extent);
       const spawnOffset = passes.currentWeatherEffect === EnvironmentEffect.Snow ? 20 : 8;
       _rainMat.data[12] = camPos.x; _rainMat.data[13] = camPos.y + spawnOffset; _rainMat.data[14] = camPos.z;
-      passes.rainPass.update(ctx, dt, view, proj, vp, invVP, camPos, camera.near, camera.far, _rainMat);
+      passes.rainPass.update(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far, _rainMat);
     }
 
     // Block-break debris pass: continuous emitter is off; the per-frame update
     // still drives simulation so any in-flight burst particles age, fall, and shrink.
-    passes.blockBreakPass?.update(ctx, dt, view, proj, vp, invVP, camPos, camera.near, camera.far, _rainMat);
+    passes.blockBreakPass?.update(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far, _rainMat);
 
     // Creeper explosion particles (burst-only, same pattern).
-    passes.explosionPass?.update(ctx, dt, view, proj, vp, invVP, camPos, camera.near, camera.far, _rainMat);
+    passes.explosionPass?.update(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far, _rainMat);
 
     passes.dofPass?.updateParams(ctx, 8.0, 75.0, 3.0, camera.near, camera.far);
     passes.godrayPass?.updateParams(ctx);
@@ -1051,7 +1044,7 @@ async function main(): Promise<void> {
     const sunDir = { x: -sun.direction.x, y: -sun.direction.y, z: -sun.direction.z };
     passes.compositePass!.updateParams(ctx, isUnderwater, waterTime, effects.aces, effects.ao_dbg, effects.hdr);
     passes.compositePass!.updateStars(ctx, invVP, camPos, sunDir);
-    passes.autoExposurePass!.update(ctx, dt);
+    passes.autoExposurePass!.update(ctx);
     passes.taaPass!.updateCamera(ctx, invVP, passes.prevViewProj ?? vp);
 
     if (remotePlayers.size > 0) {

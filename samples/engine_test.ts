@@ -560,22 +560,18 @@ async function main() {
   ].join(';');
   document.body.appendChild(fpsEl);
 
-  let lastTime = 0;
   let smoothFps = 0;
   let angle = 0;
   let frameIndex = 0;
 
-  function frame(time: number) {
-    const dt = (time - lastTime) / 1000;
-    lastTime = time;
-
+  function frame() {
     ctx.update();
 
-    if (dt > 0) {
-      smoothFps += (1 / dt - smoothFps) * 0.1;
+    if (ctx.deltaTime > 0) {
+      smoothFps += (1 / ctx.deltaTime - smoothFps) * 0.1;
       fpsEl.textContent = `${smoothFps.toFixed(0)} fps`;
     }
-    angle += dt;
+    angle += ctx.deltaTime;
 
     fireEmitterGO.position.set(5 + Math.cos(angle) * 2, 0, 5 + Math.sin(angle) * 2);
     sparksEmitterGO.position.set(-3 + Math.cos(angle * 1.5) * 1.5, 0, 2 + Math.sin(angle * 1.5) * 1.5);
@@ -584,13 +580,13 @@ async function main() {
       go.rotation = Quaternion.fromAxisAngle(Vec3.up(), angle * cubeConfigs[i].speed);
     });
 
-    cameraController.update(cameraGO, dt);
+    cameraController.update(cameraGO, ctx.deltaTime);
 
     if (sun) {
       const sunAngle = angle * 0.4;
       sun.direction.set(Math.cos(sunAngle), -0.8, Math.sin(sunAngle));
     }
-    scene.update(dt);
+    scene.update(ctx.deltaTime);
 
     const hi = (frameIndex % 16) + 1;
     const jx = (halton(hi, 2) - 0.5) * (2 / ctx.width);
@@ -629,8 +625,8 @@ async function main() {
     pointSpotLightPass?.updateLights(ctx, pointLights, spotLights);
 
     if (effects.clouds) {
-      cloudSettings.windOffset[0] += cloudWindSpeed * cloudWindDir[0] * dt;
-      cloudSettings.windOffset[1] += cloudWindSpeed * cloudWindDir[1] * dt;
+      cloudSettings.windOffset[0] += cloudWindSpeed * cloudWindDir[0] * ctx.deltaTime;
+      cloudSettings.windOffset[1] += cloudWindSpeed * cloudWindDir[1] * ctx.deltaTime;
       cloudShadowPass?.update(ctx, cloudSettings, [0, 0], 60);
       cloudPass?.updateCamera(ctx, invVP, camPos, camera.near, camera.far);
       if (sun) cloudPass?.updateLight(ctx, sun.direction, sun.color, sun.intensity);
@@ -657,14 +653,14 @@ async function main() {
       skinnedGeometryPass.updateCamera(ctx, view, proj, jitVP, invVP, camPos, camera.near, camera.far);
     }
 
-    firePass?.update(ctx, dt, view, proj, vp, invVP, camPos, camera.near, camera.far, fireEmitterGO.localToWorld());
-    sparksPass?.update(ctx, dt, view, proj, vp, invVP, camPos, camera.near, camera.far, sparksEmitterGO.localToWorld());
+    firePass?.update(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far, fireEmitterGO.localToWorld());
+    sparksPass?.update(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far, sparksEmitterGO.localToWorld());
 
     // Rain emitter follows camera, 8 units above, spawning over a 40×40 area
     const rainMat = new Mat4([1,0,0,0, 0,1,0,0, 0,0,1,0, camPos.x, camPos.y + 8, camPos.z, 1]);
-    rainPass?.update(ctx, dt, view, proj, vp, invVP, camPos, camera.near, camera.far, rainMat);
+    rainPass?.update(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far, rainMat);
     const snowMat = new Mat4([1,0,0,0, 0,1,0,0, 0,0,1,0, camPos.x, camPos.y + 8, camPos.z, 1]);
-    snowPass?.update(ctx, dt, view, proj, vp, invVP, camPos, camera.near, camera.far, snowMat);
+    snowPass?.update(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far, snowMat);
 
     lightingPass.updateCamera(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far);
     if (sun) {
@@ -700,7 +696,7 @@ async function main() {
       debugLightPass.update(ctx, vp, coneModel, [1.0, 0.9, 0.3, 1.0]);
     }
 
-    autoExposurePass?.update(ctx, dt);
+    autoExposurePass?.update(ctx);
     taaPass.updateCamera(ctx, invVP, prevViewProj ?? vp);
 
     prevViewProj = vp;

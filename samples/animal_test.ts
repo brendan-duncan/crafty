@@ -159,9 +159,6 @@ async function main() {
   buildAndShow(select.value);
 
   // Timing
-  let lastTime = performance.now();
-  let frameCount = 0;
-  let fpsAccum = 0;
   let isolateAnimal = false;
 
   window.addEventListener('keydown', (e) => {
@@ -173,28 +170,18 @@ async function main() {
   });
 
   async function render() {
-    const now = performance.now();
-    const dt = (now - lastTime) * 0.001;
-    lastTime = now;
-
     ctx.update();
 
     forwardPass.setOutput(ctx.backbufferView, ctx.backbufferDepthView);
 
-    frameCount++;
-    fpsAccum += dt;
-    if (fpsAccum >= 0.5) {
-      fpsEl.textContent = `FPS: ${Math.round(frameCount / fpsAccum)}`;
-      frameCount = 0;
-      fpsAccum = 0;
-    }
+    fpsEl.textContent = `FPS: ${ctx.fps}`;
 
     // Camera
     const fakeGO = {
       position: camPos,
       rotation: { x: 0, y: 0, z: 0, w: 1 },
     };
-    cameraController.update(fakeGO as any, dt);
+    cameraController.update(fakeGO as any, ctx.deltaTime);
 
     const sinY = Math.sin(cameraController.yaw);
     const cosY = Math.cos(cameraController.yaw);
@@ -211,7 +198,7 @@ async function main() {
     forwardPass.updateCamera(ctx, view, proj, viewProj, invViewProj, camPos, 0.1, 100);
 
     // Tick AI components (movement & animation)
-    scene.update(dt);
+    scene.update(ctx.deltaTime);
 
     // Sun
     const sunDir = new Vec3(0.4, -0.7, -0.5).normalize();

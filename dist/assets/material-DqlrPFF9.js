@@ -1,0 +1,1 @@
+var t=Object.defineProperty;var a=(r,e,n)=>e in r?t(r,e,{enumerable:!0,configurable:!0,writable:!0,value:n}):r[e]=n;var o=(r,e,n)=>a(r,typeof e!="symbol"?e+"":e,n);var d=(r=>(r.Forward="forward",r.Geometry="geometry",r.SkinnedGeometry="skinnedGeometry",r))(d||{});class s{constructor(){o(this,"transparent",!1)}}export{d as M,s as a};

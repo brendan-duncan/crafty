@@ -553,12 +553,12 @@ export class ParticlePass extends RenderPass {
    */
   update(
     ctx: RenderContext,
-    dt: number,
     view: Mat4, proj: Mat4, viewProj: Mat4, invViewProj: Mat4,
     camPos: { x: number; y: number; z: number },
     near: number, far: number,
     worldTransform: Mat4,
   ): void {
+    const dt = ctx.deltaTime;
     this._time += dt;
     this._frameSeed = (this._frameSeed + 1) & 0xFFFFFFFF;
 

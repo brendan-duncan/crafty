@@ -135,12 +135,12 @@ export class AutoExposurePass extends RenderPass {
   enabled = true;
   private readonly _resetScratch = new Float32Array([1.0, 0, 0, 0]);
 
-  update(ctx: RenderContext, dt: number, settings: AutoExposureSettings = DEFAULT_AUTO_EXPOSURE): void {
+  update(ctx: RenderContext, settings: AutoExposureSettings = DEFAULT_AUTO_EXPOSURE): void {
     if (!this.enabled) {
       ctx.device.queue.writeBuffer(this.exposureBuffer, 0, this._resetScratch);
       return;
     }
-    AutoExposurePass._writeParams(ctx.device, this._paramsBuffer, dt, settings);
+    AutoExposurePass._writeParams(ctx.device, this._paramsBuffer, ctx.deltaTime, settings);
   }
 
   execute(encoder: GPUCommandEncoder, _ctx: RenderContext): void {

@@ -94,12 +94,6 @@ async function main() {
   const cameraController = CameraController.create({ yaw: 0, pitch: -20 * Math.PI / 180, speed: 5, sensitivity: 0.002, pointerLock: false });
   cameraController.attach(ctx.canvas);
 
-  // Animation state
-  let time = 0;
-  let lastTime = performance.now();
-  let frameCount = 0;
-  let fpsTime = 0;
-
   // Light toggle states
   let directionalLightEnabled = true;
   let spotLightEnabled = true;
@@ -121,22 +115,9 @@ async function main() {
 
   // Render loop
   async function render() {
-    const now = performance.now();
-    const dt = (now - lastTime) * 0.001;
-    lastTime = now;
-    time += dt;
-
-    // FPS counter
-    frameCount++;
-    fpsTime += dt;
-    if (fpsTime >= 0.5) {
-      const fps = Math.round(frameCount / fpsTime);
-      fpsElement.textContent = `FPS: ${fps}`;
-      frameCount = 0;
-      fpsTime = 0;
-    }
-
     ctx.update();
+
+    fpsElement.textContent = `FPS: ${ctx.fps}`;
 
     const backbufferView = ctx.backbufferView;
 
@@ -148,7 +129,7 @@ async function main() {
       position: camPos,
       rotation: { x: 0, y: 0, z: 0, w: 1 },
     };
-    cameraController.update(fakeGameObject as any, dt);
+    cameraController.update(fakeGameObject as any, ctx.deltaTime);
 
     // Build view matrix from yaw/pitch
     const sinY = Math.sin(cameraController.yaw);
@@ -188,7 +169,7 @@ async function main() {
 
     const pointLights: PointLight[] = [
       {
-        position: new Vec3(Math.sin(time) * 3, 2, Math.cos(time) * 3),
+        position: new Vec3(Math.sin(ctx.elapsedTime) * 3, 2, Math.cos(ctx.elapsedTime) * 3),
         range: 8,
         color: new Vec3(1.0, 0.3, 0.3),
         intensity: 10,
@@ -220,25 +201,25 @@ async function main() {
       },
       {
         mesh: cubeMesh,
-        modelMatrix: Mat4.translation(-2, 1, 0).multiply(Mat4.rotationY(time * 50 * Math.PI / 180)),
+        modelMatrix: Mat4.translation(-2, 1, 0).multiply(Mat4.rotationY(ctx.elapsedTime * 50 * Math.PI / 180)),
         normalMatrix: Mat4.identity(),
         material: opaqueMaterial,
       },
       {
         mesh: cubeMesh,
-        modelMatrix: Mat4.translation(2, 1, 0).multiply(Mat4.rotationY(time * -50 * Math.PI / 180)),
+        modelMatrix: Mat4.translation(2, 1, 0).multiply(Mat4.rotationY(ctx.elapsedTime * -50 * Math.PI / 180)),
         normalMatrix: Mat4.identity(),
         material: metallicMaterial,
       },
       {
         mesh: cubeMesh,
-        modelMatrix: Mat4.translation(0, 2, -2).multiply(Mat4.rotationY(time * 30 * Math.PI / 180)),
+        modelMatrix: Mat4.translation(0, 2, -2).multiply(Mat4.rotationY(ctx.elapsedTime * 30 * Math.PI / 180)),
         normalMatrix: Mat4.identity(),
         material: transparentMaterial,
       },
       {
         mesh: cubeMesh,
-        modelMatrix: Mat4.translation(2, 2, -2).multiply(Mat4.rotationY(time * 30 * Math.PI / 180)),
+        modelMatrix: Mat4.translation(2, 2, -2).multiply(Mat4.rotationY(ctx.elapsedTime * 30 * Math.PI / 180)),
         normalMatrix: Mat4.identity(),
         material: transparentMaterial,
       },

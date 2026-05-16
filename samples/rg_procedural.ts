@@ -80,20 +80,16 @@ async function main(): Promise<void> {
   });
   resizeObserver.observe(canvas);
 
-  let lastTime = 0;
   let smoothFps = 0;
 
-  function frame(time: number): void {
-    const dt = (time - lastTime) / 1000;
-    lastTime = time;
-
+  function frame(): void {
     ctx.update();
-    if (dt > 0) {
-      smoothFps += (1 / dt - smoothFps) * 0.1;
+    if (ctx.deltaTime > 0) {
+      smoothFps += (1 / ctx.deltaTime - smoothFps) * 0.1;
       statsEl.textContent = `${smoothFps.toFixed(0)} fps | Procedural`;
     }
 
-    const t = time * 0.001;
+    const t = ctx.elapsedTime;
 
     const graph = new RenderGraph(ctx, cache);
     const bb = graph.setBackbuffer('canvas');

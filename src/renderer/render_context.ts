@@ -28,6 +28,18 @@ export class RenderContext {
   readonly enableErrorHandling: boolean;
   readonly shaderBlockManager: ShaderBlockManager;
 
+  /** Seconds since the first call to {@link update}. Updated every frame. */
+  elapsedTime = 0;
+  /** Seconds since the last call to {@link update}. Updated every frame. */
+  deltaTime = 0;
+  /** Total frames rendered since creation. Incremented every frame by {@link update}. */
+  frameCount = 0;
+  /** Smoothed frames-per-second (EMA with alpha 0.1). Updated every frame by {@link update}. */
+  fps = 0;
+
+  readonly #startTime = performance.now();
+  #lastTime = performance.now();
+
   private _backbufferView: GPUTextureView | null = null;
   private _backbufferDepth: GPUTexture | null = null;
   private _backbufferDepthView: GPUTextureView | null = null;
@@ -59,10 +71,23 @@ export class RenderContext {
 
   /**
    * Call each frame to detect canvas resizes and update the backbuffer depth texture accordingly.
+   *
+   * Also updates {@link deltaTime}, {@link elapsedTime}, {@link frameCount} and {@link fps}.
    * 
    * @returns true if a resize was detected and handled, false otherwise.
    */
   update(): boolean {
+    // Update frame timing
+    const now = performance.now();
+    this.deltaTime = Math.max(0, (now - this.#lastTime) / 1000);
+    this.#lastTime = now;
+    this.elapsedTime = (now - this.#startTime) / 1000;
+
+    // Frame counter & FPS (exponential moving average)
+    this.frameCount++;
+    const instFps = this.deltaTime > 0 ? 1 / this.deltaTime : 0;
+    this.fps += (instFps - this.fps) * 0.1;
+
     // Invalidate backbuffer view to ensure it's recreated for the new texture after a resize.
     this._backbufferView = null;
 

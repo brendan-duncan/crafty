@@ -183,13 +183,13 @@ export class CameraController {
     if (!this._canvas) {
       return;
     }
-    this._canvas.removeEventListener('click',       this._onClick);
+    this._canvas.removeEventListener('click', this._onClick);
     document.removeEventListener('mousedown', this._onMouseDown);
-    document.removeEventListener('mouseup',     this._onMouseUp);
-    document.removeEventListener('mousemove',   this._onMouseMove);
-    document.removeEventListener('keydown',     this._onKeyDown);
-    document.removeEventListener('keyup',       this._onKeyUp);
-    window.removeEventListener('blur',          this._onBlur);
+    document.removeEventListener('mouseup', this._onMouseUp);
+    document.removeEventListener('mousemove', this._onMouseMove);
+    document.removeEventListener('keydown', this._onKeyDown);
+    document.removeEventListener('keyup', this._onKeyUp);
+    window.removeEventListener('blur', this._onBlur);
     this._canvas = null;
   }
 
