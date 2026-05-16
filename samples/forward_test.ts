@@ -11,6 +11,7 @@ import { PointShadowPass } from '../src/renderer/passes/point_shadow_pass.js';
 import { RenderContext } from '../src/renderer/render_context.js';
 import { RenderGraph } from '../src/renderer/render_graph.js';
 import { CameraController } from '../src/engine/camera_controller.js';
+import { GameObject, Camera } from '../src/engine/index.js';
 import { PbrMaterial } from '../src/renderer/materials/pbr_material.js';
 import { Mesh } from '../src/assets/mesh.js';
 
@@ -89,9 +90,14 @@ async function main() {
   renderGraph.addPass(atmospherePass);
   renderGraph.addPass(forwardPass);
 
-  // Camera setup
-  const camPos = new Vec3(0, 3, 8);
-  const cameraController = CameraController.create({ yaw: 0, pitch: -20 * Math.PI / 180, speed: 5, sensitivity: 0.002, pointerLock: false });
+  // Camera setup — use a proper GameObject with a Camera component
+  const cameraGO = new GameObject({ name: 'Camera' });
+  cameraGO.position.set(0, 3, 8);
+  const camera = cameraGO.addComponent(Camera.createPerspective(60, 0.1, 100, ctx.width / ctx.height));
+
+  const cameraController = CameraController.create({
+    yaw: 0, pitch: -20 * Math.PI / 180, speed: 5, sensitivity: 0.002, pointerLock: false,
+  });
   cameraController.attach(ctx.canvas);
 
   // Light toggle states
@@ -124,35 +130,25 @@ async function main() {
     forwardPass.setOutput(backbufferView, ctx.backbufferDepthView);
     atmospherePass.setOutput(backbufferView);
 
-    // Update camera with CameraController
-    const fakeGameObject = {
-      position: camPos,
-      rotation: { x: 0, y: 0, z: 0, w: 1 },
-    };
-    cameraController.update(fakeGameObject as any, ctx.deltaTime);
+    // Update camera aspect ratio and controller
+    camera.aspect = ctx.width / ctx.height;
+    cameraController.update(cameraGO, ctx.deltaTime);
 
-    // Build view matrix from yaw/pitch
-    const sinY = Math.sin(cameraController.yaw);
-    const cosY = Math.cos(cameraController.yaw);
-    const sinP = Math.sin(cameraController.pitch);
-    const cosP = Math.cos(cameraController.pitch);
-
-    const forward = new Vec3(-sinY * cosP, -sinP, -cosY * cosP).normalize();
-    const target = camPos.add(forward).add(new Vec3(0, -0.5, 0)); // Look slightly down
-    const view = Mat4.lookAt(camPos, target, new Vec3(0, 1, 0));
-    const aspect = ctx.width / ctx.height;
-    const proj = Mat4.perspective(60 * Math.PI / 180, aspect, 0.1, 100);
-    const viewProj = proj.multiply(view);
+    // Derive matrices from the Camera component
+    const view = camera.viewMatrix();
+    const proj = camera.projectionMatrix();
+    const viewProj = camera.viewProjectionMatrix();
     const invViewProj = viewProj.invert();
+    const camPos = camera.position();
 
-    forwardPass.updateCamera(ctx, view, proj, viewProj, invViewProj, camPos, 0.1, 100);
+    forwardPass.updateCamera(ctx, view, proj, viewProj, invViewProj, camPos, camera.near, camera.far);
 
     // Update lights
     const lightDir = new Vec3(-0.3, -0.8, -0.5).normalize();
 
     // Create shadow view-projection matrix aligned with light direction
     const sceneCenter = new Vec3(0, 1, 0); // Center around the cubes
-    const shadowDistance = 20; // Distance from scene center
+    const shadowDistance = 20;             // Distance from scene center
     const shadowCameraPos = sceneCenter.sub(lightDir.scale(shadowDistance));
     const lightView = Mat4.lookAt(shadowCameraPos, sceneCenter, new Vec3(0, 1, 0));
     const lightProj = Mat4.orthographic(-10, 10, -10, 10, 1, 40);

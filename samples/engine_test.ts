@@ -237,7 +237,7 @@ async function main() {
 
   const cameraGO = new GameObject({ name: 'Camera' });
   cameraGO.position.set(0, 4, -8);
-  const camera = cameraGO.addComponent(new Camera(60, 0.1, 100, ctx.width / ctx.height));
+  const camera = cameraGO.addComponent(Camera.createPerspective(60, 0.1, 100, ctx.width / ctx.height));
   scene.add(cameraGO);
 
   const cameraController = CameraController.create({ yaw: Math.PI, pitch: 0.1, speed: 3, sensitivity: 0.002, pointerLock: false });  // 5.7° down: upper ~50% is sky
@@ -592,13 +592,13 @@ async function main() {
     const jx = (halton(hi, 2) - 0.5) * (2 / ctx.width);
     const jy = (halton(hi, 3) - 0.5) * (2 / ctx.height);
 
-    const vp      = camera.viewProjectionMatrix();
-    const jitVP   = applyJitter(vp, jx, jy);
-    const view    = camera.viewMatrix();
-    const proj    = camera.projectionMatrix();
-    const invVP   = vp.invert();
+    const vp = camera.viewProjectionMatrix();
+    const jitVP = applyJitter(vp, jx, jy);
+    const view = camera.viewMatrix();
+    const proj = camera.projectionMatrix();
+    const invVP = vp.invert();
     const invProj = proj.invert();
-    const camPos  = camera.position();
+    const camPos = camera.position();
     const cascades = sun ? sun.computeCascadeMatrices(camera) : [];
 
     const meshRenderers = scene.collectMeshRenderers();

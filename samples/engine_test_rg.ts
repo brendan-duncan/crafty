@@ -220,7 +220,7 @@ async function main(): Promise<void> {
 
   const cameraGO = new GameObject({ name: 'Camera' });
   cameraGO.position.set(0, 4, -8);
-  const camera = cameraGO.addComponent(new Camera(60, 0.1, 100, ctx.width / ctx.height));
+  const camera = cameraGO.addComponent(Camera.createPerspective(60, 0.1, 100, ctx.width / ctx.height));
   scene.add(cameraGO);
 
   const cameraController = CameraController.create({

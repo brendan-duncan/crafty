@@ -78,7 +78,7 @@ async function main() {
   const cameraGO = new GameObject({ name: 'Camera' });
   cameraGO.position.set(0, 10, 50);
   const camera = cameraGO.addComponent(
-    new Camera(60, 0.1, 500, ctx.width / ctx.height),
+    Camera.createPerspective(60, 0.1, 500, ctx.width / ctx.height),
   );
   // positive pitch = looking down (CameraController uses -this.pitch in rotation)
   const cameraController = CameraController.create({ yaw: 0, pitch: 0.1, speed: 20, sensitivity: 0.002, pointerLock: false });

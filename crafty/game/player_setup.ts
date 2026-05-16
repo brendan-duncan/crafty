@@ -30,7 +30,7 @@ export function setupPlayer(
 ): PlayerSetup {
   const cameraGO = new GameObject({ name: 'Camera' });
   cameraGO.position.set(64, 25, 64);
-  const camera = cameraGO.addComponent(new Camera(70, 0.1, 1000, canvasWidth / canvasHeight));
+  const camera = cameraGO.addComponent(Camera.createPerspective(70, 0.1, 1000, canvasWidth / canvasHeight));
   scene.add(cameraGO);
 
   // Flashlight spotlight attached to camera

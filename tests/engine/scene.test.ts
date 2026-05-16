@@ -68,7 +68,7 @@ describe('Scene', () => {
     it('should find a Camera on a root GameObject', () => {
       const scene = new Scene();
       const go = new GameObject();
-      const cam = go.addComponent(new Camera(60, 0.1, 100, 16 / 9));
+      const cam = go.addComponent(Camera.createPerspective(60, 0.1, 100, 16 / 9));
       scene.add(go);
       expect(scene.findCamera()).toBe(cam);
     });

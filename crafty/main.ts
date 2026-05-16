@@ -942,10 +942,10 @@ async function main(): Promise<void> {
       hud.pos.textContent = `X: ${camPos.x.toFixed(1)}  Y: ${camPos.y.toFixed(1)}  Z: ${camPos.z.toFixed(1)}`;
     }
 
-    const hi  = (frameIndex % 16) + 1;
-    const jx  = (halton(hi, 2) - 0.5) * (2 / ctx.width);
-    const jy  = (halton(hi, 3) - 0.5) * (2 / ctx.height);
-    const vp  = camera.viewProjectionMatrix();
+    const hi = (frameIndex % 16) + 1;
+    const jx = (halton(hi, 2) - 0.5) * (2 / ctx.width);
+    const jy = (halton(hi, 3) - 0.5) * (2 / ctx.height);
+    const vp = camera.viewProjectionMatrix();
     const jitVP = applyJitter(vp, jx, jy);
     const view = camera.viewMatrix();
     const proj = camera.projectionMatrix();

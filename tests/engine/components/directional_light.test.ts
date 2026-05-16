@@ -23,7 +23,7 @@ describe('DirectionalLight', () => {
   describe('computeCascadeMatrices', () => {
     it('should return correct number of cascades', () => {
       const go = new GameObject();
-      const cam = go.addComponent(new Camera(60, 0.1, 100, 16 / 9));
+      const cam = go.addComponent(Camera.createPerspective(60, 0.1, 100, 16 / 9));
       const light = new DirectionalLight(new Vec3(0.3, -1, 0.5), Vec3.one(), 1, 3);
       const cascades = light.computeCascadeMatrices(cam);
       expect(cascades).toHaveLength(3);
@@ -31,7 +31,7 @@ describe('DirectionalLight', () => {
 
     it('should produce increasing split depths', () => {
       const go = new GameObject();
-      const cam = go.addComponent(new Camera(60, 0.1, 100, 16 / 9));
+      const cam = go.addComponent(Camera.createPerspective(60, 0.1, 100, 16 / 9));
       const light = new DirectionalLight(new Vec3(0.3, -1, 0.5), Vec3.one(), 1, 4);
       const cascades = light.computeCascadeMatrices(cam);
       expect(cascades[0].splitFar).toBeLessThan(cascades[1].splitFar);
@@ -42,7 +42,7 @@ describe('DirectionalLight', () => {
     it('should produce valid lightViewProj matrices', () => {
       const go = new GameObject();
       go.position.set(0, 0, 0);
-      const cam = go.addComponent(new Camera(60, 0.1, 100, 16 / 9));
+      const cam = go.addComponent(Camera.createPerspective(60, 0.1, 100, 16 / 9));
       const light = new DirectionalLight(new Vec3(0.3, -1, 0.5), Vec3.one(), 1, 3);
       const cascades = light.computeCascadeMatrices(cam);
       for (const c of cascades) {
@@ -54,7 +54,7 @@ describe('DirectionalLight', () => {
 
     it('should handle different light directions', () => {
       const go = new GameObject();
-      const cam = go.addComponent(new Camera(60, 0.1, 100, 16 / 9));
+      const cam = go.addComponent(Camera.createPerspective(60, 0.1, 100, 16 / 9));
       const light = new DirectionalLight(new Vec3(0, -1, 0), Vec3.one(), 1, 2);
       const cascades = light.computeCascadeMatrices(cam);
       expect(cascades).toHaveLength(2);
@@ -63,7 +63,7 @@ describe('DirectionalLight', () => {
 
     it('should use shadowFar override when provided', () => {
       const go = new GameObject();
-      const cam = go.addComponent(new Camera(60, 0.1, 1000, 16 / 9));
+      const cam = go.addComponent(Camera.createPerspective(60, 0.1, 1000, 16 / 9));
       const light = new DirectionalLight(new Vec3(0.3, -1, 0.5), Vec3.one(), 1, 3);
       const cascades = light.computeCascadeMatrices(cam, 50);
       // With shadowFar=50, all split depths should be <= 50

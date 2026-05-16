@@ -6,12 +6,12 @@ import { Vec3 } from '../../../src/math/vec3.js';
 describe('Camera', () => {
   describe('constructor', () => {
     it('should convert degrees to radians', () => {
-      const c = new Camera(60);
+      const c = Camera.createPerspective(60);
       expect(c.fov).toBeCloseTo(Math.PI / 3);
     });
 
     it('should set defaults', () => {
-      const c = new Camera();
+      const c = Camera.createPerspective(60);
       expect(c.near).toBe(0.1);
       expect(c.far).toBe(1000);
       expect(c.aspect).toBeCloseTo(16 / 9);
@@ -20,7 +20,7 @@ describe('Camera', () => {
 
   describe('projectionMatrix', () => {
     it('should produce a valid perspective matrix', () => {
-      const c = new Camera(90, 0.1, 100, 1);
+      const c = Camera.createPerspective(90, 0.1, 100, 1);
       const m = c.projectionMatrix();
       expect(m.data[0]).toBeGreaterThan(0);
       expect(m.data[5]).toBeGreaterThan(0);
@@ -52,7 +52,7 @@ describe('Camera', () => {
   describe('viewProjectionMatrix', () => {
     it('should combine projection and view', () => {
       const go = new GameObject();
-      const c = go.addComponent(new Camera(90, 0.1, 100, 1));
+      const c = go.addComponent(Camera.createPerspective(90, 0.1, 100, 1));
       const vp = c.viewProjectionMatrix();
       const p = c.projectionMatrix();
       const v = c.viewMatrix();
@@ -90,14 +90,14 @@ describe('Camera', () => {
   describe('frustumCornersWorld', () => {
     it('should return 8 world-space corners', () => {
       const go = new GameObject();
-      const c = go.addComponent(new Camera(90, 0.1, 100, 1));
+      const c = go.addComponent(Camera.createPerspective(90, 0.1, 100, 1));
       const corners = c.frustumCornersWorld();
       expect(corners).toHaveLength(8);
     });
 
     it('should have near corners closer than far corners', () => {
       const go = new GameObject();
-      const c = go.addComponent(new Camera(90, 0.1, 100, 1));
+      const c = go.addComponent(Camera.createPerspective(90, 0.1, 100, 1));
       const corners = c.frustumCornersWorld();
       // Near plane corners (indices 0-3) should be closer to origin than far (4-7)
       const nearDist = corners.slice(0, 4).reduce((sum, v) => sum + v.length(), 0) / 4;

@@ -59,7 +59,7 @@ async function main() {
   const cameraGO = new GameObject({ name: 'Camera' });
   cameraGO.position.set(5, 8, 6); // Offset to the side and up
   const camera = cameraGO.addComponent(
-    new Camera(60, 0.1, 100, ctx.width / ctx.height)
+    Camera.createPerspective(60, 0.1, 100, ctx.width / ctx.height)
   );
   // Point camera toward origin (ground plane center)
   const cameraController = CameraController.create({ yaw: 0.2, pitch: 0.5, speed: 5, sensitivity: 0.002, pointerLock: false });
