@@ -6,7 +6,7 @@ WebGPU voxel game engine in TypeScript. Deferred + HDR multi-pass renderer, infi
 
 - `src/` — engine library (math, engine, renderer, assets, block, particles, shaders).
 - `crafty/` — the game built on top of the engine (entry `crafty/main.ts`, UI, AI components, world gen).
-- `samples/` — standalone HTML+TS demos. `rg_*.ts` exercise the new render graph; others use the old one.
+- `samples/` — standalone HTML+TS demos. All samples use the render graph in [src/renderer/render_graph/](src/renderer/render_graph/).
 - `tests/` — vitest unit tests, mirrors `src/` layout.
 - `server/` — separate npm package, authoritative multiplayer WebSocket server.
 - `shared/` — code shared between client and server (currently just `net_protocol.ts`).
@@ -33,14 +33,9 @@ npm run server       # multiplayer server (after server:install)
 
 No lint script. Type-check via `npm run build` or `tsc --noEmit`.
 
-## Render Graph: two systems coexist
+## Render Graph
 
-This is the single biggest gotcha — keep them straight:
-
-- **New API** — [src/renderer/render_graph/](src/renderer/render_graph/) directory: real dependency-graph builder with virtual resources, culling, pooled physical resources, `Pass` base class with typed deps/outputs. Used by the game ([crafty/main.ts](crafty/main.ts) + [crafty/renderer_setup.ts](crafty/renderer_setup.ts)) and by `samples/rg_*.ts`.
-- **Old API** — [src/renderer/render_graph.ts](src/renderer/render_graph.ts): linear ordered list of `RenderPass` instances. Still used by non-`rg_*` samples; being phased out.
-
-When asked to add/modify a pass, first determine which system the calling code uses. Pass classes for the new system live under [src/renderer/render_graph/passes/](src/renderer/render_graph/passes/); old-system passes are in [src/renderer/passes/](src/renderer/passes/). Same filenames, different APIs.
+[src/renderer/render_graph/](src/renderer/render_graph/) is the dependency-graph builder used by everything in the repo: virtual resources, culling, pooled physical resources, `Pass` base class with typed deps/outputs. The game ([crafty/main.ts](crafty/main.ts) + [crafty/renderer_setup.ts](crafty/renderer_setup.ts)) and every sample wire passes through it. Pass classes live under [src/renderer/render_graph/passes/](src/renderer/render_graph/passes/).
 
 ## Where to look
 

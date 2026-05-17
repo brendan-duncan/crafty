@@ -1,0 +1,876 @@
+var K=Object.defineProperty;var $=(c,p,r)=>p in c?K(c,p,{enumerable:!0,configurable:!0,writable:!0,value:r}):c[p]=r;var s=(c,p,r)=>$(c,typeof p!="symbol"?p+"":p,r);import{P as T}from"./mesh-BJGbBOtt.js";import{H as P}from"./deferred_lighting_pass-0W5ZoDq7.js";function J(c,p,r){let e=(Math.imul(c,1664525)^Math.imul(p,1013904223)^Math.imul(r,22695477))>>>0;return e=Math.imul(e^e>>>16,73244475)>>>0,e=Math.imul(e^e>>>16,73244475)>>>0,((e^e>>>16)>>>0)/4294967295}function M(c,p,r,e){return J(c^e,p^e*7+3,r^e*13+5)}function E(c){return c*c*c*(c*(c*6-15)+10)}function Q(c,p,r,e,t,a,n,o,i,l,d){const u=c+(p-c)*i,f=r+(e-r)*i,_=t+(a-t)*i,h=n+(o-n)*i,m=u+(f-u)*l,g=_+(h-_)*l;return m+(g-m)*d}const ee=new Int8Array([1,-1,1,-1,1,-1,1,-1,0,0,0,0]),te=new Int8Array([1,1,-1,-1,0,0,0,0,1,-1,1,-1]),ne=new Int8Array([0,0,0,0,1,1,-1,-1,1,1,-1,-1]);function y(c,p,r,e,t,a,n,o){const i=(c%e+e)%e,l=(p%e+e)%e,d=(r%e+e)%e,u=Math.floor(M(i,l,d,t)*12)%12;return ee[u]*a+te[u]*n+ne[u]*o}function re(c,p,r,e,t){const a=Math.floor(c),n=Math.floor(p),o=Math.floor(r),i=c-a,l=p-n,d=r-o,u=E(i),f=E(l),_=E(d);return Q(y(a,n,o,e,t,i,l,d),y(a+1,n,o,e,t,i-1,l,d),y(a,n+1,o,e,t,i,l-1,d),y(a+1,n+1,o,e,t,i-1,l-1,d),y(a,n,o+1,e,t,i,l,d-1),y(a+1,n,o+1,e,t,i-1,l,d-1),y(a,n+1,o+1,e,t,i,l-1,d-1),y(a+1,n+1,o+1,e,t,i-1,l-1,d-1),u,f,_)}function ae(c,p,r,e,t,a){let n=0,o=.5,i=1,l=0;for(let d=0;d<e;d++)n+=re(c*i,p*i,r*i,t*i,a+d*17)*o,l+=o,o*=.5,i*=2;return Math.max(0,Math.min(1,n/l*.85+.5))}function B(c,p,r,e,t){const a=c*e,n=p*e,o=r*e,i=Math.floor(a),l=Math.floor(n),d=Math.floor(o);let u=1/0;for(let f=-1;f<=1;f++)for(let _=-1;_<=1;_++)for(let h=-1;h<=1;h++){const m=i+h,g=l+_,v=d+f,b=(m%e+e)%e,w=(g%e+e)%e,S=(v%e+e)%e,j=m+M(b,w,S,t),W=g+M(b,w,S,t+1),q=v+M(b,w,S,t+2),A=a-j,R=n-W,U=o-q,O=A*A+R*R+U*U;O<u&&(u=O)}return 1-Math.min(Math.sqrt(u),1)}function C(c,p,r,e){const t=c.createTexture({label:p,dimension:"3d",size:{width:r,height:r,depthOrArrayLayers:r},format:"rgba8unorm",usage:GPUTextureUsage.TEXTURE_BINDING|GPUTextureUsage.COPY_DST});return c.queue.writeTexture({texture:t},e.buffer,{bytesPerRow:r*4,rowsPerImage:r},{width:r,height:r,depthOrArrayLayers:r}),t}function xe(c){const r=new Uint8Array(1048576);for(let o=0;o<64;o++)for(let i=0;i<64;i++)for(let l=0;l<64;l++){const d=(o*64*64+i*64+l)*4,u=l/64,f=i/64,_=o/64,h=ae(u,f,_,4,4,0),m=B(u,f,_,2,100),g=B(u,f,_,4,200),v=B(u,f,_,8,300);r[d]=Math.round(h*255),r[d+1]=Math.round(m*255),r[d+2]=Math.round(g*255),r[d+3]=Math.round(v*255)}const e=32,t=new Uint8Array(e*e*e*4);for(let o=0;o<e;o++)for(let i=0;i<e;i++)for(let l=0;l<e;l++){const d=(o*e*e+i*e+l)*4,u=l/e,f=i/e,_=o/e,h=B(u,f,_,4,400),m=B(u,f,_,8,500),g=B(u,f,_,16,600);t[d]=Math.round(h*255),t[d+1]=Math.round(m*255),t[d+2]=Math.round(g*255),t[d+3]=255}const a=C(c,"CloudBaseNoise",64,r),n=C(c,"CloudDetailNoise",e,t);return{baseNoise:a,baseView:a.createView({dimension:"3d"}),detailNoise:n,detailView:n.createView({dimension:"3d"}),destroy(){a.destroy(),n.destroy()}}}const ie=`// Cloud + sky pass — fullscreen triangle.
+// Raymarches through a cloud slab with Beer's law transmittance and self-shadow
+// light marching.  Sky color is computed with the same Rayleigh+Mie model as
+// atmosphere.wgsl so no sky texture is needed.
+
+const PI: f32 = 3.14159265358979323846;
+
+// When set via pipeline-overridable constant, the pass outputs premultiplied
+// (cloud_color, 1 - total_trans) — designed to blend over an already-lit HDR
+// target.  In default mode the pass outputs the full sky + cloud composite.
+override OVERLAY_MODE: bool = false;
+
+// ---- Uniforms ----------------------------------------------------------------
+
+struct CameraUniforms {
+  invViewProj: mat4x4<f32>,
+  position: vec3<f32>,
+  near: f32,
+  far: f32,
+}
+
+struct CloudUniforms {
+  cloudBase: f32,
+  cloudTop: f32,
+  coverage: f32,
+  density: f32,
+  windOffset: vec2<f32>,
+  anisotropy: f32,
+  extinction: f32,
+  ambientColor: vec3<f32>,
+  exposure: f32,
+}
+
+struct LightUniforms {
+  direction: vec3<f32>,
+  intensity: f32,
+  color: vec3<f32>,
+  _pad: f32,
+}
+
+@group(0) @binding(0) var<uniform> camera: CameraUniforms;
+@group(0) @binding(1) var<uniform> cloud : CloudUniforms;
+@group(1) @binding(0) var<uniform> light : LightUniforms;
+@group(2) @binding(0) var          depth_tex  : texture_depth_2d;
+@group(2) @binding(1) var          depth_samp : sampler;
+@group(3) @binding(0) var          base_noise  : texture_3d<f32>;
+@group(3) @binding(1) var          detail_noise: texture_3d<f32>;
+@group(3) @binding(2) var          noise_samp  : sampler;
+
+// ---- Atmosphere (Rayleigh + Mie) for sky color ------------------------------
+
+const R_E            : f32       = 6360000.0;
+const R_A            : f32       = 6420000.0;
+const H_R            : f32       = 8500.0;
+const H_M            : f32       = 1200.0;
+const G_ATM          : f32       = 0.758;
+const BETA_R         : vec3<f32> = vec3<f32>(5.5e-6, 13.0e-6, 22.4e-6);
+const BETA_M_ATM     : f32       = 21.0e-6;
+const SUN_INTENSITY  : f32       = 20.0;
+const SUN_COS_THRESH  : f32 = 0.999976;  // 10% larger angular radius than default
+const MOON_COS_THRESH : f32 = 0.999978;  //  5% larger angular radius than default
+
+fn ray_sphere(ro: vec3<f32>, rd: vec3<f32>, r: f32) -> vec2<f32> {
+  let b = dot(ro, rd);
+  let c = dot(ro, ro) - r * r;
+  let d = b * b - c;
+  if (d < 0.0) { return vec2<f32>(-1.0, -1.0); }
+  let sq = sqrt(d);
+  return vec2<f32>(-b - sq, -b + sq);
+}
+
+fn phase_r(mu: f32) -> f32 {
+  return (3.0 / (16.0 * PI)) * (1.0 + mu * mu);
+}
+
+fn phase_m_atm(mu: f32) -> f32 {
+  let g2 = G_ATM * G_ATM;
+  return (3.0 / (8.0 * PI)) *
+         ((1.0 - g2) * (1.0 + mu * mu)) /
+         ((2.0 + g2) * pow(max(1.0 + g2 - 2.0 * G_ATM * mu, 1e-4), 1.5));
+}
+
+fn optical_depth_to_sky(pos: vec3<f32>, dir: vec3<f32>) -> vec2<f32> {
+  let t  = ray_sphere(pos, dir, R_A);
+  let ds = t.y / 4.0;
+  var od = vec2<f32>(0.0);
+  for (var i = 0; i < 4; i++) {
+    let h = length(pos + dir * ((f32(i) + 0.5) * ds)) - R_E;
+    if (h < 0.0) { break; }
+    od += vec2<f32>(exp(-h / H_R), exp(-h / H_M)) * ds;
+  }
+  return od;
+}
+
+fn sky_transmittance(ro: vec3<f32>, rd: vec3<f32>) -> vec3<f32> {
+  let od = optical_depth_to_sky(ro, rd);
+  return exp(-(BETA_R * od.x + BETA_M_ATM * 1.1 * od.y));
+}
+
+fn scatter_sky(ro: vec3<f32>, rd: vec3<f32>, sun_dir: vec3<f32>) -> vec3<f32> {
+  let ta   = ray_sphere(ro, rd, R_A);
+  let tMin = max(ta.x, 0.0);
+  if (ta.y < 0.0) { return vec3<f32>(0.0); }
+  let tg   = ray_sphere(ro, rd, R_E);
+  let tMax = select(ta.y, min(ta.y, tg.x), tg.x > 0.0);
+  if (tMax <= tMin) { return vec3<f32>(0.0); }
+
+  let mu = dot(rd, sun_dir);
+  let pR = phase_r(mu);
+  let pM = phase_m_atm(mu);
+  let ds = (tMax - tMin) / 8.0;
+
+  var sumR = vec3<f32>(0.0);
+  var sumM = vec3<f32>(0.0);
+  var odR  = 0.0;
+  var odM  = 0.0;
+
+  for (var i = 0; i < 8; i++) {
+    let pos = ro + rd * (tMin + (f32(i) + 0.5) * ds);
+    let h   = length(pos) - R_E;
+    if (h < 0.0) { break; }
+    let hrh = exp(-h / H_R) * ds;
+    let hmh = exp(-h / H_M) * ds;
+    odR += hrh;
+    odM += hmh;
+    let tg2 = ray_sphere(pos, sun_dir, R_E);
+    if (tg2.x > 0.0) { continue; }
+    let odL = optical_depth_to_sky(pos, sun_dir);
+    let tau = BETA_R * (odR + odL.x) + BETA_M_ATM * 1.1 * (odM + odL.y);
+    let T   = exp(-tau);
+    sumR += T * hrh;
+    sumM += T * hmh;
+  }
+
+  return SUN_INTENSITY * (BETA_R * pR * sumR + vec3<f32>(BETA_M_ATM) * pM * sumM);
+}
+
+// ---- Vertex shader -----------------------------------------------------------
+
+struct VertexOutput {
+  @builtin(position) clip_pos: vec4<f32>,
+  @location(0)       uv      : vec2<f32>,
+}
+
+@vertex
+fn vs_main(@builtin(vertex_index) vid: u32) -> VertexOutput {
+  let x = f32((vid & 1u) << 2u) - 1.0;
+  let y = f32((vid & 2u) << 1u) - 1.0;
+  var out: VertexOutput;
+  out.clip_pos = vec4<f32>(x, y, 0.0, 1.0);
+  out.uv       = vec2<f32>(x * 0.5 + 0.5, -y * 0.5 + 0.5);
+  return out;
+}
+
+// ---- Cloud helpers -----------------------------------------------------------
+
+// Rotate XZ around Y by ~37° so the Perlin noise grid doesn't align with world
+// axes, which would otherwise produce visible hard edges along X=0 and Z=0.
+const ROT_C: f32 = 0.79863551;
+const ROT_S: f32 = 0.60181502;
+fn rotate_xz(p: vec3<f32>) -> vec3<f32> {
+  return vec3<f32>(p.x * ROT_C - p.z * ROT_S, p.y, p.x * ROT_S + p.z * ROT_C);
+}
+
+fn remap(v: f32, lo: f32, hi: f32, a: f32, b: f32) -> f32 {
+  return a + saturate((v - lo) / max(hi - lo, 0.0001)) * (b - a);
+}
+
+fn height_gradient(y: f32) -> f32 {
+  let t    = clamp((y - cloud.cloudBase) / max(cloud.cloudTop - cloud.cloudBase, 0.001), 0.0, 1.0);
+  let base = remap(t, 0.0, 0.07, 0.0, 1.0);
+  let top  = remap(t, 0.2, 1.0,  1.0, 0.0);
+  return saturate(base * top);
+}
+
+fn hg_phase(cos_theta: f32, g: f32) -> f32 {
+  let g2 = g * g;
+  return (1.0 - g2) / (4.0 * PI * pow(1.0 + g2 - 2.0 * g * cos_theta, 1.5));
+}
+
+fn dual_phase(cos_theta: f32, g: f32) -> f32 {
+  return 0.7 * hg_phase(cos_theta, g) + 0.3 * hg_phase(cos_theta, -0.25);
+}
+
+fn sample_pw(samp_uv: vec3<f32>) -> f32 {
+  let s = textureSampleLevel(base_noise, noise_samp, samp_uv, 0.0);
+  let w = s.g * 0.5 + s.b * 0.35 + s.a * 0.15;
+  return remap(s.r, 1.0 - w, 1.0, 0.0, 1.0);
+}
+
+fn sample_density(p: vec3<f32>) -> f32 {
+  let wind = vec3<f32>(cloud.windOffset.x, 0.0, cloud.windOffset.y);
+  let pr = rotate_xz(rotate_xz(p));
+  // Large-scale pass (3× coarser) — creates some very big cloud masses.
+  // Drifts at half wind speed for natural differential parallax with smaller clouds.
+  let pw_large = sample_pw((pr + wind * 0.5) * 0.012);
+  // Medium-scale pass — smaller individual clouds.
+  let pw_med = sample_pw((pr + wind) * 0.04);
+  // Blend: large scale dominates shape; medium adds smaller clouds in sparser areas.
+  let pw = pw_large * 0.6 + pw_med * 0.4;
+  let hg = height_gradient(p.y);
+  let cov = saturate(remap(pw, 1.0 - cloud.coverage, 1.0, 0.0, 1.0)) * hg;
+  if (cov < 0.001) { return 0.0; }
+  let detail_uv = pr * 0.12 + wind * 0.1;
+  let det = textureSampleLevel(detail_noise, noise_samp, detail_uv, 0.0);
+  let detail = det.r * 0.5 + det.g * 0.25 + det.b * 0.125;
+  return max(0.0, cov - (1.0 - cov) * detail * 0.3) * cloud.density;
+}
+
+fn sample_density_coarse(p: vec3<f32>) -> f32 {
+  let wind     = vec3<f32>(cloud.windOffset.x, 0.0, cloud.windOffset.y);
+  let pr       = rotate_xz(p);
+  let pw_large = sample_pw((pr + wind * 0.5) * 0.012);
+  let pw_med   = sample_pw((pr + wind) * 0.04);
+  let pw       = pw_large * 0.6 + pw_med * 0.4;
+  let hg       = height_gradient(p.y);
+  return saturate(remap(pw, 1.0 - cloud.coverage, 1.0, 0.0, 1.0)) * hg * cloud.density;
+}
+
+fn light_march(p: vec3<f32>, sun_dir: vec3<f32>) -> f32 {
+  let step_size = (cloud.cloudTop - cloud.cloudBase) / 2.0;
+  var opt_depth = 0.0;
+  for (var i = 0; i < 2; i++) {
+    let sp = p + sun_dir * (f32(i) + 0.5) * step_size;
+    if (sp.y < cloud.cloudBase || sp.y > cloud.cloudTop) { continue; }
+    opt_depth += sample_density_coarse(sp) * step_size;
+  }
+  return exp(-opt_depth * cloud.extinction);
+}
+
+fn ray_slab(ro: vec3<f32>, rd: vec3<f32>, y_min: f32, y_max: f32) -> vec2<f32> {
+  if (abs(rd.y) < 1e-6) {
+    if (ro.y < y_min || ro.y > y_max) {
+      return vec2<f32>(-1.0, -1.0);
+    }
+    return vec2<f32>(0.0, 1e9);
+  }
+  let t0 = (y_min - ro.y) / rd.y;
+  let t1 = (y_max - ro.y) / rd.y;
+  let t_near = min(t0, t1);
+  let t_far  = max(t0, t1);
+  if (t_far < 0.0) {
+    return vec2<f32>(-1.0, -1.0);
+  }
+  return vec2<f32>(max(t_near, 0.0), t_far);
+}
+
+// ---- Fragment shader ---------------------------------------------------------
+
+@fragment
+fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
+  let ndc     = vec4<f32>(in.uv.x * 2.0 - 1.0, 1.0 - in.uv.y * 2.0, 1.0, 1.0);
+  let world_h = camera.invViewProj * ndc;
+  let ray_dir = normalize(world_h.xyz / world_h.w - camera.position);
+
+  let sun_dir = normalize(-light.direction);
+  let camH    = max(camera.position.y, 1.0);
+  let atm_ro  = vec3<f32>(0.0, R_E + camH, 0.0);
+  // Atmosphere already drew sky+discs behind us in overlay mode — skip the work.
+  var sky_color = vec3<f32>(0.0);
+  if (!OVERLAY_MODE) {
+    sky_color = scatter_sky(atm_ro, ray_dir, sun_dir);
+  }
+
+  // Clip ray at scene geometry
+  let geo_depth = textureLoad(depth_tex, vec2<i32>(in.clip_pos.xy), 0);
+  var geo_dist  = 1e9;
+  if (geo_depth < 1.0) {
+    let ndc_geo = vec4<f32>(in.uv.x * 2.0 - 1.0, 1.0 - in.uv.y * 2.0, geo_depth, 1.0);
+    let geo_h   = camera.invViewProj * ndc_geo;
+    let geo_pos = geo_h.xyz / geo_h.w;
+    geo_dist    = distance(geo_pos, camera.position);
+  }
+
+  let moon_dir  = -sun_dir;
+  let night_t   = saturate((-sun_dir.y - 0.05) * 10.0);
+
+  // Intersect ray with cloud slab
+  let slab = ray_slab(camera.position, ray_dir, cloud.cloudBase, cloud.cloudTop);
+  if (slab.x < 0.0 || slab.x > geo_dist) {
+    if (OVERLAY_MODE) { return vec4<f32>(0.0, 0.0, 0.0, 0.0); }
+    var color = sky_color;
+    if (dot(ray_dir, sun_dir) > SUN_COS_THRESH && geo_depth >= 1.0) {
+      color += sky_transmittance(atm_ro, sun_dir) * 1000.0;
+    }
+    if (dot(ray_dir, moon_dir) > MOON_COS_THRESH && geo_depth >= 1.0) {
+      color += sky_transmittance(atm_ro, moon_dir) * vec3<f32>(0.85, 0.90, 1.0) * 15.0 * night_t;
+    }
+    return vec4<f32>(color, 1.0);
+  }
+
+  let t_end  = min(min(slab.y, geo_dist), 200.0);
+  if (t_end <= slab.x) {
+    if (OVERLAY_MODE) { return vec4<f32>(0.0, 0.0, 0.0, 0.0); }
+    return vec4<f32>(sky_color, 1.0);
+  }
+
+  // Primary ray march (24 steps, IGN jitter for TAA)
+  let step_size = (t_end - slab.x) / 24.0;
+  let coord     = vec2<i32>(in.clip_pos.xy);
+  let jitter    = fract(52.9829189 * fract(0.06711056 * f32(coord.x) + 0.00583715 * f32(coord.y)));
+  let t_start   = slab.x + jitter * step_size;
+  let cos_theta = dot(ray_dir, sun_dir);
+  let phase     = dual_phase(cos_theta, cloud.anisotropy);
+
+  var cloud_color = vec3<f32>(0.0);
+  var total_trans = 1.0;
+
+  for (var i = 0; i < 24; i++) {
+    let t = t_start + f32(i) * step_size;
+    if (t >= t_end) { break; }
+    let p = camera.position + ray_dir * t;
+
+    let dens = sample_density(p);
+    if (dens < 0.001) { continue; }
+
+    let shadow_t    = light_march(p, sun_dir);
+    let height_frac = clamp((p.y - cloud.cloudBase) / max(cloud.cloudTop - cloud.cloudBase, 0.001), 0.0, 1.0);
+
+    let sun_energy = light.color * light.intensity * shadow_t * phase;
+    let amb_energy = cloud.ambientColor * mix(0.5, 1.0, height_frac);
+
+    let opt    = dens * cloud.extinction * step_size;
+    let t_step = exp(-opt);
+
+    cloud_color += (sun_energy + amb_energy) * (1.0 - t_step) * total_trans;
+    total_trans *= t_step;
+
+    if (total_trans < 0.01) { break; }
+  }
+
+  if (OVERLAY_MODE) {
+    return vec4<f32>(cloud_color, 1.0 - total_trans);
+  }
+  var final_color = cloud_color + sky_color * total_trans;
+  if (dot(ray_dir, sun_dir) > SUN_COS_THRESH && geo_depth >= 1.0) {
+    final_color += sky_transmittance(atm_ro, sun_dir) * total_trans * 1000.0;
+  }
+  if (dot(ray_dir, moon_dir) > MOON_COS_THRESH && geo_depth >= 1.0) {
+    final_color += sky_transmittance(atm_ro, moon_dir) * total_trans * vec3<f32>(0.85, 0.90, 1.0) * 15.0 * night_t;
+  }
+  return vec4<f32>(final_color, 1.0);
+}
+`,L=96,N=48,F=32;class H extends T{constructor(r,e,t,a,n,o,i,l,d,u,f){super();s(this,"name","CloudPass");s(this,"_device");s(this,"_pipeline");s(this,"_overlayPipeline");s(this,"_cameraBuffer");s(this,"_cloudBuffer");s(this,"_lightBuffer");s(this,"_sceneBg");s(this,"_lightBg");s(this,"_depthBgl");s(this,"_noiseSkyBg");s(this,"_depthSampler");s(this,"_cameraScratch",new Float32Array(L/4));s(this,"_lightScratch",new Float32Array(F/4));s(this,"_settingsScratch",new Float32Array(N/4));this._device=r,this._pipeline=e,this._overlayPipeline=t,this._cameraBuffer=a,this._cloudBuffer=n,this._lightBuffer=o,this._sceneBg=i,this._lightBg=l,this._depthBgl=d,this._noiseSkyBg=u,this._depthSampler=f}static create(r,e){const{device:t}=r,a=t.createBuffer({label:"CloudCameraBuffer",size:L,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST}),n=t.createBuffer({label:"CloudUniformBuffer",size:N,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST}),o=t.createBuffer({label:"CloudLightBuffer",size:F,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST}),i=t.createBindGroupLayout({label:"CloudSceneBGL",entries:[{binding:0,visibility:GPUShaderStage.VERTEX|GPUShaderStage.FRAGMENT,buffer:{type:"uniform"}},{binding:1,visibility:GPUShaderStage.FRAGMENT,buffer:{type:"uniform"}}]}),l=t.createBindGroupLayout({label:"CloudLightBGL",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,buffer:{type:"uniform"}}]}),d=t.createBindGroupLayout({label:"CloudDepthBGL",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"depth"}},{binding:1,visibility:GPUShaderStage.FRAGMENT,sampler:{type:"filtering"}}]}),u=t.createBindGroupLayout({label:"CloudNoiseSkyBGL",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float",viewDimension:"3d"}},{binding:1,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float",viewDimension:"3d"}},{binding:2,visibility:GPUShaderStage.FRAGMENT,sampler:{type:"filtering"}}]}),f=t.createSampler({label:"CloudNoiseSampler",magFilter:"linear",minFilter:"linear",mipmapFilter:"linear",addressModeU:"mirror-repeat",addressModeV:"mirror-repeat",addressModeW:"mirror-repeat"}),_=t.createSampler({label:"CloudDepthSampler"}),h=t.createBindGroup({label:"CloudSceneBG",layout:i,entries:[{binding:0,resource:{buffer:a}},{binding:1,resource:{buffer:n}}]}),m=t.createBindGroup({label:"CloudLightBG",layout:l,entries:[{binding:0,resource:{buffer:o}}]}),g=t.createBindGroup({label:"CloudNoiseSkyBG",layout:u,entries:[{binding:0,resource:e.baseView},{binding:1,resource:e.detailView},{binding:2,resource:f}]}),v=r.createShaderModule(ie,"CloudShader"),b=t.createPipelineLayout({bindGroupLayouts:[i,l,d,u]}),w=t.createRenderPipeline({label:"CloudPipeline",layout:b,vertex:{module:v,entryPoint:"vs_main"},fragment:{module:v,entryPoint:"fs_main",targets:[{format:P}]},primitive:{topology:"triangle-list"}}),S=t.createRenderPipeline({label:"CloudOverlayPipeline",layout:b,vertex:{module:v,entryPoint:"vs_main"},fragment:{module:v,entryPoint:"fs_main",constants:{OVERLAY_MODE:1},targets:[{format:P,blend:{color:{srcFactor:"one",dstFactor:"one-minus-src-alpha",operation:"add"},alpha:{srcFactor:"one",dstFactor:"one-minus-src-alpha",operation:"add"}}}]},primitive:{topology:"triangle-list"}});return new H(t,w,S,a,n,o,h,m,d,g,_)}updateCamera(r){const e=r.activeCamera;if(!e)throw new Error("CloudPass.updateCamera: ctx.activeCamera is null");const t=e.position(),a=this._cameraScratch;a.set(e.inverseViewProjectionMatrix().data,0),a[16]=t.x,a[17]=t.y,a[18]=t.z,a[19]=e.near,a[20]=e.far,r.queue.writeBuffer(this._cameraBuffer,0,a.buffer)}updateLight(r,e,t,a){const n=this._lightScratch;n[0]=e.x,n[1]=e.y,n[2]=e.z,n[3]=a,n[4]=t.x,n[5]=t.y,n[6]=t.z,r.queue.writeBuffer(this._lightBuffer,0,n.buffer)}updateSettings(r,e){const t=this._settingsScratch;t[0]=e.cloudBase,t[1]=e.cloudTop,t[2]=e.coverage,t[3]=e.density,t[4]=e.windOffset[0],t[5]=e.windOffset[1],t[6]=e.anisotropy,t[7]=e.extinction,t[8]=e.ambientColor[0],t[9]=e.ambientColor[1],t[10]=e.ambientColor[2],t[11]=e.exposure,r.queue.writeBuffer(this._cloudBuffer,0,t.buffer)}addToGraph(r,e){const{ctx:t}=r,a=!!e.overlay;if(a&&!e.hdr)throw new Error("CloudPass: overlay mode requires an hdr input");const n=!!e.hdr;let o=e.hdr??void 0,i;return r.addPass(this.name,"render",l=>{n||(o=l.createTexture({label:"cloud.hdr",format:P,width:t.width,height:t.height,extraUsage:GPUTextureUsage.RENDER_ATTACHMENT|GPUTextureUsage.TEXTURE_BINDING|GPUTextureUsage.COPY_SRC})),i=l.write(o,"attachment",{loadOp:n?"load":"clear",storeOp:"store",clearValue:[0,0,0,1]}),l.read(e.depth,"sampled"),l.setExecute((d,u)=>{const f=this._device.createBindGroup({label:"CloudDepthBG",layout:this._depthBgl,entries:[{binding:0,resource:u.getTextureView(e.depth)},{binding:1,resource:this._depthSampler}]}),_=d.renderPassEncoder;_.setPipeline(a?this._overlayPipeline:this._pipeline),_.setBindGroup(0,this._sceneBg),_.setBindGroup(1,this._lightBg),_.setBindGroup(2,f),_.setBindGroup(3,this._noiseSkyBg),_.draw(3)})}),{hdr:i}}destroy(){this._cameraBuffer.destroy(),this._cloudBuffer.destroy(),this._lightBuffer.destroy()}}const oe=`// Cloud shadow pass — renders a top-down cloud transmittance map (1024×1024 r8unorm).
+// For each texel, marches 32 steps vertically through the cloud slab and accumulates
+// optical depth, then outputs Beer's-law transmittance.
+
+const PI: f32 = 3.14159265358979323846;
+
+const ROT_C: f32 = 0.79863551;
+const ROT_S: f32 = 0.60181502;
+fn rotate_xz(p: vec3<f32>) -> vec3<f32> {
+  return vec3<f32>(p.x * ROT_C - p.z * ROT_S, p.y, p.x * ROT_S + p.z * ROT_C);
+}
+
+struct CloudShadowUniforms {
+  cloudBase    : f32,
+  cloudTop     : f32,
+  coverage     : f32,
+  density      : f32,
+  windOffset   : vec2<f32>,   // XZ animated offset
+  worldOriginX : f32,         // world-space XZ center of the shadow map
+  worldOriginZ : f32,
+  worldExtent  : f32,         // half-size in world units (map covers ±worldExtent)
+  extinction   : f32,
+  _pad0        : f32,
+  _pad1        : f32,
+}
+
+@group(0) @binding(0) var<uniform> params     : CloudShadowUniforms;
+@group(1) @binding(0) var          base_noise  : texture_3d<f32>;
+@group(1) @binding(1) var          detail_noise: texture_3d<f32>;
+@group(1) @binding(2) var          noise_samp  : sampler;
+
+struct VertexOutput {
+  @builtin(position) clip_pos: vec4<f32>,
+  @location(0)       uv      : vec2<f32>,
+}
+
+@vertex
+fn vs_main(@builtin(vertex_index) vid: u32) -> VertexOutput {
+  let x = f32((vid & 1u) << 2u) - 1.0;
+  let y = f32((vid & 2u) << 1u) - 1.0;
+  var out: VertexOutput;
+  out.clip_pos = vec4<f32>(x, y, 0.0, 1.0);
+  out.uv       = vec2<f32>(x * 0.5 + 0.5, -y * 0.5 + 0.5);
+  return out;
+}
+
+fn remap(v: f32, lo: f32, hi: f32, a: f32, b: f32) -> f32 {
+  return clamp(a + (v - lo) / max(hi - lo, 0.0001) * (b - a), a, b);
+}
+
+fn height_gradient(y: f32) -> f32 {
+  let t = clamp((y - params.cloudBase) / max(params.cloudTop - params.cloudBase, 0.001), 0.0, 1.0);
+  let base = remap(t, 0.0, 0.07, 0.0, 1.0);
+  let top  = remap(t, 0.2, 1.0,  1.0, 0.0);
+  return saturate(base * top);
+}
+
+fn sample_density(world_pos: vec3<f32>) -> f32 {
+  let pr = rotate_xz(world_pos);
+  let scale = 0.04;
+  let base_uv = (pr + vec3<f32>(params.windOffset.x, 0.0, params.windOffset.y)) * scale;
+  let base = textureSampleLevel(base_noise, noise_samp, base_uv, 0.0);
+
+  // Perlin-Worley blend
+  let pw = base.r * 0.625 + (1.0 - base.g) * 0.25 + (1.0 - base.b) * 0.125;
+  let hg = height_gradient(world_pos.y);
+  let cov = saturate(remap(pw, 1.0 - params.coverage, 1.0, 0.0, 1.0)) * hg;
+  if (cov < 0.001) { return 0.0; }
+
+  let detail_scale = 0.12;
+  let detail_uv = pr * detail_scale + vec3<f32>(params.windOffset.x, 0.0, params.windOffset.y) * 0.1;
+  let det = textureSampleLevel(detail_noise, noise_samp, detail_uv, 0.0);
+  let detail = det.r * 0.5 + det.g * 0.25 + det.b * 0.125;
+
+  return max(0.0, cov - (1.0 - cov) * detail * 0.3) * params.density;
+}
+
+@fragment
+fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
+  // Map UV to world XZ position
+  let world_x = params.worldOriginX + (in.uv.x - 0.5) * params.worldExtent * 2.0;
+  let world_z = params.worldOriginZ + (in.uv.y - 0.5) * params.worldExtent * 2.0;
+
+  let slab_h = params.cloudTop - params.cloudBase;
+  let step_h = slab_h / 16.0;
+
+  var opt_depth = 0.0;
+  for (var i = 0; i < 16; i++) {
+    let y = params.cloudBase + (f32(i) + 0.5) * step_h;
+    opt_depth += sample_density(vec3<f32>(world_x, y, world_z)) * step_h;
+  }
+
+  let transmittance = exp(-opt_depth * params.extinction);
+  return vec4<f32>(transmittance, 0.0, 0.0, 1.0);
+}
+`,I=1024,Y="r8unorm",z=48,se="cloud:shadow",le={label:"CloudShadowTexture",format:Y,width:I,height:I};class Z extends T{constructor(r,e,t,a){super();s(this,"name","CloudShadowPass");s(this,"_pipeline");s(this,"_uniformBuffer");s(this,"_uniformBg");s(this,"_noiseBg");s(this,"_frameCount",0);s(this,"_data",new Float32Array(z/4));this._pipeline=r,this._uniformBuffer=e,this._uniformBg=t,this._noiseBg=a}static create(r,e){const{device:t}=r,a=t.createBuffer({label:"CloudShadowUniform",size:z,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST}),n=t.createBindGroupLayout({label:"CloudShadowUniformBGL",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,buffer:{type:"uniform"}}]}),o=t.createBindGroupLayout({label:"CloudShadowNoiseBGL",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float",viewDimension:"3d"}},{binding:1,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float",viewDimension:"3d"}},{binding:2,visibility:GPUShaderStage.FRAGMENT,sampler:{type:"filtering"}}]}),i=t.createSampler({label:"CloudNoiseSampler",magFilter:"linear",minFilter:"linear",mipmapFilter:"linear",addressModeU:"mirror-repeat",addressModeV:"mirror-repeat",addressModeW:"mirror-repeat"}),l=t.createBindGroup({label:"CloudShadowUniformBG",layout:n,entries:[{binding:0,resource:{buffer:a}}]}),d=t.createBindGroup({label:"CloudShadowNoiseBG",layout:o,entries:[{binding:0,resource:e.baseView},{binding:1,resource:e.detailView},{binding:2,resource:i}]}),u=r.createShaderModule(oe,"CloudShadowShader"),f=t.createRenderPipeline({label:"CloudShadowPipeline",layout:t.createPipelineLayout({bindGroupLayouts:[n,o]}),vertex:{module:u,entryPoint:"vs_main"},fragment:{module:u,entryPoint:"fs_main",targets:[{format:Y}]},primitive:{topology:"triangle-list"}});return new Z(f,a,l,d)}update(r,e,t,a){this._data[0]=e.cloudBase,this._data[1]=e.cloudTop,this._data[2]=e.coverage,this._data[3]=e.density,this._data[4]=e.windOffset[0],this._data[5]=e.windOffset[1],this._data[6]=t[0],this._data[7]=t[1],this._data[8]=a,this._data[9]=e.extinction,r.queue.writeBuffer(this._uniformBuffer,0,this._data.buffer)}addToGraph(r){const e=r.importPersistentTexture(se,le);let t;return r.addPass(this.name,"render",a=>{t=a.write(e,"attachment",{loadOp:"load",storeOp:"store"}),a.setExecute(n=>{if(this._frameCount++%2!==0)return;const o=n.renderPassEncoder;o.setPipeline(this._pipeline),o.setBindGroup(0,this._uniformBg),o.setBindGroup(1,this._noiseBg),o.draw(3)})}),{shadow:t}}destroy(){this._uniformBuffer.destroy()}}const de=`// Auto-exposure — two-pass histogram approach.
+//
+// cs_histogram : samples the HDR scene texture (every 4th pixel), bins each
+//                pixel's log2-luminance into 64 workgroup-local bins, then
+//                flushes to the global histogram atomically.
+// cs_adapt     : reads the 64-bin histogram, computes a weighted average
+//                log-luminance (skipping the darkest 5% and brightest 2% of
+//                samples), derives the target linear exposure that maps the
+//                average to 18% gray, then lerps the current exposure toward
+//                that target with a time-constant controlled by adapt_speed.
+
+const NUM_BINS      : u32 = 64u;
+const LOG_LUM_MIN   : f32 = -10.0;   // log2 luminance range bottom (2^-10 ≈ 0.001)
+const LOG_LUM_MAX   : f32 =   6.0;   // log2 luminance range top   (2^6  = 64)
+const LOG_LUM_RANGE : f32 = 16.0;    // LOG_LUM_MAX - LOG_LUM_MIN
+const GRAY_LOG2     : f32 = -2.474;  // log2(0.18) — target middle-grey point
+
+struct AutoExposureParams {
+  dt          : f32,
+  adapt_speed : f32,   // EV/second rate constant (higher = faster adaptation)
+  min_exposure: f32,   // minimum linear exposure multiplier
+  max_exposure: f32,   // maximum linear exposure multiplier
+  low_pct     : f32,   // fraction of darkest samples to ignore (default 0.05)
+  high_pct    : f32,   // fraction of brightest samples to ignore (default 0.02)
+  _pad        : vec2<f32>,
+}
+
+struct ExposureBuffer {
+  value : f32,
+  _pad0 : f32,
+  _pad1 : f32,
+  _pad2 : f32,
+}
+
+@group(0) @binding(0) var                        hdr_tex  : texture_2d<f32>;
+@group(0) @binding(1) var<storage, read_write>   histogram: array<atomic<u32>>;  // 64 bins
+@group(0) @binding(2) var<storage, read_write>   exposure : ExposureBuffer;
+@group(0) @binding(3) var<uniform>               params   : AutoExposureParams;
+
+// ---- Pass 1: Histogram ------------------------------------------------------
+
+var<workgroup> wg_hist: array<atomic<u32>, 64>;
+
+@compute @workgroup_size(8, 8)
+fn cs_histogram(
+  @builtin(global_invocation_id)    gid: vec3<u32>,
+  @builtin(local_invocation_index)  lid: u32,
+) {
+  // wg_hist is zero-initialized per WGSL spec — no explicit clear needed.
+
+  let size  = textureDimensions(hdr_tex);
+  let coord = gid.xy * 4u;   // sample every 4th pixel in each dimension
+
+  if (coord.x < size.x && coord.y < size.y) {
+    let rgb = textureLoad(hdr_tex, vec2<i32>(coord), 0).rgb;
+    let lum = dot(rgb, vec3<f32>(0.2126, 0.7152, 0.0722));
+    if (lum > 1e-5) {
+      let t   = clamp((log2(lum) - LOG_LUM_MIN) / LOG_LUM_RANGE, 0.0, 1.0);
+      let bin = min(u32(t * f32(NUM_BINS)), NUM_BINS - 1u);
+      atomicAdd(&wg_hist[bin], 1u);
+    }
+  }
+  workgroupBarrier();
+
+  // Each thread (lid 0-63) flushes one histogram bin to the global buffer.
+  atomicAdd(&histogram[lid], atomicLoad(&wg_hist[lid]));
+}
+
+// ---- Pass 2: Adapt ----------------------------------------------------------
+
+var<workgroup> wg_bins: array<u32, 64>;
+
+@compute @workgroup_size(64)
+fn cs_adapt(@builtin(local_invocation_index) lid: u32) {
+  // Read and clear the global histogram for this frame.
+  wg_bins[lid] = atomicExchange(&histogram[lid], 0u);
+  workgroupBarrier();
+
+  // Only thread 0 performs the sequential reduction.
+  if (lid != 0u) { return; }
+
+  var total = 0u;
+  for (var i = 0u; i < NUM_BINS; i++) { total += wg_bins[i]; }
+  if (total == 0u) { return; }
+
+  // Skip the darkest low_pct and brightest high_pct samples.
+  let low_cut  = u32(f32(total) * params.low_pct);
+  let high_cut = total - u32(f32(total) * params.high_pct);
+
+  var acc     = 0u;
+  var sum_log = 0.0;
+  var cnt     = 0u;
+  for (var i = 0u; i < NUM_BINS; i++) {
+    let b       = wg_bins[i];
+    let b_start = acc;
+    let b_end   = acc + b;
+    acc = b_end;
+    if (b_end > low_cut && b_start < high_cut) {
+      let in_cnt  = min(b_end, high_cut) - max(b_start, low_cut);
+      let log_lum = LOG_LUM_MIN + (f32(i) + 0.5) / f32(NUM_BINS) * LOG_LUM_RANGE;
+      sum_log += log_lum * f32(in_cnt);
+      cnt     += in_cnt;
+    }
+  }
+  if (cnt == 0u) { return; }
+
+  // target exposure = 0.18 / avg_lum  →  in log-space: GRAY_LOG2 - avg_log
+  let avg_log    = sum_log / f32(cnt);
+  let target_ev  = clamp(GRAY_LOG2 - avg_log,
+                         log2(params.min_exposure),
+                         log2(params.max_exposure));
+  let target_exp = exp2(target_ev);
+
+  // Exponential smoothing toward target.
+  let blend = 1.0 - exp(-params.adapt_speed * params.dt);
+  exposure.value = exposure.value + (target_exp - exposure.value) * blend;
+}
+`,ue=64,ce=32,fe=16,pe=ue*4,G={adaptSpeed:1.5,minExposure:.1,maxExposure:10,lowPct:.05,highPct:.02},_e="lighting:exposure",he={label:"AutoExposureValue",size:fe,extraUsage:GPUBufferUsage.STORAGE|GPUBufferUsage.COPY_DST},x=class x extends T{constructor(r,e,t,a,n,o){super();s(this,"name","AutoExposurePass");s(this,"enabled",!0);s(this,"_device");s(this,"_bgl");s(this,"_histogramPipeline");s(this,"_adaptPipeline");s(this,"_paramsBuffer");s(this,"_histogramBuffer");s(this,"_settings",G);s(this,"_dt",0);s(this,"_exposureBufferRef",null);s(this,"_initialized",!1);s(this,"_resetScratch",new Float32Array([.1,0,0,0]));this._device=r,this._bgl=e,this._histogramPipeline=t,this._adaptPipeline=a,this._paramsBuffer=n,this._histogramBuffer=o}setFixedExposure(r){this._resetScratch[0]=r,this._exposureBufferRef&&this._device.queue.writeBuffer(this._exposureBufferRef,0,this._resetScratch)}static create(r,e=G){const{device:t}=r,a=t.createBindGroupLayout({label:"AutoExposureBGL",entries:[{binding:0,visibility:GPUShaderStage.COMPUTE,texture:{sampleType:"float"}},{binding:1,visibility:GPUShaderStage.COMPUTE,buffer:{type:"storage"}},{binding:2,visibility:GPUShaderStage.COMPUTE,buffer:{type:"storage"}},{binding:3,visibility:GPUShaderStage.COMPUTE,buffer:{type:"uniform"}}]}),n=t.createBuffer({label:"AutoExposureHistogram",size:pe,usage:GPUBufferUsage.STORAGE}),o=t.createBuffer({label:"AutoExposureParams",size:ce,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST});x._writeParams(t,o,0,e);const i=t.createPipelineLayout({bindGroupLayouts:[a]}),l=r.createShaderModule(de,"AutoExposure"),d=t.createComputePipeline({label:"AutoExposureHistogramPipeline",layout:i,compute:{module:l,entryPoint:"cs_histogram"}}),u=t.createComputePipeline({label:"AutoExposureAdaptPipeline",layout:i,compute:{module:l,entryPoint:"cs_adapt"}});return new x(t,a,d,u,o,n)}update(r,e=G){this._dt=r.deltaTime,this._settings=e,x._writeParams(this._device,this._paramsBuffer,r.deltaTime,e)}addToGraph(r,e){const t=r.importPersistentBuffer(_e,he);let a;return this.enabled?(r.addPass(this.name,"compute",n=>{n.read(e.hdr,"sampled"),a=n.write(t,"storage-read-write"),n.setExecute((o,i)=>{const l=i.getBuffer(t);this._exposureBufferRef!==l&&(this._exposureBufferRef=l,this._initialized=!1),this._initialized||(this._device.queue.writeBuffer(l,0,this._resetScratch),this._initialized=!0);const d=i.getTexture(e.hdr),u=i.getOrCreateBindGroup({label:"AutoExposureBG",layout:this._bgl,entries:[{binding:0,resource:i.getTextureView(e.hdr)},{binding:1,resource:{buffer:this._histogramBuffer}},{binding:2,resource:{buffer:l}},{binding:3,resource:{buffer:this._paramsBuffer}}]});x._writeParams(this._device,this._paramsBuffer,this._dt,this._settings);const f=o.computePassEncoder;f.setBindGroup(0,u),f.setPipeline(this._histogramPipeline),f.dispatchWorkgroups(Math.ceil(d.width/32),Math.ceil(d.height/32)),f.setPipeline(this._adaptPipeline),f.dispatchWorkgroups(1)})}),{exposureBuffer:a}):(r.addPass(this.name+".disabled","transfer",n=>{a=n.write(t,"copy-dst"),n.setExecute((o,i)=>{this._device.queue.writeBuffer(i.getBuffer(t),0,this._resetScratch)})}),this._initialized=!0,{exposureBuffer:a})}destroy(){this._paramsBuffer.destroy(),this._histogramBuffer.destroy()}static _writeParams(r,e,t,a){const n=x._paramsScratch;n[0]=t,n[1]=a.adaptSpeed,n[2]=a.minExposure,n[3]=a.maxExposure,n[4]=a.lowPct,n[5]=a.highPct,n[6]=0,n[7]=0,r.queue.writeBuffer(e,0,n)}};s(x,"_paramsScratch",new Float32Array(8));let D=x;const me=`// composite.wgsl — Fog + Underwater + Tonemap merged into a single full-screen draw.
+// Replaces FogPass → UnderwaterPass → TonemapPass, saving 2 intermediate HDR
+// textures and 2 render-pass boundaries.
+//
+// Effect enable flags live in params.fog_flags and params.tonemap_flags so the GPU
+// can branch them out without pipeline recompilation.
+
+const PI: f32 = 3.14159265358979;
+
+// ── Atmospheric scatter ────────────────────────────────────────────────────────
+// Constants must match deferred_lighting.wgsl / fog.wgsl exactly.
+
+const ATM_R_E   : f32       = 6360000.0;
+const ATM_R_A   : f32       = 6420000.0;
+const ATM_H_R   : f32       = 8500.0;
+const ATM_H_M   : f32       = 1200.0;
+const ATM_G     : f32       = 0.758;
+const ATM_BETA_R: vec3<f32> = vec3<f32>(5.5e-6, 13.0e-6, 22.4e-6);
+const ATM_BETA_M: f32       = 21.0e-6;
+const ATM_SUN_I : f32       = 20.0;
+
+fn atm_ray_sphere(ro: vec3<f32>, rd: vec3<f32>, r: f32) -> vec2<f32> {
+  let b = dot(ro, rd); let c = dot(ro, ro) - r * r; let d = b * b - c;
+  if (d < 0.0) { return vec2<f32>(-1.0, -1.0); }
+  let sq = sqrt(d);
+  return vec2<f32>(-b - sq, -b + sq);
+}
+
+fn atm_optical_depth(pos: vec3<f32>, dir: vec3<f32>) -> vec2<f32> {
+  let t = atm_ray_sphere(pos, dir, ATM_R_A); let ds = t.y / 4.0;
+  var od = vec2<f32>(0.0);
+  for (var i = 0; i < 4; i++) {
+    let h = length(pos + dir * ((f32(i) + 0.5) * ds)) - ATM_R_E;
+    if (h < 0.0) { break; }
+    od += vec2<f32>(exp(-h / ATM_H_R), exp(-h / ATM_H_M)) * ds;
+  }
+  return od;
+}
+
+fn atm_scatter(ro: vec3<f32>, rd: vec3<f32>, sun_dir: vec3<f32>) -> vec3<f32> {
+  let ta = atm_ray_sphere(ro, rd, ATM_R_A); let tMin = max(ta.x, 0.0);
+  if (ta.y < 0.0) { return vec3<f32>(0.0); }
+  let tg   = atm_ray_sphere(ro, rd, ATM_R_E);
+  let tMax = select(ta.y, min(ta.y, tg.x), tg.x > 0.0);
+  if (tMax <= tMin) { return vec3<f32>(0.0); }
+  let mu = dot(rd, sun_dir);
+  let pR = (3.0 / (16.0 * PI)) * (1.0 + mu * mu);
+  let g2 = ATM_G * ATM_G;
+  let pM = (3.0 / (8.0 * PI)) * ((1.0 - g2) * (1.0 + mu * mu)) /
+            ((2.0 + g2) * pow(max(1.0 + g2 - 2.0 * ATM_G * mu, 1e-4), 1.5));
+  let ds = (tMax - tMin) / 6.0;
+  var sumR = vec3<f32>(0.0); var sumM = vec3<f32>(0.0);
+  var odR = 0.0; var odM = 0.0;
+  for (var i = 0; i < 6; i++) {
+    let pos = ro + rd * (tMin + (f32(i) + 0.5) * ds);
+    let h   = length(pos) - ATM_R_E;
+    if (h < 0.0) { break; }
+    let hrh = exp(-h / ATM_H_R) * ds; let hmh = exp(-h / ATM_H_M) * ds;
+    odR += hrh; odM += hmh;
+    let tg2 = atm_ray_sphere(pos, sun_dir, ATM_R_E);
+    if (tg2.x > 0.0) { continue; }
+    let odL = atm_optical_depth(pos, sun_dir);
+    let tau = ATM_BETA_R * (odR + odL.x) + ATM_BETA_M * 1.1 * (odM + odL.y);
+    sumR += exp(-tau) * hrh; sumM += exp(-tau) * hmh;
+  }
+  return ATM_SUN_I * (ATM_BETA_R * pR * sumR + vec3<f32>(ATM_BETA_M) * pM * sumM);
+}
+
+// ── Structs ───────────────────────────────────────────────────────────────────
+
+struct CameraUniforms {
+  view       : mat4x4<f32>,
+  proj       : mat4x4<f32>,
+  viewProj   : mat4x4<f32>,
+  invViewProj: mat4x4<f32>,
+  position   : vec3<f32>,
+  near       : f32,
+  far        : f32,
+}
+
+// Only the first field of the full LightUniforms buffer is needed here.
+struct LightDir { direction: vec3<f32>, }
+
+// Combined params buffer — 64 bytes.
+// Layout (byte offsets):
+//  0  fog_color      vec3<f32>
+// 12  depth_density  f32
+// 16  depth_begin    f32
+// 20  depth_end      f32
+// 24  depth_curve    f32
+// 28  height_density f32
+// 32  height_min     f32
+// 36  height_max     f32
+// 40  height_curve   f32
+// 44  fog_flags      u32  bit 0 = depth fog, bit 1 = height fog
+// 48  uw_time        f32
+// 52  is_underwater  f32
+// 56  tonemap_flags  u32  bit 0 = aces, bit 1 = debug_ao, bit 2 = hdr_canvas
+// 60  _pad           f32
+struct CompositeParams {
+  fog_color      : vec3<f32>,
+  depth_density  : f32,
+  depth_begin    : f32,
+  depth_end      : f32,
+  depth_curve    : f32,
+  height_density : f32,
+  height_min     : f32,
+  height_max     : f32,
+  height_curve   : f32,
+  fog_flags      : u32,
+  uw_time        : f32,
+  is_underwater  : f32,
+  tonemap_flags  : u32,
+  _pad           : f32,
+}
+
+// invViewProj(64) + cam_pos(12) + pad(4) + sun_dir(12) + pad(4) = 96 bytes
+struct StarUniforms {
+  invViewProj: mat4x4<f32>,
+  cam_pos    : vec3<f32>,
+  _pad0      : f32,
+  sun_dir    : vec3<f32>,
+  _pad1      : f32,
+}
+
+struct ExposureBuffer {
+  value: f32,
+  _p0  : f32, _p1: f32, _p2: f32,
+}
+
+// ── Bindings ──────────────────────────────────────────────────────────────────
+
+@group(0) @binding(0) var hdr_tex : texture_2d<f32>;
+@group(0) @binding(1) var ao_tex  : texture_2d<f32>;
+@group(0) @binding(2) var dep_tex : texture_depth_2d;
+@group(0) @binding(3) var samp    : sampler;
+
+@group(1) @binding(0) var<uniform> camera  : CameraUniforms;
+@group(1) @binding(1) var<uniform> light   : LightDir;
+
+@group(2) @binding(0) var<uniform>        params   : CompositeParams;
+@group(2) @binding(1) var<uniform>        star_uni : StarUniforms;
+@group(2) @binding(2) var<storage, read>  exposure : ExposureBuffer;
+
+// ── Vertex shader ─────────────────────────────────────────────────────────────
+
+struct VertOut {
+  @builtin(position) pos: vec4<f32>,
+  @location(0)       uv : vec2<f32>,
+}
+
+@vertex
+fn vs_main(@builtin(vertex_index) vid: u32) -> VertOut {
+  let x = f32((vid & 1u) << 2u) - 1.0;
+  let y = f32((vid & 2u) << 1u) - 1.0;
+  var out: VertOut;
+  out.pos = vec4<f32>(x, y, 0.0, 1.0);
+  out.uv  = vec2<f32>(x * 0.5 + 0.5, -y * 0.5 + 0.5);
+  return out;
+}
+
+// ── Star field ────────────────────────────────────────────────────────────────
+
+fn star_hash(p: vec2<f32>) -> f32 {
+  return fract(sin(dot(p, vec2<f32>(127.1, 311.7))) * 43758.5453);
+}
+
+fn star_hash2(p: vec2<f32>) -> vec2<f32> {
+  return fract(sin(vec2<f32>(
+    dot(p, vec2<f32>(127.1, 311.7)),
+    dot(p, vec2<f32>(269.5, 183.3)),
+  )) * 43758.5453);
+}
+
+fn dir_to_equirect(d: vec3<f32>) -> vec2<f32> {
+  let u = atan2(d.x, -d.z) / (2.0 * PI) + 0.5;
+  let v = 0.5 - asin(clamp(d.y, -1.0, 1.0)) / PI;
+  return vec2<f32>(u, v);
+}
+
+fn sample_stars(ray_dir: vec3<f32>) -> vec3<f32> {
+  let GRID    = vec2<f32>(300.0, 150.0);
+  let uv      = dir_to_equirect(ray_dir);
+  let gcoord  = uv * GRID;
+  let cell    = floor(gcoord);
+  let frac_uv = fract(gcoord);
+  let lat     = (0.5 - uv.y) * PI;
+  let cos_lat = max(cos(lat), 0.15);
+  var color   = vec3<f32>(0.0);
+
+  for (var dy: i32 = -1; dy <= 1; dy++) {
+    for (var dx: i32 = -1; dx <= 1; dx++) {
+      var nc = cell + vec2<f32>(f32(dx), f32(dy));
+      if (nc.y < 0.0 || nc.y >= GRID.y) { continue; }
+      nc.x = nc.x - floor(nc.x / GRID.x) * GRID.x;
+      let h           = star_hash2(nc);
+      let cell_lat    = (0.5 - (nc.y + 0.5) / GRID.y) * PI;
+      let star_thresh = 1.0 - 0.18 * max(cos(cell_lat), 0.0);
+      if (h.x > star_thresh) {
+        let off     = star_hash2(nc + vec2<f32>(7.3, 3.7)) * 0.8 + 0.1;
+        let to_star = frac_uv - vec2<f32>(f32(dx), f32(dy)) - off;
+        let ts_s    = vec2<f32>(to_star.x * cos_lat, to_star.y);
+        let dist2   = dot(ts_s, ts_s);
+        let glow    = exp(-dist2 * 500.0);
+        if (glow < 0.002) { continue; }
+        let mag  = pow(star_hash(nc + vec2<f32>(1.5, 0.0)), 1.8);
+        let br   = glow * (0.15 + mag * 0.85);
+        let roll = star_hash(nc + vec2<f32>(2.5, 0.0));
+        var sc   = vec3<f32>(1.0);
+        if      (roll < 0.06) { sc = vec3<f32>(0.65, 0.76, 1.0);  }
+        else if (roll < 0.20) { sc = vec3<f32>(0.82, 0.89, 1.0);  }
+        else if (roll < 0.44) { sc = vec3<f32>(1.0,  1.0,  0.82); }
+        else if (roll < 0.57) { sc = vec3<f32>(1.0,  0.78, 0.51); }
+        else if (roll < 0.64) { sc = vec3<f32>(1.0,  0.51, 0.25); }
+        color += sc * br;
+      }
+    }
+  }
+  return color;
+}
+
+// ── ACES filmic ───────────────────────────────────────────────────────────────
+
+fn aces_filmic(x: vec3<f32>) -> vec3<f32> {
+  let a = 2.51; let b = 0.03; let c = 2.43; let d = 0.59; let e = 0.14;
+  return clamp((x * (a * x + b)) / (x * (c * x + d) + e), vec3<f32>(0.0), vec3<f32>(1.0));
+}
+
+// ── Fragment shader ───────────────────────────────────────────────────────────
+
+@fragment
+fn fs_main(in: VertOut) -> @location(0) vec4<f32> {
+  let coord = vec2<i32>(in.pos.xy);
+
+  // Debug AO mode — short-circuit everything else.
+  if ((params.tonemap_flags & 2u) != 0u) {
+    let ao = textureLoad(ao_tex, coord / 2, 0).r;
+    return vec4<f32>(ao, ao, ao, 1.0);
+  }
+
+  // --- Underwater UV distortion ---
+  var sample_uv = in.uv;
+  if (params.is_underwater > 0.5) {
+    let t = params.uw_time;
+    let distort = vec2<f32>(
+      sin(in.uv.y * 18.0 + t * 1.4) * 0.006,
+      cos(in.uv.x * 14.0 + t * 1.1) * 0.004,
+    );
+    sample_uv = clamp(in.uv + distort, vec2<f32>(0.001), vec2<f32>(0.999));
+  }
+
+  // --- Sample HDR scene ---
+  var scene = textureSample(hdr_tex, samp, sample_uv).rgb;
+
+  let depth = textureLoad(dep_tex, coord, 0u);
+
+  // --- Fog (skipped for sky pixels and when no fog mode is active) ---
+  if (depth < 1.0 && (params.fog_flags & 3u) != 0u) {
+    let ndc       = vec4<f32>(in.uv.x * 2.0 - 1.0, 1.0 - in.uv.y * 2.0, depth, 1.0);
+    let world_h   = camera.invViewProj * ndc;
+    let world_pos = world_h.xyz / world_h.w;
+    let view_pos  = camera.view * vec4<f32>(world_pos, 1.0);
+    let view_dist = length(view_pos.xyz);
+
+    let sun_dir = normalize(-light.direction);
+    let cam_h   = max(camera.position.y, 0.0);
+    let atm_ro  = vec3<f32>(0.0, ATM_R_E + cam_h, 0.0);
+    let ray_vec = world_pos - camera.position;
+    let ray_dir = normalize(ray_vec);
+    let h2      = vec3<f32>(ray_dir.x, 0.0, ray_dir.z);
+    let len2    = dot(h2, h2);
+    let fog_dir = select(normalize(h2), vec3<f32>(1.0, 0.0, 0.0), len2 < 1e-6);
+    let fog_col = atm_scatter(atm_ro, fog_dir, sun_dir) * params.fog_color;
+
+    var fog_amount = 0.0;
+    if ((params.fog_flags & 1u) != 0u && params.depth_density > 0.0) {
+      let far = select(params.depth_end, camera.far, params.depth_end <= 0.0);
+      let t   = smoothstep(params.depth_begin, far, view_dist);
+      fog_amount = max(fog_amount, pow(t, params.depth_curve) * params.depth_density);
+    }
+    if ((params.fog_flags & 2u) != 0u && params.height_density > 0.0) {
+      let t = smoothstep(params.height_min, params.height_max, world_pos.y);
+      fog_amount = max(fog_amount, pow(t, params.height_curve) * params.height_density);
+    }
+    scene = mix(scene, fog_col, clamp(fog_amount, 0.0, 1.0));
+  }
+
+  // --- Underwater tint + vignette ---
+  if (params.is_underwater > 0.5) {
+    scene = scene * vec3<f32>(0.20, 0.55, 0.90);
+    let d = length(in.uv * 2.0 - 1.0);
+    scene *= clamp(1.0 - d * d * 0.55, 0.0, 1.0);
+  }
+
+  // --- Exposure ---
+  scene *= exposure.value;
+
+  // --- Stars (sky pixels only, rendered after DoF/Bloom for crisp point sources) ---
+  if (depth >= 1.0) {
+    let ndc     = vec4<f32>(in.uv.x * 2.0 - 1.0, 1.0 - in.uv.y * 2.0, 1.0, 1.0);
+    let world_h = star_uni.invViewProj * ndc;
+    let ray_dir = normalize(world_h.xyz / world_h.w - star_uni.cam_pos);
+    if (ray_dir.y > -0.05) {
+      let night_t     = saturate((-star_uni.sun_dir.y - 0.05) * 10.0);
+      let above_horiz = saturate(ray_dir.y * 20.0);
+      let star_fade   = night_t * above_horiz;
+      if (star_fade > 0.001) {
+        scene += sample_stars(ray_dir) * (star_fade * 2.0);
+      }
+    }
+  }
+
+  // --- Tonemap + gamma ---
+  if ((params.tonemap_flags & 4u) != 0u) {
+    // HDR canvas mode: skip ACES, just gamma-encode.
+    return vec4<f32>(pow(max(scene, vec3<f32>(0.0)), vec3<f32>(1.0 / 2.2)), 1.0);
+  }
+  let ldr = select(scene, aces_filmic(scene), (params.tonemap_flags & 1u) != 0u);
+  return vec4<f32>(pow(ldr, vec3<f32>(1.0 / 2.2)), 1.0);
+}
+`,k=64,V=96;class X extends T{constructor(r,e,t,a,n,o,i){super();s(this,"name","CompositePass");s(this,"depthFogEnabled",!0);s(this,"depthDensity",1);s(this,"depthBegin",32);s(this,"depthEnd",128);s(this,"depthCurve",1.5);s(this,"heightFogEnabled",!1);s(this,"heightDensity",.7);s(this,"heightMin",48);s(this,"heightMax",80);s(this,"heightCurve",1);s(this,"fogColor",[1,1,1]);s(this,"_pipeline");s(this,"_texturesBgl");s(this,"_bufBgl");s(this,"_paramsBgl");s(this,"_paramsBuf");s(this,"_starBuf");s(this,"_sampler");s(this,"_paramsAB",new ArrayBuffer(k));s(this,"_paramsF",new Float32Array(this._paramsAB));s(this,"_paramsU",new Uint32Array(this._paramsAB));s(this,"_starScratch",new Float32Array(V/4));this._pipeline=r,this._texturesBgl=e,this._bufBgl=t,this._paramsBgl=a,this._paramsBuf=n,this._starBuf=o,this._sampler=i}static create(r){const{device:e,format:t}=r,a=e.createBindGroupLayout({label:"CompositeBGL0",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:1,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:2,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"depth"}},{binding:3,visibility:GPUShaderStage.FRAGMENT,sampler:{type:"filtering"}}]}),n=e.createBindGroupLayout({label:"CompositeBGL1",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,buffer:{type:"uniform"}},{binding:1,visibility:GPUShaderStage.FRAGMENT,buffer:{type:"uniform"}}]}),o=e.createBindGroupLayout({label:"CompositeBGL2",entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,buffer:{type:"uniform"}},{binding:1,visibility:GPUShaderStage.FRAGMENT,buffer:{type:"uniform"}},{binding:2,visibility:GPUShaderStage.FRAGMENT,buffer:{type:"read-only-storage"}}]}),i=e.createSampler({label:"CompositeSampler",magFilter:"linear",minFilter:"linear"}),l=e.createBuffer({label:"CompositeParams",size:k,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST}),d=e.createBuffer({label:"CompositeStars",size:V,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST}),u=r.createShaderModule(me,"CompositeShader"),f=e.createRenderPipeline({label:"CompositePipeline",layout:e.createPipelineLayout({bindGroupLayouts:[a,n,o]}),vertex:{module:u,entryPoint:"vs_main"},fragment:{module:u,entryPoint:"fs_main",targets:[{format:t}]},primitive:{topology:"triangle-list"}});return new X(f,a,n,o,l,d,i)}updateParams(r,e,t,a,n,o){const i=this._paramsF,l=this._paramsU;let d=0;this.depthFogEnabled&&(d|=1),this.heightFogEnabled&&(d|=2);let u=0;a&&(u|=1),n&&(u|=2),o&&(u|=4),i[0]=this.fogColor[0],i[1]=this.fogColor[1],i[2]=this.fogColor[2],i[3]=this.depthDensity,i[4]=this.depthBegin,i[5]=this.depthEnd,i[6]=this.depthCurve,i[7]=this.heightDensity,i[8]=this.heightMin,i[9]=this.heightMax,i[10]=this.heightCurve,l[11]=d,i[12]=t,i[13]=e?1:0,l[14]=u,i[15]=0,r.queue.writeBuffer(this._paramsBuf,0,this._paramsAB)}updateStars(r,e,t,a){const n=this._starScratch;n.set(e.data,0),n[16]=t.x,n[17]=t.y,n[18]=t.z,n[19]=0,n[20]=a.x,n[21]=a.y,n[22]=a.z,n[23]=0,r.queue.writeBuffer(this._starBuf,0,n.buffer)}addToGraph(r,e){r.addPass(this.name,"render",t=>{t.read(e.input,"sampled"),t.read(e.ao,"sampled"),t.read(e.depth,"sampled"),t.read(e.cameraBuffer,"uniform"),t.read(e.lightBuffer,"uniform"),t.read(e.exposureBuffer,"storage-read"),t.write(e.backbuffer,"attachment",{loadOp:"clear",storeOp:"store",clearValue:[0,0,0,1]}),t.setExecute((a,n)=>{const o=n.getOrCreateBindGroup({label:"CompositeBG0",layout:this._texturesBgl,entries:[{binding:0,resource:n.getTextureView(e.input)},{binding:1,resource:n.getTextureView(e.ao)},{binding:2,resource:n.getTextureView(e.depth)},{binding:3,resource:this._sampler}]}),i=n.getOrCreateBindGroup({label:"CompositeBG1",layout:this._bufBgl,entries:[{binding:0,resource:{buffer:n.getBuffer(e.cameraBuffer)}},{binding:1,resource:{buffer:n.getBuffer(e.lightBuffer)}}]}),l=n.getOrCreateBindGroup({label:"CompositeBG2",layout:this._paramsBgl,entries:[{binding:0,resource:{buffer:this._paramsBuf}},{binding:1,resource:{buffer:this._starBuf}},{binding:2,resource:{buffer:n.getBuffer(e.exposureBuffer)}}]}),d=a.renderPassEncoder;d.setPipeline(this._pipeline),d.setBindGroup(0,o),d.setBindGroup(1,i),d.setBindGroup(2,l),d.draw(3)})})}destroy(){this._paramsBuf.destroy(),this._starBuf.destroy()}}export{D as A,X as C,Z as a,H as b,xe as c};

@@ -1,6 +1,6 @@
 # Render Graph (new API)
 
-Dependency-graph builder with virtual resources, culling, topo sort, and pooled physical GPU objects. Replacing the old `src/renderer/render_graph.ts`. See [README.md](README.md) for status.
+Dependency-graph builder with virtual resources, culling, topo sort, and pooled physical GPU objects. Used everywhere in the repo. See [README.md](README.md) for status.
 
 ## Core types — [types.ts](types.ts)
 

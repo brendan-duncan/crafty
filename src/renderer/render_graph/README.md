@@ -1,15 +1,13 @@
-# Render Graph (WIP)
+# Render Graph
 
-This directory contains a **work-in-progress** new render graph API being developed as a replacement for the original `src/renderer/render_graph.ts`.
+The renderer's dependency-graph builder. Used by every consumer in the repo (the crafty game in `crafty/main.ts` + `crafty/renderer_setup.ts`, and every sample under `samples/`).
 
-## Status
+## Capabilities
 
-- Core graph compilation, culling, and topological sorting are functional
-- Physical resource pooling and persistent resource management work
-- Pass system uses a builder pattern (`PassBuilder`) with automatic versioning of resource handles
-- Render graph visualization is in `src/renderer/render_graph/ui/render_graph_viz.ts`
-
-The crafty game (`crafty/main.ts` + `crafty/renderer_setup.ts`) and all `samples/rg_*.ts` samples use this system. The old `src/renderer/render_graph.ts` is still used by non-`rg_*` samples and is being phased out.
+- Per-frame graph compilation with culling and topological sorting
+- Physical resource pooling (`PhysicalResourceCache`) and persistent resources across frames
+- Builder pattern (`PassBuilder`) with automatic versioning of resource handles
+- Render-graph visualization in `src/renderer/render_graph/ui/render_graph_viz.ts`
 
 ## Architecture
 

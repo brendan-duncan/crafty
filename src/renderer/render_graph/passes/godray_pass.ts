@@ -3,7 +3,7 @@ import { Pass } from '../pass.js';
 import type { PassBuilder, RenderGraph, ResourceHandle, TextureDesc } from '../index.js';
 import { HDR_FORMAT } from './deferred_lighting_pass.js';
 import type { CloudNoiseTextures } from '../../../assets/cloud_noise.js';
-import type { CloudSettings } from '../../passes/cloud_pass.js';
+import type { CloudSettings } from './cloud_pass.js';
 import godrayMarchWgsl from '../../../shaders/godray_march.wgsl?raw';
 import godrayCompositeWgsl from '../../../shaders/godray_composite.wgsl?raw';
 

@@ -1,5 +1,5 @@
-// Public re-export barrel for the particle system: graph node types and the
-// renderer pass that compiles + executes them.
+// Public re-export barrel for the particle system: graph node types consumed
+// by `ParticlePass` (under `src/renderer/render_graph/passes/`).
 
 export type {
   SpawnShape,
@@ -9,5 +9,3 @@ export type {
   EventNode,
   ParticleGraphConfig,
 } from './particle_types.js';
-
-export { ParticlePass } from '../renderer/passes/particle_pass.js';
