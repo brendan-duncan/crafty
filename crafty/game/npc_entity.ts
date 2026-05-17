@@ -19,7 +19,9 @@ export abstract class NPCEntity extends GameObject {
 
   protected getChild(name: string): GameObject | null {
     for (const child of this.children) {
-      if (child.name === name) return child;
+      if (child.name === name) {
+        return child;
+      }
     }
     return null;
   }

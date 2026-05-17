@@ -4,6 +4,7 @@ import { Component } from '../../../src/engine/component.js';
 import { Bee } from '../entities/bee_entity.js';
 import type { World } from '../../../src/block/world.js';
 import type { GameObject } from '../../../src/engine/game_object.js';
+import { NPCEntity } from '../npc_entity.js';
 
 type BeeState = 'idle' | 'wander' | 'hover';
 
@@ -20,7 +21,6 @@ const FLOWER_DETECT_RADIUS_SQ = 36;  // 6²
  * 'Bee.WingR' child GameObjects.
  */
 export class BeeAI extends Component {
-
   private _world: World;
   private _state: BeeState = 'idle';
   private _timer = 0;
@@ -58,9 +58,13 @@ export class BeeAI extends Component {
   }
 
   update(dt: number): void {
-    const go = this.gameObject;
+    const go = this.gameObject as NPCEntity;
     const gx = go.position.x;
     const gz = go.position.z;
+
+    if (go.isStatic) {
+      return;
+    }
 
     // ── Vertical oscillation (runs in all states) ──────────────────────────
     this._verticalPhase += dt * 2.5;

@@ -2,6 +2,7 @@ import { Vec3 } from '../../../src/math/index.js';
 import { Quaternion } from '../../../src/math/quaternion.js';
 import { Component } from '../../../src/engine/component.js';
 import type { World } from '../../../src/block/world.js';
+import { NPCEntity } from '../npc_entity.js';
 
 type PigState = 'idle' | 'wander';
 
@@ -48,9 +49,13 @@ export class PigAI extends Component {
   }
 
   update(dt: number): void {
-    const go = this.gameObject;
+    const go = this.gameObject as NPCEntity;
     const gx = go.position.x;
     const gz = go.position.z;
+
+    if (go.isStatic) {
+      return;
+    }
 
     // ── Gravity / ground collision ───────────────────────────────────────────
     this._velY -= 9.8 * dt;

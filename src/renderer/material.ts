@@ -43,19 +43,22 @@ export abstract class Material {
   transparent: boolean = false;
 
   /**
-   * Returns the WGSL source for a given pass type.
+   * Returns the WGSL source for a given pass type and variant mask.
    *
    * @param passType - Which pass is asking.
+   * @param variantMask - Bitmask selecting shader variant (interpretation is material-specific).
    * @returns WGSL source.
    * @throws If the material does not support `passType`.
    */
-  abstract getShaderCode(passType: MaterialPassType): string;
+  abstract getShaderCode(passType: MaterialPassType, variantMask?: number): string;
 
   /**
    * Returns the bind group layout for slot {@link MATERIAL_GROUP}. Implementations
-   * MUST cache the layout per device — typically with a static `WeakMap<GPUDevice, GPUBindGroupLayout>`.
+   * MUST cache the layout per device — typically with a static `WeakMap<GPUDevice, ...>`.
+   *
+   * @param variantMask - Bitmask of variant flags to select which bindings are included.
    */
-  abstract getBindGroupLayout(device: GPUDevice): GPUBindGroupLayout;
+  abstract getBindGroupLayout(device: GPUDevice, variantMask?: number): GPUBindGroupLayout;
 
   /**
    * Returns the bind group instance for slot {@link MATERIAL_GROUP}. Implementations

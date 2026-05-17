@@ -174,7 +174,8 @@ export class GeometryPass extends RenderPass {
 
     for (let i = 0; i < this._drawItems.length; i++) {
       const item = this._drawItems[i];
-      pass.setPipeline(this._getPipeline(device, item.material));
+      const variantMask = 'variantMask' in item.material ? (item.material as any).variantMask as number : 0;
+      pass.setPipeline(this._getPipeline(ctx, item.material, variantMask));
       pass.setBindGroup(1, this._modelBindGroups[i]);
       pass.setBindGroup(2, item.material.getBindGroup(device));
       pass.setVertexBuffer(0, item.mesh.vertexBuffer);
@@ -184,19 +185,24 @@ export class GeometryPass extends RenderPass {
     pass.end();
   }
 
-  private _getPipeline(device: GPUDevice, material: Material): GPURenderPipeline {
-    let pipeline = this._pipelineCache.get(material.shaderId);
+  private _getPipeline(ctx: RenderContext, material: Material, variantMask: number): GPURenderPipeline {
+    const device = ctx.device;
+    const key = `${material.shaderId}:${variantMask}`;
+    let pipeline = this._pipelineCache.get(key);
     if (pipeline) {
       return pipeline;
     }
-    const shaderModule = device.createShaderModule({
-      label: `GeometryShader[${material.shaderId}]`,
-      code: material.getShaderCode(MaterialPassType.Geometry),
-    });
+
+    const defines: Record<string, string> = {};
+    if (variantMask & 1) defines['HAS_ALBEDO_MAP'] = '1';
+    if (variantMask & 2) defines['HAS_NORMAL_MAP'] = '1';
+    if (variantMask & 4) defines['HAS_MER_MAP'] = '1';
+
+    const shaderModule = ctx.createShaderModule(material.getShaderCode(MaterialPassType.Geometry, variantMask), `GeometryShader[${key}]`, defines);
     pipeline = device.createRenderPipeline({
-      label: `GeometryPipeline[${material.shaderId}]`,
+      label: `GeometryPipeline[${key}]`,
       layout: device.createPipelineLayout({
-        bindGroupLayouts: [this._cameraBGL, this._modelBGL, material.getBindGroupLayout(device)],
+        bindGroupLayouts: [this._cameraBGL, this._modelBGL, material.getBindGroupLayout(device, variantMask)],
       }),
       vertex: {
         module: shaderModule, entryPoint: 'vs_main',
@@ -212,7 +218,7 @@ export class GeometryPass extends RenderPass {
       depthStencil: { format: 'depth32float', depthWriteEnabled: true, depthCompare: 'less' },
       primitive: { topology: 'triangle-list', cullMode: 'back' },
     });
-    this._pipelineCache.set(material.shaderId, pipeline);
+    this._pipelineCache.set(key, pipeline);
     return pipeline;
   }
 

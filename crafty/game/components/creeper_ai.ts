@@ -50,9 +50,13 @@ export class CreeperAI extends Component {
   }
 
   update(dt: number): void {
-    const go = this.gameObject;
+    const go = this.gameObject as NPCEntity;
     const gx = go.position.x;
     const gz = go.position.z;
+
+    if (go.isStatic) {
+      return;
+    }
 
     const player = NPCEntity.playerPos;
     const dpx = player.x - gx;

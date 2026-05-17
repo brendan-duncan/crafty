@@ -3,6 +3,7 @@ import { Quaternion } from '../../../src/math/quaternion.js';
 import { Component } from '../../../src/engine/component.js';
 import type { GameObject } from '../../../src/engine/game_object.js';
 import type { World } from '../../../src/block/world.js';
+import { NPCEntity } from '../npc_entity.js';
 
 const _Y_AXIS = new Vec3(0, 1, 0);
 
@@ -50,9 +51,13 @@ export class DucklingAI extends Component {
   }
 
   update(dt: number): void {
-    const go = this.gameObject;
+    const go = this.gameObject as NPCEntity;
     const gx = go.position.x;
     const gz = go.position.z;
+
+    if (go.isStatic) {
+      return;
+    }
 
     // ── Gravity / ground collision ───────────────────────────────────────────
     this._velY -= 9.8 * dt;

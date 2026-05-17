@@ -30,9 +30,15 @@ struct MaterialUniforms {
 // Group 2: Material (uniforms + texture maps + sampler).
 // Texture maps: albedoMap (srgb), normalMap (tangent-space linear), merMap (R=metallic, G=emissive, B=roughness).
 @group(2) @binding(0) var<uniform> material: MaterialUniforms;
+#ifdef HAS_ALBEDO_MAP
 @group(2) @binding(1) var albedo_map: texture_2d<f32>;
+#endif
+#ifdef HAS_NORMAL_MAP
 @group(2) @binding(2) var normal_map: texture_2d<f32>;
+#endif
+#ifdef HAS_MER_MAP
 @group(2) @binding(3) var mer_map   : texture_2d<f32>;
+#endif
 @group(2) @binding(4) var mat_samp  : sampler;
 
 struct VertexInput {
@@ -76,17 +82,28 @@ fn fs_main(in: VertexOutput) -> FragmentOutput {
   let atlas_uv = fract(in.uv * material.uvTile) * material.uvScale + material.uvOffset;
 
   // Albedo: texture rgb × material color
+#ifdef HAS_ALBEDO_MAP
   let tex_albedo = textureSample(albedo_map, mat_samp, atlas_uv);
   let albedo     = tex_albedo.rgb * material.albedo.rgb;
+#else
+  let albedo     = material.albedo.rgb;
+#endif
 
   // MER: r=metallic multiplier, g=emissive, b=roughness multiplier
+#ifdef HAS_MER_MAP
   let mer      = textureSample(mer_map, mat_samp, atlas_uv);
   let roughness = material.roughness * mer.b;
   let metallic  = material.metallic  * mer.r;
   let emission  = mer.g;
+#else
+  let roughness = max(material.roughness, 0.04);
+  let metallic  = material.metallic;
+  let emission  = 0.0;
+#endif
 
   // Build TBN in world space for normal mapping
   let N = normalize(in.world_norm);
+#ifdef HAS_NORMAL_MAP
   let T = normalize(in.world_tan.xyz);
   // Re-orthogonalise to handle interpolation artefacts
   let T_ortho = normalize(T - N * dot(T, N));
@@ -96,6 +113,9 @@ fn fs_main(in: VertexOutput) -> FragmentOutput {
   // Decode tangent-space normal map and transform to world space
   let n_ts    = textureSample(normal_map, mat_samp, atlas_uv).rgb * 2.0 - 1.0;
   let mapped_N = normalize(tbn * n_ts);
+#else
+  let mapped_N = N;
+#endif
 
   var out: FragmentOutput;
   out.albedo_roughness = vec4<f32>(albedo, roughness);

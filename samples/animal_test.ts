@@ -7,6 +7,7 @@ import { RenderContext, RenderGraph } from '../src/renderer/index.js';
 import { CameraController } from '../src/engine/camera_controller.js';
 import { Scene } from '../src/engine/scene.js';
 import { GameObject } from '../src/engine/game_object.js';
+import { Camera } from '../src/engine/components/camera.js';
 import { MeshRenderer } from '../src/engine/components/mesh_renderer.js';
 import { PbrMaterial } from '../src/renderer/materials/pbr_material.js';
 import { Mesh } from '../src/assets/mesh.js';
@@ -51,8 +52,9 @@ function buildDuckFamily(scene: Scene, world: MockWorld): AnimationState {
   if (parent) {
     roots.push(parent);
     for (let i = 0; i < 5; i++) {
-      Duckling.spawn(parent, world as any, scene);
-      roots.push(parent.children[parent.children.length - 1]);
+      const duckling = Duckling.spawn(parent, world as any, scene);
+      duckling?.setStatic();
+      roots.push(duckling!);
     }
   }
   return { roots };
@@ -67,12 +69,14 @@ function buildPig(scene: Scene, world: MockWorld): AnimationState {
 function buildCreeper(scene: Scene, world: MockWorld): AnimationState {
   const creeper = Creeper.spawn(0, 0, world as any, scene);
   creeper?.setStatic();
+  creeper?.position.set(0, 0.5, 0);
   return { roots: creeper ? [creeper] : [] };
 }
 
 function buildBee(scene: Scene, world: MockWorld): AnimationState {
   const bee = Bee.spawn(0, 0, world as any, scene);
   bee?.setStatic();
+  bee?.position.set(0, 1.5, 0);
   return { roots: bee ? [bee] : [] };
 }
 
@@ -122,8 +126,12 @@ async function main() {
   graph.addPass(forwardPass);
 
   // Camera
-  const camPos = new Vec3(0, 1.5, 3);
-  const cameraController = CameraController.create({ yaw: 0, pitch: 0.5, speed: 3, sensitivity: 0.002, pointerLock: false });
+  const cameraGO = new GameObject({ name: 'Camera' });
+  cameraGO.position.set(-1, 2.0, -1);
+  const camera = cameraGO.addComponent(Camera.createPerspective(60, 0.1, 100, ctx.width / ctx.height));
+
+  const cameraController = CameraController.create({
+    yaw: 180, pitch: 0.5, speed: 3, sensitivity: 0.002, pointerLock: false });
   cameraController.attach(canvas);
 
   // Animation state
@@ -177,23 +185,14 @@ async function main() {
     fpsEl.textContent = `FPS: ${ctx.fps}`;
 
     // Camera
-    const fakeGO = {
-      position: camPos,
-      rotation: { x: 0, y: 0, z: 0, w: 1 },
-    };
-    cameraController.update(fakeGO as any, ctx.deltaTime);
+    cameraController.update(cameraGO as any, ctx.deltaTime);
 
-    const sinY = Math.sin(cameraController.yaw);
-    const cosY = Math.cos(cameraController.yaw);
-    const sinP = Math.sin(cameraController.pitch);
-    const cosP = Math.cos(cameraController.pitch);
-    const forward = new Vec3(-sinY * cosP, -sinP, -cosY * cosP).normalize();
-    const target = camPos.add(forward);
-    const view = Mat4.lookAt(camPos, target, new Vec3(0, 1, 0));
-    const aspect = ctx.width / ctx.height;
-    const proj = Mat4.perspective(60 * Math.PI / 180, aspect, 0.1, 100);
-    const viewProj = proj.multiply(view);
+    const view = camera.viewMatrix();
+    const proj = camera.projectionMatrix();
+    const viewProj = camera.viewProjectionMatrix();
     const invViewProj = viewProj.invert();
+    const camPos = camera.position();
+    console.log(camPos);
 
     forwardPass.updateCamera(ctx, view, proj, viewProj, invViewProj, camPos, 0.1, 100);
 
@@ -201,7 +200,7 @@ async function main() {
     scene.update(ctx.deltaTime);
 
     // Sun
-    const sunDir = new Vec3(0.4, -0.7, -0.5).normalize();
+    const sunDir = new Vec3(0.4, -0.7, 0.5).normalize();
     const sceneCenter = new Vec3(0, 1, 0);
     const shadowDist = 25;
     const shadowCamPos = sceneCenter.sub(sunDir.scale(shadowDist));
@@ -211,7 +210,7 @@ async function main() {
 
     const directionalLight = {
       direction: sunDir,
-      intensity: 1.5,
+      intensity: 5.5,
       color: new Vec3(1.0, 0.95, 0.9),
       castShadows: true,
       lightViewProj,

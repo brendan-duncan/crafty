@@ -99,9 +99,15 @@ struct LightingUniforms {
 
 // Group 2: Material (uniforms + texture maps + sampler)
 @group(2) @binding(0) var<uniform> material : MaterialUniforms;
+#ifdef HAS_ALBEDO_MAP
 @group(2) @binding(1) var albedo_map  : texture_2d<f32>;
+#endif
+#ifdef HAS_NORMAL_MAP
 @group(2) @binding(2) var normal_map  : texture_2d<f32>;
+#endif
+#ifdef HAS_MER_MAP
 @group(2) @binding(3) var mer_map     : texture_2d<f32>;
+#endif
 @group(2) @binding(4) var mat_sampler : sampler;
 
 // Group 3: Lighting + Shadow + IBL
@@ -424,24 +430,38 @@ fn calculate_pbr_lighting(
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
   let atlas_uv = fract(in.uv * material.uvTile) * material.uvScale + material.uvOffset;
 
+#ifdef HAS_ALBEDO_MAP
   let tex_albedo = textureSample(albedo_map, mat_sampler, atlas_uv);
   let albedo = tex_albedo.rgb * material.albedo.rgb;
   let alpha = tex_albedo.a * material.albedo.a;
+#else
+  let albedo = material.albedo.rgb;
+  let alpha = material.albedo.a;
+#endif
 
+#ifdef HAS_MER_MAP
   let mer = textureSample(mer_map, mat_sampler, atlas_uv);
   let roughness = max(material.roughness * mer.b, 0.04);
   let metallic = material.metallic * mer.r;
   let emission = mer.g;
+#else
+  let roughness = max(material.roughness, 0.04);
+  let metallic = material.metallic;
+  let emission = 0.0;
+#endif
 
   // Build TBN matrix for normal mapping
   let N_geom = normalize(in.world_norm);
+#ifdef HAS_NORMAL_MAP
   let T = normalize(in.world_tan.xyz);
   let T_ortho = normalize(T - N_geom * dot(T, N_geom));
   let B = cross(N_geom, T_ortho) * in.world_tan.w;
   let tbn = mat3x3<f32>(T_ortho, B, N_geom);
-
   let n_ts = textureSample(normal_map, mat_sampler, atlas_uv).rgb * 2.0 - 1.0;
   let N = normalize(tbn * n_ts);
+#else
+  let N = N_geom;
+#endif
 
   let V = normalize(camera.position - in.world_pos);
 

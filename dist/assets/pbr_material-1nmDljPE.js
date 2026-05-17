@@ -1,4 +1,4 @@
-var g=Object.defineProperty;var h=(u,r,n)=>r in u?g(u,r,{enumerable:!0,configurable:!0,writable:!0,value:n}):u[r]=n;var t=(u,r,n)=>h(u,typeof r!="symbol"?r+"":r,n);import{a as v,M as c}from"./material-CyKVibdM.js";const w=`// Forward PBR shader with multi-light support
+var v=Object.defineProperty;var b=(d,l,n)=>l in d?v(d,l,{enumerable:!0,configurable:!0,writable:!0,value:n}):d[l]=n;var t=(d,l,n)=>b(d,typeof l!="symbol"?l+"":l,n);import{a as w,M as u}from"./material-CyKVibdM.js";const x=`// Forward PBR shader with multi-light support
 // Supports: directional, point, spot lights with shadows
 // Materials: PBR with IBL, normal mapping, MER textures
 
@@ -99,9 +99,15 @@ struct LightingUniforms {
 
 // Group 2: Material (uniforms + texture maps + sampler)
 @group(2) @binding(0) var<uniform> material : MaterialUniforms;
+#ifdef HAS_ALBEDO_MAP
 @group(2) @binding(1) var albedo_map  : texture_2d<f32>;
+#endif
+#ifdef HAS_NORMAL_MAP
 @group(2) @binding(2) var normal_map  : texture_2d<f32>;
+#endif
+#ifdef HAS_MER_MAP
 @group(2) @binding(3) var mer_map     : texture_2d<f32>;
+#endif
 @group(2) @binding(4) var mat_sampler : sampler;
 
 // Group 3: Lighting + Shadow + IBL
@@ -424,24 +430,38 @@ fn calculate_pbr_lighting(
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
   let atlas_uv = fract(in.uv * material.uvTile) * material.uvScale + material.uvOffset;
 
+#ifdef HAS_ALBEDO_MAP
   let tex_albedo = textureSample(albedo_map, mat_sampler, atlas_uv);
   let albedo = tex_albedo.rgb * material.albedo.rgb;
   let alpha = tex_albedo.a * material.albedo.a;
+#else
+  let albedo = material.albedo.rgb;
+  let alpha = material.albedo.a;
+#endif
 
+#ifdef HAS_MER_MAP
   let mer = textureSample(mer_map, mat_sampler, atlas_uv);
   let roughness = max(material.roughness * mer.b, 0.04);
   let metallic = material.metallic * mer.r;
   let emission = mer.g;
+#else
+  let roughness = max(material.roughness, 0.04);
+  let metallic = material.metallic;
+  let emission = 0.0;
+#endif
 
   // Build TBN matrix for normal mapping
   let N_geom = normalize(in.world_norm);
+#ifdef HAS_NORMAL_MAP
   let T = normalize(in.world_tan.xyz);
   let T_ortho = normalize(T - N_geom * dot(T, N_geom));
   let B = cross(N_geom, T_ortho) * in.world_tan.w;
   let tbn = mat3x3<f32>(T_ortho, B, N_geom);
-
   let n_ts = textureSample(normal_map, mat_sampler, atlas_uv).rgb * 2.0 - 1.0;
   let N = normalize(tbn * n_ts);
+#else
+  let N = N_geom;
+#endif
 
   let V = normalize(camera.position - in.world_pos);
 
@@ -472,7 +492,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
   return vec4<f32>(final_color, alpha);
 }
-`,b=`// GBuffer fill pass — writes albedo+roughness and normal+metallic.
+`,M=`// GBuffer fill pass — writes albedo+roughness and normal+metallic.
 // Group 2 texture maps are optional; the material binds 1×1 fallbacks when unset.
 
 struct CameraUniforms {
@@ -504,9 +524,15 @@ struct MaterialUniforms {
 // Group 2: Material (uniforms + texture maps + sampler).
 // Texture maps: albedoMap (srgb), normalMap (tangent-space linear), merMap (R=metallic, G=emissive, B=roughness).
 @group(2) @binding(0) var<uniform> material: MaterialUniforms;
+#ifdef HAS_ALBEDO_MAP
 @group(2) @binding(1) var albedo_map: texture_2d<f32>;
+#endif
+#ifdef HAS_NORMAL_MAP
 @group(2) @binding(2) var normal_map: texture_2d<f32>;
+#endif
+#ifdef HAS_MER_MAP
 @group(2) @binding(3) var mer_map   : texture_2d<f32>;
+#endif
 @group(2) @binding(4) var mat_samp  : sampler;
 
 struct VertexInput {
@@ -550,17 +576,28 @@ fn fs_main(in: VertexOutput) -> FragmentOutput {
   let atlas_uv = fract(in.uv * material.uvTile) * material.uvScale + material.uvOffset;
 
   // Albedo: texture rgb × material color
+#ifdef HAS_ALBEDO_MAP
   let tex_albedo = textureSample(albedo_map, mat_samp, atlas_uv);
   let albedo     = tex_albedo.rgb * material.albedo.rgb;
+#else
+  let albedo     = material.albedo.rgb;
+#endif
 
   // MER: r=metallic multiplier, g=emissive, b=roughness multiplier
+#ifdef HAS_MER_MAP
   let mer      = textureSample(mer_map, mat_samp, atlas_uv);
   let roughness = material.roughness * mer.b;
   let metallic  = material.metallic  * mer.r;
   let emission  = mer.g;
+#else
+  let roughness = max(material.roughness, 0.04);
+  let metallic  = material.metallic;
+  let emission  = 0.0;
+#endif
 
   // Build TBN in world space for normal mapping
   let N = normalize(in.world_norm);
+#ifdef HAS_NORMAL_MAP
   let T = normalize(in.world_tan.xyz);
   // Re-orthogonalise to handle interpolation artefacts
   let T_ortho = normalize(T - N * dot(T, N));
@@ -570,6 +607,9 @@ fn fs_main(in: VertexOutput) -> FragmentOutput {
   // Decode tangent-space normal map and transform to world space
   let n_ts    = textureSample(normal_map, mat_samp, atlas_uv).rgb * 2.0 - 1.0;
   let mapped_N = normalize(tbn * n_ts);
+#else
+  let mapped_N = N;
+#endif
 
   var out: FragmentOutput;
   out.albedo_roughness = vec4<f32>(albedo, roughness);
@@ -577,7 +617,7 @@ fn fs_main(in: VertexOutput) -> FragmentOutput {
   out.normal_emission  = vec4<f32>(mapped_N * 0.5 + 0.5, emission);
   return out;
 }
-`,x=`// Skinned GBuffer fill pass — GPU vertex skinning with up to 4 bone influences.
+`,S=`// Skinned GBuffer fill pass — GPU vertex skinning with up to 4 bone influences.
 // Identical to geometry.wgsl except for the extra joint/weight inputs and the
 // joint_matrices storage buffer at group 4.
 
@@ -609,9 +649,15 @@ struct MaterialUniforms {
 @group(1) @binding(0) var<uniform>       model         : ModelUniforms;
 @group(1) @binding(1) var<storage, read> joint_matrices: array<mat4x4<f32>>;
 @group(2) @binding(0) var<uniform>       material      : MaterialUniforms;
+#ifdef HAS_ALBEDO_MAP
 @group(2) @binding(1) var                albedo_map    : texture_2d<f32>;
+#endif
+#ifdef HAS_NORMAL_MAP
 @group(2) @binding(2) var                normal_map    : texture_2d<f32>;
+#endif
+#ifdef HAS_MER_MAP
 @group(2) @binding(3) var                mer_map       : texture_2d<f32>;
+#endif
 @group(2) @binding(4) var                mat_samp      : sampler;
 
 struct VertexInput {
@@ -666,14 +712,24 @@ struct FragmentOutput {
 fn fs_main(in: VertexOutput) -> FragmentOutput {
   let atlas_uv = fract(in.uv * material.uvTile) * material.uvScale + material.uvOffset;
 
+#ifdef HAS_ALBEDO_MAP
   let tex_albedo = textureSample(albedo_map, mat_samp, atlas_uv);
   let albedo     = tex_albedo.rgb * material.albedo.rgb;
+#else
+  let albedo     = material.albedo.rgb;
+#endif
 
+#ifdef HAS_MER_MAP
   let mer      = textureSample(mer_map, mat_samp, atlas_uv);
   let roughness = material.roughness * mer.b;
   let metallic  = material.metallic  * mer.r;
+#else
+  let roughness = max(material.roughness, 0.04);
+  let metallic  = material.metallic;
+#endif
 
   let N       = normalize(in.world_norm);
+#ifdef HAS_NORMAL_MAP
   let T       = normalize(in.world_tan.xyz);
   let T_ortho = normalize(T - N * dot(T, N));
   let B       = cross(N, T_ortho) * in.world_tan.w;
@@ -681,10 +737,13 @@ fn fs_main(in: VertexOutput) -> FragmentOutput {
 
   let n_ts    = textureSample(normal_map, mat_samp, atlas_uv).rgb * 2.0 - 1.0;
   let mapped_N = normalize(tbn * n_ts);
+#else
+  let mapped_N = N;
+#endif
 
   var out: FragmentOutput;
   out.albedo_roughness = vec4<f32>(albedo, roughness);
   out.normal_metallic  = vec4<f32>(mapped_N * 0.5 + 0.5, metallic);
   return out;
 }
-`,_=48,a=class a extends v{constructor(n={}){super();t(this,"shaderId","pbr");t(this,"albedo");t(this,"roughness");t(this,"metallic");t(this,"uvOffset");t(this,"uvScale");t(this,"uvTile");t(this,"_albedoMap");t(this,"_normalMap");t(this,"_merMap");t(this,"_uniformBuffer",null);t(this,"_uniformDevice",null);t(this,"_bindGroup",null);t(this,"_bindGroupAlbedo");t(this,"_bindGroupNormal");t(this,"_bindGroupMer");t(this,"_dirty",!0);t(this,"_scratch",new Float32Array(_/4));this.albedo=n.albedo??[1,1,1,1],this.roughness=n.roughness??.5,this.metallic=n.metallic??0,this.uvOffset=n.uvOffset,this.uvScale=n.uvScale,this.uvTile=n.uvTile,this._albedoMap=n.albedoMap,this._normalMap=n.normalMap,this._merMap=n.merMap,this.transparent=n.transparent??!1}get albedoMap(){return this._albedoMap}set albedoMap(n){n!==this._albedoMap&&(this._albedoMap=n,this._bindGroup=null)}get normalMap(){return this._normalMap}set normalMap(n){n!==this._normalMap&&(this._normalMap=n,this._bindGroup=null)}get merMap(){return this._merMap}set merMap(n){n!==this._merMap&&(this._merMap=n,this._bindGroup=null)}markDirty(){this._dirty=!0}getShaderCode(n){switch(n){case c.Forward:return w;case c.Geometry:return b;case c.SkinnedGeometry:return x}}getBindGroupLayout(n){let e=a._layoutByDevice.get(n);return e||(e=n.createBindGroupLayout({label:"PbrMaterialBGL",entries:[{binding:0,visibility:GPUShaderStage.VERTEX|GPUShaderStage.FRAGMENT,buffer:{type:"uniform"}},{binding:1,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:2,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:3,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:4,visibility:GPUShaderStage.FRAGMENT,sampler:{type:"filtering"}}]}),a._layoutByDevice.set(n,e)),e}getBindGroup(n){var i,o,m,f;if(this._bindGroup&&this._bindGroupAlbedo===this._albedoMap&&this._bindGroupNormal===this._normalMap&&this._bindGroupMer===this._merMap)return this._bindGroup;(!this._uniformBuffer||this._uniformDevice!==n)&&((i=this._uniformBuffer)==null||i.destroy(),this._uniformBuffer=n.createBuffer({label:"PbrMaterialUniform",size:_,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST}),this._uniformDevice=n,this._dirty=!0);const e=a._getSampler(n),l=((o=this._albedoMap)==null?void 0:o.view)??a._getWhite(n),s=((m=this._normalMap)==null?void 0:m.view)??a._getFlatNormal(n),d=((f=this._merMap)==null?void 0:f.view)??a._getMerDefault(n);return this._bindGroup=n.createBindGroup({label:"PbrMaterialBG",layout:this.getBindGroupLayout(n),entries:[{binding:0,resource:{buffer:this._uniformBuffer}},{binding:1,resource:l},{binding:2,resource:s},{binding:3,resource:d},{binding:4,resource:e}]}),this._bindGroupAlbedo=this._albedoMap,this._bindGroupNormal=this._normalMap,this._bindGroupMer=this._merMap,this._bindGroup}update(n){var l,s,d,i,o,m;if(!this._dirty||!this._uniformBuffer)return;const e=this._scratch;e[0]=this.albedo[0],e[1]=this.albedo[1],e[2]=this.albedo[2],e[3]=this.albedo[3],e[4]=this.roughness,e[5]=this.metallic,e[6]=((l=this.uvOffset)==null?void 0:l[0])??0,e[7]=((s=this.uvOffset)==null?void 0:s[1])??0,e[8]=((d=this.uvScale)==null?void 0:d[0])??1,e[9]=((i=this.uvScale)==null?void 0:i[1])??1,e[10]=((o=this.uvTile)==null?void 0:o[0])??1,e[11]=((m=this.uvTile)==null?void 0:m[1])??1,n.writeBuffer(this._uniformBuffer,0,e.buffer),this._dirty=!1}destroy(){var n;(n=this._uniformBuffer)==null||n.destroy(),this._uniformBuffer=null,this._uniformDevice=null,this._bindGroup=null}static _getSampler(n){let e=a._samplerByDevice.get(n);return e||(e=n.createSampler({label:"PbrMaterialSampler",magFilter:"linear",minFilter:"linear",addressModeU:"repeat",addressModeV:"repeat"}),a._samplerByDevice.set(n,e)),e}static _make1x1View(n,e,l,s,d,i){const o=n.createTexture({label:e,size:{width:1,height:1},format:"rgba8unorm",usage:GPUTextureUsage.TEXTURE_BINDING|GPUTextureUsage.COPY_DST});return n.queue.writeTexture({texture:o},new Uint8Array([l,s,d,i]),{bytesPerRow:4},{width:1,height:1}),o.createView()}static _getWhite(n){let e=a._whiteByDevice.get(n);return e||(e=a._make1x1View(n,"PbrFallbackWhite",255,255,255,255),a._whiteByDevice.set(n,e)),e}static _getFlatNormal(n){let e=a._flatNormalByDevice.get(n);return e||(e=a._make1x1View(n,"PbrFallbackFlatNormal",128,128,255,255),a._flatNormalByDevice.set(n,e)),e}static _getMerDefault(n){let e=a._merDefaultByDevice.get(n);return e||(e=a._make1x1View(n,"PbrFallbackMer",255,0,255,255),a._merDefaultByDevice.set(n,e)),e}};t(a,"_layoutByDevice",new WeakMap),t(a,"_samplerByDevice",new WeakMap),t(a,"_whiteByDevice",new WeakMap),t(a,"_flatNormalByDevice",new WeakMap),t(a,"_merDefaultByDevice",new WeakMap);let p=a;export{p as P};
+`,f=48,_=1,p=2,h=4,o=class o extends w{constructor(n={}){super();t(this,"shaderId","pbr");t(this,"albedo");t(this,"roughness");t(this,"metallic");t(this,"uvOffset");t(this,"uvScale");t(this,"uvTile");t(this,"_albedoMap");t(this,"_normalMap");t(this,"_merMap");t(this,"_uniformBuffer",null);t(this,"_uniformDevice",null);t(this,"_bindGroup",null);t(this,"_bindGroupAlbedo");t(this,"_bindGroupNormal");t(this,"_bindGroupMer");t(this,"_dirty",!0);t(this,"_scratch",new Float32Array(f/4));this.albedo=n.albedo??[1,1,1,1],this.roughness=n.roughness??.5,this.metallic=n.metallic??0,this.uvOffset=n.uvOffset,this.uvScale=n.uvScale,this.uvTile=n.uvTile,this._albedoMap=n.albedoMap,this._normalMap=n.normalMap,this._merMap=n.merMap,this.transparent=n.transparent??!1}get albedoMap(){return this._albedoMap}set albedoMap(n){n!==this._albedoMap&&(this._albedoMap=n,this._bindGroup=null)}get normalMap(){return this._normalMap}set normalMap(n){n!==this._normalMap&&(this._normalMap=n,this._bindGroup=null)}get merMap(){return this._merMap}set merMap(n){n!==this._merMap&&(this._merMap=n,this._bindGroup=null)}get variantMask(){let n=0;return this._albedoMap&&(n|=_),this._normalMap&&(n|=p),this._merMap&&(n|=h),n}markDirty(){this._dirty=!0}getShaderCode(n,e){switch(n){case u.Forward:return x;case u.Geometry:return M;case u.SkinnedGeometry:return S}}getBindGroupLayout(n,e){const i=e??this.variantMask;let a=o._layoutByDevice.get(n);a||(a=new Map,o._layoutByDevice.set(n,a));let r=a.get(i);if(!r){const s=[{binding:0,visibility:GPUShaderStage.VERTEX|GPUShaderStage.FRAGMENT,buffer:{type:"uniform"}}];i&_&&s.push({binding:1,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}}),i&p&&s.push({binding:2,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}}),i&h&&s.push({binding:3,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}}),s.push({binding:4,visibility:GPUShaderStage.FRAGMENT,sampler:{type:"filtering"}}),r=n.createBindGroupLayout({label:`PbrMaterialBGL[${i}]`,entries:s}),a.set(i,r)}return r}getBindGroup(n){var r;if(this._bindGroup&&this._bindGroupAlbedo===this._albedoMap&&this._bindGroupNormal===this._normalMap&&this._bindGroupMer===this._merMap)return this._bindGroup;(!this._uniformBuffer||this._uniformDevice!==n)&&((r=this._uniformBuffer)==null||r.destroy(),this._uniformBuffer=n.createBuffer({label:"PbrMaterialUniform",size:f,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST}),this._uniformDevice=n,this._dirty=!0);const e=this.getBindGroupLayout(n),i=o._getSampler(n),a=[{binding:0,resource:{buffer:this._uniformBuffer}}];return this._albedoMap&&a.push({binding:1,resource:this._albedoMap.view}),this._normalMap&&a.push({binding:2,resource:this._normalMap.view}),this._merMap&&a.push({binding:3,resource:this._merMap.view}),a.push({binding:4,resource:i}),this._bindGroup=n.createBindGroup({label:"PbrMaterialBG",layout:e,entries:a}),this._bindGroupAlbedo=this._albedoMap,this._bindGroupNormal=this._normalMap,this._bindGroupMer=this._merMap,this._bindGroup}update(n){var i,a,r,s,m,c;if(!this._dirty||!this._uniformBuffer)return;const e=this._scratch;e[0]=this.albedo[0],e[1]=this.albedo[1],e[2]=this.albedo[2],e[3]=this.albedo[3],e[4]=this.roughness,e[5]=this.metallic,e[6]=((i=this.uvOffset)==null?void 0:i[0])??0,e[7]=((a=this.uvOffset)==null?void 0:a[1])??0,e[8]=((r=this.uvScale)==null?void 0:r[0])??1,e[9]=((s=this.uvScale)==null?void 0:s[1])??1,e[10]=((m=this.uvTile)==null?void 0:m[0])??1,e[11]=((c=this.uvTile)==null?void 0:c[1])??1,n.writeBuffer(this._uniformBuffer,0,e.buffer),this._dirty=!1}destroy(){var n;(n=this._uniformBuffer)==null||n.destroy(),this._uniformBuffer=null,this._uniformDevice=null,this._bindGroup=null}static _getSampler(n){let e=o._samplerByDevice.get(n);return e||(e=n.createSampler({label:"PbrMaterialSampler",magFilter:"linear",minFilter:"linear",addressModeU:"repeat",addressModeV:"repeat"}),o._samplerByDevice.set(n,e)),e}};t(o,"_layoutByDevice",new WeakMap),t(o,"_samplerByDevice",new WeakMap);let g=o;export{g as P};

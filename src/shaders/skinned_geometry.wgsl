@@ -30,9 +30,15 @@ struct MaterialUniforms {
 @group(1) @binding(0) var<uniform>       model         : ModelUniforms;
 @group(1) @binding(1) var<storage, read> joint_matrices: array<mat4x4<f32>>;
 @group(2) @binding(0) var<uniform>       material      : MaterialUniforms;
+#ifdef HAS_ALBEDO_MAP
 @group(2) @binding(1) var                albedo_map    : texture_2d<f32>;
+#endif
+#ifdef HAS_NORMAL_MAP
 @group(2) @binding(2) var                normal_map    : texture_2d<f32>;
+#endif
+#ifdef HAS_MER_MAP
 @group(2) @binding(3) var                mer_map       : texture_2d<f32>;
+#endif
 @group(2) @binding(4) var                mat_samp      : sampler;
 
 struct VertexInput {
@@ -87,14 +93,24 @@ struct FragmentOutput {
 fn fs_main(in: VertexOutput) -> FragmentOutput {
   let atlas_uv = fract(in.uv * material.uvTile) * material.uvScale + material.uvOffset;
 
+#ifdef HAS_ALBEDO_MAP
   let tex_albedo = textureSample(albedo_map, mat_samp, atlas_uv);
   let albedo     = tex_albedo.rgb * material.albedo.rgb;
+#else
+  let albedo     = material.albedo.rgb;
+#endif
 
+#ifdef HAS_MER_MAP
   let mer      = textureSample(mer_map, mat_samp, atlas_uv);
   let roughness = material.roughness * mer.b;
   let metallic  = material.metallic  * mer.r;
+#else
+  let roughness = max(material.roughness, 0.04);
+  let metallic  = material.metallic;
+#endif
 
   let N       = normalize(in.world_norm);
+#ifdef HAS_NORMAL_MAP
   let T       = normalize(in.world_tan.xyz);
   let T_ortho = normalize(T - N * dot(T, N));
   let B       = cross(N, T_ortho) * in.world_tan.w;
@@ -102,6 +118,9 @@ fn fs_main(in: VertexOutput) -> FragmentOutput {
 
   let n_ts    = textureSample(normal_map, mat_samp, atlas_uv).rgb * 2.0 - 1.0;
   let mapped_N = normalize(tbn * n_ts);
+#else
+  let mapped_N = N;
+#endif
 
   var out: FragmentOutput;
   out.albedo_roughness = vec4<f32>(albedo, roughness);

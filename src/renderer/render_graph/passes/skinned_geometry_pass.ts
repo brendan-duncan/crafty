@@ -39,6 +39,7 @@ export interface SkinnedGeometryOutputs {
 export class SkinnedGeometryPass extends Pass<SkinnedGeometryDeps, SkinnedGeometryOutputs> {
   readonly name = 'SkinnedGeometryPass';
 
+  private readonly _ctx: RenderContext;
   private readonly _device: GPUDevice;
   private readonly _cameraBgl: GPUBindGroupLayout;
   private readonly _modelJointBgl: GPUBindGroupLayout;
@@ -57,6 +58,7 @@ export class SkinnedGeometryPass extends Pass<SkinnedGeometryDeps, SkinnedGeomet
   private readonly _cameraScratch = new Float32Array(CAMERA_UNIFORM_SIZE / 4);
 
   private constructor(
+    ctx: RenderContext,
     device: GPUDevice,
     cameraBgl: GPUBindGroupLayout,
     modelJointBgl: GPUBindGroupLayout,
@@ -64,6 +66,7 @@ export class SkinnedGeometryPass extends Pass<SkinnedGeometryDeps, SkinnedGeomet
     cameraBindGroup: GPUBindGroup,
   ) {
     super();
+    this._ctx = ctx;
     this._device = device;
     this._cameraBgl = cameraBgl;
     this._modelJointBgl = modelJointBgl;
@@ -96,7 +99,7 @@ export class SkinnedGeometryPass extends Pass<SkinnedGeometryDeps, SkinnedGeomet
       entries: [{ binding: 0, resource: { buffer: cameraBuffer } }],
     });
 
-    return new SkinnedGeometryPass(device, cameraBgl, modelJointBgl, cameraBuffer, cameraBindGroup);
+    return new SkinnedGeometryPass(ctx, device, cameraBgl, modelJointBgl, cameraBuffer, cameraBindGroup);
   }
 
   setDrawItems(items: SkinnedDrawItem[]): void {
@@ -167,7 +170,8 @@ export class SkinnedGeometryPass extends Pass<SkinnedGeometryDeps, SkinnedGeomet
 
         for (let i = 0; i < this._drawItems.length; i++) {
           const item = this._drawItems[i];
-          enc.setPipeline(this._getPipeline(item.material));
+          const variantMask = 'variantMask' in item.material ? (item.material as any).variantMask as number : 0;
+          enc.setPipeline(this._getPipeline(item.material, variantMask));
           enc.setBindGroup(1, this._modelJointBindGroups[i]!);
           enc.setBindGroup(2, item.material.getBindGroup(this._device));
           enc.setVertexBuffer(0, item.mesh.vertexBuffer);
@@ -180,17 +184,25 @@ export class SkinnedGeometryPass extends Pass<SkinnedGeometryDeps, SkinnedGeomet
     return { albedo: outAlbedo, normal: outNormal, depth: outDepth };
   }
 
-  private _getPipeline(material: Material): GPURenderPipeline {
-    let pipeline = this._pipelineCache.get(material.shaderId);
+  private _getPipeline(material: Material, variantMask: number): GPURenderPipeline {
+    const key = `${material.shaderId}:${variantMask}`;
+    let pipeline = this._pipelineCache.get(key);
     if (pipeline) return pipeline;
-    const shaderModule = this._device.createShaderModule({
-      label: `SkinnedGeometryShader[${material.shaderId}]`,
-      code: material.getShaderCode(MaterialPassType.SkinnedGeometry),
-    });
+
+    const defines: Record<string, string> = {};
+    if (variantMask & 1) defines['HAS_ALBEDO_MAP'] = '1';
+    if (variantMask & 2) defines['HAS_NORMAL_MAP'] = '1';
+    if (variantMask & 4) defines['HAS_MER_MAP'] = '1';
+
+    const shaderModule = this._ctx.createShaderModule(
+      material.getShaderCode(MaterialPassType.SkinnedGeometry, variantMask),
+      `SkinnedGeometryShader[${key}]`,
+      defines,
+    );
     pipeline = this._device.createRenderPipeline({
-      label: `SkinnedGeometryPipeline[${material.shaderId}]`,
+      label: `SkinnedGeometryPipeline[${key}]`,
       layout: this._device.createPipelineLayout({
-        bindGroupLayouts: [this._cameraBgl, this._modelJointBgl, material.getBindGroupLayout(this._device)],
+        bindGroupLayouts: [this._cameraBgl, this._modelJointBgl, material.getBindGroupLayout(this._device, variantMask)],
       }),
       vertex: {
         module: shaderModule, entryPoint: 'vs_main',
@@ -203,7 +215,7 @@ export class SkinnedGeometryPass extends Pass<SkinnedGeometryDeps, SkinnedGeomet
       depthStencil: { format: GBUF_DEPTH_FORMAT, depthWriteEnabled: true, depthCompare: 'less' },
       primitive: { topology: 'triangle-list', cullMode: 'none' },
     });
-    this._pipelineCache.set(material.shaderId, pipeline);
+    this._pipelineCache.set(key, pipeline);
     return pipeline;
   }
 

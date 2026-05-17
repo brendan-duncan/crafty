@@ -45,6 +45,7 @@ export interface GeometryOutputs {
 export class GeometryPass extends Pass<GeometryDeps, GeometryOutputs> {
   readonly name = 'GeometryPass';
 
+  private readonly _ctx: RenderContext;
   private readonly _device: GPUDevice;
   private readonly _cameraBgl: GPUBindGroupLayout;
   private readonly _modelBgl: GPUBindGroupLayout;
@@ -62,6 +63,7 @@ export class GeometryPass extends Pass<GeometryDeps, GeometryOutputs> {
   private readonly _cameraScratch = new Float32Array(CAMERA_UNIFORM_SIZE / 4);
 
   private constructor(
+    ctx: RenderContext,
     device: GPUDevice,
     cameraBgl: GPUBindGroupLayout,
     modelBgl: GPUBindGroupLayout,
@@ -69,6 +71,7 @@ export class GeometryPass extends Pass<GeometryDeps, GeometryOutputs> {
     cameraBindGroup: GPUBindGroup,
   ) {
     super();
+    this._ctx = ctx;
     this._device = device;
     this._cameraBgl = cameraBgl;
     this._modelBgl = modelBgl;
@@ -98,7 +101,7 @@ export class GeometryPass extends Pass<GeometryDeps, GeometryOutputs> {
       entries: [{ binding: 0, resource: { buffer: cameraBuffer } }],
     });
 
-    return new GeometryPass(device, cameraBgl, modelBgl, cameraBuffer, cameraBindGroup);
+    return new GeometryPass(ctx, device, cameraBgl, modelBgl, cameraBuffer, cameraBindGroup);
   }
 
   /** Replace the per-frame draw items. */
@@ -168,7 +171,8 @@ export class GeometryPass extends Pass<GeometryDeps, GeometryOutputs> {
 
         for (let i = 0; i < this._drawItems.length; i++) {
           const item = this._drawItems[i];
-          enc.setPipeline(this._getPipeline(item.material));
+          const variantMask = 'variantMask' in item.material ? (item.material as any).variantMask as number : 0;
+          enc.setPipeline(this._getPipeline(item.material, variantMask));
           enc.setBindGroup(1, this._modelBindGroups[i]);
           enc.setBindGroup(2, item.material.getBindGroup(this._device));
           enc.setVertexBuffer(0, item.mesh.vertexBuffer);
@@ -181,17 +185,25 @@ export class GeometryPass extends Pass<GeometryDeps, GeometryOutputs> {
     return { albedo: outAlbedo, normal: outNormal, depth: outDepth };
   }
 
-  private _getPipeline(material: Material): GPURenderPipeline {
-    let pipeline = this._pipelineCache.get(material.shaderId);
+  private _getPipeline(material: Material, variantMask: number): GPURenderPipeline {
+    const key = `${material.shaderId}:${variantMask}`;
+    let pipeline = this._pipelineCache.get(key);
     if (pipeline) return pipeline;
-    const shaderModule = this._device.createShaderModule({
-      label: `GeometryShader[${material.shaderId}]`,
-      code: material.getShaderCode(MaterialPassType.Geometry),
-    });
+
+    const defines: Record<string, string> = {};
+    if (variantMask & 1) defines['HAS_ALBEDO_MAP'] = '1';
+    if (variantMask & 2) defines['HAS_NORMAL_MAP'] = '1';
+    if (variantMask & 4) defines['HAS_MER_MAP'] = '1';
+
+    const shaderModule = this._ctx.createShaderModule(
+      material.getShaderCode(MaterialPassType.Geometry, variantMask),
+      `GeometryShader[${key}]`,
+      defines,
+    );
     pipeline = this._device.createRenderPipeline({
-      label: `GeometryPipeline[${material.shaderId}]`,
+      label: `GeometryPipeline[${key}]`,
       layout: this._device.createPipelineLayout({
-        bindGroupLayouts: [this._cameraBgl, this._modelBgl, material.getBindGroupLayout(this._device)],
+        bindGroupLayouts: [this._cameraBgl, this._modelBgl, material.getBindGroupLayout(this._device, variantMask)],
       }),
       vertex: {
         module: shaderModule, entryPoint: 'vs_main',
@@ -207,7 +219,7 @@ export class GeometryPass extends Pass<GeometryDeps, GeometryOutputs> {
       depthStencil: { format: GBUF_DEPTH_FORMAT, depthWriteEnabled: true, depthCompare: 'less' },
       primitive: { topology: 'triangle-list', cullMode: 'back' },
     });
-    this._pipelineCache.set(material.shaderId, pipeline);
+    this._pipelineCache.set(key, pipeline);
     return pipeline;
   }
 

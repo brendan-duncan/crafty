@@ -187,7 +187,8 @@ export class SkinnedGeometryPass extends RenderPass {
 
     for (let i = 0; i < this._drawItems.length; i++) {
       const item = this._drawItems[i];
-      pass.setPipeline(this._getPipeline(device, item.material));
+      const variantMask = 'variantMask' in item.material ? (item.material as any).variantMask as number : 0;
+      pass.setPipeline(this._getPipeline(ctx, item.material, variantMask));
       pass.setBindGroup(1, this._modelJointBindGroups[i]);
       pass.setBindGroup(2, item.material.getBindGroup(device));
       pass.setVertexBuffer(0, item.mesh.vertexBuffer);
@@ -197,19 +198,24 @@ export class SkinnedGeometryPass extends RenderPass {
     pass.end();
   }
 
-  private _getPipeline(device: GPUDevice, material: Material): GPURenderPipeline {
-    let pipeline = this._pipelineCache.get(material.shaderId);
+  private _getPipeline(ctx: RenderContext, material: Material, variantMask: number): GPURenderPipeline {
+    const device = ctx.device;
+    const key = `${material.shaderId}:${variantMask}`;
+    let pipeline = this._pipelineCache.get(key);
     if (pipeline) {
       return pipeline;
     }
-    const shaderModule = device.createShaderModule({
-      label: `SkinnedGeometryShader[${material.shaderId}]`,
-      code: material.getShaderCode(MaterialPassType.SkinnedGeometry),
-    });
+
+    const defines: Record<string, string> = {};
+    if (variantMask & 1) defines['HAS_ALBEDO_MAP'] = '1';
+    if (variantMask & 2) defines['HAS_NORMAL_MAP'] = '1';
+    if (variantMask & 4) defines['HAS_MER_MAP'] = '1';
+
+    const shaderModule = ctx.createShaderModule(material.getShaderCode(MaterialPassType.SkinnedGeometry, variantMask), `SkinnedGeometryShader[${key}]`, defines);
     pipeline = device.createRenderPipeline({
-      label: `SkinnedGeometryPipeline[${material.shaderId}]`,
+      label: `SkinnedGeometryPipeline[${key}]`,
       layout: device.createPipelineLayout({
-        bindGroupLayouts: [this._cameraBGL, this._modelJointBGL, material.getBindGroupLayout(device)],
+        bindGroupLayouts: [this._cameraBGL, this._modelJointBGL, material.getBindGroupLayout(device, variantMask)],
       }),
       vertex: {
         module: shaderModule, entryPoint: 'vs_main',
@@ -222,7 +228,7 @@ export class SkinnedGeometryPass extends RenderPass {
       depthStencil: { format: 'depth32float', depthWriteEnabled: true, depthCompare: 'less' },
       primitive: { topology: 'triangle-list', cullMode: 'none' },
     });
-    this._pipelineCache.set(material.shaderId, pipeline);
+    this._pipelineCache.set(key, pipeline);
     return pipeline;
   }
 

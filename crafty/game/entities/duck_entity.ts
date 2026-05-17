@@ -76,14 +76,16 @@ export class Duckling extends NPCEntity {
     }
   }
 
-  static spawn(parentDuck: Duck, world: World, scene: Scene): void {
+  static spawn(parentDuck: Duck, world: World, scene: Scene): Duckling | null {
     const angle = Math.random() * Math.PI * 2;
     const dist = 0.5 + Math.random() * 1.0;
     const wx = parentDuck.position.x + Math.cos(angle) * dist;
     const wz = parentDuck.position.z + Math.sin(angle) * dist;
 
     const topY = world.getTopBlockY(Math.floor(wx), Math.floor(wz), 200);
-    if (topY <= 0) return;
+    if (topY <= 0) {
+      return null;
+    }
 
     const s = DUCKLING_SCALE;
     const duckling = new Duckling(world, scene);
@@ -106,6 +108,8 @@ export class Duckling extends NPCEntity {
 
     duckling.addComponent(new DucklingAI(parentDuck, world));
     scene.add(duckling);
+
+    return duckling;
   }
 
   constructor(world: World, scene: Scene) {

@@ -655,8 +655,9 @@ export class ForwardPass extends RenderPass {
     // Let the material flush dirty CPU-side parameters into its uniform buffers.
     material.update?.(ctx.queue);
 
-    // Compile (or fetch cached) pipeline for this material's shader.
-    pass.setPipeline(this._getPipeline(ctx, material, transparent));
+    // Compile (or fetch cached) pipeline for this material's shader variant.
+    const variantMask = 'variantMask' in material ? (material as any).variantMask as number : 0;
+    pass.setPipeline(this._getPipeline(ctx, material, variantMask, transparent));
 
     // Per-draw model uniform.
     this._modelData.set(item.modelMatrix.data, 0);
@@ -672,22 +673,28 @@ export class ForwardPass extends RenderPass {
     pass.drawIndexed(item.mesh.indexCount);
   }
 
-  private _getPipeline(ctx: RenderContext, material: Material, transparent: boolean): GPURenderPipeline {
+  private _getPipeline(ctx: RenderContext, material: Material, variantMask: number, transparent: boolean): GPURenderPipeline {
     const device = ctx.device;
     const cache = transparent ? this._transparentPipelineCache : this._opaquePipelineCache;
-    let pipeline = cache.get(material.shaderId);
+    const key = `${material.shaderId}:${variantMask}`;
+    let pipeline = cache.get(key);
     if (pipeline) {
       return pipeline;
     }
 
-    const shaderModule = ctx.createShaderModule(material.getShaderCode(MaterialPassType.Forward), `ForwardShader[${material.shaderId}]`);
+    const defines: Record<string, string> = {};
+    if (variantMask & 1) defines['HAS_ALBEDO_MAP'] = '1';
+    if (variantMask & 2) defines['HAS_NORMAL_MAP'] = '1';
+    if (variantMask & 4) defines['HAS_MER_MAP'] = '1';
+
+    const shaderModule = ctx.createShaderModule(material.getShaderCode(MaterialPassType.Forward, variantMask), `ForwardShader[${key}]`, defines);
 
     const layout = device.createPipelineLayout({
-      label: `ForwardPipelineLayout[${material.shaderId}]`,
+      label: `ForwardPipelineLayout[${key}]`,
       bindGroupLayouts: [
         this._cameraBGL,
         this._modelBGL,
-        material.getBindGroupLayout(device),
+        material.getBindGroupLayout(device, variantMask),
         this._lightingIblBGL,
       ],
     });
@@ -703,7 +710,7 @@ export class ForwardPass extends RenderPass {
       : { format: 'rgba16float' };
 
     pipeline = device.createRenderPipeline({
-      label: `ForwardPipeline[${material.shaderId}${transparent ? ':t' : ''}]`,
+      label: `ForwardPipeline[${key}${transparent ? ':t' : ''}]`,
       layout,
       vertex: {
         module: shaderModule,
@@ -725,7 +732,7 @@ export class ForwardPass extends RenderPass {
         cullMode: 'back',
       },
     });
-    cache.set(material.shaderId, pipeline);
+    cache.set(key, pipeline);
     return pipeline;
   }
 

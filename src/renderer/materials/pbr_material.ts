@@ -5,44 +5,25 @@ import forwardPbrWgsl from '../../shaders/forward_pbr.wgsl?raw';
 import geometryWgsl from '../../shaders/geometry.wgsl?raw';
 import skinnedGeometryWgsl from '../../shaders/skinned_geometry.wgsl?raw';
 
-const MATERIAL_UNIFORM_SIZE = 48; // vec4 albedo + f32 roughness + f32 metallic + 2× vec2 + vec2 pad
+const MATERIAL_UNIFORM_SIZE = 48;
 
-/**
- * Construction options for {@link PbrMaterial}.
- */
+const HAS_ALBEDO_MAP = 1 << 0;
+const HAS_NORMAL_MAP = 1 << 1;
+const HAS_MER_MAP = 1 << 2;
+
 export interface PbrMaterialOptions {
-  /** Base color with alpha (linear RGBA, 0–1). */
   albedo?: [number, number, number, number];
-  /** Surface roughness 0 (smooth) – 1 (rough). */
   roughness?: number;
-  /** Metallic factor 0 (dielectric) – 1 (metal). */
   metallic?: number;
-  /** UV atlas offset added after uvScale. Defaults to [0,0]. */
   uvOffset?: [number, number];
-  /** UV atlas scale multiplied into mesh UVs. Defaults to [1,1]. */
   uvScale?: [number, number];
-  /** Tile repeat count across the mesh. Defaults to [1,1]. */
   uvTile?: [number, number];
-  /** RGB multiplied with albedo color; sRGB format recommended. */
   albedoMap?: Texture;
-  /** Tangent-space normal map (rgb, linear). */
   normalMap?: Texture;
-  /** Packed map: r=metallic multiplier, g=emissive (unused), b=roughness multiplier. */
   merMap?: Texture;
-  /** True for alpha-blended materials (drawn after opaque in ForwardPass). */
   transparent?: boolean;
 }
 
-/**
- * Standard physically-based-rendering material — preserves the renderer's
- * historical PBR shader/data combination.
- *
- * Owns a 48-byte uniform buffer (albedo / roughness / metallic / UV transform)
- * and binds the three texture maps with a shared linear repeat sampler.
- * Compatible with the geometry, forward, and skinned-geometry passes; one
- * `shaderId = 'pbr'` is shared across all instances so they all use a single
- * cached pipeline per pass.
- */
 export class PbrMaterial extends Material {
   readonly shaderId = 'pbr';
 
@@ -57,11 +38,8 @@ export class PbrMaterial extends Material {
   private _normalMap?: Texture;
   private _merMap?: Texture;
 
-  private static _layoutByDevice = new WeakMap<GPUDevice, GPUBindGroupLayout>();
+  private static _layoutByDevice = new WeakMap<GPUDevice, Map<number, GPUBindGroupLayout>>();
   private static _samplerByDevice = new WeakMap<GPUDevice, GPUSampler>();
-  private static _whiteByDevice = new WeakMap<GPUDevice, GPUTextureView>();
-  private static _flatNormalByDevice = new WeakMap<GPUDevice, GPUTextureView>();
-  private static _merDefaultByDevice = new WeakMap<GPUDevice, GPUTextureView>();
 
   private _uniformBuffer: GPUBuffer | null = null;
   private _uniformDevice: GPUDevice | null = null;
@@ -86,45 +64,32 @@ export class PbrMaterial extends Material {
     this.transparent = options.transparent ?? false;
   }
 
-  /** RGB multiplied with albedo color; sRGB recommended. */
-  get albedoMap(): Texture | undefined {
-    return this._albedoMap;
-  }
+  get albedoMap(): Texture | undefined { return this._albedoMap; }
   set albedoMap(tex: Texture | undefined) {
-    if (tex !== this._albedoMap) {
-      this._albedoMap = tex;
-      this._bindGroup = null;
-    }
+    if (tex !== this._albedoMap) { this._albedoMap = tex; this._bindGroup = null; }
   }
 
-  /** Tangent-space normal map (rgb, linear). */
-  get normalMap(): Texture | undefined {
-    return this._normalMap;
-  }
+  get normalMap(): Texture | undefined { return this._normalMap; }
   set normalMap(tex: Texture | undefined) {
-    if (tex !== this._normalMap) {
-      this._normalMap = tex;
-      this._bindGroup = null;
-    }
+    if (tex !== this._normalMap) { this._normalMap = tex; this._bindGroup = null; }
   }
 
-  /** Packed map: r=metallic multiplier, g=emissive (unused), b=roughness multiplier. */
-  get merMap(): Texture | undefined {
-    return this._merMap;
-  }
+  get merMap(): Texture | undefined { return this._merMap; }
   set merMap(tex: Texture | undefined) {
-    if (tex !== this._merMap) {
-      this._merMap = tex;
-      this._bindGroup = null;
-    }
+    if (tex !== this._merMap) { this._merMap = tex; this._bindGroup = null; }
   }
 
-  /** Mark uniform parameters as needing re-upload before next draw. */
-  markDirty(): void {
-    this._dirty = true;
+  get variantMask(): number {
+    let mask = 0;
+    if (this._albedoMap) mask |= HAS_ALBEDO_MAP;
+    if (this._normalMap) mask |= HAS_NORMAL_MAP;
+    if (this._merMap) mask |= HAS_MER_MAP;
+    return mask;
   }
 
-  getShaderCode(passType: MaterialPassType): string {
+  markDirty(): void { this._dirty = true; }
+
+  getShaderCode(passType: MaterialPassType, _variantMask?: number): string {
     switch (passType) {
       case MaterialPassType.Forward: return forwardPbrWgsl;
       case MaterialPassType.Geometry: return geometryWgsl;
@@ -132,20 +97,30 @@ export class PbrMaterial extends Material {
     }
   }
 
-  getBindGroupLayout(device: GPUDevice): GPUBindGroupLayout {
-    let layout = PbrMaterial._layoutByDevice.get(device);
+  getBindGroupLayout(device: GPUDevice, variantMaskOverrides?: number): GPUBindGroupLayout {
+    const mask = variantMaskOverrides ?? this.variantMask;
+    let perDevice = PbrMaterial._layoutByDevice.get(device);
+    if (!perDevice) {
+      perDevice = new Map();
+      PbrMaterial._layoutByDevice.set(device, perDevice);
+    }
+    let layout = perDevice.get(mask);
     if (!layout) {
-      layout = device.createBindGroupLayout({
-        label: 'PbrMaterialBGL',
-        entries: [
-          { binding: 0, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, buffer: { type: 'uniform' } },
-          { binding: 1, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } },
-          { binding: 2, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } },
-          { binding: 3, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } },
-          { binding: 4, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } },
-        ],
-      });
-      PbrMaterial._layoutByDevice.set(device, layout);
+      const entries: GPUBindGroupLayoutEntry[] = [
+        { binding: 0, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, buffer: { type: 'uniform' } },
+      ];
+      if (mask & HAS_ALBEDO_MAP) {
+        entries.push({ binding: 1, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } });
+      }
+      if (mask & HAS_NORMAL_MAP) {
+        entries.push({ binding: 2, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } });
+      }
+      if (mask & HAS_MER_MAP) {
+        entries.push({ binding: 3, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } });
+      }
+      entries.push({ binding: 4, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } });
+      layout = device.createBindGroupLayout({ label: `PbrMaterialBGL[${mask}]`, entries });
+      perDevice.set(mask, layout);
     }
     return layout;
   }
@@ -169,21 +144,26 @@ export class PbrMaterial extends Material {
       this._dirty = true;
     }
 
+    const layout = this.getBindGroupLayout(device);
     const sampler = PbrMaterial._getSampler(device);
-    const albedoView = this._albedoMap?.view ?? PbrMaterial._getWhite(device);
-    const normalView = this._normalMap?.view ?? PbrMaterial._getFlatNormal(device);
-    const merView = this._merMap?.view ?? PbrMaterial._getMerDefault(device);
+    const entries: GPUBindGroupEntry[] = [
+      { binding: 0, resource: { buffer: this._uniformBuffer } },
+    ];
+    if (this._albedoMap) {
+      entries.push({ binding: 1, resource: this._albedoMap.view });
+    }
+    if (this._normalMap) {
+      entries.push({ binding: 2, resource: this._normalMap.view });
+    }
+    if (this._merMap) {
+      entries.push({ binding: 3, resource: this._merMap.view });
+    }
+    entries.push({ binding: 4, resource: sampler });
 
     this._bindGroup = device.createBindGroup({
       label: 'PbrMaterialBG',
-      layout: this.getBindGroupLayout(device),
-      entries: [
-        { binding: 0, resource: { buffer: this._uniformBuffer } },
-        { binding: 1, resource: albedoView },
-        { binding: 2, resource: normalView },
-        { binding: 3, resource: merView },
-        { binding: 4, resource: sampler },
-      ],
+      layout,
+      entries,
     });
     this._bindGroupAlbedo = this._albedoMap;
     this._bindGroupNormal = this._normalMap;
@@ -192,9 +172,7 @@ export class PbrMaterial extends Material {
   }
 
   update(queue: GPUQueue): void {
-    if (!this._dirty || !this._uniformBuffer) {
-      return;
-    }
+    if (!this._dirty || !this._uniformBuffer) return;
     const data = this._scratch;
     data[0] = this.albedo[0];
     data[1] = this.albedo[1];
@@ -232,44 +210,5 @@ export class PbrMaterial extends Material {
       PbrMaterial._samplerByDevice.set(device, s);
     }
     return s;
-  }
-
-  private static _make1x1View(device: GPUDevice, label: string, r: number, g: number, b: number, a: number): GPUTextureView {
-    const tex = device.createTexture({
-      label,
-      size: { width: 1, height: 1 },
-      format: 'rgba8unorm',
-      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
-    });
-    device.queue.writeTexture({ texture: tex }, new Uint8Array([r, g, b, a]), { bytesPerRow: 4 }, { width: 1, height: 1 });
-    return tex.createView();
-  }
-
-  private static _getWhite(device: GPUDevice): GPUTextureView {
-    let v = PbrMaterial._whiteByDevice.get(device);
-    if (!v) {
-      v = PbrMaterial._make1x1View(device, 'PbrFallbackWhite', 255, 255, 255, 255);
-      PbrMaterial._whiteByDevice.set(device, v);
-    }
-    return v;
-  }
-
-  private static _getFlatNormal(device: GPUDevice): GPUTextureView {
-    let v = PbrMaterial._flatNormalByDevice.get(device);
-    if (!v) {
-      v = PbrMaterial._make1x1View(device, 'PbrFallbackFlatNormal', 128, 128, 255, 255);
-      PbrMaterial._flatNormalByDevice.set(device, v);
-    }
-    return v;
-  }
-
-  private static _getMerDefault(device: GPUDevice): GPUTextureView {
-    let v = PbrMaterial._merDefaultByDevice.get(device);
-    if (!v) {
-      // r=metallic=1.0 (multiplier with material.metallic), g=emissive=0, b=roughness=1.0 (multiplier with material.roughness)
-      v = PbrMaterial._make1x1View(device, 'PbrFallbackMer', 255, 0, 255, 255);
-      PbrMaterial._merDefaultByDevice.set(device, v);
-    }
-    return v;
   }
 }

@@ -96,7 +96,7 @@ async function main() {
   const camera = cameraGO.addComponent(Camera.createPerspective(60, 0.1, 100, ctx.width / ctx.height));
 
   const cameraController = CameraController.create({
-    yaw: 0, pitch: -20 * Math.PI / 180, speed: 5, sensitivity: 0.002, pointerLock: false,
+    yaw: 0, pitch: 0 * Math.PI / 180, speed: 5, sensitivity: 0.002, pointerLock: false,
   });
   cameraController.attach(ctx.canvas);
 

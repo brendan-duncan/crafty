@@ -50,6 +50,7 @@ export interface ForwardOutputs {
 export class ForwardPass extends Pass<ForwardDeps, ForwardOutputs> {
   readonly name = 'ForwardPass';
 
+  private readonly _ctx: import('../../render_context.js').RenderContext;
   private readonly _device: GPUDevice;
   private readonly _cameraBGL: GPUBindGroupLayout;
   private readonly _modelBGL: GPUBindGroupLayout;
@@ -106,6 +107,7 @@ export class ForwardPass extends Pass<ForwardDeps, ForwardOutputs> {
   private _bufferIndex = 0;
 
   private constructor(
+    ctx: import('../../render_context.js').RenderContext,
     device: GPUDevice,
     cameraBGL: GPUBindGroupLayout,
     modelBGL: GPUBindGroupLayout,
@@ -128,6 +130,7 @@ export class ForwardPass extends Pass<ForwardDeps, ForwardOutputs> {
     defaultBrdfLutView: GPUTextureView,
   ) {
     super();
+    this._ctx = ctx;
     this._device = device;
     this._cameraBGL = cameraBGL;
     this._modelBGL = modelBGL;
@@ -256,6 +259,7 @@ export class ForwardPass extends Pass<ForwardDeps, ForwardOutputs> {
     const defaultBrdfLutView = defaultBrdfLut.createView();
 
     return new ForwardPass(
+      ctx,
       device,
       cameraBGL,
       modelBGL,
@@ -538,7 +542,8 @@ export class ForwardPass extends Pass<ForwardDeps, ForwardOutputs> {
     const material = item.material;
     material.update?.(this._device.queue);
 
-    enc.setPipeline(this._getPipeline(material, transparent));
+    const variantMask = 'variantMask' in material ? (material as any).variantMask as number : 0;
+    enc.setPipeline(this._getPipeline(material, variantMask, transparent));
 
     this._modelData.set(item.modelMatrix.data, 0);
     this._modelData.set(item.normalMatrix.data, 16);
@@ -552,24 +557,31 @@ export class ForwardPass extends Pass<ForwardDeps, ForwardOutputs> {
     enc.drawIndexed(item.mesh.indexCount);
   }
 
-  private _getPipeline(material: Material, transparent: boolean): GPURenderPipeline {
+  private _getPipeline(material: Material, variantMask: number, transparent: boolean): GPURenderPipeline {
     const cache = transparent ? this._transparentPipelineCache : this._opaquePipelineCache;
-    let pipeline = cache.get(material.shaderId);
+    const key = `${material.shaderId}:${variantMask}`;
+    let pipeline = cache.get(key);
     if (pipeline) {
       return pipeline;
     }
 
-    const shaderModule = this._device.createShaderModule({
-      label: `ForwardShader[${material.shaderId}]`,
-      code: material.getShaderCode(MaterialPassType.Forward),
-    });
+    const defines: Record<string, string> = {};
+    if (variantMask & 1) defines['HAS_ALBEDO_MAP'] = '1';
+    if (variantMask & 2) defines['HAS_NORMAL_MAP'] = '1';
+    if (variantMask & 4) defines['HAS_MER_MAP'] = '1';
+
+    const shaderModule = this._ctx.createShaderModule(
+      material.getShaderCode(MaterialPassType.Forward, variantMask),
+      `ForwardShader[${key}]`,
+      defines,
+    );
 
     const layout = this._device.createPipelineLayout({
-      label: `ForwardPipelineLayout[${material.shaderId}]`,
+      label: `ForwardPipelineLayout[${key}]`,
       bindGroupLayouts: [
         this._cameraBGL,
         this._modelBGL,
-        material.getBindGroupLayout(this._device),
+        material.getBindGroupLayout(this._device, variantMask),
         this._lightingIblBGL,
       ],
     });
@@ -585,7 +597,7 @@ export class ForwardPass extends Pass<ForwardDeps, ForwardOutputs> {
       : { format: HDR_FORMAT };
 
     pipeline = this._device.createRenderPipeline({
-      label: `ForwardPipeline[${material.shaderId}${transparent ? ':t' : ''}]`,
+      label: `ForwardPipeline[${key}${transparent ? ':t' : ''}]`,
       layout,
       vertex: {
         module: shaderModule,
@@ -607,7 +619,7 @@ export class ForwardPass extends Pass<ForwardDeps, ForwardOutputs> {
         cullMode: 'back',
       },
     });
-    cache.set(material.shaderId, pipeline);
+    cache.set(key, pipeline);
     return pipeline;
   }
 
