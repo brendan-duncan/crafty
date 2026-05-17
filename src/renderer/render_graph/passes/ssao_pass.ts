@@ -10,6 +10,14 @@ const AO_FORMAT: GPUTextureFormat = 'r8unorm';
 const KERNEL_SIZE = 16;
 const UNIFORM_SIZE = 464; // 3×mat4(192) + params(16) + kernel(256)
 
+/**
+ * Generate the 16-sample hemisphere kernel. Each sample is a point in the
+ * upper hemisphere (`z >= 0`) sampled with `cosT = U(0, 1)` for a roughly
+ * cosine-weighted distribution, then scaled by `0.1 + 0.9 * (i/N)²` so
+ * samples are denser near the origin (where they contribute most to AO).
+ * Vectors live in tangent space and are reoriented by a per-pixel TBN in
+ * the shader.
+ */
 function generateKernel(): Float32Array {
   const k = new Float32Array(KERNEL_SIZE * 4);
   for (let i = 0; i < KERNEL_SIZE; i++) {
@@ -25,6 +33,13 @@ function generateKernel(): Float32Array {
   return k;
 }
 
+/**
+ * Generate the 4×4 rotation-noise texture. Each texel is a random 2D unit
+ * vector `(cos θ, sin θ)` encoded into rgba8 (`0.5 + 0.5 * v`); the shader
+ * tiles this texture across the screen via `uv % 4` and uses the decoded
+ * vector to rotate the kernel per pixel, dithering away the banding that
+ * comes from sampling the same 16 directions everywhere.
+ */
 function generateNoise(): Uint8Array {
   const noise = new Uint8Array(16 * 4);
   for (let i = 0; i < 16; i++) {
@@ -52,10 +67,49 @@ export interface SSAOOutputs {
 /**
  * Screen-space ambient occlusion pass (render-graph version).
  *
- * Samples a hemispherical kernel around each pixel using the G-buffer
- * view-space normal and depth, then runs a separable bilateral blur. Both
- * intermediate (raw) and final (blurred) AO targets are transient per-frame
- * resources at half resolution.
+ * Algorithm: classic Crytek-style view-space hemisphere SSAO. Not HBAO or
+ * GTAO — no horizon traversal, no analytical integral, no temporal
+ * accumulation. Just the standard four-step pipeline:
+ *
+ * 1. **Per-frame setup** (built once in `create()`, uploaded as uniforms):
+ *    - A 16-sample kernel of cosine-weighted-ish points in the unit
+ *      hemisphere (`z >= 0`), scaled by `0.1 + 0.9 * (i/N)²` so samples
+ *      cluster near the origin. See {@link generateKernel}.
+ *    - A 4×4 tile of random 2D rotation vectors (`(cos θ, sin θ, 0, 1)`)
+ *      used to break up the banding from a fixed kernel. See
+ *      {@link generateNoise}.
+ *
+ * 2. **AO pass** at half resolution (`ssao.wgsl`, `fs_ssao`):
+ *    - Reconstruct view-space position from GBuffer depth + `inv_proj`;
+ *      transform the GBuffer world-space normal into view space.
+ *    - Build a TBN frame using Gram-Schmidt from the tiled noise vector
+ *      and the surface normal, re-orienting the hemisphere kernel per
+ *      pixel.
+ *    - For each of the 16 samples: project the kernel sample to screen
+ *      UV, read the depth there, reconstruct that point's view-space Z,
+ *      and count it as occluded when `ref_z > sample_vs.z + bias`
+ *      (the real surface is closer to the camera than the kernel sample —
+ *      i.e. the sample is inside geometry). Comparing against the sample's
+ *      Z rather than the pixel's Z makes the bias slope-invariant on flat
+ *      surfaces.
+ *    - Multiply each occlusion vote by `1 - smoothstep(0, radius, |ΔZ|)`
+ *      so hits on geometry far from the surface don't haunt the result.
+ *    - Write `clamp(1 - (occlusion/N) * strength, 0, 1)` to a half-res
+ *      `r8unorm` target.
+ *
+ * 3. **Blur** (`ssao_blur.wgsl`):
+ *    - `'quality'` (default): two-pass separable bilateral Gaussian
+ *      (7-tap, weights `0.196, 0.175, 0.122, 0.067`), with a depth-aware
+ *      term `exp(-|Δdepth| * 1000)` that zeroes contributions across
+ *      depth discontinuities (no AO bleeding across silhouettes).
+ *    - `'performance'`: single-pass 4×4 unweighted box average.
+ *
+ * 4. **Output**: half-res `r8unorm` AO factor, consumed by the deferred
+ *    lighting pass (ambient term) and by composite (fog blending).
+ *
+ * Both intermediate (raw) and final (blurred) AO targets are transient
+ * per-frame resources; the persistent uniform buffer and noise texture
+ * live on the pass instance.
  */
 export class SSAOPass extends Pass<SSAODeps, SSAOOutputs> {
   readonly name = 'SSAOPass';

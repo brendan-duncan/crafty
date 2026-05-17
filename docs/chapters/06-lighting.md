@@ -434,46 +434,147 @@ These compute dispatches run once when the sky changes (e.g., on world load or a
 
 ## 6.10 Screen-Space Ambient Occlusion (SSAO)
 
-SSAO estimates ambient light occlusion by sampling the depth buffer around each pixel. The `SSAOPass` (`src/renderer/render_graph/passes/ssao_pass.ts`) computes an occlusion factor for each screen pixel by sending sample rays into a hemisphere oriented to the surface normal:
+SSAO estimates ambient light occlusion by sampling the depth buffer around each pixel and counting how many samples fall *inside* nearby geometry. The `SSAOPass` ([src/renderer/render_graph/passes/ssao_pass.ts](../../src/renderer/render_graph/passes/ssao_pass.ts)) implements **classic Crytek-style view-space hemisphere SSAO** — the technique introduced in *Crysis 2*. It's not HBAO or GTAO: there's no horizon traversal, no analytical occlusion integral, and no temporal accumulation. Just a per-pixel hemisphere of samples, an in/out test, and a bilateral cleanup blur.
 
 ![SSAO: hemisphere of samples around the surface](../illustrations/12-ssao-hemisphere.svg)
 
-### Algorithm
+The pass runs at **half resolution** to keep the per-pixel cost manageable — the AO factor varies smoothly enough that the blur recovers most of the detail loss.
 
-For each pixel, the shader samples the depth buffer at several positions within a sphere around the pixel's world position. The number of samples that fall inside the scene geometry (closer to the camera) determines the occlusion:
+### Per-Frame Setup: Kernel and Noise
 
-```wgsl
-// ── from the SSAO shader ──
-let occlusion = 0.0;
-let radius = 1.0;
-let samples = 16;
-for (var i = 0u; i < samples; i++) {
-  let samplePos = pixelPos + sampleKernel[i] * radius;
-  let sampleDepth = textureSample(depthMap, sampler, samplePos.xy).r;
-  // Reconstruct world position from depth
-  let sampleWorldPos = reconstructWorldPos(samplePos.xy, sampleDepth);
-  let dist = sampleWorldPos.z - pixelPos.z;
-  occlusion += step(dist, 0.0) * max(0.0, 1.0 - dist / radius);
+Two static inputs are built once at pass creation and uploaded as uniforms:
+
+**1. The hemisphere kernel** — 16 random points in the unit upper hemisphere (`z >= 0`):
+
+```typescript
+// ── from src/renderer/render_graph/passes/ssao_pass.ts ──
+function generateKernel(): Float32Array {
+  const k = new Float32Array(KERNEL_SIZE * 4);
+  for (let i = 0; i < KERNEL_SIZE; i++) {
+    const cosT = Math.random();
+    const phi = Math.random() * Math.PI * 2;
+    const sinT = Math.sqrt(1 - cosT * cosT);
+    const scale = 0.1 + 0.9 * (i / KERNEL_SIZE) ** 2;
+    k[i * 4 + 0] = sinT * Math.cos(phi) * scale;
+    k[i * 4 + 1] = sinT * Math.sin(phi) * scale;
+    k[i * 4 + 2] = cosT * scale;
+    k[i * 4 + 3] = 0;
+  }
+  return k;
 }
-occlusion = 1.0 - occlusion / f32(samples);
 ```
 
-The sample kernel is oriented by the surface normal to bias samples toward the visible hemisphere. A noise texture rotates the kernel per-pixel to hide banding, which is then resolved by a bilateral blur.
+Each sample is roughly cosine-weighted (`cosT = U(0, 1)` so points cluster near the pole), then radially scaled by `0.1 + 0.9 * (i/N)²` so most samples sit close to the origin, where they contribute most to AO. Far samples still exist for crevice detection but they're a minority of the kernel.
+
+**2. The rotation noise** — a 4×4 `rgba8unorm` texture of random 2D unit vectors `(cos θ, sin θ)` encoded as `0.5 + 0.5 * v`. The shader tiles this across the screen via `uv % 4` and uses the decoded vector to rotate the kernel per pixel. Without per-pixel rotation, every pixel would sample the same 16 directions and the result would show visible kernel banding; the 4×4 dither breaks that up at the cost of high-frequency noise the blur then smooths out.
+
+### The AO Pass
+
+For each half-resolution pixel ([src/shaders/ssao.wgsl](../../src/shaders/ssao.wgsl), `fs_ssao`):
+
+**1. Reconstruct view-space position and normal.** Read the GBuffer depth and world-space normal at the matching full-res texel, transform the normal into view space, and reconstruct view-space `P` from depth via the inverse projection.
+
+**2. Build a per-pixel TBN frame.** Use Gram-Schmidt to construct an orthonormal basis from the tiled noise vector and the surface normal:
+
+```wgsl
+// ── from src/shaders/ssao.wgsl ──
+let noise_coord = vec2<u32>(half_coord) % vec2<u32>(4u);
+let rnd         = textureLoad(noise_tex, noise_coord, 0).rg * 2.0 - 1.0;
+
+let rand_vec = vec3<f32>(rnd, 0.0);
+let T = normalize(rand_vec - N * dot(rand_vec, N));
+let B = cross(N, T);
+let tbn = mat3x3<f32>(T, B, N);  // tangent space → view space
+```
+
+This re-orients the hemisphere kernel so its `+z` axis aligns with the surface normal — every kernel sample is now guaranteed to be on the visible side of the surface.
+
+**3. Test 16 samples.** For each kernel sample, transform it into view space, project it back to screen UV, read the depth there, and reconstruct that point's view-space Z:
+
+```wgsl
+// ── from src/shaders/ssao.wgsl ──
+for (var i = 0; i < KERNEL_SIZE; i++) {
+  // View-space sample: kernel.z aligns with N (hemisphere above surface)
+  let sample_vs = P + (tbn * ssao.kernel[i].xyz) * ssao.radius;
+
+  // Project sample to screen UV, sample depth there
+  let clip       = ssao.proj * vec4<f32>(sample_vs, 1.0);
+  let ndc_xy     = clip.xy / clip.w;
+  let sample_uv  = vec2<f32>(ndc_xy.x * 0.5 + 0.5, -ndc_xy.y * 0.5 + 0.5);
+  let ref_depth  = textureLoad(depth_tex, /* ... */, 0);
+  let ref_z      = view_pos(sample_uv, ref_depth).z;
+
+  // Range falloff: ignore hits on geometry far from this surface
+  let range_check = 1.0 - smoothstep(0.0, ssao.radius, abs(P.z - ref_z));
+
+  // Occluded when the real surface is closer to the camera than the sample
+  occlusion += select(0.0, 1.0, ref_z > sample_vs.z + ssao.bias) * range_check;
+}
+
+let ao = clamp(1.0 - (occlusion / f32(KERNEL_SIZE)) * ssao.strength, 0.0, 1.0);
+```
+
+Two details worth calling out:
+
+- **Slope-invariant bias.** The occlusion test compares `ref_z > sample_vs.z + bias`, not `ref_z > P.z + bias`. Comparing against `sample_vs.z` makes the bias work the same on flat and steep surfaces — since the kernel sample already sits "above" the surface in tangent space, same-surface pixels always satisfy `ref_z < sample_vs.z` regardless of tilt. Comparing against `P.z` would need a tilt-dependent bias to avoid self-occlusion on steep faces.
+- **Inverted-smoothstep range check.** Many SSAO implementations use `1 / (1 + d/r)` for the range falloff, but that form has a spike near `d = 0` that produces small bursts of self-occlusion on flat surfaces. `1 - smoothstep(0, radius, |ΔZ|)` is monotonic and falls smoothly to zero at the radius boundary.
+
+The final AO factor is written to a half-res `r8unorm` target.
 
 ### Bilateral Blur
 
-The raw SSAO output is noisy and requires blurring. A separable bilateral blur preserves edges by weighting the blur kernel by the depth difference:
+The raw output is noisy (16 samples × per-pixel rotation = high-frequency dither). The blur pass ([src/shaders/ssao_blur.wgsl](../../src/shaders/ssao_blur.wgsl)) supports two quality modes selectable at construction time:
+
+**Quality (default)** — two-pass separable bilateral Gaussian:
 
 ```wgsl
-// ── from the SSAO shader ──
-let weight = exp(-abs(depthCenter - depthNeighbour) * sigmaDepth);
-blurred += neighbourValue * weight * gaussianWeight;
-totalWeight += weight * gaussianWeight;
+// ── from src/shaders/ssao_blur.wgsl ──
+const GAUSS: array<f32, 4> = array<f32, 4>(
+  0.19638062, 0.17469900, 0.12161760, 0.06706740,
+);
+
+fn blur(uv: vec2<f32>, step: vec2<f32>) -> vec4<f32> {
+  let depth0 = depth_load(uv);
+  var accum  = 0.0;
+  var weight = 0.0;
+  for (var i: i32 = -3; i <= 3; i++) {
+    let uv_off  = uv + step * f32(i);
+    let depth_s = depth_load(uv_off);
+    let ao_s    = textureSampleLevel(ao_tex, samp, uv_off, 0.0).r;
+    let d_wt    = exp(-abs(depth_s - depth0) * 1000.0);
+    let w       = GAUSS[abs(i)] * d_wt;
+    accum  += w * ao_s;
+    weight += w;
+  }
+  return vec4<f32>(accum / max(weight, 1e-5), 0.0, 0.0, 1.0);
+}
 ```
+
+Two passes (horizontal then vertical), 7 taps each, with the spatial Gaussian (`GAUSS[]`) multiplied by a depth-aware term `exp(-|Δdepth| * 1000)`. The depth term collapses to zero across silhouettes, so AO from a near surface doesn't bleed onto a distant one — a classic bilateral edge stop.
+
+**Performance** — a single-pass unweighted 4×4 box average. Cheaper but ignores depth, so it can mush AO across edges.
+
+### Pipeline Position
+
+`SSAOPass.addToGraph(graph, { normal, depth })` takes the two G-buffer handles already produced by the geometry passes and returns a half-res `r8unorm` AO handle:
+
+```typescript
+// ── from crafty/renderer_setup.ts ──
+const ssao = ssaoPass.addToGraph(graph, { normal: gbuf.normal, depth: gbuf.depth });
+// ... later, the lighting pass consumes the AO:
+const lit = lightingPass.addToGraph(graph, { gbuffer: gbuf, ao: ssao.ao, /* ... */ });
+```
+
+Downstream, two passes read the AO:
+
+- **`DeferredLightingPass`** multiplies the ambient (IBL diffuse + indirect) term by AO. Direct lighting is *not* scaled by AO — direct shadowing is the shadow map's job, and applying AO on top would darken contact regions twice.
+- **`CompositePass`** uses AO when blending depth fog, so deep crevices remain visibly darker through the fog.
+
+Both intermediate (raw) and final (blurred) AO targets are transient per-frame resources; only the kernel uniform buffer and the noise texture persist on the pass instance.
 
 ## 6.11 Screen-Space Global Illumination (SSGI)
 
-Screen-space global illumination approximates one-bounce indirect light from the scene itself rather than from a pre-computed environment map. The `SSGIPass` (`src/renderer/render_graph/passes/ssgi_pass.ts`) casts stochastic rays in screen space against the previous frame's lit radiance, then accumulates the result temporally using a reprojected history:
+Screen-space global illumination approximates one-bounce indirect light from the scene itself rather than from a pre-computed environment map. The `SSGIPass` ([src/renderer/render_graph/passes/ssgi_pass.ts](../../src/renderer/render_graph/passes/ssgi_pass.ts)) casts stochastic rays in screen space against the previous frame's lit radiance, then accumulates the result temporally using a reprojected history:
 
 ![SSGI pipeline: ray march → temporal accumulation → copy to history](../illustrations/07-ssgi-pipeline.svg)
 
@@ -570,9 +671,149 @@ let result = mix(history_clamped, current, 0.1);
 
 **Blend factor.** The 10% blend (`mix(history_clamped, current, 0.1)`) means each frame contributes one tenth of the new raw estimate. With 4 rays per frame, the effective sample count after `N` frames is `4 × (1 − 0.9^N) / 0.1`, reaching ~36 effective rays after 20 frames and ~40 rays at convergence.
 
-### History Copy
+### Pass Wiring in the Render Graph
 
-A `copyTextureToTexture` copies the final result texture into the history texture for the next frame. No additional filtering is needed — the temporal accumulation acts as the denoiser.
+`SSGIPass.addToGraph()` declares **three** sub-passes in the graph for one logical SSGI step. The first two are render passes; the third is a `'transfer'` pass that copies the resolved frame into a persistent history texture for the next frame to read:
+
+```typescript
+// ── from src/renderer/render_graph/passes/ssgi_pass.ts ──
+addToGraph(graph: RenderGraph, deps: SSGIDeps): SSGIOutputs {
+  const { ctx } = graph;
+  const fullDesc: TextureDesc = { format: HDR_FORMAT, width: ctx.width, height: ctx.height };
+
+  const history = graph.importPersistentTexture(SSGI_HISTORY_KEY, {
+    ...fullDesc, label: 'SSGIHistory',
+  });
+
+  let raw!: ResourceHandle;
+  let result!: ResourceHandle;
+
+  // 1. Ray march → raw
+  graph.addPass('SSGIPass.rayMarch', 'render', (b) => {
+    raw = b.createTexture({ label: 'SSGIRaw', ...fullDesc });
+    raw = b.write(raw, 'attachment', { loadOp: 'clear', /* ... */ });
+    b.read(deps.depth,        'sampled');
+    b.read(deps.normal,       'sampled');
+    b.read(deps.prevRadiance, 'sampled');   // ← TAA history, see below
+    b.setExecute(/* ... draws fullscreen triangle with ssgi.wgsl ... */);
+  });
+
+  // 2. Temporal accumulate (raw + history → result)
+  graph.addPass('SSGIPass.temporal', 'render', (b) => {
+    result = b.createTexture({
+      label: 'SSGIResult', ...fullDesc,
+      extraUsage: GPUTextureUsage.RENDER_ATTACHMENT
+                | GPUTextureUsage.TEXTURE_BINDING
+                | GPUTextureUsage.COPY_SRC,
+    });
+    result = b.write(result, 'attachment', { loadOp: 'clear', /* ... */ });
+    b.read(raw,       'sampled');
+    b.read(history,   'sampled');
+    b.read(deps.depth, 'sampled');
+    b.setExecute(/* ... draws fullscreen triangle with ssgi_temporal.wgsl ... */);
+  });
+
+  // 3. Copy result → history for next frame
+  graph.addPass('SSGIPass.copyHistory', 'transfer', (b) => {
+    b.read(result,   'copy-src');
+    b.write(history, 'copy-dst');
+    b.setExecute((pctx, res) => {
+      pctx.commandEncoder.copyTextureToTexture(
+        { texture: res.getTexture(result) },
+        { texture: res.getTexture(history) },
+        { width: ctx.width, height: ctx.height },
+      );
+    });
+  });
+
+  return { result };
+}
+```
+
+A handful of details from this layout are worth pulling out:
+
+- **The history texture is persistent.** `graph.importPersistentTexture(SSGI_HISTORY_KEY, ...)` (with the key `'ssgi:history'`) returns a handle backed by a single physical `GPUTexture` in the `PhysicalResourceCache`. The same physical texture is bound across frames, so what the copy pass writes today is what the temporal pass reads tomorrow. See [§3.3 Persistent and External Resources](03-rendering-architecture.md#persistent-and-external-resources).
+- **The copy participates in the dependency graph.** `copyHistory` is `type: 'transfer'`, declares `result` as `'copy-src'` and `history` as `'copy-dst'`, and its execute callback issues a `copyTextureToTexture`. Because the write bumps the persistent history's version, compile-time culling treats this pass as a sink — even though nothing else in the current frame reads the new history version, the copy is never dropped.
+- **Raw and result are transient.** The raw ray-march output and the accumulated result are both created via `b.createTexture()` and live for the frame only. The pool keeps them across frames keyed by descriptor, so the actual `GPUTexture` allocations happen once and are reused — no per-frame churn.
+
+### Pipeline Position
+
+`updateCamera()` uploads the per-frame uniforms — current matrices, plus the *previous* frame's view-projection for reprojection and the rolling frame counter that drives the golden-ratio jitter:
+
+```typescript
+// ── from src/renderer/render_graph/passes/ssgi_pass.ts ──
+updateCamera(ctx: RenderContext): void {
+  const camera = ctx.activeCamera;
+  // ...
+  data.set(camera.viewMatrix().data, 0);
+  data.set(camera.projectionMatrix().data, 16);
+  data.set(camera.inverseProjectionMatrix().data, 32);
+  data.set(camera.inverseViewProjectionMatrix().data, 48);
+  data.set(camera.previousViewProjectionMatrix().data, 64);  // ← from Camera
+  // ... settings, frame counter ...
+  u32[88] = this._frameIndex++;
+  ctx.queue.writeBuffer(this._uniformBuffer, 0, data.buffer as ArrayBuffer);
+}
+```
+
+`camera.previousViewProjectionMatrix()` is snapshotted at the top of `Camera.updateRender()` each frame and falls back to the current VP on the first frame (so the very first reproject sees zero motion rather than a singularity). See [§11.3 Camera.jitteredViewProj and Camera.prevViewProj](11-post-processing.md#camerajitteredviewproj-and-cameraprevviewproj) for the full story.
+
+The host wires `updateCamera()` conditionally on the `ssgi` setting, then adds the pass to the graph. The interesting line is the `prevRadiance` argument:
+
+```typescript
+// ── from crafty/renderer_setup.ts ──
+// 6. SSGI uses last frame's TAA history as previous-radiance source.
+// The TAA pass owns the persistent key; we import it here so SSGI reads
+// the v=0 (previous frame's) contents before TAA bumps it later this frame.
+let ssgi: ResourceHandle | undefined;
+if (effects.ssgi) {
+  const taaHistory = graph.importPersistentTexture('taa:history', {
+    label: 'TAAHistory', format: 'rgba16float',
+    width: ctxArg.width, height: ctxArg.height,
+  });
+  ssgi = ssgiPass.addToGraph(graph, {
+    prevRadiance: taaHistory,
+    normal: gbuf.normal,
+    depth: gbuf.depth,
+  }).result;
+}
+```
+
+This is the trick that makes SSGI work cheaply in Crafty:
+
+- **The bounce source is the TAA history texture, not a separate buffer.** SSGI needs a "what color was the scene at this screen position last frame?" image to read from. TAA already maintains exactly that — a temporally-accumulated, anti-aliased copy of the final HDR — and keeps it in the `'taa:history'` persistent slot. SSGI just borrows it. No extra texture, no extra copy.
+- **Read-old / write-new ordering is enforced by handle versions.** Earlier in §3 we saw that each write to a virtual resource bumps its version. When the SSGI sub-graph imports `'taa:history'`, it observes the texture at version 0 — the previous frame's contents. The TAA pass later in the same frame bumps that version (via its own `copyHistory`). The graph compiler validates the order: SSGI's read of v0 must come before TAA's write of v1. Get the order wrong and the build fails rather than silently reading this-frame data and producing a feedback loop.
+
+The host frame loop also threads the `updateCamera` calls in the order their consumers need them:
+
+```typescript
+// ── from crafty/main.ts ──
+passes.ssaoPass!.updateCamera(ctx);
+passes.ssaoPass!.updateParams(ctx, 1.0, 0.005, effects.ssao ? 2.0 : 0.0);
+passes.ssgiPass!.updateSettings({ strength: effects.ssgi ? 1.0 : 0.0 });
+if (effects.ssgi) {
+  passes.ssgiPass!.updateCamera(ctx);
+}
+```
+
+Disabling SSGI at runtime is two things together: setting `strength = 0` (so the shader output is multiplied to zero even if it runs) and *not* adding the pass to the graph. Skipping `addToGraph` is what actually keeps the ray-march cost off the GPU; setting strength to zero is the belt-and-braces path used by samples that don't conditionally rebuild the graph.
+
+Downstream, the `DeferredLightingPass` consumes the resolved SSGI as the indirect-diffuse contribution to the ambient term:
+
+```typescript
+// ── from crafty/renderer_setup.ts ──
+const lit = lightingPass.addToGraph(graph, {
+  gbuffer: gbuf,
+  shadowMap,
+  ao: ssao.ao,
+  hdr: skyHdr,
+  cloudShadow,
+  ssgi,                  // ← SSGI result
+  iblTextures: frame.iblTextures,
+});
+```
+
+When `ssgi` is `undefined` (the effect is disabled or the pass wasn't added), the lighting pass falls back to its IBL-only ambient term. When present, the SSGI radiance is added on top of the IBL diffuse, scaled by AO so contact crevices stay dark.
 
 ### SSGI Settings
 
