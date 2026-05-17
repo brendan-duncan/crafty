@@ -5,6 +5,11 @@
 
 const PI: f32 = 3.14159265358979323846;
 
+// When set via pipeline-overridable constant, the pass outputs premultiplied
+// (cloud_color, 1 - total_trans) — designed to blend over an already-lit HDR
+// target.  In default mode the pass outputs the full sky + cloud composite.
+override OVERLAY_MODE: bool = false;
+
 // ---- Uniforms ----------------------------------------------------------------
 
 struct CameraUniforms {
@@ -251,7 +256,11 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
   let sun_dir = normalize(-light.direction);
   let camH    = max(camera.position.y, 1.0);
   let atm_ro  = vec3<f32>(0.0, R_E + camH, 0.0);
-  let sky_color = scatter_sky(atm_ro, ray_dir, sun_dir);
+  // Atmosphere already drew sky+discs behind us in overlay mode — skip the work.
+  var sky_color = vec3<f32>(0.0);
+  if (!OVERLAY_MODE) {
+    sky_color = scatter_sky(atm_ro, ray_dir, sun_dir);
+  }
 
   // Clip ray at scene geometry
   let geo_depth = textureLoad(depth_tex, vec2<i32>(in.clip_pos.xy), 0);
@@ -269,6 +278,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
   // Intersect ray with cloud slab
   let slab = ray_slab(camera.position, ray_dir, cloud.cloudBase, cloud.cloudTop);
   if (slab.x < 0.0 || slab.x > geo_dist) {
+    if (OVERLAY_MODE) { return vec4<f32>(0.0, 0.0, 0.0, 0.0); }
     var color = sky_color;
     if (dot(ray_dir, sun_dir) > SUN_COS_THRESH && geo_depth >= 1.0) {
       color += sky_transmittance(atm_ro, sun_dir) * 1000.0;
@@ -281,6 +291,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
   let t_end  = min(min(slab.y, geo_dist), 200.0);
   if (t_end <= slab.x) {
+    if (OVERLAY_MODE) { return vec4<f32>(0.0, 0.0, 0.0, 0.0); }
     return vec4<f32>(sky_color, 1.0);
   }
 
@@ -318,6 +329,9 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     if (total_trans < 0.01) { break; }
   }
 
+  if (OVERLAY_MODE) {
+    return vec4<f32>(cloud_color, 1.0 - total_trans);
+  }
   var final_color = cloud_color + sky_color * total_trans;
   if (dot(ray_dir, sun_dir) > SUN_COS_THRESH && geo_depth >= 1.0) {
     final_color += sky_transmittance(atm_ro, sun_dir) * total_trans * 1000.0;

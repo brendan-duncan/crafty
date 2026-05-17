@@ -36,11 +36,19 @@ export const DEFAULT_CLOUD_SETTINGS: CloudSettings = {
 export interface CloudDeps {
   /**
    * Optional HDR target. When omitted the pass creates+clears a fresh HDR
-   * texture (typical, since clouds replace the sky).
+   * texture (typical, since clouds replace the sky).  Required when
+   * `overlay` is true.
    */
   hdr?: ResourceHandle;
   /** GBuffer depth for occlusion early-out. */
   depth: ResourceHandle;
+  /**
+   * Overlay mode: blend premultiplied (cloud_color, 1 - total_trans) over the
+   * existing HDR target instead of rendering the sky+cloud composite.  Use this
+   * to have clouds occlude already-lit geometry.  Requires `hdr` to be supplied
+   * (typically the output of an earlier lighting pass).
+   */
+  overlay?: boolean;
 }
 
 export interface CloudOutputs {
@@ -55,6 +63,7 @@ export class CloudPass extends Pass<CloudDeps, CloudOutputs> {
 
   private readonly _device: GPUDevice;
   private readonly _pipeline: GPURenderPipeline;
+  private readonly _overlayPipeline: GPURenderPipeline;
   private readonly _cameraBuffer: GPUBuffer;
   private readonly _cloudBuffer: GPUBuffer;
   private readonly _lightBuffer: GPUBuffer;
@@ -70,6 +79,7 @@ export class CloudPass extends Pass<CloudDeps, CloudOutputs> {
   private constructor(
     device: GPUDevice,
     pipeline: GPURenderPipeline,
+    overlayPipeline: GPURenderPipeline,
     cameraBuffer: GPUBuffer,
     cloudBuffer: GPUBuffer,
     lightBuffer: GPUBuffer,
@@ -82,6 +92,7 @@ export class CloudPass extends Pass<CloudDeps, CloudOutputs> {
     super();
     this._device = device;
     this._pipeline = pipeline;
+    this._overlayPipeline = overlayPipeline;
     this._cameraBuffer = cameraBuffer;
     this._cloudBuffer = cloudBuffer;
     this._lightBuffer = lightBuffer;
@@ -163,15 +174,38 @@ export class CloudPass extends Pass<CloudDeps, CloudOutputs> {
     });
 
     const shader = ctx.createShaderModule(cloudsWgsl, 'CloudShader');
+    const pipelineLayout = device.createPipelineLayout({
+      bindGroupLayouts: [sceneBgl, lightBgl, depthBgl, noiseSkyBgl],
+    });
     const pipeline = device.createRenderPipeline({
       label: 'CloudPipeline',
-      layout: device.createPipelineLayout({ bindGroupLayouts: [sceneBgl, lightBgl, depthBgl, noiseSkyBgl] }),
+      layout: pipelineLayout,
       vertex: { module: shader, entryPoint: 'vs_main' },
       fragment: { module: shader, entryPoint: 'fs_main', targets: [{ format: HDR_FORMAT }] },
       primitive: { topology: 'triangle-list' },
     });
+    // Premultiplied-alpha blend so the overlay pass composites cloud color
+    // over the existing HDR target: dst = src + dst * (1 - src_alpha).
+    const overlayPipeline = device.createRenderPipeline({
+      label: 'CloudOverlayPipeline',
+      layout: pipelineLayout,
+      vertex: { module: shader, entryPoint: 'vs_main' },
+      fragment: {
+        module: shader,
+        entryPoint: 'fs_main',
+        constants: { OVERLAY_MODE: 1 },
+        targets: [{
+          format: HDR_FORMAT,
+          blend: {
+            color: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha', operation: 'add' },
+            alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha', operation: 'add' },
+          },
+        }],
+      },
+      primitive: { topology: 'triangle-list' },
+    });
 
-    return new CloudPass(device, pipeline, cameraBuffer, cloudBuffer, lightBuffer,
+    return new CloudPass(device, pipeline, overlayPipeline, cameraBuffer, cloudBuffer, lightBuffer,
       sceneBg, lightBg, depthBgl, noiseSkyBg, depthSampler);
   }
 
@@ -220,6 +254,10 @@ export class CloudPass extends Pass<CloudDeps, CloudOutputs> {
 
   addToGraph(graph: RenderGraph, deps: CloudDeps): CloudOutputs {
     const { ctx } = graph;
+    const overlay = !!deps.overlay;
+    if (overlay && !deps.hdr) {
+      throw new Error('CloudPass: overlay mode requires an hdr input');
+    }
     const hasInput = !!deps.hdr;
     let target: ResourceHandle = deps.hdr ?? (undefined as unknown as ResourceHandle);
     let hdr!: ResourceHandle;
@@ -250,7 +288,7 @@ export class CloudPass extends Pass<CloudDeps, CloudOutputs> {
           ],
         });
         const enc = pctx.renderPassEncoder!;
-        enc.setPipeline(this._pipeline);
+        enc.setPipeline(overlay ? this._overlayPipeline : this._pipeline);
         enc.setBindGroup(0, this._sceneBg);
         enc.setBindGroup(1, this._lightBg);
         enc.setBindGroup(2, depthBg);

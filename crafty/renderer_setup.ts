@@ -276,11 +276,10 @@ export async function buildRenderTargets(
         }).result;
       }
 
-      // 7. Atmosphere or clouds clear the HDR target. Cloud uses depth for
-      // occlusion; atmosphere is a fullscreen dome.
-      const skyHdr = cloudPass
-        ? cloudPass.addToGraph(graph, { depth: gbuf.depth }).hdr
-        : atmospherePass.addToGraph(graph).hdr;
+      // 7. Atmosphere clears the HDR target with sky+sun+moon. The cloud pass
+      // (when enabled) runs later in overlay mode so clouds composite over
+      // already-lit geometry and can obscure what's behind them.
+      const skyHdr = atmospherePass.addToGraph(graph).hdr;
 
       // 8. Deferred lighting loads sky and composites direct + indirect on top.
       const lit = lightingPass.addToGraph(graph, {
@@ -326,11 +325,18 @@ export async function buildRenderTargets(
       hdr = blockBreakPass.addToGraph(graph, { gbuffer: { depth: gbuf.depth }, hdr }).hdr!;
       hdr = explosionPass.addToGraph(graph, { gbuffer: { depth: gbuf.depth }, hdr }).hdr!;
 
-      // 12. Auto-exposure samples the pre-TAA HDR (sample histogram, smooth
+      // 12. Cloud overlay — premultiplied-alpha blend over the lit scene so
+      // clouds obscure geometry seen through them. Ray-marched up to the
+      // gbuffer depth, so clouds in front of geometry get the full alpha.
+      if (cloudPass) {
+        hdr = cloudPass.addToGraph(graph, { hdr, depth: gbuf.depth, overlay: true }).hdr;
+      }
+
+      // 13. Auto-exposure samples the pre-TAA HDR (sample histogram, smooth
       // exposure). The buffer it returns is consumed by composite below.
       const exposure = autoExposurePass.addToGraph(graph, { hdr });
 
-      // 13. TAA → DoF → Bloom → BlockHighlight.
+      // 14. TAA → DoF → Bloom → BlockHighlight.
       const taaOut = taaPass.addToGraph(graph, { hdr, depth: gbuf.depth });
       let postHdr: ResourceHandle = taaOut.resolved;
       if (dofPass) {
@@ -341,7 +347,7 @@ export async function buildRenderTargets(
       }
       const highlighted = blockHighlightPass.addToGraph(graph, { hdr: postHdr, depth: gbuf.depth });
 
-      // 14. Final composite → backbuffer.
+      // 15. Final composite → backbuffer.
       compositePass.addToGraph(graph, {
         input: highlighted.hdr,
         ao: ssao.ao,

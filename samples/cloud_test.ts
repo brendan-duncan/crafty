@@ -252,6 +252,8 @@ async function main(): Promise<void> {
     geometryPass.setDrawItems(drawItems);
     geometryPass.updateCamera(ctx);
 
+    atmospherePass.update(ctx, invVP, camPos, sun.direction);
+
     if (effects.clouds) {
       const windSpeed = 0.03;
       const windDir: [number, number] = [1, 0.3];
@@ -263,8 +265,6 @@ async function main(): Promise<void> {
       cloudPass.updateCamera(ctx);
       cloudPass.updateLight(ctx, sun.direction, sun.color, sun.intensity);
       cloudPass.updateSettings(ctx, cloudSettings);
-    } else {
-      atmospherePass.update(ctx, invVP, camPos, sun.direction);
     }
 
     lightingPass.updateCamera(ctx);
@@ -283,10 +283,10 @@ async function main(): Promise<void> {
     const shadow = shadowPass.addToGraph(graph, { cascades, drawItems: shadowItems });
     const gbuf = geometryPass.addToGraph(graph, { loadOp: 'clear' });
 
-    // Cloud (or atmosphere) clears HDR; lighting loads it.
-    const skyHdr = effects.clouds
-      ? cloudPass.addToGraph(graph, { depth: gbuf.depth }).hdr
-      : atmospherePass.addToGraph(graph).hdr;
+    // Atmosphere clears HDR with the sky; lighting writes lit geometry on top;
+    // clouds run last in overlay mode so they can occlude geometry the camera
+    // looks at through the cloud slab.
+    const skyHdr = atmospherePass.addToGraph(graph).hdr;
 
     // Cloud shadow runs every other frame; the lighting pass samples it via deps.
     let cloudShadow: ResourceHandle | undefined;
@@ -309,6 +309,14 @@ async function main(): Promise<void> {
         shadowMap: shadow.shadowMap,
         cameraBuffer: lit.cameraBuffer,
         lightBuffer: lit.lightBuffer,
+      }).hdr;
+    }
+
+    if (effects.clouds) {
+      hdr = cloudPass.addToGraph(graph, {
+        hdr,
+        depth: gbuf.depth,
+        overlay: true,
       }).hdr;
     }
 
