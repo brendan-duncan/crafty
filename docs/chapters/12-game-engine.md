@@ -99,15 +99,17 @@ function frame(time: number) {
   // 3. Update world (chunk loading, generation)
   world.update(camera.position);
 
-  // 4. Feed render passes
+  // 4. Feed per-frame state to the persistent pass instances.
   shadowPass.updateScene(scene, camera);
   geometryPass.setDrawItems(scene.getComponents(MeshRenderer));
   lightingPass.updateCamera(ctx, view, proj, viewProj, ...);
   lightingPass.updateLight(ctx, sunLight, ...);
   // ...
 
-  // 5. Execute the render graph
-  renderGraph.execute(ctx);
+  // 5. Build, compile, and execute this frame's render graph.
+  //    passes.render() constructs a fresh RenderGraph, calls addToGraph()
+  //    on every active pass, then compiles and submits a single command buffer.
+  passes.render(ctx, frameDeps);
 
   // 6. Request next frame
   requestAnimationFrame(frame);

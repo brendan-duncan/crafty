@@ -1,0 +1,190 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 500" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="500" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">graph.compile(): from declarations to an execution plan</text>
+
+  <defs>
+    <marker id="cpArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+    </marker>
+  </defs>
+
+  <!-- ===== Stage 1: Declared passes ===== -->
+  <g transform="translate(20, 70)">
+    <rect width="170" height="380" fill="#f9fafb" stroke="#9ca3af" stroke-width="1.4" rx="8"/>
+    <rect width="170" height="30" fill="#e5e7eb" rx="8"/>
+    <rect width="170" height="18" fill="#e5e7eb"/>
+    <text x="85" y="20" text-anchor="middle" font-weight="700" fill="#111827">1 · Declared</text>
+
+    <text x="85" y="48" text-anchor="middle" font-size="10" font-style="italic" fill="#6b7280">addPass() order</text>
+
+    <!-- 8 pass chips, alternating colors -->
+    <g font-size="10" transform="translate(15, 62)">
+      <rect width="140" height="22" fill="#fff" stroke="#7c3aed" stroke-width="1" rx="3"/>
+      <text x="70" y="15" text-anchor="middle" fill="#4c1d95">Shadow</text>
+      <rect y="28" width="140" height="22" fill="#fff" stroke="#15803d" stroke-width="1" rx="3"/>
+      <text x="70" y="43" text-anchor="middle" fill="#14532d">BlockGeometry</text>
+      <rect y="56" width="140" height="22" fill="#fff" stroke="#15803d" stroke-width="1" rx="3"/>
+      <text x="70" y="71" text-anchor="middle" fill="#14532d">Geometry</text>
+      <rect y="84" width="140" height="22" fill="#fff" stroke="#ca8a04" stroke-width="1" rx="3"/>
+      <text x="70" y="99" text-anchor="middle" fill="#713f12">SSAO</text>
+      <rect y="112" width="140" height="22" fill="#fff" stroke="#ca8a04" stroke-width="1" rx="3"/>
+      <text x="70" y="127" text-anchor="middle" fill="#9ca3af">Unused</text>
+      <rect y="140" width="140" height="22" fill="#fff" stroke="#dc2626" stroke-width="1" rx="3"/>
+      <text x="70" y="155" text-anchor="middle" fill="#7f1d1d">DeferredLighting</text>
+      <rect y="168" width="140" height="22" fill="#fff" stroke="#0891b2" stroke-width="1" rx="3"/>
+      <text x="70" y="183" text-anchor="middle" fill="#9ca3af">Orphan</text>
+      <rect y="196" width="140" height="22" fill="#fff" stroke="#374151" stroke-width="1" rx="3"/>
+      <text x="70" y="211" text-anchor="middle" fill="#111827">Composite → BB</text>
+    </g>
+
+    <text x="85" y="350" text-anchor="middle" font-size="10" fill="#6b7280">8 passes,</text>
+    <text x="85" y="366" text-anchor="middle" font-size="10" fill="#6b7280">all read/write declared</text>
+  </g>
+
+  <line x1="190" y1="260" x2="218" y2="260" stroke="#374151" stroke-width="1.6" marker-end="url(#cpArr)"/>
+
+  <!-- ===== Stage 2: Validate ===== -->
+  <g transform="translate(218, 70)">
+    <rect width="170" height="380" fill="#fff7ed" stroke="#c2410c" stroke-width="1.4" rx="8"/>
+    <rect width="170" height="30" fill="#fed7aa" rx="8"/>
+    <rect width="170" height="18" fill="#fed7aa"/>
+    <text x="85" y="20" text-anchor="middle" font-weight="700" fill="#7c2d12">2 · Validate</text>
+
+    <g font-size="11" fill="#7c2d12" transform="translate(15, 60)">
+      <text x="0" y="0" font-weight="700">checks:</text>
+      <text x="0" y="22">✓ every read has a</text>
+      <text x="0" y="38">  producer</text>
+      <text x="0" y="60">✓ exactly one producer</text>
+      <text x="0" y="76">  per version</text>
+      <text x="0" y="98">✓ no producer comes</text>
+      <text x="0" y="114">  after its readers</text>
+    </g>
+
+    <g transform="translate(15, 220)">
+      <rect width="140" height="44" fill="#fee2e2" stroke="#dc2626" stroke-width="1.2" rx="4"/>
+      <text x="70" y="20" text-anchor="middle" font-size="11" font-weight="700" fill="#7f1d1d">violations →</text>
+      <text x="70" y="34" text-anchor="middle" font-size="10" fill="#7f1d1d">throw at compile</text>
+    </g>
+
+    <text x="85" y="320" text-anchor="middle" font-size="10" font-style="italic" fill="#c2410c">caught before</text>
+    <text x="85" y="336" text-anchor="middle" font-size="10" font-style="italic" fill="#c2410c">a single GPU command</text>
+    <text x="85" y="352" text-anchor="middle" font-size="10" font-style="italic" fill="#c2410c">is recorded</text>
+  </g>
+
+  <line x1="388" y1="260" x2="416" y2="260" stroke="#374151" stroke-width="1.6" marker-end="url(#cpArr)"/>
+
+  <!-- ===== Stage 3: Cull ===== -->
+  <g transform="translate(416, 70)">
+    <rect width="170" height="380" fill="#fef9c3" stroke="#a16207" stroke-width="1.4" rx="8"/>
+    <rect width="170" height="30" fill="#fde68a" rx="8"/>
+    <rect width="170" height="18" fill="#fde68a"/>
+    <text x="85" y="20" text-anchor="middle" font-weight="700" fill="#713f12">3 · Cull</text>
+
+    <text x="85" y="48" text-anchor="middle" font-size="10" font-style="italic" fill="#a16207">walk back from sinks</text>
+
+    <!-- Pass chips: 2 culled, 6 live -->
+    <g font-size="10" transform="translate(15, 62)">
+      <rect width="140" height="22" fill="#fff" stroke="#7c3aed" stroke-width="1" rx="3"/>
+      <text x="70" y="15" text-anchor="middle" fill="#4c1d95">Shadow</text>
+      <rect y="28" width="140" height="22" fill="#fff" stroke="#15803d" stroke-width="1" rx="3"/>
+      <text x="70" y="43" text-anchor="middle" fill="#14532d">BlockGeometry</text>
+      <rect y="56" width="140" height="22" fill="#fff" stroke="#15803d" stroke-width="1" rx="3"/>
+      <text x="70" y="71" text-anchor="middle" fill="#14532d">Geometry</text>
+      <rect y="84" width="140" height="22" fill="#fff" stroke="#ca8a04" stroke-width="1" rx="3"/>
+      <text x="70" y="99" text-anchor="middle" fill="#713f12">SSAO</text>
+      <rect y="112" width="140" height="22" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1" stroke-dasharray="3,3" rx="3"/>
+      <text x="70" y="127" text-anchor="middle" fill="#9ca3af" text-decoration="line-through">Unused</text>
+      <rect y="140" width="140" height="22" fill="#fff" stroke="#dc2626" stroke-width="1" rx="3"/>
+      <text x="70" y="155" text-anchor="middle" fill="#7f1d1d">DeferredLighting</text>
+      <rect y="168" width="140" height="22" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1" stroke-dasharray="3,3" rx="3"/>
+      <text x="70" y="183" text-anchor="middle" fill="#9ca3af" text-decoration="line-through">Orphan</text>
+      <rect y="196" width="140" height="22" fill="#fff" stroke="#374151" stroke-width="1" rx="3"/>
+      <text x="70" y="211" text-anchor="middle" fill="#111827">Composite → BB</text>
+    </g>
+
+    <text x="85" y="350" text-anchor="middle" font-size="10" fill="#a16207">2 passes dropped:</text>
+    <text x="85" y="364" text-anchor="middle" font-size="10" fill="#a16207">nothing reads their outputs</text>
+  </g>
+
+  <line x1="586" y1="260" x2="614" y2="260" stroke="#374151" stroke-width="1.6" marker-end="url(#cpArr)"/>
+
+  <!-- ===== Stage 4: Topo-sort ===== -->
+  <g transform="translate(614, 70)">
+    <rect width="120" height="380" fill="#eff6ff" stroke="#2563eb" stroke-width="1.4" rx="8"/>
+    <rect width="120" height="30" fill="#bfdbfe" rx="8"/>
+    <rect width="120" height="18" fill="#bfdbfe"/>
+    <text x="60" y="20" text-anchor="middle" font-weight="700" fill="#1e3a8a">4 · Sort</text>
+
+    <text x="60" y="48" text-anchor="middle" font-size="10" font-style="italic" fill="#2563eb">topological</text>
+
+    <g font-size="10" transform="translate(10, 62)">
+      <rect width="100" height="22" fill="#fff" stroke="#7c3aed" stroke-width="1" rx="3"/>
+      <text x="50" y="15" text-anchor="middle" fill="#4c1d95">1 Shadow</text>
+      <rect y="28" width="100" height="22" fill="#fff" stroke="#15803d" stroke-width="1" rx="3"/>
+      <text x="50" y="43" text-anchor="middle" fill="#14532d">2 BlockGeom</text>
+      <rect y="56" width="100" height="22" fill="#fff" stroke="#15803d" stroke-width="1" rx="3"/>
+      <text x="50" y="71" text-anchor="middle" fill="#14532d">3 Geometry</text>
+      <rect y="84" width="100" height="22" fill="#fff" stroke="#ca8a04" stroke-width="1" rx="3"/>
+      <text x="50" y="99" text-anchor="middle" fill="#713f12">4 SSAO</text>
+      <rect y="112" width="100" height="22" fill="#fff" stroke="#dc2626" stroke-width="1" rx="3"/>
+      <text x="50" y="127" text-anchor="middle" fill="#7f1d1d">5 Lighting</text>
+      <rect y="140" width="100" height="22" fill="#fff" stroke="#374151" stroke-width="1" rx="3"/>
+      <text x="50" y="155" text-anchor="middle" fill="#111827">6 Composite</text>
+    </g>
+
+    <text x="60" y="350" text-anchor="middle" font-size="10" fill="#2563eb">writes-before-reads</text>
+    <text x="60" y="364" text-anchor="middle" font-size="10" fill="#2563eb">order verified</text>
+  </g>
+
+  <line x1="734" y1="260" x2="762" y2="260" stroke="#374151" stroke-width="1.6" marker-end="url(#cpArr)"/>
+
+  <!-- ===== Stage 5: Bind ===== -->
+  <g transform="translate(762, 70)">
+    <rect width="140" height="380" fill="#f0fdf4" stroke="#15803d" stroke-width="1.4" rx="8"/>
+    <rect width="140" height="30" fill="#bbf7d0" rx="8"/>
+    <rect width="140" height="18" fill="#bbf7d0"/>
+    <text x="70" y="20" text-anchor="middle" font-weight="700" fill="#14532d">5 · Bind</text>
+
+    <text x="70" y="48" text-anchor="middle" font-size="10" font-style="italic" fill="#15803d">virtual → physical</text>
+
+    <g font-size="10" transform="translate(10, 62)">
+      <!-- 6 virtual → physical mappings -->
+      <text x="0" y="14" font-family="ui-monospace, Consolas, monospace" fill="#374151">id 1 →</text>
+      <rect x="42" y="0" width="78" height="18" fill="#fef3c7" stroke="#a16207" stroke-width="1" rx="2"/>
+      <text x="81" y="13" text-anchor="middle" font-family="ui-monospace, Consolas, monospace" fill="#713f12">shadow</text>
+
+      <text x="0" y="42" font-family="ui-monospace, Consolas, monospace" fill="#374151">id 2 →</text>
+      <rect x="42" y="28" width="78" height="18" fill="#fef3c7" stroke="#a16207" stroke-width="1" rx="2"/>
+      <text x="81" y="41" text-anchor="middle" font-family="ui-monospace, Consolas, monospace" fill="#713f12">gbuf.alb</text>
+
+      <text x="0" y="70" font-family="ui-monospace, Consolas, monospace" fill="#374151">id 3 →</text>
+      <rect x="42" y="56" width="78" height="18" fill="#fef3c7" stroke="#a16207" stroke-width="1" rx="2"/>
+      <text x="81" y="69" text-anchor="middle" font-family="ui-monospace, Consolas, monospace" fill="#713f12">gbuf.nrm</text>
+
+      <text x="0" y="98" font-family="ui-monospace, Consolas, monospace" fill="#374151">id 4 →</text>
+      <rect x="42" y="84" width="78" height="18" fill="#fef3c7" stroke="#a16207" stroke-width="1" rx="2"/>
+      <text x="81" y="97" text-anchor="middle" font-family="ui-monospace, Consolas, monospace" fill="#713f12">gbuf.dep</text>
+
+      <text x="0" y="126" font-family="ui-monospace, Consolas, monospace" fill="#374151">id 5 →</text>
+      <rect x="42" y="112" width="78" height="18" fill="#fef3c7" stroke="#a16207" stroke-width="1" rx="2"/>
+      <text x="81" y="125" text-anchor="middle" font-family="ui-monospace, Consolas, monospace" fill="#713f12">ao</text>
+
+      <text x="0" y="154" font-family="ui-monospace, Consolas, monospace" fill="#374151">id 6 →</text>
+      <rect x="42" y="140" width="78" height="18" fill="#fef3c7" stroke="#a16207" stroke-width="1" rx="2"/>
+      <text x="81" y="153" text-anchor="middle" font-family="ui-monospace, Consolas, monospace" fill="#713f12">hdr</text>
+
+      <text x="0" y="182" font-family="ui-monospace, Consolas, monospace" fill="#374151">id 7 →</text>
+      <rect x="42" y="168" width="78" height="18" fill="#bbf7d0" stroke="#15803d" stroke-width="1" rx="2"/>
+      <text x="81" y="181" text-anchor="middle" font-family="ui-monospace, Consolas, monospace" fill="#14532d">canvas</text>
+    </g>
+
+    <text x="70" y="338" text-anchor="middle" font-size="10" fill="#15803d">from pool</text>
+    <text x="70" y="352" text-anchor="middle" font-size="10" fill="#15803d">or persistent registry</text>
+    <text x="70" y="366" text-anchor="middle" font-size="10" fill="#15803d">or swap chain</text>
+  </g>
+
+  <!-- Bottom annotation -->
+  <text x="460" y="486" text-anchor="middle" font-size="11" fill="#374151">
+    Output: <tspan font-family="ui-monospace, Consolas, monospace" font-weight="700">CompiledGraph</tspan> — ordered passes + texture/buffer bindings, ready for execute()
+  </text>
+</svg>

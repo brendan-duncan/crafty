@@ -298,15 +298,19 @@ The `computeDirectLight` function composes the three terms and returns the final
 
 ## 6.7 The Deferred Lighting Pass
 
-The `DeferredLightingPass` (`src/renderer/passes/deferred_lighting_pass.ts`) is the core of the deferred renderer. It renders a fullscreen triangle that samples the G-buffer and all shadow/lighting inputs:
+The `DeferredLightingPass` ([src/renderer/render_graph/passes/deferred_lighting_pass.ts](../../src/renderer/render_graph/passes/deferred_lighting_pass.ts)) is the core of the deferred renderer. It renders a fullscreen triangle that samples the G-buffer and all shadow/lighting inputs, producing an HDR result and exposing persistent camera + light uniform buffers as handles that downstream passes (composite, godrays) can sample:
 
 ```typescript
-// ── from src/renderer/passes/deferred_lighting_pass.ts ──
-export class DeferredLightingPass extends RenderPass {
-  readonly hdrTexture: GPUTexture;      // Output: HDR color target
-  readonly cameraBuffer: GPUBuffer;     // Shared with other passes
-  readonly lightBuffer: GPUBuffer;      // Directional light + cascade data
-  // ...
+// ── from src/renderer/render_graph/passes/deferred_lighting_pass.ts ──
+export class DeferredLightingPass extends Pass<DeferredLightingDeps, DeferredLightingOutputs> {
+  readonly name = 'DeferredLightingPass';
+  // Pipelines, BGLs, and samplers — created once in static create(ctx).
+}
+
+export interface DeferredLightingOutputs {
+  hdr: ResourceHandle;          // direct lighting composited over input HDR
+  cameraBuffer: ResourceHandle; // persistent uniform buffer handle
+  lightBuffer: ResourceHandle;  // persistent uniform buffer handle
 }
 ```
 
@@ -430,7 +434,7 @@ These compute dispatches run once when the sky changes (e.g., on world load or a
 
 ## 6.10 Screen-Space Ambient Occlusion (SSAO)
 
-SSAO estimates ambient light occlusion by sampling the depth buffer around each pixel. The `SSAOPass` (`src/renderer/passes/ssao_pass.ts`) computes an occlusion factor for each screen pixel by sending sample rays into a hemisphere oriented to the surface normal:
+SSAO estimates ambient light occlusion by sampling the depth buffer around each pixel. The `SSAOPass` (`src/renderer/render_graph/passes/ssao_pass.ts`) computes an occlusion factor for each screen pixel by sending sample rays into a hemisphere oriented to the surface normal:
 
 ![SSAO: hemisphere of samples around the surface](../illustrations/12-ssao-hemisphere.svg)
 
@@ -469,7 +473,7 @@ totalWeight += weight * gaussianWeight;
 
 ## 6.11 Screen-Space Global Illumination (SSGI)
 
-Screen-space global illumination approximates one-bounce indirect light from the scene itself rather than from a pre-computed environment map. The `SSGIPass` (`src/renderer/passes/ssgi_pass.ts`) casts stochastic rays in screen space against the previous frame's lit radiance, then accumulates the result temporally using a reprojected history:
+Screen-space global illumination approximates one-bounce indirect light from the scene itself rather than from a pre-computed environment map. The `SSGIPass` (`src/renderer/render_graph/passes/ssgi_pass.ts`) casts stochastic rays in screen space against the previous frame's lit radiance, then accumulates the result temporally using a reprojected history:
 
 ![SSGI pipeline: ray march → temporal accumulation → copy to history](../illustrations/07-ssgi-pipeline.svg)
 
@@ -603,11 +607,11 @@ All paths share the same PBR BRDF functions, ensuring consistent appearance rega
 - `src/shaders/forward_pbr.wgsl` — Forward PBR shader
 - `src/shaders/ibl_baking.wgsl` — IBL sampling functions and baking compute shaders
 - `src/assets/ibl.ts` — GPU-based IBL pre-computation pipeline
-- `src/renderer/passes/deferred_lighting_pass.ts` — Deferred lighting pass
-- `src/renderer/passes/forward_pass.ts` — Forward lighting pass
-- `src/renderer/passes/point_spot_light_pass.ts` — Additive point/spot pass
-- `src/renderer/passes/ssao_pass.ts` — Screen-space ambient occlusion
-- `src/renderer/passes/ssgi_pass.ts` — Screen-space global illumination
+- `src/renderer/render_graph/passes/deferred_lighting_pass.ts` — Deferred lighting pass
+- `src/renderer/render_graph/passes/forward_pass.ts` — Forward lighting pass
+- `src/renderer/render_graph/passes/point_spot_light_pass.ts` — Additive point/spot pass
+- `src/renderer/render_graph/passes/ssao_pass.ts` — Screen-space ambient occlusion
+- `src/renderer/render_graph/passes/ssgi_pass.ts` — Screen-space global illumination
 - `src/shaders/ssgi.wgsl` — SSGI ray march shader
 - `src/shaders/ssgi_temporal.wgsl` — SSGI temporal accumulation shader
 

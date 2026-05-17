@@ -159,7 +159,7 @@ The physics and interaction system is deliberately minimal for a creative-mode v
 **Further reading:**
 - `src/engine/player_controller.ts` — Collide-and-slide and movement physics
 - `src/block/world.ts` — DDA ray casting and block queries
-- `src/renderer/passes/block_highlight_pass.ts` — Crack overlay rendering
+- `src/renderer/render_graph/passes/block_highlight_pass.ts` — Crack overlay rendering
 
 ----
 [Contents](../crafty.md) | [12-Game Engine](12-game-engine.md) | [14-NPC AI](14-npc-ai.md)

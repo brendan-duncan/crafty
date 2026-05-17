@@ -298,7 +298,7 @@ Particles are drawn via **indirect draw** — the `indirectBuffer` is bound as t
 For alpha-blended effects like rain and snow, the `particle_render_forward.wgsl` shader writes directly into the HDR color buffer with depth read-only:
 
 ```typescript
-// ── from src/renderer/passes/particle_pass.ts ──
+// ── from src/renderer/render_graph/passes/particle_pass.ts ──
 // Forward HDR pipeline: alpha blend, no depth write
 const renderPipeline = device.createRenderPipeline({
   vertex:   { module: renderModule, entryPoint: vsEntry },
@@ -354,7 +354,7 @@ let alpha = in.color.a * (1.0 - d2);
 For opaque billboard particles (debris, solid projectiles), the `particle_render.wgsl` shader writes into the G-buffer (albedo + normal) with full depth testing:
 
 ```typescript
-// ── from src/renderer/passes/particle_pass.ts ──
+// ── from src/renderer/render_graph/passes/particle_pass.ts ──
 // GBuffer pipeline: writes albedo+normal, depth write on
 targets: [
   { format: 'rgba8unorm'  },   // albedo_roughness
@@ -391,7 +391,7 @@ The CPU's per-frame work is limited to one `writeBuffer` call for compute unifor
 6. Packs `CameraUniforms` (72 floats: view, proj, viewProj, invViewProj, camera position, near/far) and writes them to the GPU.
 
 ```typescript
-// ── from src/renderer/passes/particle_pass.ts ──
+// ── from src/renderer/render_graph/passes/particle_pass.ts ──
 update(ctx, dt, view, proj, viewProj, invViewProj, camPos, near, far, worldTransform): void {
   this._time += dt;
   this._spawnAccum += this._config.emitter.spawnRate * dt;
@@ -406,10 +406,10 @@ update(ctx, dt, view, proj, viewProj, invViewProj, camPos, near, far, worldTrans
 
 ## 8.10 Runtime Spawn Rate Adjustment
 
-The `setSpawnRate()` method allows changing the particle emission rate without rebuilding the render graph:
+The `setSpawnRate()` method allows changing the particle emission rate without rebuilding the persistent pass instances (the per-frame render graph is always rebuilt, but it just picks up the new value via `addToGraph()`):
 
 ```typescript
-// ── from src/renderer/passes/particle_pass.ts ──
+// ── from src/renderer/render_graph/passes/particle_pass.ts ──
 setSpawnRate(rate: number): void {
   this._config.emitter.spawnRate = rate;
 }
@@ -493,11 +493,11 @@ The GPU-driven particle system features:
 | `src/shaders/particles/particle_compact.wgsl` | Compact and indirect-write compute shaders |
 | `src/shaders/particles/particle_render.wgsl` | Deferred GBuffer billboard render shader |
 | `src/shaders/particles/particle_render_forward.wgsl` | Forward HDR billboard render shader (velocity + camera) |
-| `src/renderer/passes/particle_pass.ts` | `ParticlePass` — full pipeline create/update/execute/destroy |
+| `src/renderer/render_graph/passes/particle_pass.ts` | `ParticlePass` — full pipeline create/update/execute/destroy |
 | `crafty/config/particle_configs.ts` | Rain and snow particle configurations |
 
 **Further reading:**
-- `src/renderer/passes/particle_pass.ts` — Complete particle pass implementation
+- `src/renderer/render_graph/passes/particle_pass.ts` — Complete particle pass implementation
 - `src/particles/particle_builder.ts` — WGSL shader generation
 - `crafty/config/particle_configs.ts` — Rain and snow configs
 - `crafty/game/weather_system.ts` — Weather integration with particle passes

@@ -1,0 +1,142 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 540" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="540" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">PhysicalResourceCache: pooling and persistence across frames</text>
+
+  <defs>
+    <marker id="rcArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+    </marker>
+    <marker id="rcArrG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#15803d"/>
+    </marker>
+    <marker id="rcArrB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2563eb"/>
+    </marker>
+  </defs>
+
+  <!-- ===== Cache box (center, owns four sub-stores) ===== -->
+  <g transform="translate(220, 70)">
+    <rect width="480" height="270" fill="#f9fafb" stroke="#374151" stroke-width="2" rx="10"/>
+    <rect width="480" height="34" fill="#e5e7eb" rx="10"/>
+    <rect width="480" height="18" fill="#e5e7eb"/>
+    <text x="240" y="23" text-anchor="middle" font-weight="700" fill="#111827">PhysicalResourceCache (lives across frames)</text>
+
+    <!-- Transient pool (top-left) -->
+    <g transform="translate(20, 50)">
+      <rect width="215" height="100" fill="#fef3c7" stroke="#a16207" stroke-width="1.4" rx="6"/>
+      <text x="107" y="20" text-anchor="middle" font-weight="700" fill="#713f12">Transient pool</text>
+      <text x="107" y="36" text-anchor="middle" font-size="10" fill="#713f12">keyed by full descriptor</text>
+
+      <!-- 4 slot chips with one greyed (in-use) -->
+      <g font-size="9" font-family="ui-monospace, Consolas, monospace" transform="translate(10, 46)">
+        <rect width="42" height="22" fill="#fff" stroke="#a16207"/>
+        <text x="21" y="15" text-anchor="middle" fill="#713f12">HDR</text>
+        <rect x="48" width="42" height="22" fill="#fff" stroke="#a16207"/>
+        <text x="69" y="15" text-anchor="middle" fill="#713f12">AO ½</text>
+        <rect x="96" width="42" height="22" fill="#fff" stroke="#a16207"/>
+        <text x="117" y="15" text-anchor="middle" fill="#713f12">SSGI</text>
+        <rect x="144" width="42" height="22" fill="#fff" stroke="#a16207"/>
+        <text x="165" y="15" text-anchor="middle" fill="#713f12">Bloom</text>
+
+        <text x="0" y="42" font-family="system-ui" font-size="10" fill="#713f12">acquire / release on each frame</text>
+      </g>
+    </g>
+
+    <!-- Persistent registry (top-right) -->
+    <g transform="translate(245, 50)">
+      <rect width="215" height="100" fill="#dbeafe" stroke="#1d4ed8" stroke-width="1.4" rx="6"/>
+      <text x="107" y="20" text-anchor="middle" font-weight="700" fill="#1e3a8a">Persistent registry</text>
+      <text x="107" y="36" text-anchor="middle" font-size="10" fill="#1e3a8a">keyed by string</text>
+
+      <g font-size="9" font-family="ui-monospace, Consolas, monospace" transform="translate(10, 46)">
+        <rect width="92" height="22" fill="#fff" stroke="#1d4ed8"/>
+        <text x="46" y="15" text-anchor="middle" fill="#1e3a8a">"taa:history"</text>
+        <rect x="98" width="94" height="22" fill="#fff" stroke="#1d4ed8"/>
+        <text x="145" y="15" text-anchor="middle" fill="#1e3a8a">"shadow:cascades"</text>
+
+        <text x="0" y="42" font-family="system-ui" font-size="10" fill="#1e3a8a">survives until explicitly destroyed</text>
+      </g>
+    </g>
+
+    <!-- View cache (bottom-left) -->
+    <g transform="translate(20, 160)">
+      <rect width="215" height="90" fill="#dcfce7" stroke="#15803d" stroke-width="1.4" rx="6"/>
+      <text x="107" y="20" text-anchor="middle" font-weight="700" fill="#14532d">View cache</text>
+      <text x="107" y="36" text-anchor="middle" font-size="10" fill="#14532d">WeakMap&lt;Texture, Map&lt;desc, View&gt;&gt;</text>
+      <text x="107" y="62" text-anchor="middle" font-size="10" font-style="italic" fill="#14532d">deduplicate identical views;</text>
+      <text x="107" y="78" text-anchor="middle" font-size="10" font-style="italic" fill="#14532d">auto-clears when texture dies</text>
+    </g>
+
+    <!-- Bind group cache (bottom-right) -->
+    <g transform="translate(245, 160)">
+      <rect width="215" height="90" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.4" rx="6"/>
+      <text x="107" y="20" text-anchor="middle" font-weight="700" fill="#4c1d95">Bind group cache</text>
+      <text x="107" y="36" text-anchor="middle" font-size="10" fill="#4c1d95">keyed by (layout, entry ids)</text>
+      <text x="107" y="62" text-anchor="middle" font-size="10" font-style="italic" fill="#4c1d95">stable inputs → same GPUBindGroup;</text>
+      <text x="107" y="78" text-anchor="middle" font-size="10" font-style="italic" fill="#4c1d95">collapses createBindGroup calls</text>
+    </g>
+  </g>
+
+  <!-- ===== Per-frame graph interaction (left) ===== -->
+  <g transform="translate(20, 130)">
+    <rect width="170" height="150" fill="#f0fdf4" stroke="#15803d" stroke-width="1.4" rx="8"/>
+    <text x="85" y="22" text-anchor="middle" font-weight="700" fill="#14532d">Per-frame graph</text>
+    <text x="85" y="40" text-anchor="middle" font-size="10" fill="#14532d">on compile():</text>
+
+    <g font-size="10" fill="#14532d" transform="translate(12, 0)">
+      <text x="0" y="62">b.createTexture(desc)</text>
+      <text x="0" y="78" font-style="italic">→ acquire from pool</text>
+
+      <text x="0" y="104">.importPersistent(key)</text>
+      <text x="0" y="120" font-style="italic">→ same texture as last frame</text>
+    </g>
+  </g>
+
+  <line x1="190" y1="180" x2="218" y2="180" stroke="#15803d" stroke-width="1.6" marker-end="url(#rcArrG)"/>
+
+  <!-- Return arrow at end of execute -->
+  <line x1="218" y1="220" x2="190" y2="220" stroke="#2563eb" stroke-width="1.6" marker-end="url(#rcArrB)"/>
+
+  <!-- Arrow legend placed below the per-frame box so it doesn't overlap content -->
+  <g transform="translate(20, 295)">
+    <text x="0" y="0" font-size="10" font-weight="700" fill="#15803d">↑ acquire</text>
+    <text x="0" y="14" font-size="10" fill="#15803d">on compile()</text>
+    <text x="0" y="34" font-size="10" font-weight="700" fill="#2563eb">↓ release</text>
+    <text x="0" y="48" font-size="10" fill="#2563eb">on releaseAllTransients()</text>
+  </g>
+
+  <!-- ===== Frame timeline at the bottom ===== -->
+  <g transform="translate(20, 380)">
+    <rect width="880" height="140" fill="#fff7ed" stroke="#c2410c" stroke-width="1.4" rx="8"/>
+    <text x="14" y="22" font-weight="700" fill="#7c2d12">Across frames: pool hit rate is the win</text>
+
+    <!-- Timeline -->
+    <line x1="40" y1="80" x2="840" y2="80" stroke="#7c2d12" stroke-width="2"/>
+
+    <g font-size="11">
+      <!-- Frame N -->
+      <circle cx="120" cy="80" r="8" fill="#dc2626"/>
+      <text x="120" y="62" text-anchor="middle" font-weight="700" fill="#7c2d12">Frame N</text>
+      <text x="120" y="104" text-anchor="middle" font-size="10" fill="#7c2d12">acquire SSAO ½ HDR</text>
+      <text x="120" y="118" text-anchor="middle" font-size="10" font-style="italic" fill="#dc2626">miss → device.createTexture()</text>
+
+      <!-- end of frame N -->
+      <circle cx="320" cy="80" r="8" fill="#15803d"/>
+      <text x="320" y="62" text-anchor="middle" font-weight="700" fill="#7c2d12">end of N</text>
+      <text x="320" y="104" text-anchor="middle" font-size="10" fill="#7c2d12">release transients</text>
+      <text x="320" y="118" text-anchor="middle" font-size="10" font-style="italic" fill="#15803d">→ pool</text>
+
+      <!-- Frame N+1 -->
+      <circle cx="540" cy="80" r="8" fill="#15803d"/>
+      <text x="540" y="62" text-anchor="middle" font-weight="700" fill="#7c2d12">Frame N+1</text>
+      <text x="540" y="104" text-anchor="middle" font-size="10" fill="#7c2d12">acquire SSAO ½ HDR</text>
+      <text x="540" y="118" text-anchor="middle" font-size="10" font-style="italic" fill="#15803d">hit → Map.get + pop</text>
+
+      <!-- Resize event -->
+      <circle cx="760" cy="80" r="8" fill="#a16207"/>
+      <text x="760" y="62" text-anchor="middle" font-weight="700" fill="#7c2d12">canvas resize</text>
+      <text x="760" y="104" text-anchor="middle" font-size="10" fill="#7c2d12">cache.trimUnused()</text>
+      <text x="760" y="118" text-anchor="middle" font-size="10" font-style="italic" fill="#a16207">drop wrong-size pool</text>
+    </g>
+  </g>
+</svg>

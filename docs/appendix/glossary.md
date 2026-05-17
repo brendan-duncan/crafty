@@ -56,7 +56,7 @@
 
 **Render Pass** — A phase of GPU work between `beginRenderPass()` and `end()`, targeting a set of color and depth attachments.
 
-**Render Graph** — An ordered sequence of render passes that compose to produce a frame.
+**Render Graph** — A dependency graph of passes, rebuilt every frame from persistent pass instances. Passes declare read/write resource usage via a typed builder; the graph compiler validates, culls, topologically sorts, and binds physical resources from a pooled cache, then executes the survivors into a single command buffer. See [`src/renderer/render_graph/`](../../src/renderer/render_graph/).
 
 **SSAO** — Screen-Space Ambient Occlusion. A technique that estimates ambient occlusion by sampling the depth buffer around each pixel.
 

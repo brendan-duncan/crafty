@@ -16,7 +16,7 @@ Crafty supports three texture dimensionalities:
 **Cube textures** are used for the sky and image-based lighting (IBL). A cube texture has 6 array layers (one per face: +X, -X, +Y, -Y, +Z, -Z):
 
 ```typescript
-// ── from src/renderer/passes/sky_texture_pass.ts ──
+// ── from src/renderer/render_graph/passes/sky_texture_pass.ts ──
 // HDR sky cubemap texture
 const skyTexture = device.createTexture({
   label: 'SkyCubemap',

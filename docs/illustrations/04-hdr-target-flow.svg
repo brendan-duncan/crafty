@@ -29,8 +29,8 @@
     <text x="150" y="84" text-anchor="middle" font-size="11" font-style="italic" fill="#713f12">linear scene radiance,</text>
     <text x="150" y="100" text-anchor="middle" font-size="11" font-style="italic" fill="#713f12">values can exceed 1.0</text>
 
-    <text x="150" y="130" text-anchor="middle" font-size="10" fill="#a16207">⇄ ping-ponged with intermediate target</text>
-    <text x="150" y="146" text-anchor="middle" font-size="10" fill="#a16207">when a pass needs both read &amp; write</text>
+    <text x="150" y="130" text-anchor="middle" font-size="10" fill="#a16207">handle versioned by every load+write;</text>
+    <text x="150" y="146" text-anchor="middle" font-size="10" fill="#a16207">the cache reuses one physical texture</text>
   </g>
 
   <!-- ===== Post-processing passes (right side, ping-pong with HDR) ===== -->
@@ -56,13 +56,13 @@
     </g>
   </g>
 
-  <!-- Bidirectional ping-pong arrows between HDR and post chip stack — placed in
+  <!-- Bidirectional load/write arrows between HDR and post chip stack — placed in
        the gap between the Godray/Bloom chip (ends y=232) and Water chip (starts y=236). -->
   <g stroke="#0891b2" stroke-width="1.4">
     <line x1="612" y1="231" x2="658" y2="231" marker-end="url(#hdrArr2)"/>
     <line x1="658" y1="237" x2="612" y2="237" marker-end="url(#hdrArr2)"/>
   </g>
-  <text x="635" y="222" text-anchor="middle" font-size="10" font-style="italic" fill="#0891b2">ping-pong</text>
+  <text x="635" y="222" text-anchor="middle" font-size="10" font-style="italic" fill="#0891b2">load + write</text>
 
   <!-- Sky pass on the LEFT — also writes HDR initially -->
   <g transform="translate(60, 140)">

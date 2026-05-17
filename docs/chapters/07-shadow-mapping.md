@@ -49,10 +49,10 @@ A single shadow map for a directional light covers too large an area to be usefu
 
 ### Cascade Setup
 
-The `ShadowPass` (`src/renderer/passes/shadow_pass.ts`) creates a `depth32float` 2D array texture with up to 4 layers:
+The `ShadowPass` ([src/renderer/render_graph/passes/shadow_pass.ts](../../src/renderer/render_graph/passes/shadow_pass.ts)) imports a persistent `depth32float` 2D array texture (keyed by `"shadow:cascades"` in the resource cache) with up to 4 layers:
 
 ```typescript
-// ── from src/renderer/passes/shadow_pass.ts ──
+// ── from src/renderer/render_graph/passes/shadow_pass.ts ──
 const SHADOW_SIZE = 2048;
 const MAX_CASCADES = 4;
 
@@ -83,16 +83,16 @@ split[i] = lerp(logSplit, uniformSplit, lambda)  // blended (lambda ≈ 0.7)
 
 ### Rendering Cascades
 
-During execution, the `ShadowPass` iterates over cascades, setting the scissor rect and viewport to the full shadow map size and binding the appropriate layer:
+During execution, the `ShadowPass` iterates over cascades, setting the scissor rect and viewport to the full shadow map size and binding the appropriate layer. Because the pass opens many sub-passes of its own (one per cascade), it registers as a `'transfer'` pass and receives the raw command encoder rather than a single graph-managed render pass:
 
 ```typescript
-// ── from src/renderer/passes/shadow_pass.ts ──
+// ── from src/renderer/render_graph/passes/shadow_pass.ts ──
 for (let cascade = 0; cascade < this._cascadeCount; cascade++) {
   const pass = encoder.beginRenderPass({
     label: `ShadowCascade_${cascade}`,
     colorAttachments: [],
     depthStencilAttachment: {
-      view: this.shadowMapArrayViews[cascade],
+      view: shadowMapTexture.createView({ dimension: '2d', baseArrayLayer: cascade, arrayLayerCount: 1 }),
       depthClearValue: 1.0,
       depthLoadOp: 'clear',
       depthStoreOp: 'store',
@@ -151,37 +151,35 @@ let pMax = variance / (variance + dist * dist);
 return smoothstep(0.4, 1.0, pMax);  // Soft shadow
 ```
 
-VSM's advantage is that the shadow map can be pre-filtered with a separable blur (like a Gaussian), producing soft, band-limited shadows without expensive PCF sampling. The `PointSpotShadowPass` (`src/renderer/passes/point_spot_shadow_pass.ts`) renders all active point and spot light shadows into a single VSM atlas.
+VSM's advantage is that the shadow map can be pre-filtered with a separable blur (like a Gaussian), producing soft, band-limited shadows without expensive PCF sampling. The `PointSpotShadowPass` ([src/renderer/render_graph/passes/point_spot_shadow_pass.ts](../../src/renderer/render_graph/passes/point_spot_shadow_pass.ts)) renders all active point and spot light shadows into a single VSM atlas.
 
 ## 7.4 Spot Light Shadows
 
-The `SpotShadowPass` (`src/renderer/passes/spot_shadow_pass.ts`) renders a single spot light's shadow into a 2D depth texture. It is a minimal depth-only pass:
+The `SpotShadowPass` ([src/renderer/render_graph/passes/spot_shadow_pass.ts](../../src/renderer/render_graph/passes/spot_shadow_pass.ts)) renders a single spot light's shadow into a 2D depth texture. It is a minimal depth-only pass that exposes the shadow map as a graph output handle:
 
 ```typescript
-// ── from src/renderer/passes/spot_shadow_pass.ts ──
-export class SpotShadowPass extends RenderPass {
+// ── from src/renderer/render_graph/passes/spot_shadow_pass.ts ──
+export class SpotShadowPass extends Pass<SpotShadowDeps, SpotShadowOutputs> {
   readonly name = 'SpotShadowPass';
 
   updateLight(ctx: RenderContext, light: SpotLight): void {
     // Compute view-projection from light's position, direction, cone angle
     const vp = light.computeLightViewProj();
-    const data = new Float32Array(16);
-    data.set(vp.data, 0);
-    ctx.queue.writeBuffer(this._cameraBuffer, 0, data);
+    ctx.queue.writeBuffer(this._cameraBuffer, 0, vp.data);
   }
 
-  execute(encoder: GPUCommandEncoder, ctx: RenderContext): void {
-    // ... begin depth-only render pass ...
-    const pass = encoder.beginRenderPass({
-      colorAttachments: [],
-      depthStencilAttachment: {
-        view: this._shadowMapView,
-        depthClearValue: 1.0,
-        depthLoadOp: 'clear',
-        depthStoreOp: 'store',
-      },
+  addToGraph(graph: RenderGraph, deps: SpotShadowDeps): SpotShadowOutputs {
+    let out!: ResourceHandle;
+    graph.addPass(this.name, 'render', (b) => {
+      const shadow = deps.shadowMap ?? b.createTexture({ label: 'SpotShadow', format: 'depth32float', /* ... */ });
+      out = b.write(shadow, 'depth-attachment', {
+        depthLoadOp: 'clear', depthStoreOp: 'store', depthClearValue: 1.0,
+      });
+      b.setExecute((pctx) => {
+        // Draw all registered meshes from the light's perspective.
+      });
     });
-    // Draw all registered meshes from the light's perspective
+    return { shadowMap: out };
   }
 }
 ```
@@ -342,12 +340,12 @@ Crafty applies PCSS to the directional sun light's cascaded shadow maps. The `sh
 | Depth-only | Individual spot lights | `depth32float` | 1024 × 1024 | Hardware PCF |
 
 **Further reading:**
-- `src/renderer/passes/shadow_pass.ts` — CSM for directional light
+- `src/renderer/render_graph/passes/shadow_pass.ts` — CSM for directional light
 - `src/shaders/deferred_lighting.wgsl` — PCSS blocker search and variable-kernel PCF
-- `src/renderer/passes/block_shadow_pass.ts` — Chunk shadow maps (appends to CSM)
-- `src/renderer/passes/point_shadow_pass.ts` — Point light cube shadows
-- `src/renderer/passes/spot_shadow_pass.ts` — Spot light depth shadows
-- `src/renderer/passes/point_spot_shadow_pass.ts` — VSM for point + spot lights
+- `src/renderer/render_graph/passes/block_shadow_pass.ts` — Chunk shadow maps (appends to CSM)
+- `src/renderer/render_graph/passes/point_shadow_pass.ts` — Point light cube shadows
+- `src/renderer/render_graph/passes/spot_shadow_pass.ts` — Spot light depth shadows
+- `src/renderer/render_graph/passes/point_spot_shadow_pass.ts` — VSM for point + spot lights
 - `src/shaders/shadow.wgsl` — Depth-only vertex/fragment shadow shader
 - `src/shaders/point_spot_shadow.wgsl` — VSM shadow shader
 

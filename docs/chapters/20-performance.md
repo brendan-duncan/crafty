@@ -172,7 +172,7 @@ Performance optimization techniques used throughout Crafty:
 - **Memory management**: Pre-allocated staging arrays, buffer pooling, texture cache with reference counting
 
 **Further reading:**
-- `src/renderer/passes/` — Per-pass buffer pre-allocation patterns
+- `src/renderer/render_graph/passes/` — Per-pass buffer pre-allocation patterns
 - `src/block/chunk.ts` — Chunk culling
 - `crafty/main.ts` — Frame loop and performance tracking
 

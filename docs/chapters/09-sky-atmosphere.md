@@ -34,7 +34,7 @@ fn rgbeToFloat(rgbe: vec4f) -> vec3f {
 
 ![Path length through the atmosphere shifts color from blue to red, and Rayleigh vs Mie phase functions in polar form](../illustrations/10-rayleigh-mie-scattering.svg)
 
-The `AtmospherePass` (`src/renderer/passes/atmosphere_pass.ts`) renders a procedural sky using a simplified atmospheric scattering model. Rayleigh scattering (blue sky at zenith, red at sunset) and Mie scattering (sun halo) are computed per-pixel based on the view direction and sun position.
+The `AtmospherePass` (`src/renderer/render_graph/passes/atmosphere_pass.ts`) renders a procedural sky using a simplified atmospheric scattering model. Rayleigh scattering (blue sky at zenith, red at sunset) and Mie scattering (sun halo) are computed per-pixel based on the view direction and sun position.
 
 ### Single Scattering Approximation
 
@@ -58,7 +58,7 @@ The atmosphere pass writes directly into the HDR target with a fullscreen draw. 
 
 ![Volumetric cloud raymarch: a view ray steps through the volume, sampling density and accumulating transmittance](../illustrations/10-cloud-raymarch.svg)
 
-The `CloudPass` (`src/renderer/passes/cloud_pass.ts`) renders volumetric clouds using a raymarching technique. Cloud density is sampled from a 3D Perlin noise texture with multiple octaves:
+The `CloudPass` (`src/renderer/render_graph/passes/cloud_pass.ts`) renders volumetric clouds using a raymarching technique. Cloud density is sampled from a 3D Perlin noise texture with multiple octaves:
 
 ```wgsl
 // ── from src/shaders/clouds.wgsl ──
@@ -400,10 +400,10 @@ The `night_t` factor ramps from 0 to 1 as the sun drops below the horizon, so th
 
 ### Star Rendering
 
-Stars are rendered in the `CompositePass` (`src/renderer/passes/composite_pass.ts`) using a GPU-generated star field. The sun direction is uploaded to the star uniform buffer:
+Stars are rendered in the `CompositePass` (`src/renderer/render_graph/passes/composite_pass.ts`) using a GPU-generated star field. The sun direction is uploaded to the star uniform buffer:
 
 ```typescript
-// ── from src/renderer/passes/composite_pass.ts ──
+// ── from src/renderer/render_graph/passes/composite_pass.ts ──
 data[20] = sunDir.x;  data[21] = sunDir.y;  data[22] = sunDir.z;  data[23] = 0;
 ```
 
@@ -434,7 +434,7 @@ The `sample_stars()` function (in the same shader) generates a procedural star f
 
 ## 9.9 God Rays (Crepuscular Rays)
 
-The `GodrayPass` (`src/renderer/passes/godray_pass.ts`) renders volumetric light shafts — rays of light that appear when sunlight filters through semitransparent occluders (clouds, tree leaves). The trick is that we don't actually march through 3D space: we just sample the screen-space HDR image along a 1D ray pointing back toward the sun, accumulating luminance as we go:
+The `GodrayPass` (`src/renderer/render_graph/passes/godray_pass.ts`) renders volumetric light shafts — rays of light that appear when sunlight filters through semitransparent occluders (clouds, tree leaves). The trick is that we don't actually march through 3D space: we just sample the screen-space HDR image along a 1D ray pointing back toward the sun, accumulating luminance as we go:
 
 ![God rays: radial sampling from the sun](../illustrations/12-godray-sampling.svg)
 
@@ -443,7 +443,7 @@ The `GodrayPass` (`src/renderer/passes/godray_pass.ts`) renders volumetric light
 The algorithm determines the sun's position in screen space, then samples the HDR target along rays radiating from that position:
 
 ```wgsl
-// ── from src/renderer/passes/godray_pass.ts ──
+// ── from src/renderer/render_graph/passes/godray_pass.ts ──
 let sunScreenPos = projectToScreen(sunDirection);
 let ray = sunScreenPos - uv;
 let step = ray / f32(numSamples);
@@ -459,7 +459,7 @@ godray = godray * decay / f32(numSamples);
 The result is composited additively onto the HDR target:
 
 ```wgsl
-// ── from src/renderer/passes/godray_pass.ts ──
+// ── from src/renderer/render_graph/passes/godray_pass.ts ──
 hdrColor += godrayColor * intensity;
 ```
 
@@ -477,11 +477,11 @@ The sky and atmosphere system combines several layered techniques:
 - **Cloud shadows**: Shadow map from cloud density projected onto the scene
 
 **Further reading:**
-- `src/renderer/passes/sky_texture_pass.ts` — HDR cubemap sky
-- `src/renderer/passes/atmosphere_pass.ts` — Procedural atmospheric sky
-- `src/renderer/passes/cloud_pass.ts` — Volumetric clouds
-- `src/renderer/passes/cloud_shadow_pass.ts` — Cloud shadow maps
-- `src/renderer/passes/godray_pass.ts` — Volumetric god rays
+- `src/renderer/render_graph/passes/sky_texture_pass.ts` — HDR cubemap sky
+- `src/renderer/render_graph/passes/atmosphere_pass.ts` — Procedural atmospheric sky
+- `src/renderer/render_graph/passes/cloud_pass.ts` — Volumetric clouds
+- `src/renderer/render_graph/passes/cloud_shadow_pass.ts` — Cloud shadow maps
+- `src/renderer/render_graph/passes/godray_pass.ts` — Volumetric god rays
 - `src/shaders/sky.wgsl` — Sky shader
 - `src/shaders/atmosphere.wgsl` — Atmosphere scattering shader
 - `src/shaders/clouds.wgsl` — Cloud raymarching shader

@@ -93,7 +93,7 @@ Both buffers use `COPY_DST` so they can be populated with `queue.writeBuffer()`.
 The vertex buffer layout is specified when creating a render pipeline:
 
 ```typescript
-// ── from src/renderer/passes/geometry_pass.ts ──
+// ── from src/renderer/render_graph/passes/geometry_pass.ts ──
 vertex: {
   module: shaderModule,
   entryPoint: 'vs_main',
@@ -344,7 +344,7 @@ Skinned meshes extend the basic mesh with **joint influences** — each vertex i
 
 
 ```typescript
-// ── from src/renderer/passes/skinned_geometry_pass.ts ──
+// ── from src/renderer/render_graph/passes/skinned_geometry_pass.ts ──
 // Additional vertex attributes for skinned geometry
 // location 4: joint indices (uint32x4 packed)
 // location 5: joint weights (float32x4)
@@ -384,7 +384,7 @@ class AnimationClip {
 Joint transforms are computed on the CPU each frame and uploaded to a GPU storage buffer:
 
 ```typescript
-// ── from src/renderer/passes/skinned_geometry_pass.ts ──
+// ── from src/renderer/render_graph/passes/skinned_geometry_pass.ts ──
 // Per frame: compute joint matrices, upload to GPU
 const jointCount = skeleton.jointCount;
 const jointBuffer = device.createBuffer({
@@ -556,8 +556,8 @@ Meshes are drawn by render passes that iterate `DrawItem` lists — each item pa
 - `src/assets/mesh.ts` — Mesh class and all procedural generators
 - `src/shaders/geometry.wgsl` — Vertex/fragment shader for static geometry
 - `src/shaders/skinned_geometry.wgsl` — Vertex/fragment shader for skinned geometry
-- `src/renderer/passes/geometry_pass.ts` — Draws static meshes into the G-buffer
-- `src/renderer/passes/skinned_geometry_pass.ts` — Draws skinned meshes into the G-buffer
+- `src/renderer/render_graph/passes/geometry_pass.ts` — Draws static meshes into the G-buffer
+- `src/renderer/render_graph/passes/skinned_geometry_pass.ts` — Draws skinned meshes into the G-buffer
 
 ----
 [Contents](../crafty.md) | [03-Rendering Architecture](03-rendering-architecture.md) | [05-Textures / Materials](05-textures-materials.md)

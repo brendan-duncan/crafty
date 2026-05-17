@@ -20,18 +20,32 @@ samples/
 └── cascade_shadow_test.ts      — CSM visualization
 ```
 
-Samples share no state with each other or with the main game. Each creates its own `RenderContext`, builds a minimal render graph, and runs a dedicated frame loop. This makes them ideal for testing specific features in isolation.
+Samples share no state with each other or with the main game. Each creates its own `RenderContext` and `PhysicalResourceCache`, constructs the persistent pass instances it needs, and on each frame builds a fresh `RenderGraph` from those instances. This makes them ideal for testing specific features in isolation. Samples that want the full deferred pipeline can use `DeferredGraphFactory` instead of wiring passes by hand.
 
 To add a new sample, create two files. A typescript file:
 
 ```typescript
 // ── from samples/my_feature.ts ──
-import { RenderContext, RenderGraph, ... } from '../../src/index.js';
+import { RenderContext } from '../../src/renderer/index.js';
+import { RenderGraph, PhysicalResourceCache } from '../../src/renderer/render_graph/index.js';
 
 async function main() {
   const canvas = document.getElementById('canvas') as HTMLCanvasElement;
   const ctx = await RenderContext.create(canvas);
-  // ... build minimal render graph ...
+  const cache = new PhysicalResourceCache(ctx.device);
+
+  // Build persistent pass instances once.
+  // const myPass = MyPass.create(ctx);
+
+  function frame() {
+    const graph = new RenderGraph(ctx, cache);
+    const backbuffer = graph.setBackbuffer('canvas');
+    // myPass.addToGraph(graph, { ..., backbuffer });
+    const compiled = graph.compile();
+    void graph.execute(compiled);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
 }
 
 main();

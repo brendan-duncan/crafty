@@ -137,7 +137,7 @@ The `usage` parameter specifies how the buffer can be used:
 Example from the `GeometryPass` camera uniform buffer:
 
 ```typescript
-// ── from src/renderer/passes/geometry_pass.ts ──
+// ── from src/renderer/render_graph/passes/geometry_pass.ts ──
 
 const cameraBuffer = device.createBuffer({
   label: 'GeomCameraBuffer',
@@ -304,7 +304,7 @@ Layouts are immutable descriptions of resource bindings. Here is the geometry pa
 ```typescript
 // ── bind group creation ──
 
-// from src/renderer/passes/geometry_pass.ts
+// from src/renderer/render_graph/passes/geometry_pass.ts
 const cameraBGL = device.createBindGroupLayout({
   label: 'GeomCameraBGL',
   entries: [
@@ -757,7 +757,7 @@ pipeline = device.createRenderPipeline({
 Creating pipelines is expensive — compilation can take tens of milliseconds on complex shaders. Crafty caches pipelines in a `Map<string, GPURenderPipeline>` keyed by material shader ID:
 
 ```typescript
-// ── from src/renderer/passes/geometry_pass.ts ──
+// ── from src/renderer/render_graph/passes/geometry_pass.ts ──
 
 private _pipelineCache = new Map<string, GPURenderPipeline>();
 
@@ -799,22 +799,31 @@ All GPU work is recorded into a **command buffer** via a `GPUCommandEncoder`, th
 
 ### The Frame Recording Pattern
 
-The render graph creates a single encoder per frame and shares it across all passes:
+The render graph creates a single encoder per frame and walks the compiled list of passes against it, opening render or compute sub-passes as each pass requires:
 
 ```typescript
-// ── from render_graph.ts execute() ──
-async execute(ctx: RenderContext): Promise<void> {
-  ctx.pushFrameErrorScope();
+// ── from src/renderer/render_graph/render_graph.ts execute() ──
+async execute(compiled: CompiledGraph): Promise<void> {
+  this.ctx.pushFrameErrorScope();
 
-  const encoder = ctx.device.createCommandEncoder();
-  for (const pass of this._passes) {
-    if (pass.enabled) {
-      pass.execute(encoder, ctx);
+  const encoder = this.ctx.device.createCommandEncoder({ label: 'RenderGraph' });
+  for (const cp of compiled.passes) {
+    const node = cp.node;
+    if (node.type === 'render') {
+      const renderPass = encoder.beginRenderPass({ label: node.name, ...descriptor });
+      node.execute({ commandEncoder: encoder, renderPassEncoder: renderPass }, resolved);
+      renderPass.end();
+    } else if (node.type === 'compute') {
+      const computePass = encoder.beginComputePass({ label: node.name });
+      node.execute({ commandEncoder: encoder, computePassEncoder: computePass }, resolved);
+      computePass.end();
+    } else {
+      node.execute({ commandEncoder: encoder }, resolved);
     }
   }
-  ctx.queue.submit([encoder.finish()]);
+  this.ctx.queue.submit([encoder.finish()]);
 
-  await ctx.popFrameErrorScope();
+  await this.ctx.popFrameErrorScope();
 }
 ```
 
@@ -883,7 +892,7 @@ On tile-based GPUs, `'discard'` avoids the cost of flushing tile memory back to 
 A complete color attachment for the geometry pass looks like this:
 
 ```typescript
-// ── from src/renderer/passes/geometry_pass.ts ──
+// ── from src/renderer/render_graph/passes/geometry_pass.ts ──
 
 {
   view: this._gbuffer.albedoRoughnessView,
@@ -896,7 +905,7 @@ A complete color attachment for the geometry pass looks like this:
 And a subsequent pass that reads the G-buffer depth and writes additional geometry into it uses `'load'`:
 
 ```typescript
-// ── from src/renderer/passes/geometry_pass.ts ──
+// ── from src/renderer/render_graph/passes/geometry_pass.ts ──
 
 {
   view: this._gbuffer.albedoRoughnessView,
@@ -908,7 +917,7 @@ And a subsequent pass that reads the G-buffer depth and writes additional geomet
 Depth/stencil attachments have separate `depthLoadOp` / `depthStoreOp` and `stencilLoadOp` / `stencilStoreOp` fields, along with `depthClearValue` (a float, typically `1.0` for a reverse-Z buffer or `0.0` for a standard near-to-far depth convention) and `stencilClearValue` (an integer):
 
 ```typescript
-// ── from src/renderer/passes/geometry_pass.ts ──
+// ── from src/renderer/render_graph/passes/geometry_pass.ts ──
 
 depthStencilAttachment: {
   view: this._gbuffer.depthView,
@@ -1306,26 +1315,30 @@ It provides:
 - **Data upload** via `writeBuffer()`.
 - **Error scope management** via `pushInitErrorScope()` / `popInitErrorScope()` and per-frame/per-pass variants.
 
-Every render pass receives the `RenderContext` during `execute()` and uses it to access the device, queue, and canvas dimensions. The `RenderGraph` owns the relationship between passes and the context:
+Pass instances live for the lifetime of the application; they own the long-lived state (pipelines, BGLs, persistent uniform buffers) and access the device via the `RenderContext` passed to their static `create()` factory. The `RenderGraph` itself is built fresh each frame from those persistent pass instances:
 
 ```
-Application (main.ts)
+Application (main.ts / renderer_setup.ts)
+   │
+   │   (owns persistent pass instances + PhysicalResourceCache)
    │
    ▼
-RenderGraph  ─── owns ───►  RenderPass[]
-   │                            │
-   │                            ▼
-   │                      execute(encoder, ctx)
-   │
-   └──►  GPUCommandEncoder ──► queue.submit()
+each frame:
+   new RenderGraph(ctx, cache)
+      │
+      │  pass.addToGraph(graph, deps)   // wires reads/writes/execute
+      │  graph.compile()                // validate, cull, sort, bind resources
+      │  graph.execute(compiled)        // single GPUCommandEncoder → submit
+      ▼
+   command buffer → GPUQueue
 ```
 
 ### Lifecycle
 
-1. **Creation.** `RenderContext.create(canvas)` is called once during startup. It requests the adapter, creates the device, and configures the canvas.
-2. **Frame loop.** Each frame, `RenderGraph.execute()` creates a command encoder, runs all passes, and submits.
-3. **Resize.** On canvas resize, the canvas pixel dimensions are updated and the graph is re-created (passes that depend on canvas size, like the GBuffer, reallocate their textures).
-4. **Destroy.** `RenderGraph.destroy()` calls `destroy()` on every pass, and the render context itself is discarded.
+1. **Creation.** `RenderContext.create(canvas)` is called once during startup. It requests the adapter, creates the device, and configures the canvas. The renderer then constructs one `PhysicalResourceCache` and one instance of every `Pass` via its `static create(ctx)` factory.
+2. **Frame loop.** Each frame, the renderer builds a new `RenderGraph(ctx, cache)`, calls `addToGraph()` on each pass to declare its reads/writes for the frame, then calls `compile()` and `execute()`. One command encoder, one submit.
+3. **Resize.** On canvas resize, the canvas pixel dimensions are updated and `cache.trimUnused()` drops every pooled transient (they were sized to the previous canvas). Pass instances themselves don't care about canvas size — pipelines and BGLs survive resizes.
+4. **Destroy.** `pass.destroy()` releases each pass's long-lived GPU objects; `cache.destroy()` drops every pooled and persistent resource; the render context is discarded.
 
 ### 2.13 Summary
 
@@ -1335,18 +1348,18 @@ In this chapter we covered every major WebGPU resource type and saw how Crafty u
 |----------|-------------|-----------|
 | `GPUAdapter` / `GPUDevice` | Created once in `RenderContext.create()` | `render_context.ts` |
 | `GPUBuffer` | Uniforms per-frame, vertex/index for meshes, storage for particles | `geometry_pass.ts`, `particle_pass.ts` |
-| `GPUTexture` | GBuffer, HDR target, shadow maps, sky, cloud noise | `gbuffer.ts`, `lighting_pass.ts` |
+| `GPUTexture` | GBuffer, HDR target, shadow maps, sky, cloud noise | `render_graph/passes/block_geometry_pass.ts`, `deferred_lighting_pass.ts` |
 | `GPUSampler` | Created per-pass for texture sampling | various passes |
 | `GPUBindGroup` / `GPUBindGroupLayout` | Group 0=camera, 1=model, 2=material | `geometry_pass.ts` |
 | `GPUShaderModule` | Loaded from `.wgsl` files via `?raw` import | `src/shaders/*.wgsl` |
 | `GPURenderPipeline` | Cached per material shader ID | `geometry_pass.ts` |
 | `GPUComputePipeline` | Particles, auto-exposure, SSGI | `particle_pass.ts`, `auto_exposure_pass.ts` |
-| `GPUCommandEncoder` | One per frame, shared across all passes | `render_graph.ts` |
+| `GPUCommandEncoder` | One per frame, shared across all passes | `render_graph/render_graph.ts` |
 | `GPUQueue` | `writeBuffer()` for uniform uploads, `submit()` for command buffers | `render_context.ts` |
 
 **Further reading:**
 - `src/renderer/render_context.ts` — GPUDevice/GPUAdapter creation and management
-- `src/renderer/passes/` — Per-pass buffer, texture, and pipeline creation
+- `src/renderer/render_graph/passes/` — Per-pass buffer, texture, and pipeline creation
 - `src/shaders/` — All WGSL shader modules
 - `src/engine/camera.ts` — Camera uniforms and bind group layout
 

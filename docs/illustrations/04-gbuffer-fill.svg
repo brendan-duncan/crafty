@@ -11,26 +11,26 @@
   <!-- ===== TOP: three pass boxes side by side ===== -->
   <!-- Pass box width 240, height 100 -->
 
-  <!-- Pass 1: GeometryPass (clear) -->
+  <!-- Pass 1: BlockGeometryPass (clear) -->
   <g transform="translate(40, 60)">
     <rect x="0" y="0" width="240" height="100" fill="#fef2f2" stroke="#dc2626" stroke-width="1.4" rx="6"/>
     <rect x="0" y="0" width="240" height="26" fill="#fee2e2"/>
-    <text x="120" y="18" text-anchor="middle" font-weight="700" fill="#7f1d1d">Pass 1 · GeometryPass</text>
+    <text x="120" y="18" text-anchor="middle" font-weight="700" fill="#7f1d1d">Pass 1 · BlockGeometryPass</text>
 
-    <text x="120" y="46" text-anchor="middle" font-size="11" fill="#7f1d1d">opaque mesh objects</text>
+    <text x="120" y="46" text-anchor="middle" font-size="11" fill="#7f1d1d">voxel chunks → v1</text>
 
     <!-- loadOp tag -->
     <rect x="60" y="60" width="120" height="28" fill="#dc2626" rx="3"/>
     <text x="120" y="78" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">loadOp: 'clear'</text>
   </g>
 
-  <!-- Pass 2: BlockGeometryPass (load) -->
+  <!-- Pass 2: GeometryPass (load) -->
   <g transform="translate(340, 60)">
     <rect x="0" y="0" width="240" height="100" fill="#eff6ff" stroke="#2563eb" stroke-width="1.4" rx="6"/>
     <rect x="0" y="0" width="240" height="26" fill="#dbeafe"/>
-    <text x="120" y="18" text-anchor="middle" font-weight="700" fill="#1e3a8a">Pass 2 · BlockGeometryPass</text>
+    <text x="120" y="18" text-anchor="middle" font-weight="700" fill="#1e3a8a">Pass 2 · GeometryPass</text>
 
-    <text x="120" y="46" text-anchor="middle" font-size="11" fill="#1e3a8a">voxel chunks</text>
+    <text x="120" y="46" text-anchor="middle" font-size="11" fill="#1e3a8a">opaque meshes · v1 → v2</text>
 
     <rect x="60" y="60" width="120" height="28" fill="#2563eb" rx="3"/>
     <text x="120" y="78" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">loadOp: 'load'</text>
@@ -42,7 +42,7 @@
     <rect x="0" y="0" width="240" height="26" fill="#dcfce7"/>
     <text x="120" y="18" text-anchor="middle" font-weight="700" fill="#14532d">Pass 3 · SkinnedGeometryPass</text>
 
-    <text x="120" y="46" text-anchor="middle" font-size="11" fill="#14532d">animated meshes</text>
+    <text x="120" y="46" text-anchor="middle" font-size="11" fill="#14532d">animated meshes · v2 → v3</text>
 
     <rect x="60" y="60" width="120" height="28" fill="#15803d" rx="3"/>
     <text x="120" y="78" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">loadOp: 'load'</text>
@@ -56,7 +56,7 @@
   <!-- ===== MIDDLE: G-buffer (3 attachment slabs) ===== -->
   <g transform="translate(40, 230)">
     <rect x="0" y="0" width="840" height="124" fill="#fef3c7" stroke="#a16207" stroke-width="1.4" rx="6"/>
-    <text x="14" y="22" font-weight="700" fill="#713f12">Shared G-Buffer (3 attachments, all written by passes 1 → 3)</text>
+    <text x="14" y="22" font-weight="700" fill="#713f12">G-Buffer handles (3 textures, versioned by each write; downstream passes read v3)</text>
 
     <!-- 3 attachment slabs -->
     <g transform="translate(20, 36)">
@@ -94,7 +94,7 @@
 
     <g font-size="11" fill="#374151" transform="translate(14, 0)">
       <text x="0" y="46">SSAOPass · SSGIPass · DeferredLightingPass · PointSpotLightPass · TAAPass · DofPass · GodrayPass · CompositePass (fog)</text>
-      <text x="0" y="64" font-style="italic" fill="#6b7280">all bind G-buffer textures via TEXTURE_BINDING — never ping-pong, never copy.</text>
+      <text x="0" y="64" font-style="italic" fill="#6b7280">all declared as reads via PassBuilder — the compiler folds the union into TEXTURE_BINDING when it allocates the physical texture.</text>
     </g>
   </g>
 </svg>

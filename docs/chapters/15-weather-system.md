@@ -110,7 +110,7 @@ if (weatherTimer <= 0) {
 
 When the weather type changes, two things happen:
 
-1. **Environment effect check** — if the new weather switches between `None`, `Rain`, or `Snow`, the full render graph is rebuilt via `rebuildRenderTargets()` so the particle system is created or destroyed.
+1. **Environment effect check** — if the new weather switches between `None`, `Rain`, or `Snow`, the persistent pass instances are rebuilt via `rebuildRenderTargets()` so the particle system is created or destroyed. (The per-frame render graph itself is always rebuilt every frame; this rebuild is the more expensive recreation of pipelines, BGLs, and chunk GPU state on the pass objects.)
 2. **Spawn rate update** — if the weather intensity changes within the same effect (e.g. LightRain → HeavyRain), the particle pass adjusts its spawn rate dynamically without a rebuild, thanks to `ParticlePass.setSpawnRate()`.
 
 ## 15.4 Cloud Coverage Mapping
@@ -217,7 +217,7 @@ export function getWeatherSpawnRate(weather: WeatherType): number {
 }
 ```
 
-The `ParticlePass.setSpawnRate()` method (added to `src/renderer/passes/particle_pass.ts`) allows changing the spawn rate at runtime without rebuilding the entire pass:
+The `ParticlePass.setSpawnRate()` method (added to `src/renderer/render_graph/passes/particle_pass.ts`) allows changing the spawn rate at runtime without rebuilding the entire pass:
 
 ```typescript
 setSpawnRate(rate: number): void {
@@ -225,7 +225,7 @@ setSpawnRate(rate: number): void {
 }
 ```
 
-This is a key performance optimization — rebuilding the render graph is expensive (it destroys and recreates every pass), so we only do it when the particle system type changes. Intensity changes within the same type are handled by a simple property write.
+This is a key performance optimization — rebuilding the persistent pass instances is expensive (it destroys and recreates pipelines, BGLs, and per-pass GPU state), so we only do it when the particle system type changes. Intensity changes within the same type are handled by a simple property write and picked up by the next per-frame graph build.
 
 ## 15.6 Integration in the Frame Loop
 
@@ -295,7 +295,7 @@ The weather system provides dynamic environmental variation:
 
 - `crafty/game/weather_system.ts` — `WeatherType` enum, biome tables, weather selection, cloud/environment/spawn mappings
 - `crafty/main.ts` — Weather state, timer, frame-loop integration, HUD update
-- `src/renderer/passes/particle_pass.ts` — `setSpawnRate()` for dynamic particle rate changes
+- `src/renderer/render_graph/passes/particle_pass.ts` — `setSpawnRate()` for dynamic particle rate changes
 - `crafty/ui/hud.ts` — `weather` debug overlay element
 - `crafty/config/particle_configs.ts` — Rain and snow particle configs consumed by `ParticlePass`
 

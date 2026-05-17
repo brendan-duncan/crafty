@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 460" font-family="system-ui, -apple-system, sans-serif" font-size="13">
-  <rect width="920" height="460" fill="#ffffff"/>
-  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Pass Lifecycle: create() once · update + execute per frame · destroy() at teardown</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 500" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+  <rect width="920" height="500" fill="#ffffff"/>
+  <text x="460" y="26" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Pass Lifecycle: create() once · update + addToGraph per frame · destroy() at teardown</text>
 
   <defs>
     <marker id="lcArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
@@ -10,7 +10,7 @@
 
   <!-- ===== Phase 1: INIT (create) ===== -->
   <g transform="translate(40, 70)">
-    <rect x="0" y="0" width="220" height="260" fill="#fef2f2" stroke="#dc2626" stroke-width="1.4" rx="6"/>
+    <rect x="0" y="0" width="220" height="270" fill="#fef2f2" stroke="#dc2626" stroke-width="1.4" rx="6"/>
     <rect x="0" y="0" width="220" height="32" fill="#fee2e2"/>
     <text x="110" y="22" text-anchor="middle" font-weight="700" fill="#7f1d1d">1 · INIT (once)</text>
 
@@ -22,17 +22,17 @@
     </g>
 
     <!-- Allocates list -->
-    <text x="20" y="128" font-size="11" font-weight="700" fill="#7f1d1d">allocates GPU resources:</text>
+    <text x="20" y="128" font-size="11" font-weight="700" fill="#7f1d1d">long-lived GPU state:</text>
     <g font-size="11" fill="#7f1d1d" transform="translate(20, 0)">
       <text x="0" y="146">· bind group layouts</text>
-      <text x="0" y="162">· render pipelines</text>
-      <text x="0" y="178">· uniform / vertex buffers</text>
-      <text x="0" y="194">· bind groups</text>
+      <text x="0" y="162">· render / compute pipelines</text>
+      <text x="0" y="178">· persistent uniform buffers</text>
+      <text x="0" y="194">· samplers</text>
     </g>
 
     <!-- Footer note -->
-    <text x="110" y="232" text-anchor="middle" font-size="10" font-style="italic" fill="#7f1d1d">no draw calls yet</text>
-    <text x="110" y="246" text-anchor="middle" font-size="10" font-style="italic" fill="#7f1d1d">caught by error scope</text>
+    <text x="110" y="232" text-anchor="middle" font-size="10" font-style="italic" fill="#7f1d1d">expensive to build</text>
+    <text x="110" y="246" text-anchor="middle" font-size="10" font-style="italic" fill="#7f1d1d">cached on the pass instance</text>
   </g>
 
   <!-- Arrow into per-frame loop -->
@@ -40,7 +40,7 @@
 
   <!-- ===== Phase 2: PER-FRAME LOOP ===== -->
   <g transform="translate(304, 70)">
-    <rect x="0" y="0" width="360" height="260" fill="#eff6ff" stroke="#2563eb" stroke-width="1.4" rx="6"/>
+    <rect x="0" y="0" width="360" height="270" fill="#eff6ff" stroke="#2563eb" stroke-width="1.4" rx="6"/>
     <rect x="0" y="0" width="360" height="32" fill="#dbeafe"/>
     <text x="180" y="22" text-anchor="middle" font-weight="700" fill="#1e3a8a">2 · PER-FRAME LOOP (every frame)</text>
 
@@ -52,27 +52,28 @@
       <text x="70" y="52" text-anchor="middle" font-size="10" fill="#1e3a8a">upload uniforms</text>
     </g>
 
-    <!-- Arrow update → execute -->
+    <!-- Arrow update → addToGraph -->
     <line x1="172" y1="86" x2="202" y2="86" stroke="#374151" stroke-width="1.4" marker-end="url(#lcArr)"/>
 
-    <!-- execute() box -->
+    <!-- addToGraph() box -->
     <g transform="translate(202, 56)">
       <rect x="0" y="0" width="140" height="60" fill="#fff" stroke="#2563eb" stroke-width="1.4" rx="4"/>
-      <text x="70" y="20" text-anchor="middle" font-family="ui-monospace, Consolas, monospace" font-weight="700" fill="#1e3a8a">execute(encoder)</text>
-      <text x="70" y="38" text-anchor="middle" font-size="10" fill="#1e3a8a">beginRenderPass():</text>
-      <text x="70" y="52" text-anchor="middle" font-size="10" fill="#1e3a8a">record draw cmds</text>
+      <text x="70" y="18" text-anchor="middle" font-family="ui-monospace, Consolas, monospace" font-weight="700" fill="#1e3a8a">addToGraph(g, deps)</text>
+      <text x="70" y="36" text-anchor="middle" font-size="10" fill="#1e3a8a">declare reads/writes,</text>
+      <text x="70" y="50" text-anchor="middle" font-size="10" fill="#1e3a8a">register execute callback</text>
     </g>
 
-    <!-- Loop arrow back from execute to update — U shape just below the box row, then label
-         further below in clear space. -->
+    <!-- Loop arrow back from addToGraph to update — U shape just below the box row -->
     <path d="M 272 116 L 272 132 L 100 132 L 100 116" fill="none" stroke="#374151" stroke-width="1.4" marker-end="url(#lcArr)"/>
     <text x="180" y="152" text-anchor="middle" font-size="10" fill="#374151">↻ next frame</text>
 
-    <!-- Bottom note -->
-    <text x="180" y="184" text-anchor="middle" font-size="11" font-weight="700" fill="#1e3a8a">why two methods?</text>
-    <text x="180" y="202" text-anchor="middle" font-size="10" fill="#1e3a8a">update = CPU→GPU upload (queue),</text>
-    <text x="180" y="218" text-anchor="middle" font-size="10" fill="#1e3a8a">execute = command recording (encoder).</text>
-    <text x="180" y="240" text-anchor="middle" font-size="10" font-style="italic" fill="#1e3a8a">all 21 passes share the same encoder.</text>
+    <!-- Bottom note: graph.compile / execute -->
+    <text x="180" y="180" text-anchor="middle" font-size="11" font-weight="700" fill="#1e3a8a">then the graph runs:</text>
+    <g font-family="ui-monospace, Consolas, monospace" font-size="10" fill="#1e3a8a">
+      <text x="180" y="198" text-anchor="middle">graph.compile()</text>
+      <text x="180" y="214" text-anchor="middle">graph.execute(compiled)</text>
+    </g>
+    <text x="180" y="240" text-anchor="middle" font-size="10" font-style="italic" fill="#1e3a8a">execute callback fires inside the encoder</text>
   </g>
 
   <!-- Arrow into teardown -->
@@ -80,36 +81,37 @@
 
   <!-- ===== Phase 3: TEARDOWN (destroy) ===== -->
   <g transform="translate(708, 70)">
-    <rect x="0" y="0" width="172" height="260" fill="#f0fdf4" stroke="#15803d" stroke-width="1.4" rx="6"/>
+    <rect x="0" y="0" width="172" height="270" fill="#f0fdf4" stroke="#15803d" stroke-width="1.4" rx="6"/>
     <rect x="0" y="0" width="172" height="32" fill="#dcfce7"/>
     <text x="86" y="22" text-anchor="middle" font-weight="700" fill="#14532d">3 · TEARDOWN</text>
 
     <g transform="translate(16, 50)">
       <rect x="0" y="0" width="140" height="56" fill="#fff" stroke="#15803d" stroke-width="1.4" rx="4"/>
       <text x="70" y="22" text-anchor="middle" font-family="ui-monospace, Consolas, monospace" font-weight="700" fill="#14532d">destroy()</text>
-      <text x="70" y="42" text-anchor="middle" font-size="10" fill="#14532d">on resize / quit</text>
+      <text x="70" y="42" text-anchor="middle" font-size="10" fill="#14532d">on shutdown</text>
     </g>
 
     <text x="16" y="132" font-size="11" font-weight="700" fill="#14532d">releases:</text>
     <g font-size="11" fill="#14532d" transform="translate(16, 0)">
-      <text x="0" y="150">· textures</text>
-      <text x="0" y="166">· buffers</text>
+      <text x="0" y="150">· persistent buffers</text>
+      <text x="0" y="166">· persistent textures</text>
       <text x="0" y="182">· pipelines</text>
     </g>
 
-    <text x="86" y="226" text-anchor="middle" font-size="10" font-style="italic" fill="#14532d">canvas resize</text>
-    <text x="86" y="240" text-anchor="middle" font-size="10" font-style="italic" fill="#14532d">→ rebuild graph</text>
+    <text x="86" y="226" text-anchor="middle" font-size="10" font-style="italic" fill="#14532d">canvas resize?</text>
+    <text x="86" y="240" text-anchor="middle" font-size="10" font-style="italic" fill="#14532d">→ cache.trimUnused()</text>
   </g>
 
   <!-- ===== BOTTOM: code skeleton ===== -->
-  <g transform="translate(40, 350)">
-    <rect width="840" height="100" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
+  <g transform="translate(40, 360)">
+    <rect width="840" height="120" fill="#f9fafb" stroke="#9ca3af" stroke-width="1" rx="6"/>
     <text x="14" y="22" font-weight="700" fill="#111827">Skeleton</text>
 
     <g font-family="ui-monospace, Consolas, monospace" font-size="12" fill="#374151" transform="translate(14, 0)">
-      <text x="0" y="46">const pass = MyPass.create(ctx, gbuffer);              <tspan fill="#dc2626">// once</tspan></text>
-      <text x="0" y="64">pass.updateCamera(ctx, view, proj, ...);                <tspan fill="#2563eb">// every frame, before execute</tspan></text>
-      <text x="0" y="82">pass.execute(encoder, ctx);                             <tspan fill="#2563eb">// every frame, into the shared encoder</tspan></text>
+      <text x="0" y="46">const pass = MyPass.create(ctx);                          <tspan fill="#dc2626">// once</tspan></text>
+      <text x="0" y="64">pass.updateCamera(ctx, viewProj);                         <tspan fill="#2563eb">// every frame, before addToGraph</tspan></text>
+      <text x="0" y="82">const out = pass.addToGraph(graph, { in: prev.out });     <tspan fill="#2563eb">// every frame, declares I/O</tspan></text>
+      <text x="0" y="100">await graph.execute(graph.compile());                    <tspan fill="#2563eb">// fires every pass's execute callback</tspan></text>
     </g>
   </g>
 </svg>

@@ -34,7 +34,7 @@ This curve maps unlimited HDR input to [0, 1] with smooth saturation at the high
 When the swap chain is in HDR mode (`rgba16float` + `display-p3`), the composite pass can skip tonemapping entirely or apply only a small amount of output-referred grading:
 
 ```typescript
-// ── from src/renderer/passes/composite_pass.ts ──
+// ── from src/renderer/render_graph/passes/composite_pass.ts ──
 // If swap chain is HDR, write linear HDR values directly
 if (ctx.hdr) {
   // Passthrough — the display handles the EOTF
@@ -105,7 +105,7 @@ TAA `TAAPass` reduces aliasing by averaging the current frame with previous fram
 The projection matrix is jittered by a sub-pixel offset each frame. The jitter pattern is a Halton sequence (2,3) that provides good temporal coverage:
 
 ```typescript
-// ── from src/renderer/passes/taa_pass.ts ──
+// ── from src/renderer/render_graph/passes/taa_pass.ts ──
 const jitterX = halton2(frameIndex) - 0.5;
 const jitterY = halton3(frameIndex) - 0.5;
 // Apply jitter to projection matrix
@@ -147,7 +147,7 @@ historyColor = clamp(historyColor, minColor, maxColor);
 
 ## 11.4 Depth of Field (DOF)
 
-The `DofPass` (`src/renderer/passes/dof_pass.ts`) simulates camera lens defocus blur. Objects at a specific focal distance are sharp; objects farther or closer become increasingly blurred. Geometrically, off-focus points project to a disk on the sensor instead of a single point — that disk's diameter is the **circle of confusion**:
+The `DofPass` (`src/renderer/render_graph/passes/dof_pass.ts`) simulates camera lens defocus blur. Objects at a specific focal distance are sharp; objects farther or closer become increasingly blurred. Geometrically, off-focus points project to a disk on the sensor instead of a single point — that disk's diameter is the **circle of confusion**:
 
 ![Depth of field: circle of confusion](../illustrations/12-dof-circle-of-confusion.svg)
 
@@ -177,7 +177,7 @@ The blur uses a Poisson-disk kernel where the number of samples is proportional 
 
 ## 11.5 Auto-Exposure
 
-The `AutoExposurePass` (`src/renderer/passes/auto_exposure_pass.ts`) computes a scene-adaptive exposure value using compute shaders. It adapts the overall brightness when the scene changes (e.g., walking from indoors to sunlight). The mechanism is a per-frame log-luminance histogram, smoothed temporally so that exposure tracks scene changes without snapping:
+The `AutoExposurePass` (`src/renderer/render_graph/passes/auto_exposure_pass.ts`) computes a scene-adaptive exposure value using compute shaders. It adapts the overall brightness when the scene changes (e.g., walking from indoors to sunlight). The mechanism is a per-frame log-luminance histogram, smoothed temporally so that exposure tracks scene changes without snapping:
 
 ![Auto-exposure histogram and adaptation](../illustrations/12-autoexposure-histogram.svg)
 
@@ -198,7 +198,7 @@ atomicAdd(&histogram[bucket], 1u);
 The histogram is read back to compute the average log-luminance, which is then smoothed temporally:
 
 ```typescript
-// ── from src/renderer/passes/auto_exposure_pass.ts ──
+// ── from src/renderer/render_graph/passes/auto_exposure_pass.ts ──
 let adaptedLuminance = lerp(previousLuminance, currentLuminance,
                             1.0 - exp(-deltaTime * adaptationSpeed));
 ```
@@ -280,11 +280,11 @@ Post-processing transforms the raw HDR render into the final image. The diagram 
 | Composite | HDR + all of the above | Swap chain output | Tonemapping + grading + underwater |
 
 **Further reading:**
-- `src/renderer/passes/taa_pass.ts` — Temporal anti-aliasing
-- `src/renderer/passes/bloom_pass.ts` — HDR bloom
-- `src/renderer/passes/dof_pass.ts` — Depth of field
-- `src/renderer/passes/auto_exposure_pass.ts` — Auto-exposure
-- `src/renderer/passes/composite_pass.ts` — Final composition + tonemap
+- `src/renderer/render_graph/passes/taa_pass.ts` — Temporal anti-aliasing
+- `src/renderer/render_graph/passes/bloom_pass.ts` — HDR bloom
+- `src/renderer/render_graph/passes/dof_pass.ts` — Depth of field
+- `src/renderer/render_graph/passes/auto_exposure_pass.ts` — Auto-exposure
+- `src/renderer/render_graph/passes/composite_pass.ts` — Final composition + tonemap
 - `src/shaders/composite.wgsl` — Composite shader
 
 ----
