@@ -149,18 +149,13 @@ async function main(): Promise<void> {
 
     const sunAngle = ctx.elapsedTime * 0.3;
 
-    camera.aspect = ctx.width / ctx.height;
     cameraController.update(cameraGO, ctx.deltaTime);
+    camera.updateRender(ctx);
+    ctx.activeCamera = camera;
 
-    const view = camera.viewMatrix();
-    const proj = camera.projectionMatrix();
-    const viewProj = camera.viewProjectionMatrix();
-    const invViewProj = viewProj.invert();
-    const invProj = proj.invert();
-    const camPos = camera.position();
-
-    // Sub-pixel jitter so TAA has something to converge against.
-    const jitViewProj = taaPass.jitter(ctx, viewProj);
+    // TAA must run BEFORE geometry passes so they pick up the jittered VP via
+    // camera.jitteredViewProjectionMatrix().
+    taaPass.updateCamera(ctx);
 
     const lightDir = new Vec3(Math.cos(sunAngle), -0.8, Math.sin(sunAngle)).normalize();
     const center = new Vec3(0, 1, 0);
@@ -262,28 +257,27 @@ async function main(): Promise<void> {
     })];
 
     geometryPass.setDrawItems(drawItems);
-    // Jittered VP for the gbuffer so TAA gets sub-pixel motion.
-    geometryPass.updateCamera(ctx, view, proj, jitViewProj, invViewProj, camPos, 0.1, 100);
+    geometryPass.updateCamera(ctx);
 
-    ssaoPass.updateCamera(ctx, view, proj, invProj);
+    ssaoPass.updateCamera(ctx);
     ssaoPass.updateParams(ctx, 1.0, 0.005, 2.0);
 
-    lightingPass.updateCamera(ctx, view, proj, viewProj, invViewProj, camPos, 0.1, 100);
+    lightingPass.updateCamera(ctx);
     lightingPass.updateLight(ctx, lightDir, { x: 1.0, y: 0.95, z: 0.9 }, 2.0, cascades, true, false);
     lightingPass.updateCloudShadow(ctx, 0, 0, 60);
 
     pointSpotShadowPass.update(enginePointLights, engineSpotLights, shadowItems);
-    pointSpotLightPass.updateCamera(ctx, view, proj, viewProj, invViewProj, camPos, 0.1, 100);
+    pointSpotLightPass.updateCamera(ctx);
     pointSpotLightPass.updateLights(ctx, enginePointLights, engineSpotLights);
 
-    skyPass.updateCamera(ctx, invViewProj, camPos);
-    taaPass.updateCamera(ctx, invViewProj, viewProj);
+    skyPass.updateCamera(ctx);
     dofPass.updateParams(ctx, 8.0, 4.0, 4.0, 0.1, 100.0, 1.0);
 
-    // Forward pass for transparents — same camera as the deferred path, no
-    // jitter (it loads the already-jittered gbuffer depth).
+    // Forward pass for transparents — same camera as the deferred path (the
+    // jittered VP from TAA is on the camera and forward will use it via
+    // jitteredViewProjectionMatrix(), matching the gbuffer depth).
     forwardPass.setDrawItems(transparentItems);
-    forwardPass.updateCamera(ctx, view, proj, viewProj, invViewProj, camPos, 0.1, 100);
+    forwardPass.updateCamera(ctx);
     forwardPass.updateLights(ctx, directionalLight, fwdPointLights, fwdSpotLights);
 
     const graph = new RenderGraph(ctx, cache);

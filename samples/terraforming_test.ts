@@ -678,7 +678,7 @@ async function main() {
     ctx.backbufferDepthView!
   );
 
-  async function render() {
+  async function frame() {
     ctx.update();
 
     fpsElement.textContent = `FPS: ${ctx.fps}`;
@@ -687,6 +687,7 @@ async function main() {
     brushInfo.textContent = `Brush: ${mode} | Radius: ${brushRadius.toFixed(1)}`;
 
     cameraController.update(cameraGO, ctx.deltaTime);
+    camera.updateRender(ctx);
 
     const sinY = Math.sin(cameraController.yaw);
     const cosY = Math.cos(cameraController.yaw);
@@ -699,7 +700,7 @@ async function main() {
     const view = camera.viewMatrix();
     const proj = camera.projectionMatrix();
     const viewProj = camera.viewProjectionMatrix();
-    const invViewProj = viewProj.invert();
+    const invViewProj = camera.inverseViewProjectionMatrix();
 
     mcPass.updateCamera(
       ctx,
@@ -719,10 +720,10 @@ async function main() {
 
     device.queue.submit([encoder.finish()]);
 
-    requestAnimationFrame(render);
+    requestAnimationFrame(frame);
   }
 
-  render();
+  frame();
 }
 
 main();

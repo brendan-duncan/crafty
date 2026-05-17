@@ -1,7 +1,6 @@
 import type { RenderContext } from '../../render_context.js';
 import { Pass } from '../pass.js';
 import type { PassBuilder, RenderGraph, ResourceHandle, TextureDesc } from '../index.js';
-import type { Mat4 } from '../../../math/mat4.js';
 import ssaoWgsl from '../../../shaders/ssao.wgsl?raw';
 import ssaoBlurWgsl from '../../../shaders/ssao_blur.wgsl?raw';
 
@@ -215,12 +214,16 @@ export class SSAOPass extends Pass<SSAODeps, SSAOOutputs> {
     );
   }
 
-  /** Upload per-frame camera matrices used for view-space reconstruction. */
-  updateCamera(ctx: RenderContext, view: Mat4, proj: Mat4, invProj: Mat4): void {
+  /** Upload per-frame camera matrices used for view-space reconstruction from `ctx.activeCamera`. */
+  updateCamera(ctx: RenderContext): void {
+    const camera = ctx.activeCamera;
+    if (!camera) {
+      throw new Error('SSAOPass.updateCamera: ctx.activeCamera is null');
+    }
     const data = this._cameraScratch;
-    data.set(view.data, 0);
-    data.set(proj.data, 16);
-    data.set(invProj.data, 32);
+    data.set(camera.viewMatrix().data, 0);
+    data.set(camera.projectionMatrix().data, 16);
+    data.set(camera.inverseProjectionMatrix().data, 32);
     ctx.device.queue.writeBuffer(this._uniformBuffer, 0, data.buffer as ArrayBuffer);
   }
 

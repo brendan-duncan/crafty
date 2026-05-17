@@ -1,4 +1,5 @@
 import type { GameObject } from './game_object.js';
+import type { RenderContext } from '../renderer/render_context.js';
 
 /**
  * Abstract base class for all behaviors attached to a {@link GameObject}.
@@ -7,8 +8,11 @@ import type { GameObject } from './game_object.js';
  * bound to its owner via {@link GameObject.addComponent}, which sets
  * {@link Component.gameObject} and then calls {@link Component.onAttach}.
  * {@link Component.update} is invoked once per frame as part of the scene's
- * traversal, and {@link Component.onDetach} runs when the component is
- * removed via {@link GameObject.removeComponent}.
+ * simulation traversal; {@link Component.updateRender} runs once per frame
+ * *after* simulation, when render passes are about to consume cached state
+ * (e.g. {@link Camera} uses it to refresh view/projection matrices).
+ * {@link Component.onDetach} runs when the component is removed via
+ * {@link GameObject.removeComponent}.
  */
 export abstract class Component {
   /** The owning GameObject; assigned by addComponent before onAttach runs. */
@@ -32,4 +36,14 @@ export abstract class Component {
    * @param _dt - Frame delta time in seconds.
    */
   update(_dt: number): void {}
+
+  /**
+   * Called every frame by the GameObject's render traversal, *after* {@link update}
+   * and any input/controller mutations to the transform. Override to refresh
+   * per-frame state that render passes consume (e.g. {@link Camera} recomputes
+   * its cached view/projection matrices here).
+   *
+   * @param _ctx - Active render context (provides canvas width/height etc.).
+   */
+  updateRender(_ctx: RenderContext): void {}
 }

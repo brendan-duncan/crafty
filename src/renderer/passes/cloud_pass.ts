@@ -1,6 +1,5 @@
 import { RenderPass } from '../render_pass.js';
 import type { RenderContext } from '../render_context.js';
-import type { Mat4 } from '../../math/mat4.js';
 import type { CloudNoiseTextures } from '../../assets/cloud_noise.js';
 import { HDR_FORMAT } from './deferred_lighting_pass.js';
 import cloudsWgsl from '../../shaders/clouds.wgsl?raw';
@@ -205,26 +204,19 @@ export class CloudPass extends RenderPass {
 
   /**
    * Updates the per-frame camera uniforms used to reconstruct view rays and
-   * linearize the depth buffer.
-   *
-   * @param ctx         Renderer context (used for the queue).
-   * @param invViewProj Inverse view-projection matrix (column-major).
-   * @param camPos      World-space camera position.
-   * @param near        Near plane distance.
-   * @param far         Far plane distance.
+   * linearize the depth buffer, reading from `ctx.activeCamera`.
    */
-  updateCamera(
-    ctx: RenderContext,
-    invViewProj: Mat4,
-    camPos: { x: number; y: number; z: number },
-    near: number,
-    far: number,
-  ): void {
+  updateCamera(ctx: RenderContext): void {
+    const camera = ctx.activeCamera;
+    if (!camera) {
+      throw new Error('CloudPass.updateCamera: ctx.activeCamera is null');
+    }
+    const camPos = camera.position();
     const data = this._cameraScratch;
-    data.set(invViewProj.data, 0);
+    data.set(camera.inverseViewProjectionMatrix().data, 0);
     data[16] = camPos.x; data[17] = camPos.y; data[18] = camPos.z;
-    data[19] = near;
-    data[20] = far;
+    data[19] = camera.near;
+    data[20] = camera.far;
     ctx.queue.writeBuffer(this._cameraBuffer, 0, data.buffer as ArrayBuffer);
   }
 

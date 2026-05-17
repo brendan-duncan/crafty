@@ -529,13 +529,16 @@ async function main() {
       sun.direction.set(Math.cos(sunAngle), -0.8, Math.sin(sunAngle));
     }
     scene.update(ctx.deltaTime);
+    scene.updateRender(ctx);
+
+    ctx.activeCamera = camera;
+    // TAA must run BEFORE geometry passes so they pick up the jittered VP.
+    taaPass.updateCamera(ctx);
 
     const vp = camera.viewProjectionMatrix();
-    const jitVP = taaPass.jitter(ctx, vp);
     const view = camera.viewMatrix();
     const proj = camera.projectionMatrix();
-    const invVP = vp.invert();
-    const invProj = proj.invert();
+    const invVP = camera.inverseViewProjectionMatrix();
     const camPos = camera.position();
     const cascades = sun ? sun.computeCascadeMatrices(camera) : [];
 
@@ -559,13 +562,13 @@ async function main() {
     const pointLights = scene.getComponents(PointLight);
     const spotLights  = scene.getComponents(SpotLight);
     pointSpotShadowPass?.update(pointLights, spotLights, shadowItems);
-    pointSpotLightPass?.updateCamera(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far);
+    pointSpotLightPass?.updateCamera(ctx);
     pointSpotLightPass?.updateLights(ctx, pointLights, spotLights);
 
-    skyPass?.updateCamera(ctx, invVP, camPos);
+    skyPass?.updateCamera(ctx);
 
     geometryPass.setDrawItems(drawItems);
-    geometryPass.updateCamera(ctx, view, proj, jitVP, invVP, camPos, camera.near, camera.far);
+    geometryPass.updateCamera(ctx);
 
     if (skinnedGeometryPass && foxModel) {
       const skinnedItems = scene.getComponents(AnimatedModel).map(am => {
@@ -579,7 +582,7 @@ async function main() {
         }));
       }).flat();
       skinnedGeometryPass.setDrawItems(skinnedItems);
-      skinnedGeometryPass.updateCamera(ctx, view, proj, jitVP, invVP, camPos, camera.near, camera.far);
+      skinnedGeometryPass.updateCamera(ctx);
     }
 
     firePass?.update(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far, fireEmitterGO.localToWorld());
@@ -591,16 +594,16 @@ async function main() {
     const snowMat = new Mat4([1,0,0,0, 0,1,0,0, 0,0,1,0, camPos.x, camPos.y + 8, camPos.z, 1]);
     snowPass?.update(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far, snowMat);
 
-    lightingPass.updateCamera(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far);
+    lightingPass.updateCamera(ctx);
     if (sun) {
       lightingPass.updateLight(ctx, sun.direction, sun.color, sun.intensity, cascades, effects.shadows, effects.shd_dbg);
     } else {
       lightingPass.updateLight(ctx, new Vec3(0, -1, 0), Vec3.one(), 0, [], false, false);
     }
-    ssaoPass.updateCamera(ctx, view, proj, invProj);
+    ssaoPass.updateCamera(ctx);
     ssaoPass.updateParams(ctx, 1.0, 0.005, effects.ssao ? 2.0 : 0.0);
     ssgiPass?.updateSettings({ strength: effects.ssgi ? 1.0 : 0.0 });
-    ssgiPass?.updateCamera(ctx, view, proj, invProj, invVP, taaPass.prevViewProj ?? vp, camPos);
+    ssgiPass?.updateCamera(ctx);
     compositePass.updateParams(ctx, false, 0, effects.aces, effects.ao_dbg, effects.hdr);
     compositePass.updateStars(ctx, invVP, camPos, new Vec3(0, 1, 0));
 
@@ -624,7 +627,6 @@ async function main() {
     }
 
     autoExposurePass?.update(ctx);
-    taaPass.updateCamera(ctx, invVP, vp);
 
     graph.execute(ctx);
     requestAnimationFrame(frame);

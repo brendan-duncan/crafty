@@ -1,7 +1,6 @@
 import type { RenderContext } from '../../render_context.js';
 import { Pass } from '../pass.js';
 import type { PassBuilder, RenderGraph, ResourceHandle, TextureDesc } from '../index.js';
-import type { Mat4 } from '../../../math/mat4.js';
 import { HDR_FORMAT } from './deferred_lighting_pass.js';
 import ssgiWgsl from '../../../shaders/ssgi.wgsl?raw';
 import ssgiTemporalWgsl from '../../../shaders/ssgi_temporal.wgsl?raw';
@@ -178,18 +177,22 @@ export class SSGIPass extends Pass<SSGIDeps, SSGIOutputs> {
     );
   }
 
-  /** Upload per-frame camera + settings + frame counter. */
-  updateCamera(
-    ctx: RenderContext,
-    view: Mat4, proj: Mat4, invProj: Mat4, invViewProj: Mat4, prevViewProj: Mat4,
-    camPos: { x: number; y: number; z: number },
-  ): void {
+  /**
+   * Upload per-frame camera + settings + frame counter from `ctx.activeCamera`.
+   * `prevViewProj` comes from {@link Camera.previousViewProjectionMatrix}.
+   */
+  updateCamera(ctx: RenderContext): void {
+    const camera = ctx.activeCamera;
+    if (!camera) {
+      throw new Error('SSGIPass.updateCamera: ctx.activeCamera is null');
+    }
+    const camPos = camera.position();
     const data = this._scratch;
-    data.set(view.data, 0);
-    data.set(proj.data, 16);
-    data.set(invProj.data, 32);
-    data.set(invViewProj.data, 48);
-    data.set(prevViewProj.data, 64);
+    data.set(camera.viewMatrix().data, 0);
+    data.set(camera.projectionMatrix().data, 16);
+    data.set(camera.inverseProjectionMatrix().data, 32);
+    data.set(camera.inverseViewProjectionMatrix().data, 48);
+    data.set(camera.previousViewProjectionMatrix().data, 64);
     data[80] = camPos.x; data[81] = camPos.y; data[82] = camPos.z;
     const u32 = this._scratchU32;
     u32[83] = this._settings.numRays;

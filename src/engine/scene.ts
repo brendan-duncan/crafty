@@ -3,6 +3,7 @@ import { Camera } from './components/camera.js';
 import { DirectionalLight } from './components/directional_light.js';
 import { MeshRenderer } from './components/mesh_renderer.js';
 import { Component } from './component.js';
+import type { RenderContext } from '../renderer/render_context.js';
 
 /**
  * Top-level container for the GameObject hierarchy.
@@ -49,6 +50,22 @@ export class Scene {
         continue;
       }
       go.update(dt);
+    }
+  }
+
+  /**
+   * Recursively refreshes per-frame render state on every root GameObject and
+   * its children. Call after {@link update} and any input/controller mutations
+   * so cached state (e.g. camera matrices) reflects the final transforms.
+   *
+   * @param ctx - Active render context.
+   */
+  updateRender(ctx: RenderContext): void {
+    for (const go of this.gameObjects) {
+      if (!go.enabled) {
+        continue;
+      }
+      go.updateRender(ctx);
     }
   }
 

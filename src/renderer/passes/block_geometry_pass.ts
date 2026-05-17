@@ -4,7 +4,6 @@ import type { GBuffer } from '../gbuffer.js';
 import type { Chunk, ChunkMesh } from '../../block/chunk.js';
 import type { BlockTexture } from '../../assets/block_texture.js';
 import { blockTextureOffsetData, BlockType, BLOCK_ATLAS_WIDTH_DIVIDED } from '../../block/block_type.js';
-import type { Mat4 } from '../../math/mat4.js';
 import chunkGeometryWgsl from '../../shaders/chunk_geometry.wgsl?raw';
 
 const CAMERA_UNIFORM_SIZE      = 64 * 4 + 16 + 16; // 4 mat4 + vec3+f32 + f32+pad = 288 bytes
@@ -293,34 +292,27 @@ export class BlockGeometryPass extends RenderPass {
   }
 
   /**
-   * Upload per-frame camera state and recompute the cached frustum planes used
-   * for chunk culling.
-   *
-   * @param ctx Render context for queue access.
-   * @param view World-to-view matrix.
-   * @param proj View-to-clip matrix.
-   * @param viewProj Pre-multiplied `proj * view`; also used for plane extraction.
-   * @param invViewProj Inverse of `viewProj`.
-   * @param camPos Camera world-space position.
-   * @param near Near clip-plane distance.
-   * @param far Far clip-plane distance.
+   * Upload per-frame camera state from `ctx.activeCamera` and recompute the
+   * cached frustum planes used for chunk culling. Uniform uses the TAA-jittered
+   * VP (so vertices get sub-pixel motion); frustum planes use the un-jittered
+   * VP (sub-pixel jitter is irrelevant for chunk-level culling).
    */
-  updateCamera(
-    ctx: RenderContext,
-    view: Mat4, proj: Mat4, viewProj: Mat4, invViewProj: Mat4,
-    camPos: { x: number; y: number; z: number },
-    near: number, far: number,
-  ): void {
+  updateCamera(ctx: RenderContext): void {
+    const camera = ctx.activeCamera;
+    if (!camera) {
+      throw new Error('BlockGeometryPass.updateCamera: ctx.activeCamera is null');
+    }
+    const camPos = camera.position();
     const data = this._cameraData;
-    data.set(view.data,         0);
-    data.set(proj.data,        16);
-    data.set(viewProj.data,    32);
-    data.set(invViewProj.data, 48);
+    data.set(camera.viewMatrix().data,                  0);
+    data.set(camera.projectionMatrix().data,           16);
+    data.set(camera.jitteredViewProjectionMatrix().data, 32);
+    data.set(camera.inverseViewProjectionMatrix().data, 48);
     data[64] = camPos.x; data[65] = camPos.y; data[66] = camPos.z;
-    data[67] = near;
-    data[68] = far;
+    data[67] = camera.near;
+    data[68] = camera.far;
     ctx.queue.writeBuffer(this._cameraBuffer, 0, data.buffer as ArrayBuffer);
-    this._extractFrustumPlanes(viewProj.data);
+    this._extractFrustumPlanes(camera.viewProjectionMatrix().data);
   }
 
   // Gribb/Hartmann plane extraction from a column-major VP matrix.

@@ -97,14 +97,9 @@ async function main(): Promise<void> {
 
     const sunAngle = ctx.elapsedTime * 0.3;
 
-    camera.aspect = ctx.width / ctx.height;
     cameraController.update(cameraGO, ctx.deltaTime);
-
-    const view = camera.viewMatrix();
-    const proj = camera.projectionMatrix();
-    const viewProj = camera.viewProjectionMatrix();
-    const invViewProj = viewProj.invert();
-    const camPos = camera.position();
+    camera.updateRender(ctx);
+    ctx.activeCamera = camera;
 
     const lightDir = new Vec3(Math.cos(sunAngle), -0.8, Math.sin(sunAngle)).normalize();
 
@@ -154,7 +149,7 @@ async function main(): Promise<void> {
     ];
 
     forwardPass.setDrawItems(drawItems);
-    forwardPass.updateCamera(ctx, view, proj, viewProj, invViewProj, camPos, 0.1, 100);
+    forwardPass.updateCamera(ctx);
     forwardPass.updateLights(ctx, directionalLight, pointLights, spotLights);
 
     const graph = new RenderGraph(ctx, cache);

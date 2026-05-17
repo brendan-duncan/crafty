@@ -10,7 +10,7 @@ import { CameraController } from '../src/engine/camera_controller.js';
 import { RenderGraph } from '../src/renderer/render_graph.js';
 import { Mesh } from '../src/assets/mesh.js';
 import proceduralWgsl from './procedural_test.wgsl?raw';
-import { GameObject } from '../src/index.js';
+import { Camera, GameObject } from '../src/index.js';
 
 const ALIGNMENT = 256;
 
@@ -137,7 +137,8 @@ async function main() {
   const dirShadowPass = DirectionalShadowPass.create(ctx, forwardPass.getShadowMap(0));
 
   // Camera
-  const camPos = new Vec3(0, 4, 12);
+  const cameraGO = new GameObject({ position: new Vec3(0, 4, 12) });
+  const camera = cameraGO.addComponent(Camera.createPerspective(60, 0.1, 100, ctx.width / ctx.height));
   const cameraController = CameraController.create({ yaw: 0, pitch: 0, speed: 5, sensitivity: 0.002, pointerLock: false });
   cameraController.attach(canvas);
 
@@ -147,7 +148,7 @@ async function main() {
   renderGraph.addPass(dirShadowPass);
   renderGraph.addPass(forwardPass);
 
-  async function render() {
+  async function frame() {
     ctx.update();
 
     const currentView = ctx.backbufferView;
@@ -155,22 +156,11 @@ async function main() {
     fpsEl.textContent = `FPS: ${ctx.fps}`;
 
     // Camera
-    const camera = new GameObject({ position: camPos });
-    cameraController.update(camera, ctx.deltaTime);
+    cameraController.update(cameraGO, ctx.deltaTime);
+    camera.updateRender(ctx);
+    ctx.activeCamera = camera;
 
-    const sinY = Math.sin(cameraController.yaw);
-    const cosY = Math.cos(cameraController.yaw);
-    const sinP = Math.sin(cameraController.pitch);
-    const cosP = Math.cos(cameraController.pitch);
-    const forward = new Vec3(-sinY * cosP, -sinP, -cosY * cosP).normalize();
-    const target = camPos.add(forward);
-    const view = Mat4.lookAt(camPos, target, new Vec3(0, 1, 0));
-    const aspect = ctx.width / ctx.height;
-    const proj = Mat4.perspective(60 * Math.PI / 180, aspect, 0.1, 100);
-    const viewProj = proj.multiply(view);
-    const invViewProj = viewProj.invert();
-
-    forwardPass.updateCamera(ctx, view, proj, viewProj, invViewProj, camPos, 0.1, 100);
+    forwardPass.updateCamera(ctx);
 
     // Sun
     const sunDir = new Vec3(0.4, -0.7, -0.5).normalize();
@@ -251,10 +241,10 @@ async function main() {
 
     renderGraph.execute(ctx);
 
-    requestAnimationFrame(render);
+    requestAnimationFrame(frame);
   }
 
-  render();
+  frame();
 }
 
 main();

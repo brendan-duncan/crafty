@@ -120,7 +120,7 @@ async function main() {
   });
 
   // Render loop
-  async function render() {
+  async function frame() {
     ctx.update();
     fpsElement.textContent = `FPS: ${ctx.fps}`;
 
@@ -129,18 +129,15 @@ async function main() {
     forwardPass.setOutput(backbufferView, ctx.backbufferDepthView);
     atmospherePass.setOutput(backbufferView);
 
-    // Update camera aspect ratio and controller
-    camera.aspect = ctx.width / ctx.height;
+    // Update camera matrices for this frame.
     cameraController.update(cameraGO, ctx.deltaTime);
+    camera.updateRender(ctx);
+    ctx.activeCamera = camera;
 
-    // Derive matrices from the Camera component
-    const view = camera.viewMatrix();
-    const proj = camera.projectionMatrix();
-    const viewProj = camera.viewProjectionMatrix();
-    const invViewProj = viewProj.invert();
+    const invViewProj = camera.inverseViewProjectionMatrix();
     const camPos = camera.position();
 
-    forwardPass.updateCamera(ctx, view, proj, viewProj, invViewProj, camPos, camera.near, camera.far);
+    forwardPass.updateCamera(ctx);
 
     // Update lights
     const lightDir = new Vec3(-0.3, -0.8, -0.5).normalize();
@@ -308,10 +305,10 @@ async function main() {
 
     device.queue.submit([encoder.finish()]);
 
-    requestAnimationFrame(render);
+    requestAnimationFrame(frame);
   }
 
-  render();
+  frame();
 }
 
 main();

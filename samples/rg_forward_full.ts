@@ -109,17 +109,13 @@ async function main(): Promise<void> {
 
     const sunAngle = ctx.elapsedTime * 0.3;
 
-    camera.aspect = ctx.width / ctx.height;
     cameraController.update(cameraGO, ctx.deltaTime);
+    camera.updateRender(ctx);
+    ctx.activeCamera = camera;
 
-    const view = camera.viewMatrix();
-    const proj = camera.projectionMatrix();
-    const viewProj = camera.viewProjectionMatrix();
-    const invViewProj = viewProj.invert();
-    const camPos = camera.position();
-
-    // Sub-pixel jitter so TAA has something to converge against.
-    const jitViewProj = taaPass.jitter(ctx, viewProj);
+    // TAA must run BEFORE geometry passes so they pick up the jittered VP via
+    // camera.jitteredViewProjectionMatrix().
+    taaPass.updateCamera(ctx);
 
     const lightDir = new Vec3(Math.cos(sunAngle), -0.8, Math.sin(sunAngle)).normalize();
     const center = new Vec3(0, 1, 0);
@@ -217,11 +213,9 @@ async function main(): Promise<void> {
     ];
 
     forwardPass.setDrawItems(drawItems);
-    // Use the jittered VP for vertex transforms so TAA gets sub-pixel motion.
-    forwardPass.updateCamera(ctx, view, proj, jitViewProj, invViewProj, camPos, 0.1, 100);
+    forwardPass.updateCamera(ctx);
     forwardPass.updateLights(ctx, directionalLight, pointLights, spotLights);
-    skyPass.updateCamera(ctx, invViewProj, camPos);
-    taaPass.updateCamera(ctx, invViewProj, viewProj);
+    skyPass.updateCamera(ctx);
     dofPass.updateParams(ctx, 8.0, 4.0, 4.0, 0.1, 100.0, 1.0);
 
     const graph = new RenderGraph(ctx, cache);

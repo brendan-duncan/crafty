@@ -256,19 +256,18 @@ async function main() {
 
   // Render loop
 
-  async function render() {
+  async function frame() {
     ctx.update();
 
     fpsElement.textContent = `FPS: ${ctx.fps}`;
 
     cameraController.update(cameraGO, ctx.deltaTime);
     scene.update(ctx.deltaTime);
+    scene.updateRender(ctx);
+    ctx.activeCamera = camera;
 
     const camPos = camera.position();
-    const view = camera.viewMatrix();
-    const proj = camera.projectionMatrix();
-    const vp = camera.viewProjectionMatrix();
-    const invVP = vp.invert();
+    const invVP = camera.inverseViewProjectionMatrix();
 
     const cascades = sun.computeCascadeMatrices(camera, 200);
 
@@ -284,7 +283,7 @@ async function main() {
     shadowPass.setSceneSnapshot(shadowItems);
     shadowPass.updateScene(scene, camera, sun, 200);
     geometryPass.setDrawItems(drawItems);
-    geometryPass.updateCamera(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far);
+    geometryPass.updateCamera(ctx);
 
     if (effects.clouds) {
       cloudPass.enabled = true;
@@ -297,7 +296,7 @@ async function main() {
 
       cloudShadowPass.update(ctx, cloudSettings, [0, 0], 100);
       godrayPass.updateCloudDensity(ctx, cloudSettings);
-      cloudPass.updateCamera(ctx, invVP, camPos, camera.near, camera.far);
+      cloudPass.updateCamera(ctx);
       cloudPass.updateLight(ctx, sun.direction, sun.color, sun.intensity);
       cloudPass.updateSettings(ctx, cloudSettings);
     } else {
@@ -308,7 +307,7 @@ async function main() {
 
     cloudShadowPass.enabled = effects.cloudShadow;
 
-    lightingPass.updateCamera(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far);
+    lightingPass.updateCamera(ctx);
     lightingPass.updateLight(ctx, sun.direction, sun.color, sun.intensity, cascades, true, false);
     lightingPass.updateCloudShadow(ctx, 0, 0, effects.cloudShadow ? 100 : 0);
 
@@ -348,10 +347,10 @@ async function main() {
       debugEl.textContent = `CloudShadow: min=${minV}/255 (${(minV / 255).toFixed(2)}), max=${maxV}/255 (${(maxV / 255).toFixed(2)})`;
     }
 
-    requestAnimationFrame(render);
+    requestAnimationFrame(frame);
   }
 
-  render();
+  frame();
 }
 
 main();

@@ -397,37 +397,25 @@ export class ForwardPass extends RenderPass {
   }
 
   /**
-   * Upload per-frame camera uniforms (matrices, world-space position, clip planes).
-   *
-   * @param ctx Render context for queue access.
-   * @param view World-to-view matrix.
-   * @param proj View-to-clip matrix.
-   * @param viewProj Pre-multiplied `proj * view`.
-   * @param invViewProj Inverse of `viewProj`.
-   * @param camPos Camera world-space position.
-   * @param near Near clip-plane distance.
-   * @param far Far clip-plane distance.
+   * Upload per-frame camera uniforms from `ctx.activeCamera`. Uses the
+   * TAA-jittered VP for sub-pixel motion (when this pass runs in a TAA pipeline).
    */
-  updateCamera(
-    ctx: RenderContext,
-    view: Mat4,
-    proj: Mat4,
-    viewProj: Mat4,
-    invViewProj: Mat4,
-    camPos: Vec3,
-    near: number,
-    far: number,
-  ): void {
+  updateCamera(ctx: RenderContext): void {
+    const camera = ctx.activeCamera;
+    if (!camera) {
+      throw new Error('ForwardPass.updateCamera: ctx.activeCamera is null');
+    }
+    const camPos = camera.position();
     const data = this._cameraScratch;
-    data.set(view.data, 0);
-    data.set(proj.data, 16);
-    data.set(viewProj.data, 32);
-    data.set(invViewProj.data, 48);
+    data.set(camera.viewMatrix().data, 0);
+    data.set(camera.projectionMatrix().data, 16);
+    data.set(camera.jitteredViewProjectionMatrix().data, 32);
+    data.set(camera.inverseViewProjectionMatrix().data, 48);
     data[64] = camPos.x;
     data[65] = camPos.y;
     data[66] = camPos.z;
-    data[67] = near;
-    data[68] = far;
+    data[67] = camera.near;
+    data[68] = camera.far;
     this._camPos[0] = camPos.x;
     this._camPos[1] = camPos.y;
     this._camPos[2] = camPos.z;

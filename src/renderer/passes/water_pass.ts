@@ -3,7 +3,6 @@ import type { RenderContext } from '../render_context.js';
 import type { Chunk, ChunkMesh } from '../../block/chunk.js';
 import type { Texture } from '../../assets/texture.js';
 import { HDR_FORMAT } from './deferred_lighting_pass.js';
-import type { Mat4 } from '../../math/mat4.js';
 import waterWgsl from '../../shaders/water.wgsl?raw';
 
 // Matches BlockGeometryPass camera uniform layout: 4×mat4 + vec3 + near + far + pad×3 = 288 bytes
@@ -212,34 +211,28 @@ export class WaterPass extends RenderPass {
   }
 
   /**
-   * Upload per-frame camera uniforms (matrices, position, near/far) and refresh
-   * the cached frustum planes used for chunk culling.
-   *
-   * @param ctx Render context providing the GPU queue.
-   * @param view View matrix.
-   * @param proj Projection matrix.
-   * @param viewProj Combined view-projection matrix; also used to extract frustum planes.
-   * @param invViewProj Inverse of viewProj, used by the shader to reconstruct world positions.
-   * @param camPos World-space camera position.
-   * @param near Near plane distance.
-   * @param far Far plane distance.
+   * Upload per-frame camera uniforms from `ctx.activeCamera` and refresh the
+   * cached frustum planes used for chunk culling. Uses the un-jittered VP for
+   * both (water shades against the existing depth buffer; sub-pixel jitter
+   * would mis-align the refraction sample).
    */
-  updateCamera(
-    ctx: RenderContext,
-    view: Mat4, proj: Mat4, viewProj: Mat4, invViewProj: Mat4,
-    camPos: { x: number; y: number; z: number },
-    near: number, far: number,
-  ): void {
+  updateCamera(ctx: RenderContext): void {
+    const camera = ctx.activeCamera;
+    if (!camera) {
+      throw new Error('WaterPass.updateCamera: ctx.activeCamera is null');
+    }
+    const camPos = camera.position();
+    const vp = camera.viewProjectionMatrix();
     const data = this._cameraScratch;
-    data.set(view.data,         0);
-    data.set(proj.data,        16);
-    data.set(viewProj.data,    32);
-    data.set(invViewProj.data, 48);
+    data.set(camera.viewMatrix().data,                  0);
+    data.set(camera.projectionMatrix().data,           16);
+    data.set(vp.data,                                  32);
+    data.set(camera.inverseViewProjectionMatrix().data, 48);
     data[64] = camPos.x; data[65] = camPos.y; data[66] = camPos.z;
-    data[67] = near;
-    data[68] = far;
+    data[67] = camera.near;
+    data[68] = camera.far;
     ctx.queue.writeBuffer(this._cameraBuffer, 0, data.buffer as ArrayBuffer);
-    this._extractFrustumPlanes(viewProj.data);
+    this._extractFrustumPlanes(vp.data);
   }
 
   private _extractFrustumPlanes(m: Float32Array | number[]): void {

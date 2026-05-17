@@ -1,7 +1,6 @@
 import { RenderPass } from '../render_pass.js';
 import type { RenderContext } from '../render_context.js';
 import type { Texture } from '../../assets/texture.js';
-import type { Mat4 } from '../../math/mat4.js';
 import { HDR_FORMAT } from './deferred_lighting_pass.js';
 import skyWgsl from '../../shaders/sky.wgsl?raw';
 
@@ -17,6 +16,9 @@ const SKY_UNIFORM_SIZE = 80;
  */
 export class SkyTexturePass extends RenderPass {
   readonly name = 'SkyPass';
+
+  /** Output exposure multiplier; uploaded by {@link updateCamera}. */
+  exposure = 0.2;
 
   private _pipeline: GPURenderPipeline;
   private _uniformBuffer: GPUBuffer;
@@ -104,15 +106,21 @@ export class SkyTexturePass extends RenderPass {
 
   /**
    * Uploads the inverse view-projection (used to reconstruct view directions),
-   * camera position, and an exposure multiplier into the sky uniform buffer.
+   * camera position, and the current {@link exposure} into the sky uniform
+   * buffer. Reads matrices from `ctx.activeCamera`.
    */
-  updateCamera(ctx: RenderContext, invViewProj: Mat4, cameraPos: { x: number; y: number; z: number }, exposure = 0.2): void {
+  updateCamera(ctx: RenderContext): void {
+    const camera = ctx.activeCamera;
+    if (!camera) {
+      throw new Error('SkyTexturePass.updateCamera: ctx.activeCamera is null');
+    }
+    const camPos = camera.position();
     const data = this._scratch;
-    data.set(invViewProj.data, 0);
-    data[16] = cameraPos.x;
-    data[17] = cameraPos.y;
-    data[18] = cameraPos.z;
-    data[19] = exposure;
+    data.set(camera.inverseViewProjectionMatrix().data, 0);
+    data[16] = camPos.x;
+    data[17] = camPos.y;
+    data[18] = camPos.z;
+    data[19] = this.exposure;
     ctx.queue.writeBuffer(this._uniformBuffer, 0, data.buffer as ArrayBuffer);
   }
 

@@ -1,4 +1,5 @@
 import { ShaderBlockManager } from '../assets/shader_block_manager.js';
+import type { Camera } from '../engine/components/camera.js';
 
 /**
  * Options accepted by {@link RenderContext.create}.
@@ -27,6 +28,13 @@ export class RenderContext {
   readonly hdr: boolean;
   readonly enableErrorHandling: boolean;
   readonly shaderBlockManager: ShaderBlockManager;
+
+  /**
+   * The camera that subsequent render passes will sample matrices from via
+   * `pass.updateCamera(ctx)`. Set this each frame (per camera, if multi-camera
+   * later) after `camera.updateRender(ctx)`. Null until first set.
+   */
+  activeCamera: Camera | null = null;
 
   /** Seconds since the first call to {@link update}. Updated every frame. */
   elapsedTime = 0;

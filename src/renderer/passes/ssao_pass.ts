@@ -1,7 +1,6 @@
 import { RenderPass } from '../render_pass.js';
 import type { RenderContext } from '../render_context.js';
 import type { GBuffer } from '../gbuffer.js';
-import type { Mat4 } from '../../math/mat4.js';
 import ssaoWgsl from '../../shaders/ssao.wgsl?raw';
 import ssaoBlurWgsl from '../../shaders/ssao_blur.wgsl?raw';
 
@@ -253,20 +252,18 @@ export class SSAOPass extends RenderPass {
   }
 
   /**
-   * Uploads the per-frame camera matrices used for view-space reconstruction.
-   * Call once per frame before {@link execute}.
-   *
-   * @param ctx Render context whose queue receives the buffer write.
-   * @param view World-to-view matrix.
-   * @param proj View-to-clip matrix.
-   * @param invProj Inverse of `proj`, used to reconstruct view-space positions.
+   * Uploads the per-frame camera matrices used for view-space reconstruction
+   * from `ctx.activeCamera`. Call once per frame before {@link execute}.
    */
-  // Call each frame before execute(). view and proj are the camera matrices; invProj is proj.invert().
-  updateCamera(ctx: RenderContext, view: Mat4, proj: Mat4, invProj: Mat4): void {
+  updateCamera(ctx: RenderContext): void {
+    const camera = ctx.activeCamera;
+    if (!camera) {
+      throw new Error('SSAOPass.updateCamera: ctx.activeCamera is null');
+    }
     const data = this._cameraScratch;
-    data.set(view.data,     0);
-    data.set(proj.data,    16);
-    data.set(invProj.data, 32);
+    data.set(camera.viewMatrix().data,           0);
+    data.set(camera.projectionMatrix().data,    16);
+    data.set(camera.inverseProjectionMatrix().data, 32);
     ctx.device.queue.writeBuffer(this._uniformBuffer, 0, data.buffer as ArrayBuffer);
   }
 

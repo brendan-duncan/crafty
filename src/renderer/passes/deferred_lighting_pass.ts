@@ -2,7 +2,6 @@ import { RenderPass } from '../render_pass.js';
 import type { RenderContext } from '../render_context.js';
 import type { GBuffer } from '../gbuffer.js';
 import type { ShadowPass } from './shadow_pass.js';
-import type { Mat4 } from '../../math/mat4.js';
 import type { CascadeData } from '../../engine/components/directional_light.js';
 import type { IblTextures } from '../../assets/ibl.js';
 import lightingWgsl from '../../shaders/deferred_lighting.wgsl?raw';
@@ -347,26 +346,23 @@ export class DeferredLightingPass extends RenderPass {
   }
 
   /**
-   * Upload per-frame camera state (matrices, world-space position, clip planes)
-   * into `cameraBuffer`.
-   *
-   * @param ctx Render context for queue access.
-   * @param view World-to-view matrix.
-   * @param proj View-to-clip matrix.
-   * @param viewProj Pre-multiplied `proj * view`.
-   * @param invViewProj Inverse of `viewProj` (used for screen-space reconstruction).
-   * @param camPos Camera world-space position.
-   * @param near Near clip-plane distance.
-   * @param far Far clip-plane distance.
+   * Upload per-frame camera state from `ctx.activeCamera` into `cameraBuffer`.
+   * Uses the un-jittered VP — lighting samples the gbuffer where TAA wants
+   * stable shading positions, not sub-pixel-shifted ones.
    */
-  updateCamera(ctx: RenderContext, view: Mat4, proj: Mat4, viewProj: Mat4, invViewProj: Mat4, camPos: { x: number; y: number; z: number }, near: number, far: number): void {
+  updateCamera(ctx: RenderContext): void {
+    const camera = ctx.activeCamera;
+    if (!camera) {
+      throw new Error('DeferredLightingPass.updateCamera: ctx.activeCamera is null');
+    }
+    const camPos = camera.position();
     const data = this._cameraScratch;
-    data.set(view.data,         0);
-    data.set(proj.data,        16);
-    data.set(viewProj.data,    32);
-    data.set(invViewProj.data, 48);
+    data.set(camera.viewMatrix().data,                  0);
+    data.set(camera.projectionMatrix().data,           16);
+    data.set(camera.viewProjectionMatrix().data,       32);
+    data.set(camera.inverseViewProjectionMatrix().data, 48);
     data[64] = camPos.x; data[65] = camPos.y; data[66] = camPos.z;
-    data[67] = near; data[68] = far;
+    data[67] = camera.near; data[68] = camera.far;
     ctx.queue.writeBuffer(this.cameraBuffer, 0, data.buffer as ArrayBuffer);
   }
 

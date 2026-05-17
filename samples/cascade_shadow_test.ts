@@ -160,7 +160,7 @@ async function main() {
     }
   });
 
-  async function render() {
+  async function frame() {
     ctx.update();
 
     fpsElement.textContent = `FPS: ${ctx.fps}`;
@@ -194,15 +194,10 @@ async function main() {
     // Update camera controls
     cameraController.update(cameraGO, ctx.deltaTime);
 
-    // Update scene
+    // Update scene + refresh cached camera matrices
     scene.update(ctx.deltaTime);
-
-    // Update camera matrices
-    const camPos = camera.position();
-    const view = camera.viewMatrix();
-    const proj = camera.projectionMatrix();
-    const vp = camera.viewProjectionMatrix();
-    const invVP = vp.invert();
+    scene.updateRender(ctx);
+    ctx.activeCamera = camera;
 
     // Compute cascade matrices
     const cascades = sun.computeCascadeMatrices(camera, 100);
@@ -230,11 +225,11 @@ async function main() {
     shadowPass.updateScene(scene, camera, sun, 100);
 
     geometryPass.setDrawItems(drawItems);
-    geometryPass.updateCamera(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far);
+    geometryPass.updateCamera(ctx);
 
-    skyTexturePass.updateCamera(ctx, invVP, camPos, 0.2);
+    skyTexturePass.updateCamera(ctx);
 
-    lightingPass.updateCamera(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far);
+    lightingPass.updateCamera(ctx);
     lightingPass.updateLight(ctx, sun.direction, sun.color, sun.intensity, cascades, true, debugCascades);
     lightingPass.updateCloudShadow(ctx, 0, 0, 0);
 
@@ -243,10 +238,10 @@ async function main() {
     // Execute render graph
     await renderGraph.execute(ctx);
 
-    requestAnimationFrame(render);
+    requestAnimationFrame(frame);
   }
 
-  render();
+  frame();
 }
 
 main();

@@ -1,24 +1,10 @@
 import type { RenderContext } from '../../render_context.js';
 import { Pass } from '../pass.js';
 import type { PassBuilder, RenderGraph, ResourceHandle, TextureDesc } from '../index.js';
-import type { Mat4 } from '../../../math/mat4.js';
 import { halton } from '../../../math/random.js';
 import { HDR_FORMAT } from './deferred_lighting_pass.js';
 import taaWgsl from '../../../shaders/taa.wgsl?raw';
 
-/**
- * Adds a sub-pixel NDC offset by folding into the x/y rows of `vp`. A 2D NDC
- * shift is equivalent to adding `jx*w` / `jy*w` to each output, which is the
- * same as adding `jx` / `jy` times the w-row into the x and y rows.
- */
-function _applyJitter(vp: Mat4, jx: number, jy: number): Mat4 {
-  const m = vp.clone();
-  for (let c = 0; c < 4; c++) {
-    m.data[c * 4 + 0] += jx * m.data[c * 4 + 3];
-    m.data[c * 4 + 1] += jy * m.data[c * 4 + 3];
-  }
-  return m;
-}
 
 const TAA_UNIFORM_SIZE = 128; // invViewProj + prevViewProj
 
@@ -88,7 +74,6 @@ export class TAAPass extends Pass<TAADeps, TAAOutputs> {
   /** Halton sample count before the jitter sequence repeats. */
   sampleCount = 16;
   private _frameIndex = 0;
-  private _prevViewProj: Mat4 | null = null;
 
   private constructor(
     pipeline: GPURenderPipeline,
@@ -151,47 +136,36 @@ export class TAAPass extends Pass<TAADeps, TAAOutputs> {
     return new TAAPass(pipeline, textureBgl, uniformBg, uniformBuffer, sampler);
   }
 
-  /** Previous frame's un-jittered viewProj (for SSGI reprojection etc.), or null until the first {@link updateCamera}. */
-  get prevViewProj(): Mat4 | null {
-    return this._prevViewProj;
-  }
-
   /**
-   * Returns a sub-pixel jittered viewProj for this frame's vertex passes.
-   * Pure: does not mutate jitter state — that happens in {@link updateCamera}.
+   * Picks the next Halton-sequence sub-pixel offset, applies it to
+   * `ctx.activeCamera` (so downstream geometry passes see a jittered VP via
+   * {@link Camera.jitteredViewProjectionMatrix}), and uploads the reprojection
+   * uniform (`invViewProj` + previous-frame `viewProj`).
+   *
+   * Must run BEFORE any geometry-fill pass's `updateCamera(ctx)` in the same
+   * frame — otherwise those passes will read an un-jittered VP and TAA will
+   * have nothing to converge.
    */
-  jitter(ctx: RenderContext, viewProj: Mat4): Mat4 {
+  updateCamera(ctx: RenderContext): void {
+    const camera = ctx.activeCamera;
+    if (!camera) {
+      throw new Error('TAAPass.updateCamera: ctx.activeCamera is null');
+    }
     const hi = (this._frameIndex % this.sampleCount) + 1;
     const jx = (halton(hi, 2) - 0.5) * (2 / ctx.width);
     const jy = (halton(hi, 3) - 0.5) * (2 / ctx.height);
-    return _applyJitter(viewProj, jx, jy);
-  }
+    camera.applyJitter(jx, jy);
 
-  /**
-   * Upload reprojection uniforms and advance jitter state for next frame.
-   *
-   * `viewProj` is the current frame's un-jittered VP. The pass writes
-   * `prevViewProj ?? viewProj` to the TAA uniform (so the first frame reprojects
-   * from itself, no ghosting), then stores `viewProj` as next frame's previous
-   * and bumps the Halton index.
-   *
-   * Call **after** any other pass that reads {@link prevViewProj}
-   * (e.g. `SSGIPass.updateCamera`) — this call mutates internal state.
-   */
-  updateCamera(ctx: RenderContext, invViewProj: Mat4, viewProj: Mat4): void {
-    const prev = this._prevViewProj ?? viewProj;
     const data = this._scratch;
-    data.set(invViewProj.data, 0);
-    data.set(prev.data, 16);
+    data.set(camera.inverseViewProjectionMatrix().data, 0);
+    data.set(camera.previousViewProjectionMatrix().data, 16);
     ctx.queue.writeBuffer(this._uniformBuffer, 0, data.buffer as ArrayBuffer);
-    this._prevViewProj = viewProj;
     this._frameIndex++;
   }
 
-  /** Clears jitter history so the next frame reprojects from itself, not stale data. */
+  /** Resets the Halton sample index so the next frame restarts the jitter pattern. */
   resetJitter(): void {
     this._frameIndex = 0;
-    this._prevViewProj = null;
   }
 
   addToGraph(graph: RenderGraph, deps: TAADeps): TAAOutputs {

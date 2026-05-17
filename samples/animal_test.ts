@@ -177,7 +177,7 @@ async function main() {
     }
   });
 
-  async function render() {
+  async function frame() {
     ctx.update();
 
     forwardPass.setOutput(ctx.backbufferView, ctx.backbufferDepthView);
@@ -186,14 +186,10 @@ async function main() {
 
     // Camera
     cameraController.update(cameraGO as any, ctx.deltaTime);
+    camera.updateRender(ctx);
+    ctx.activeCamera = camera;
 
-    const view = camera.viewMatrix();
-    const proj = camera.projectionMatrix();
-    const viewProj = camera.viewProjectionMatrix();
-    const invViewProj = viewProj.invert();
-    const camPos = camera.position();
-
-    forwardPass.updateCamera(ctx, view, proj, viewProj, invViewProj, camPos, 0.1, 100);
+    forwardPass.updateCamera(ctx);
 
     // Tick AI components (movement & animation)
     scene.update(ctx.deltaTime);
@@ -244,10 +240,10 @@ async function main() {
     // Execute the full render graph (shadow → forward)
     await graph.execute(ctx);
 
-    requestAnimationFrame(render);
+    requestAnimationFrame(frame);
   }
 
-  render();
+  frame();
 }
 
 main();

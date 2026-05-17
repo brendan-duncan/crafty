@@ -881,6 +881,11 @@ async function main(): Promise<void> {
     updateTorchFlicker(ctx.elapsedTime);
     updateMagmaFlicker(ctx.elapsedTime);
 
+    // Refresh cached camera matrices for this frame. Must run after the
+    // controller mutates the cameraGO transform and before any pass reads
+    // camera.viewMatrix()/projectionMatrix()/etc.
+    camera.updateRender(ctx);
+
     const camPos = camera.position();
 
     // Audio listener: sync 3D position / orientation to the camera.
@@ -939,12 +944,18 @@ async function main(): Promise<void> {
       hud.pos.textContent = `X: ${camPos.x.toFixed(1)}  Y: ${camPos.y.toFixed(1)}  Z: ${camPos.z.toFixed(1)}`;
     }
 
+    ctx.activeCamera = camera;
+    // TAA picks the next sub-pixel jitter and applies it to the camera so
+    // subsequent geometry passes (geometry, block_geometry, skinned, forward)
+    // pick it up via camera.jitteredViewProjectionMatrix().
+    passes.taaPass!.updateCamera(ctx);
+
     const vp = camera.viewProjectionMatrix();
-    const jitVP = passes.taaPass!.jitter(ctx, vp);
+    const invVP = camera.inverseViewProjectionMatrix();
+    // ParticlePass.update still takes raw matrices (not in scope of the
+    // updateCamera-consolidation refactor).
     const view = camera.viewMatrix();
     const proj = camera.projectionMatrix();
-    const invVP = vp.invert();
-    const invProj = proj.invert();
     const cascades: CascadeData[] = sun.computeCascadeMatrices(camera, 128);
 
     const meshRenderers = scene.collectMeshRenderers();
@@ -973,7 +984,7 @@ async function main(): Promise<void> {
     }
     passes.godrayPass?.updateCloudDensity(ctx, cloudSettings);
     if (passes.cloudPass) {
-      passes.cloudPass.updateCamera(ctx, invVP, camPos, camera.near, camera.far);
+      passes.cloudPass.updateCamera(ctx);
       passes.cloudPass.updateLight(ctx, sun.direction, sun.color, sun.intensity);
       passes.cloudPass.updateSettings(ctx, cloudSettings);
     }
@@ -981,24 +992,24 @@ async function main(): Promise<void> {
     const pointLights = scene.getComponents(PointLight);
     const spotLights = scene.getComponents(SpotLight);
     passes.pointSpotShadowPass!.update(pointLights, spotLights, shadowItems);
-    passes.pointSpotLightPass!.updateCamera(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far);
+    passes.pointSpotLightPass!.updateCamera(ctx);
     passes.pointSpotLightPass!.updateLights(ctx, pointLights, spotLights);
 
     passes.atmospherePass!.update(ctx, invVP, camPos, sun.direction);
     passes.geometryPass!.setDrawItems(drawItems);
-    passes.geometryPass!.updateCamera(ctx, view, proj, jitVP, invVP, camPos, camera.near, camera.far);
-    passes.blockGeometryPass!.updateCamera(ctx, view, proj, jitVP, invVP, camPos, camera.near, camera.far);
-    passes.waterPass!.updateCamera(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far);
+    passes.geometryPass!.updateCamera(ctx);
+    passes.blockGeometryPass!.updateCamera(ctx);
+    passes.waterPass!.updateCamera(ctx);
     passes.waterPass!.updateTime(ctx, waterTime, Math.max(0.01, dayT));
-    passes.lightingPass!.updateCamera(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far);
+    passes.lightingPass!.updateCamera(ctx);
     passes.lightingPass!.updateLight(ctx, sun.direction, sun.color, sun.intensity, cascades, effects.shadows, effects.shd_dbg);
     passes.lightingPass!.updateCloudShadow(ctx, passes.cloudShadowPass ? camPos.x : 0, passes.cloudShadowPass ? camPos.z : 0, 128);
-    passes.ssaoPass!.updateCamera(ctx, view, proj, invProj);
+    passes.ssaoPass!.updateCamera(ctx);
     passes.ssaoPass!.updateParams(ctx, 1.0, 0.005, effects.ssao ? 2.0 : 0.0);
     passes.ssgiPass!.enabled = effects.ssgi;
     passes.ssgiPass!.updateSettings({ strength: effects.ssgi ? 1.0 : 0.0 });
     if (effects.ssgi) {
-      passes.ssgiPass!.updateCamera(ctx, view, proj, invProj, invVP, passes.taaPass!.prevViewProj ?? vp, camPos);
+      passes.ssgiPass!.updateCamera(ctx);
     }
 
     const cosPitch = Math.cos(player.pitch);
@@ -1039,7 +1050,6 @@ async function main(): Promise<void> {
     passes.compositePass!.updateParams(ctx, isUnderwater, waterTime, effects.aces, effects.ao_dbg, effects.hdr);
     passes.compositePass!.updateStars(ctx, invVP, camPos, sunDir);
     passes.autoExposurePass!.update(ctx);
-    passes.taaPass!.updateCamera(ctx, invVP, vp);
 
     if (remotePlayers.size > 0) {
       for (const [pid, rp] of remotePlayers) {

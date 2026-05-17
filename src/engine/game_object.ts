@@ -1,5 +1,6 @@
 import { Vec3, Quaternion, Mat4 } from '../math/index.js';
 import { Component } from './component.js';
+import type { RenderContext } from '../renderer/render_context.js';
 
 export interface GameObjectOptions {
   name?: string;
@@ -135,6 +136,26 @@ export class GameObject {
     }
     for (const child of this.children) {
       child.update(dt);
+    }
+  }
+
+  /**
+   * Refreshes per-frame render state on every attached component, then
+   * recursively on each child. Called after {@link update} and any controller
+   * input that mutates the transform, so cached values (e.g. camera view /
+   * projection matrices) reflect the final transform for the frame.
+   *
+   * @param ctx - Active render context.
+   */
+  updateRender(ctx: RenderContext): void {
+    if (!this.enabled) {
+      return;
+    }
+    for (const c of this._components) {
+      c.updateRender(ctx);
+    }
+    for (const child of this.children) {
+      child.updateRender(ctx);
     }
   }
 }
