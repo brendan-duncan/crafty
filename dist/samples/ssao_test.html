@@ -89,7 +89,7 @@
       pointer-events: none;
     }
   </style>
-  <script type="module" crossorigin src="../assets/ssao_test-DKJnvrIr.js"></script>
+  <script type="module" crossorigin src="../assets/ssao_test-CDemrr4R.js"></script>
   <link rel="modulepreload" crossorigin href="../assets/render_graph-BZgk4rbM.js">
   <link rel="modulepreload" crossorigin href="../assets/texture-R38axQR3.js">
   <link rel="modulepreload" crossorigin href="../assets/block_texture-CKuB8SH0.js">
@@ -99,7 +99,7 @@
   <link rel="modulepreload" crossorigin href="../assets/chunk-D0Xdx04Q.js">
   <link rel="modulepreload" crossorigin href="../assets/block_geometry_pass-AbvsKQeg.js">
   <link rel="modulepreload" crossorigin href="../assets/shadow_pass-CI2ObY9W.js">
-  <link rel="modulepreload" crossorigin href="../assets/ssao_pass-BvSNQlMo.js">
+  <link rel="modulepreload" crossorigin href="../assets/ssao_pass-D4-sBRV2.js">
   <link rel="modulepreload" crossorigin href="../assets/deferred_lighting_pass-BZaHbbPw.js">
   <link rel="modulepreload" crossorigin href="../assets/composite_pass-rYRWB-6Z.js">
 </head>
@@ -109,11 +109,19 @@
   <div id="controls">
     <h3>SSAO</h3>
     <label>
-      <span>Mode</span>
-      <select id="mode">
-        <option value="quality" selected>Quality (bilateral blur)</option>
-        <option value="performance">Performance (box blur)</option>
+      <span>Algorithm</span>
+      <select id="algo">
+        <option value="ssao" selected>SSAO (Crytek hemisphere)</option>
+        <option value="gtao">GTAO (Ground Truth)</option>
+        <option value="hbao+">HBAO+ (horizon-based)</option>
         <option value="off">Off (strength = 0)</option>
+      </select>
+    </label>
+    <label>
+      <span>Blur</span>
+      <select id="blur">
+        <option value="quality" selected>Quality (bilateral)</option>
+        <option value="performance">Performance (box)</option>
       </select>
     </label>
     <label>
@@ -123,7 +131,7 @@
     </label>
     <label>
       <span>Bias</span>
-      <input id="bias" type="range" min="0.0" max="0.05" step="0.001" value="0.005">
+      <input id="bias" type="range" min="0.0" max="0.5" step="0.005" value="0.005">
       <span class="val" id="biasVal">0.005</span>
     </label>
     <label>

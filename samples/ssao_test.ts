@@ -7,15 +7,26 @@
  *
  * The render display defaults to CompositePass's debug-AO mode (the AO factor
  * written to the backbuffer as greyscale), with a toggle to switch to the
- * fully-lit scene for comparison. A dropdown selects between SSAO blur modes:
+ * fully-lit scene for comparison. The "Algorithm" dropdown selects which AO
+ * method runs each frame:
  *
- *   - Quality:     separable bilateral Gaussian (default)
- *   - Performance: single-pass 4×4 box blur
- *   - Off:         strength set to 0 (the pass still runs so its output stays
- *                  defined, but the resulting AO is uniformly white)
+ *   - SSAO:  classic Crytek-style hemisphere SSAO ({@link SSAOPass})
+ *   - GTAO:  Ground Truth AO with projected-normal slice integration
+ *            ({@link GTAOPass})
+ *   - HBAO+: NVIDIA horizon-based AO with per-pixel jitter
+ *            ({@link HBAOPlusPass})
+ *   - Off:   no AO is sampled — AO factor is forced to 1 (white)
  *
- * The radius / bias / strength sliders feed SSAOPass.updateParams() so the
- * tuning knobs can be inspected interactively without a code change.
+ * The "Blur" dropdown picks between bilateral Gaussian (quality) and 4×4 box
+ * (performance) for whichever algorithm is selected. The radius / bias /
+ * strength sliders feed the active pass's `updateParams()` so the tuning knobs
+ * can be inspected interactively without a code change. Note that `bias`
+ * means slightly different things per algorithm:
+ *
+ *   - SSAO:  depth bias (units of NDC depth, ~0.005)
+ *   - GTAO:  thickness factor (~0.1; samples beyond `radius*(1+bias*10)` are
+ *            ignored as background)
+ *   - HBAO+: tangent-plane angle bias in radians (~0.1)
  */
 
 import colorAtlasUrl from '../assets/cube_textures/simple_block_atlas.png?url';
@@ -31,24 +42,38 @@ import { BlockType } from '../src/block/block_type.js';
 import { GameObject } from '../src/engine/game_object.js';
 import { Camera } from '../src/engine/components/camera.js';
 import { RenderContext } from '../src/renderer/render_context.js';
-import { PhysicalResourceCache, RenderGraph } from '../src/renderer/render_graph/index.js';
+import { PhysicalResourceCache, RenderGraph, type ResourceHandle } from '../src/renderer/render_graph/index.js';
 import { BlockGeometryPass } from '../src/renderer/render_graph/passes/block_geometry_pass.js';
 import { ShadowPass } from '../src/renderer/render_graph/passes/shadow_pass.js';
-import { SSAOPass, type SsaoBlurQuality } from '../src/renderer/render_graph/passes/ssao_pass.js';
+import { SSAOPass } from '../src/renderer/render_graph/passes/ssao_pass.js';
+import { GTAOPass, type AOBlurQuality } from '../src/renderer/render_graph/passes/gtao_pass.js';
+import { HBAOPlusPass } from '../src/renderer/render_graph/passes/hbao_plus_pass.js';
 import { DeferredLightingPass } from '../src/renderer/render_graph/passes/deferred_lighting_pass.js';
 import { AutoExposurePass } from '../src/renderer/render_graph/passes/auto_exposure_pass.js';
 import { CompositePass } from '../src/renderer/render_graph/passes/composite_pass.js';
 import type { CascadeData } from '../src/engine/components/directional_light.js';
+import { createRenderGraphViz } from '../src/renderer/render_graph/ui/render_graph_viz.js';
 
-type SsaoMode = SsaoBlurQuality | 'off';
+type Algorithm = 'ssao' | 'gtao' | 'hbao+' | 'off';
 
 interface SsaoState {
-  mode: SsaoMode;
+  algorithm: Algorithm;
+  blur: AOBlurQuality;
   radius: number;
   bias: number;
   strength: number;
   viewDebugAO: boolean;
 }
+
+// Per-algorithm bias defaults. Bias means different things across methods
+// (depth offset vs thickness factor vs angle in radians), so resetting on
+// algorithm switch keeps the visual usable.
+const BIAS_DEFAULTS: Record<Algorithm, number> = {
+  ssao: 0.005,
+  gtao: 0.1,
+  'hbao+': 0.1,
+  off: 0.005,
+};
 
 async function main(): Promise<void> {
   const canvas = document.getElementById('canvas') as HTMLCanvasElement;
@@ -58,29 +83,28 @@ async function main(): Promise<void> {
   const device = ctx.device;
   const cache = new PhysicalResourceCache(device);
 
-  // ── Block texture atlas ──────────────────────────────────────────────────
   const blockTex = await BlockTexture.load(device, colorAtlasUrl, normalAtlasUrl, merAtlasUrl, heightAtlasUrl);
 
-  // ── Build the test chunk ─────────────────────────────────────────────────
-  // 16×16×16 of random blocks with ~40% solid density. The mix of solid /
-  // air cells produces the cube-step crevices that exercise SSAO well: every
-  // internal corner is a hit candidate for the AO kernel.
+  // 16×16×16 of random blocks with ~40% solid density. The mix produces the
+  // cube-step crevices that exercise AO well: every internal corner is a hit
+  // candidate.
   const chunk = buildRandomChunk(/* seed */ 0xC0FFEE, /* solidProbability */ 0.4);
 
-  // ── Persistent passes ────────────────────────────────────────────────────
+  // ── Persistent passes. All three AO algorithms live in memory; only one
+  //    is wired into the graph each frame based on `state.algorithm`. ──
   const blockGeometryPass = BlockGeometryPass.create(ctx, blockTex);
   const shadowPass = ShadowPass.create(ctx);
   const ssaoPass = SSAOPass.create(ctx, 'quality');
+  const gtaoPass = GTAOPass.create(ctx, 'quality');
+  const hbaoPass = HBAOPlusPass.create(ctx, 'quality');
   const lightingPass = DeferredLightingPass.create(ctx);
   const autoExposurePass = AutoExposurePass.create(ctx);
   autoExposurePass.setFixedExposure(1.0);
   const compositePass = CompositePass.create(ctx);
   compositePass.depthFogEnabled = false;
 
-  // Register the chunk's GPU mesh with the block geometry pass.
   blockGeometryPass.addChunk(chunk, chunk.generateVertices());
 
-  // ── Camera (orbit around chunk centre) ───────────────────────────────────
   const chunkCentre = new Vec3(
     Chunk.CHUNK_WIDTH * 0.5,
     Chunk.CHUNK_HEIGHT * 0.5,
@@ -90,15 +114,18 @@ async function main(): Promise<void> {
   const camera = cameraGO.addComponent(Camera.createPerspective(60, 0.1, 200, ctx.width / ctx.height));
   const orbit = createOrbitController(canvas, chunkCentre, /* radius */ 28, /* yaw */ Math.PI / 4, /* pitch */ 0.55);
 
-  // ── Sun (only needed because the lighting pass demands cascades and a sun
-  //    direction; the debug-AO view short-circuits before reading either). ──
   const sunDir = new Vec3(0.3, -0.9, 0.4).normalize();
 
-  // ── UI state + DOM wiring ────────────────────────────────────────────────
-  const state: SsaoState = { mode: 'quality', radius: 1.0, bias: 0.005, strength: 2.0, viewDebugAO: true };
+  const state: SsaoState = {
+    algorithm: 'ssao',
+    blur: 'quality',
+    radius: 1.0,
+    bias: BIAS_DEFAULTS.ssao,
+    strength: 2.0,
+    viewDebugAO: true,
+  };
   wireControls(state);
 
-  // ── Resize observer ──────────────────────────────────────────────────────
   const resizeObserver = new ResizeObserver(() => {
     const w = Math.max(1, Math.round(canvas.clientWidth * devicePixelRatio));
     const h = Math.max(1, Math.round(canvas.clientHeight * devicePixelRatio));
@@ -109,32 +136,50 @@ async function main(): Promise<void> {
   });
   resizeObserver.observe(canvas);
 
-  // ── Frame loop ───────────────────────────────────────────────────────────
+  const graphViz = createRenderGraphViz(null).attach({ hint: 'G: toggle render-graph viz' });
+
   function frame(): void {
     ctx.update();
     statsEl.textContent =
       `FPS ${ctx.fps.toFixed(0)}\n` +
-      `mode ${state.mode}\n` +
+      `algo ${state.algorithm}\n` +
+      `blur ${state.blur}\n` +
       `view ${state.viewDebugAO ? 'debug-AO' : 'lit'}`;
 
     orbit.applyTo(cameraGO);
     camera.updateRender(ctx);
     ctx.activeCamera = camera;
 
-    // ── Per-frame uniforms ──────────────────────────────────────────────
     blockGeometryPass.updateCamera(ctx);
 
-    ssaoPass.setBlurQuality(state.mode === 'off' ? 'quality' : state.mode);
-    ssaoPass.updateCamera(ctx);
-    // When the mode is 'off', force strength to 0 so SSAO outputs white and
-    // the lit comparison stays faithful. The pass still runs (its output is a
-    // bound resource for the composite shader) but the AO contribution is 0.
-    const effectiveStrength = state.mode === 'off' ? 0 : state.strength;
-    ssaoPass.updateParams(ctx, state.radius, state.bias, effectiveStrength);
+    // Update the active AO pass's per-frame state. The other two are idle
+    // (their `addToGraph` isn't called this frame so the graph culls them).
+    // When algorithm = 'off' we still run SSAO with strength=0 so a valid AO
+    // target exists for the lighting/composite passes to bind.
+    const blur = state.blur;
+    switch (state.algorithm) {
+      case 'ssao':
+        ssaoPass.setBlurQuality(blur);
+        ssaoPass.updateCamera(ctx);
+        ssaoPass.updateParams(ctx, state.radius, state.bias, state.strength);
+        break;
+      case 'gtao':
+        gtaoPass.setBlurQuality(blur);
+        gtaoPass.updateCamera(ctx);
+        gtaoPass.updateParams(ctx, state.radius, state.bias, state.strength);
+        break;
+      case 'hbao+':
+        hbaoPass.setBlurQuality(blur);
+        hbaoPass.updateCamera(ctx);
+        hbaoPass.updateParams(ctx, state.radius, state.bias, state.strength);
+        break;
+      case 'off':
+        ssaoPass.setBlurQuality(blur);
+        ssaoPass.updateCamera(ctx);
+        ssaoPass.updateParams(ctx, state.radius, state.bias, /* strength */ 0);
+        break;
+    }
 
-    // One cascade is the bare minimum for DeferredLightingPass to be happy.
-    // We don't actually render shadows for the chunk — drawItems is empty —
-    // so the shadow map is just a cleared depth texture.
     const cascades = buildSingleCascade(chunkCentre, sunDir);
     lightingPass.updateCamera(ctx);
     lightingPass.updateLight(ctx, sunDir, { x: 1.0, y: 0.95, z: 0.85 }, 3.0, cascades, /* shadows */ false);
@@ -149,36 +194,36 @@ async function main(): Promise<void> {
       /* hdrCanvas */ ctx.hdr,
     );
 
-    // ── Build the graph for this frame ──────────────────────────────────
     const graph = new RenderGraph(ctx, cache);
     const backbuffer = graph.setBackbuffer('canvas');
 
-    // Shadow map (empty cascades + empty draw items still produces a cleared
-    // persistent depth texture that the lighting pass binds).
     const shadow = shadowPass.addToGraph(graph, { cascades, drawItems: [] });
-
-    // GBuffer (clears its three attachments and draws the chunk into them).
     const gbuffer = blockGeometryPass.addToGraph(graph, { loadOp: 'clear' });
 
-    // SSAO from the gbuffer.
-    const ssao = ssaoPass.addToGraph(graph, { normal: gbuffer.normal, depth: gbuffer.depth });
+    let ao: ResourceHandle;
+    switch (state.algorithm) {
+      case 'gtao':
+        ao = gtaoPass.addToGraph(graph, { normal: gbuffer.normal, depth: gbuffer.depth }).ao;
+        break;
+      case 'hbao+':
+        ao = hbaoPass.addToGraph(graph, { normal: gbuffer.normal, depth: gbuffer.depth }).ao;
+        break;
+      default:
+        ao = ssaoPass.addToGraph(graph, { normal: gbuffer.normal, depth: gbuffer.depth }).ao;
+        break;
+    }
 
-    // Deferred lighting — needed even in debug-AO mode because the composite
-    // pass binds the camera + light uniform buffers, which this pass owns.
     const lit = lightingPass.addToGraph(graph, {
       gbuffer,
       shadowMap: shadow.shadowMap,
-      ao: ssao.ao,
+      ao,
     });
 
-    // Auto-exposure — same story: the composite pass binds its exposure buffer.
     const exposure = autoExposurePass.addToGraph(graph, { hdr: lit.hdr });
 
-    // Composite to backbuffer. The debug-AO flag in updateParams above
-    // determines whether composite renders the AO greyscale or the lit scene.
     compositePass.addToGraph(graph, {
       input: lit.hdr,
-      ao: ssao.ao,
+      ao,
       depth: gbuffer.depth,
       cameraBuffer: lit.cameraBuffer,
       lightBuffer: lit.lightBuffer,
@@ -186,7 +231,9 @@ async function main(): Promise<void> {
       backbuffer,
     });
 
-    void graph.execute(graph.compile());
+    const compiled = graph.compile();
+    graphViz.setGraph(graph, compiled);
+    void graph.execute(compiled);
     requestAnimationFrame(frame);
   }
 
@@ -294,11 +341,6 @@ function createOrbitController(
         target.z + radius * cp * Math.cos(yaw),
       );
       go.position.set(eye.x, eye.y, eye.z);
-      // Camera default forward is -Z. Yaw around world Y rotates -Z toward
-      // (-sin yaw, 0, -cos yaw) — that's the direction from eye to target at
-      // pitch = 0. Pitch around the (yaw-rotated) local X axis tilts the
-      // forward vector vertically; the negative sign matches our convention
-      // that positive pitch lifts the eye above the target.
       const qYaw = Quaternion.fromAxisAngle(new Vec3(0, 1, 0), yaw);
       const qPitch = Quaternion.fromAxisAngle(new Vec3(1, 0, 0), -pitch);
       go.rotation = qYaw.multiply(qPitch);
@@ -307,7 +349,8 @@ function createOrbitController(
 }
 
 function wireControls(state: SsaoState): void {
-  const modeEl = document.getElementById('mode') as HTMLSelectElement;
+  const algoEl = document.getElementById('algo') as HTMLSelectElement;
+  const blurEl = document.getElementById('blur') as HTMLSelectElement;
   const radiusEl = document.getElementById('radius') as HTMLInputElement;
   const radiusVal = document.getElementById('radiusVal') as HTMLSpanElement;
   const biasEl = document.getElementById('bias') as HTMLInputElement;
@@ -316,7 +359,15 @@ function wireControls(state: SsaoState): void {
   const strengthVal = document.getElementById('strengthVal') as HTMLSpanElement;
   const viewEl = document.getElementById('view') as HTMLSelectElement;
 
-  modeEl.addEventListener('change', () => { state.mode = modeEl.value as SsaoMode; });
+  algoEl.addEventListener('change', () => {
+    state.algorithm = algoEl.value as Algorithm;
+    // Reset bias to a sensible default for the new algorithm (params have
+    // different semantics across methods).
+    state.bias = BIAS_DEFAULTS[state.algorithm];
+    biasEl.value = state.bias.toString();
+    biasVal.textContent = state.bias.toFixed(3);
+  });
+  blurEl.addEventListener('change', () => { state.blur = blurEl.value as AOBlurQuality; });
   radiusEl.addEventListener('input', () => {
     state.radius = parseFloat(radiusEl.value);
     radiusVal.textContent = state.radius.toFixed(2);

@@ -96,11 +96,19 @@
   <div id="controls">
     <h3>SSAO</h3>
     <label>
-      <span>Mode</span>
-      <select id="mode">
-        <option value="quality" selected>Quality (bilateral blur)</option>
-        <option value="performance">Performance (box blur)</option>
+      <span>Algorithm</span>
+      <select id="algo">
+        <option value="ssao" selected>SSAO (Crytek hemisphere)</option>
+        <option value="gtao">GTAO (Ground Truth)</option>
+        <option value="hbao+">HBAO+ (horizon-based)</option>
         <option value="off">Off (strength = 0)</option>
+      </select>
+    </label>
+    <label>
+      <span>Blur</span>
+      <select id="blur">
+        <option value="quality" selected>Quality (bilateral)</option>
+        <option value="performance">Performance (box)</option>
       </select>
     </label>
     <label>
@@ -110,7 +118,7 @@
     </label>
     <label>
       <span>Bias</span>
-      <input id="bias" type="range" min="0.0" max="0.05" step="0.001" value="0.005">
+      <input id="bias" type="range" min="0.0" max="0.5" step="0.005" value="0.005">
       <span class="val" id="biasVal">0.005</span>
     </label>
     <label>
