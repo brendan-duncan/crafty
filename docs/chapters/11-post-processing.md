@@ -95,27 +95,141 @@ The bloom intensity and threshold are adjustable parameters exposed through the 
 
 ## 11.3 Temporal Anti-Aliasing (TAA)
 
-TAA `TAAPass` reduces aliasing by averaging the current frame with previous frames, using sub-pixel jitter to shift the sample pattern each frame. The Halton (2,3) sequence spreads samples evenly within a pixel, so accumulating ~8 frames approximates 8× supersampling:
+The `TAAPass` reduces aliasing by averaging the current frame with previous frames, using sub-pixel jitter to shift the sample pattern each frame. The Halton (2,3) sequence spreads samples evenly within a pixel, so accumulating ~8 frames approximates 8× supersampling:
 
 ![TAA: sub-pixel jitter and temporal reprojection](../illustrations/12-taa-jitter.svg)
 
 
-### Jitter
+### updateCamera: jitter and reprojection uniforms
 
-The projection matrix is jittered by a sub-pixel offset each frame. The jitter pattern is a Halton sequence (2,3) that provides good temporal coverage:
+The pass exposes a single per-frame setter that does three things at once:
 
 ```typescript
 // ── from src/renderer/render_graph/passes/taa_pass.ts ──
-const jitterX = halton2(frameIndex) - 0.5;
-const jitterY = halton3(frameIndex) - 0.5;
-// Apply jitter to projection matrix
-proj[8] += jitterX / width;   // column 2, row 0
-proj[9] += jitterY / height;  // column 2, row 1
+updateCamera(ctx: RenderContext): void {
+  const camera = ctx.activeCamera;
+  if (!camera) {
+    throw new Error('TAAPass.updateCamera: ctx.activeCamera is null');
+  }
+  const hi = (this._frameIndex % this.sampleCount) + 1;
+  const jx = (halton(hi, 2) - 0.5) * (2 / ctx.width);
+  const jy = (halton(hi, 3) - 0.5) * (2 / ctx.height);
+  camera.applyJitter(jx, jy);
+
+  const data = this._scratch;
+  data.set(camera.inverseViewProjectionMatrix().data, 0);
+  data.set(camera.previousViewProjectionMatrix().data, 16);
+  ctx.queue.writeBuffer(this._uniformBuffer, 0, data.buffer as ArrayBuffer);
+  this._frameIndex++;
+}
+```
+
+The Halton-(2, 3) offset is in clip-space units: a ±1/`width` shift in *NDC* moves the projected position by half a pixel in screen space. `camera.applyJitter(jx, jy)` adds that offset into a *separate* matrix on the camera (`_jitteredViewProj`) — the un-jittered `viewProj` and `prevViewProj` are left intact so reprojection, frustum culling, and shadow fitting see the stable camera.
+
+The other two writes pack the TAA uniform buffer: the current frame's inverse view-projection (for reconstructing world position from depth) and the previous frame's view-projection (for re-projecting that world position back into the prior frame's NDC).
+
+### Camera.jitteredViewProj and Camera.prevViewProj
+
+Two matrix accessors on the `Camera` component carry the temporal state TAA needs:
+
+```typescript
+// ── from src/engine/components/camera.ts ──
+/** Returns the TAA-jittered viewProj if applyJitter ran this frame,
+ *  otherwise falls back to the un-jittered viewProjectionMatrix(). */
+jitteredViewProjectionMatrix(): Mat4 {
+  return this._jitteredViewProj ?? this.viewProjectionMatrix();
+}
+
+/** Previous frame's un-jittered view-projection, snapshotted by updateRender.
+ *  Falls back to viewProjectionMatrix() on the first frame so reprojection
+ *  sees no apparent motion (and no ghosting). */
+previousViewProjectionMatrix(): Mat4 {
+  return this._prevViewProj ?? this.viewProjectionMatrix();
+}
+```
+
+The lifecycle is symmetric: every frame the camera's `updateRender()` runs first, which (a) snapshots last frame's `_viewProj` into `_prevViewProj` and (b) clears `_jitteredViewProj` back to null. Then `taaPass.updateCamera(ctx)` calls `camera.applyJitter(jx, jy)` to fill in this frame's jittered matrix. The fall-throughs to the un-jittered `viewProj` make both accessors safe to call regardless of whether TAA ran — geometry passes don't need to special-case it.
+
+Every geometry-fill pass uploads the *jittered* viewProj as part of its camera uniform, so vertices land at sub-pixel-shifted positions in the G-buffer. The geometry pass shows the pattern:
+
+```typescript
+// ── from src/renderer/render_graph/passes/geometry_pass.ts ──
+data.set(camera.viewMatrix().data, 0);
+data.set(camera.projectionMatrix().data, 16);
+data.set(camera.jitteredViewProjectionMatrix().data, 32);  // ← jittered
+data.set(camera.inverseViewProjectionMatrix().data, 48);
+```
+
+`BlockGeometryPass`, `SkinnedGeometryPass`, and `ForwardPass` follow the same pattern. SSGI also pulls `previousViewProjectionMatrix()` for its own reprojection step.
+
+### Ordering: updateCamera before geometry uploads
+
+Because the geometry passes upload `camera.jitteredViewProjectionMatrix()` during *their* `updateCamera()` calls, TAA's `updateCamera()` must run first in the host frame loop:
+
+```typescript
+// ── from crafty/main.ts ──
+ctx.activeCamera = camera;
+// TAA picks the next sub-pixel jitter and applies it to the camera so
+// subsequent geometry passes (geometry, block_geometry, skinned, forward)
+// pick it up via camera.jitteredViewProjectionMatrix().
+passes.taaPass!.updateCamera(ctx);
+```
+
+If the order is reversed, the geometry passes see a null `_jitteredViewProj`, fall back to the un-jittered VP, and TAA has nothing to converge — the image accumulates the same un-jittered samples every frame, defeating the algorithm.
+
+When TAA is disabled in a sample or in the deferred factory, this call is simply skipped. Geometry passes still ask for the jittered matrix; the accessor's null-coalesce returns the un-jittered VP, and rendering is correct (just without anti-aliasing).
+
+### Place in the Render Graph
+
+`TAAPass.addToGraph()` declares two sub-passes — a render pass that produces the resolved frame, and a transfer pass that copies the resolved frame into the persistent history texture for next frame:
+
+```typescript
+// ── from src/renderer/render_graph/passes/taa_pass.ts ──
+const history = graph.importPersistentTexture(TAA_HISTORY_KEY, {
+  ...HISTORY_DESC, width: ctx.width, height: ctx.height,
+});
+
+// Pass 1: render the resolved frame from {hdr, history, depth}.
+graph.addPass('TAAPass.resolve', 'render', (b) => {
+  const target = b.createTexture({ /* TAAResolved, rgba16float */ });
+  resolved = b.write(target, 'attachment', { loadOp: 'clear', /* ... */ });
+  b.read(deps.hdr, 'sampled');
+  b.read(history, 'sampled');
+  b.read(deps.depth, 'sampled');
+  // ... setExecute draws a fullscreen triangle that blends hdr × history.
+});
+
+// Pass 2: copy resolved → history for next frame.
+graph.addPass('TAAPass.copyHistory', 'transfer', (b) => {
+  b.read(resolved, 'copy-src');
+  nextHistory = b.write(history, 'copy-dst');
+  // ... setExecute calls encoder.copyTextureToTexture(resolved, history).
+});
+
+return { resolved, history: nextHistory };
+```
+
+Three things to note about how this fits into the graph:
+
+- **The history texture is persistent.** `graph.importPersistentTexture(TAA_HISTORY_KEY, ...)` returns a handle backed by a single physical `GPUTexture` in the `PhysicalResourceCache` keyed by `"taa:history"`. The same physical texture is bound across frames, so what the copy pass writes today is what the resolve pass reads tomorrow. See [§3.3 Persistent and External Resources](03-rendering-architecture.md#persistent-and-external-resources).
+- **The copy participates in the dependency graph.** The transfer pass is `type: 'transfer'`, declares the resolved frame as `'copy-src'` and the history handle as `'copy-dst'`, and its execute callback issues a `copyTextureToTexture`. Because the write produces a new handle version, the compile-time culling treats it as a sink — the copy is never dropped even if nothing else in the current frame reads the new history version.
+- **SSGI reads last frame's history.** In Crafty's deferred wiring, the SSGI pass imports the same `"taa:history"` key earlier in the frame, before TAA's copy bumps the version. SSGI consumes `v=0` (the previous frame's contents) and TAA produces `v=1` later — the versioning makes the read-old / write-new sequence explicit and prevents the compiler from re-ordering them:
+
+```typescript
+// ── from crafty/renderer_setup.ts ──
+// 6. SSGI uses last frame's TAA history as previous-radiance source.
+// The TAA pass owns the persistent key; we import it here so SSGI reads
+// the v=0 (previous frame's) contents before TAA bumps it later this frame.
+const taaHistory = graph.importPersistentTexture('taa:history', {
+  label: 'TAAHistory', format: 'rgba16float',
+  width: ctxArg.width, height: ctxArg.height,
+});
+ssgi = ssgiPass.addToGraph(graph, { prevRadiance: taaHistory, /* ... */ }).result;
 ```
 
 ### Reprojection
 
-Each frame, the previous frame's color is reprojected into the current frame using the motion vector (the difference in clip-space position between frames):
+In the resolve shader, each fragment's NDC is multiplied by the current frame's `invViewProj` to reconstruct world position, then by `prevViewProj` to find where that point was in the previous frame. The difference is the motion vector used to sample history:
 
 ```wgsl
 // ── from src/shaders/taa.wgsl ──
@@ -127,6 +241,8 @@ let historyColor = textureSample(historyTexture, sampler, historyUV);
 let currentColor = textureSample(currentTexture, sampler, currentUV);
 let result = lerp(historyColor, currentColor, 0.1);  // 0.1 = feedback factor
 ```
+
+The feedback factor (~0.1) means each frame contributes ~10% of the resolved image and the rest comes from accumulated history — convergence takes roughly the Halton sample count (16 frames) for static scenes.
 
 ### Neighbourhood Clamping
 
