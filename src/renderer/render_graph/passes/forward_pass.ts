@@ -50,7 +50,7 @@ export interface ForwardOutputs {
 export class ForwardPass extends Pass<ForwardDeps, ForwardOutputs> {
   readonly name = 'ForwardPass';
 
-  private readonly _ctx: import('../../render_context.js').RenderContext;
+  private readonly _ctx: RenderContext;
   private readonly _device: GPUDevice;
   private readonly _cameraBGL: GPUBindGroupLayout;
   private readonly _modelBGL: GPUBindGroupLayout;

@@ -81,6 +81,11 @@ export class RenderGraph {
     return this._passes;
   }
 
+  constructor(ctx: RenderContext, cache: PhysicalResourceCache) {
+    this.ctx = ctx;
+    this.cache = cache;
+  }
+
   /**
    * Returns descriptive info about the virtual resource identified by `id`,
    * or `null` when the id is unknown.
@@ -114,11 +119,6 @@ export class RenderGraph {
         size: bd.size,
       };
     }
-  }
-
-  constructor(ctx: RenderContext, cache: PhysicalResourceCache) {
-    this.ctx = ctx;
-    this.cache = cache;
   }
 
   /**
