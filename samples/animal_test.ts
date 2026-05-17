@@ -192,7 +192,6 @@ async function main() {
     const viewProj = camera.viewProjectionMatrix();
     const invViewProj = viewProj.invert();
     const camPos = camera.position();
-    console.log(camPos);
 
     forwardPass.updateCamera(ctx, view, proj, viewProj, invViewProj, camPos, 0.1, 100);
 

@@ -91,7 +91,7 @@ export class DofPass extends Pass<DofDeps, DofOutputs> {
       entries: [{ binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } }],
     });
 
-    const shader = device.createShaderModule({ label: 'DofShader', code: dofWgsl });
+    const shader = ctx.createShaderModule(dofWgsl, 'DofShader');
     const prefilterPipeline = device.createRenderPipeline({
       label: 'DofPrefilterPipeline',
       layout: device.createPipelineLayout({ bindGroupLayouts: [bglPrefilter] }),

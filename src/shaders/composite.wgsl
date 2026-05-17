@@ -8,7 +8,7 @@
 const PI: f32 = 3.14159265358979;
 
 // ── Atmospheric scatter ────────────────────────────────────────────────────────
-// Constants must match lighting.wgsl / fog.wgsl exactly.
+// Constants must match deferred_lighting.wgsl / fog.wgsl exactly.
 
 const ATM_R_E   : f32       = 6360000.0;
 const ATM_R_A   : f32       = 6420000.0;

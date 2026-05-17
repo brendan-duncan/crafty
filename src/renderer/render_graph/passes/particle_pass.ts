@@ -311,9 +311,9 @@ export class ParticlePass extends Pass<ParticleDeps, ParticleOutputs> {
       : device.createPipelineLayout({ bindGroupLayouts: [computeDataBgl, computeUniBgl] });
     const compactComputeLayout = device.createPipelineLayout({ bindGroupLayouts: [compactDataBgl, computeUniBgl] });
 
-    const spawnModule = device.createShaderModule({ label: 'ParticleSpawn', code: buildSpawnShader(config) });
-    const updateModule = device.createShaderModule({ label: 'ParticleUpdate', code: buildUpdateShader(config) });
-    const compactModule = device.createShaderModule({ label: 'ParticleCompact', code: compactWgsl });
+    const spawnModule = ctx.createShaderModule(buildSpawnShader(config), 'ParticleSpawn');
+    const updateModule = ctx.createShaderModule(buildUpdateShader(config), 'ParticleUpdate');
+    const compactModule = ctx.createShaderModule(compactWgsl, 'ParticleCompact');
 
     const spawnPipeline = device.createComputePipeline({
       label: 'ParticleSpawnPipeline', layout: spawnLayout,

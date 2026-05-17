@@ -29,7 +29,7 @@ const skyTexture = device.createTexture({
 Cube textures are sampled in WGSL with `texture_cube<f32>` using a direction vector, which can be thought of as a ray from the center of the cube that intersects through a particular texel of a side of the cube:
 
 ```wgsl
-// ── from src/shaders/lighting.wgsl ──
+// ── from src/shaders/deferred_lighting.wgsl ──
 @group(3) @binding(0) var sky_cube: texture_cube<f32>;
 // ...
 let skyColor = textureSample(sky_cube, sampler, direction);
@@ -357,7 +357,7 @@ fragment: {
 WGSL shaders are stored in `src/shaders/` and loaded at module scope via Vite's `?raw` import:
 
 ```typescript
-import lightingWgsl from '../../shaders/lighting.wgsl?raw';
+import lightingWgsl from '../../shaders/deferred_lighting.wgsl?raw';
 ```
 
 This inlines the shader source as a JavaScript string at build time. No runtime fetch is needed.

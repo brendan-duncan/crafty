@@ -190,7 +190,7 @@ export class CloudPass extends RenderPass {
       ],
     });
 
-    const shader = device.createShaderModule({ label: 'CloudShader', code: cloudsWgsl });
+    const shader = ctx.createShaderModule(cloudsWgsl, 'CloudShader');
     const pipeline = device.createRenderPipeline({
       label: 'CloudPipeline',
       layout: device.createPipelineLayout({ bindGroupLayouts: [sceneBGL, lightBGL, depthBGL, noiseSkyBGL] }),

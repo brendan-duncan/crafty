@@ -4,7 +4,7 @@ import type { PassBuilder, RenderGraph, ResourceHandle, BufferDesc, TextureDesc 
 import type { Mat4 } from '../../../math/mat4.js';
 import type { CascadeData } from '../../../engine/components/directional_light.js';
 import type { IblTextures } from '../../../assets/ibl.js';
-import lightingWgsl from '../../../shaders/lighting.wgsl?raw';
+import lightingWgsl from '../../../shaders/deferred_lighting.wgsl?raw';
 
 export const HDR_FORMAT: GPUTextureFormat = 'rgba16float';
 
@@ -18,8 +18,12 @@ export interface DeferredLightingDeps {
   gbuffer: { albedo: ResourceHandle; normal: ResourceHandle; depth: ResourceHandle };
   /** Persistent shadow map handle (from ShadowPass / BlockShadowPass output chain). */
   shadowMap: ResourceHandle;
-  /** SSAO ambient-occlusion handle (half-res `r8unorm`). */
-  ao: ResourceHandle;
+  /**
+   * Optional SSAO ambient-occlusion handle (half-res `r8unorm`). When omitted
+   * the pass uses the no-AO shader variant (ambient gets a constant `ao = 1.0`)
+   * and the ao texture binding is dropped entirely.
+   */
+  ao?: ResourceHandle;
   /**
    * Optional HDR target to write into. When omitted the pass creates a fresh
    * HDR texture and clears it. When provided (e.g. by AtmospherePass) the pass
@@ -69,10 +73,14 @@ const LIGHT_BUFFER_DESC: BufferDesc = {
 export class DeferredLightingPass extends Pass<DeferredLightingDeps, DeferredLightingOutputs> {
   readonly name = 'DeferredLightingPass';
 
-  private readonly _pipeline: GPURenderPipeline;
+  /** Pipelines keyed by AO variant (`true` = HAS_AO, `false` = no-AO). */
+  private readonly _pipelines: Map<boolean, GPURenderPipeline>;
   private readonly _sceneBgl: GPUBindGroupLayout;
   private readonly _gbufferBgl: GPUBindGroupLayout;
-  private readonly _aoBgl: GPUBindGroupLayout;
+  /** BGL for group 2 when AO is provided (4 entries: ao_tex, ao_samp, ssgi_tex, ssgi_samp). */
+  private readonly _aoBglWithAo: GPUBindGroupLayout;
+  /** BGL for group 2 when AO is omitted (2 entries: ssgi_tex, ssgi_samp at bindings 2/3). */
+  private readonly _aoBglNoAo: GPUBindGroupLayout;
   private readonly _iblBgl: GPUBindGroupLayout;
 
   private readonly _comparisonSampler: GPUSampler;
@@ -108,10 +116,11 @@ export class DeferredLightingPass extends Pass<DeferredLightingDeps, DeferredLig
   private _pendingCloudShadow: ArrayBuffer | null = null;
 
   private constructor(
-    pipeline: GPURenderPipeline,
+    pipelines: Map<boolean, GPURenderPipeline>,
     sceneBgl: GPUBindGroupLayout,
     gbufferBgl: GPUBindGroupLayout,
-    aoBgl: GPUBindGroupLayout,
+    aoBglWithAo: GPUBindGroupLayout,
+    aoBglNoAo: GPUBindGroupLayout,
     iblBgl: GPUBindGroupLayout,
     comparisonSampler: GPUSampler,
     linearSampler: GPUSampler,
@@ -128,10 +137,11 @@ export class DeferredLightingPass extends Pass<DeferredLightingDeps, DeferredLig
     defaultBrdfLutView: GPUTextureView,
   ) {
     super();
-    this._pipeline = pipeline;
+    this._pipelines = pipelines;
     this._sceneBgl = sceneBgl;
     this._gbufferBgl = gbufferBgl;
-    this._aoBgl = aoBgl;
+    this._aoBglWithAo = aoBglWithAo;
+    this._aoBglNoAo = aoBglNoAo;
     this._iblBgl = iblBgl;
     this._comparisonSampler = comparisonSampler;
     this._linearSampler = linearSampler;
@@ -193,11 +203,18 @@ export class DeferredLightingPass extends Pass<DeferredLightingDeps, DeferredLig
         { binding: 6, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } },
       ],
     });
-    const aoBgl = device.createBindGroupLayout({
-      label: 'LightAoBGL',
+    const aoBglWithAo = device.createBindGroupLayout({
+      label: 'LightAoBGL[withAo]',
       entries: [
         { binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } },
         { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } },
+        { binding: 2, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } },
+        { binding: 3, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } },
+      ],
+    });
+    const aoBglNoAo = device.createBindGroupLayout({
+      label: 'LightAoBGL[noAo]',
+      entries: [
         { binding: 2, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } },
         { binding: 3, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } },
       ],
@@ -245,22 +262,37 @@ export class DeferredLightingPass extends Pass<DeferredLightingDeps, DeferredLig
     });
     const defaultBrdfLutView = defaultBrdfLut.createView();
 
-    const shaderModule = device.createShaderModule({ label: 'LightingShader', code: lightingWgsl });
+    // Two shader variants — HAS_AO controls whether the ao texture binding is
+    // declared and sampled, or the ambient term reads a constant `ao = 1.0`.
+    const buildPipeline = (hasAo: boolean): GPURenderPipeline => {
+      const defines: Record<string, string> = hasAo ? { HAS_AO: '1' } : {};
+      const shaderModule = ctx.createShaderModule(
+        lightingWgsl,
+        `LightingShader[${hasAo ? 'ao' : 'noAo'}]`,
+        defines,
+      );
+      return device.createRenderPipeline({
+        label: `LightingPipeline[${hasAo ? 'ao' : 'noAo'}]`,
+        layout: device.createPipelineLayout({
+          bindGroupLayouts: [sceneBgl, gbufferBgl, hasAo ? aoBglWithAo : aoBglNoAo, iblBgl],
+        }),
+        vertex: { module: shaderModule, entryPoint: 'vs_main' },
+        fragment: {
+          module: shaderModule, entryPoint: 'fs_main',
+          targets: [{ format: HDR_FORMAT }],
+        },
+        primitive: { topology: 'triangle-list' },
+      });
+    };
 
-    const pipeline = device.createRenderPipeline({
-      label: 'LightingPipeline',
-      layout: device.createPipelineLayout({ bindGroupLayouts: [sceneBgl, gbufferBgl, aoBgl, iblBgl] }),
-      vertex: { module: shaderModule, entryPoint: 'vs_main' },
-      fragment: {
-        module: shaderModule, entryPoint: 'fs_main',
-        targets: [{ format: HDR_FORMAT }],
-      },
-      primitive: { topology: 'triangle-list' },
-    });
+    const pipelines = new Map<boolean, GPURenderPipeline>([
+      [true, buildPipeline(true)],
+      [false, buildPipeline(false)],
+    ]);
 
     return new DeferredLightingPass(
-      pipeline,
-      sceneBgl, gbufferBgl, aoBgl, iblBgl,
+      pipelines,
+      sceneBgl, gbufferBgl, aoBglWithAo, aoBglNoAo, iblBgl,
       comparisonSampler, linearSampler, aoSampler, ssgiSampler, iblSampler,
       defaultCloudShadow, defaultCloudShadowView,
       defaultSsgi, defaultSsgiView,
@@ -382,7 +414,7 @@ export class DeferredLightingPass extends Pass<DeferredLightingDeps, DeferredLig
       b.read(deps.gbuffer.normal, 'sampled');
       b.read(deps.gbuffer.depth, 'sampled');
       b.read(deps.shadowMap, 'sampled');
-      b.read(deps.ao, 'sampled');
+      if (deps.ao) b.read(deps.ao, 'sampled');
       b.read(cameraBuffer, 'uniform');
       b.read(lightBuffer, 'uniform');
       if (deps.cloudShadow) b.read(deps.cloudShadow, 'sampled');
@@ -439,14 +471,20 @@ export class DeferredLightingPass extends Pass<DeferredLightingDeps, DeferredLig
         });
 
         const ssgiView = deps.ssgi ? res.getTextureView(deps.ssgi) : this._defaultSsgiView;
+        const hasAo = !!deps.ao;
         const aoBg = res.getOrCreateBindGroup({
-          layout: this._aoBgl,
-          entries: [
-            { binding: 0, resource: res.getTextureView(deps.ao) },
-            { binding: 1, resource: this._aoSampler },
-            { binding: 2, resource: ssgiView },
-            { binding: 3, resource: this._ssgiSampler },
-          ],
+          layout: hasAo ? this._aoBglWithAo : this._aoBglNoAo,
+          entries: hasAo
+            ? [
+                { binding: 0, resource: res.getTextureView(deps.ao!) },
+                { binding: 1, resource: this._aoSampler },
+                { binding: 2, resource: ssgiView },
+                { binding: 3, resource: this._ssgiSampler },
+              ]
+            : [
+                { binding: 2, resource: ssgiView },
+                { binding: 3, resource: this._ssgiSampler },
+              ],
         });
 
         const iblBg = res.getOrCreateBindGroup({
@@ -460,7 +498,7 @@ export class DeferredLightingPass extends Pass<DeferredLightingDeps, DeferredLig
         });
 
         const enc = pctx.renderPassEncoder!;
-        enc.setPipeline(this._pipeline);
+        enc.setPipeline(this._pipelines.get(hasAo)!);
         enc.setBindGroup(0, sceneBg);
         enc.setBindGroup(1, gbufferBg);
         enc.setBindGroup(2, aoBg);

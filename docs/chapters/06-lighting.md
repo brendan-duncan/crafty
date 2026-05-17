@@ -313,7 +313,7 @@ export class DeferredLightingPass extends RenderPass {
 The fullscreen triangle approach avoids a vertex buffer — three vertices cover the entire clip space:
 
 ```wgsl
-// ── from src/shaders/lighting.wgsl ──
+// ── from src/shaders/deferred_lighting.wgsl ──
 @vertex
 fn vs_main(@builtin(vertex_index) vi: u32) -> @builtin(position) vec4f {
   // Fullscreen triangle: covers NDC without a vertex buffer
@@ -378,10 +378,10 @@ The result is a 64×64 `rgba16float` texture (A in R, B in G). Because it depend
 
 ### Irradiance Map (GPU Compute)
 
-The diffuse irradiance map is a heavily blurred version of the HDR sky that stores the cosine-weighted hemisphere integral at every direction. The `cs_irradiance` compute shader (`src/shaders/ibl.wgsl`) dispatches once per cube face (6 dispatches), each thread computing one output texel:
+The diffuse irradiance map is a heavily blurred version of the HDR sky that stores the cosine-weighted hemisphere integral at every direction. The `cs_irradiance` compute shader (`src/shaders/ibl_baking.wgsl`) dispatches once per cube face (6 dispatches), each thread computing one output texel:
 
 ```wgsl
-// ── from src/shaders/ibl.wgsl ──
+// ── from src/shaders/ibl_baking.wgsl ──
 @compute @workgroup_size(8, 8, 1)
 fn cs_irradiance(@builtin(global_invocation_id) id: vec3u) {
   let uv = (vec2f(id.xy) + 0.5) / f32(IRR_SIZE);
@@ -404,7 +404,7 @@ Each output direction `dir` is the center of a cube face texel transformed to a 
 The specular prefiltered cube follows the same pattern but uses importance sampling of the GGX distribution. Each mip level corresponds to a different roughness value (0, 0.25, 0.5, 0.75, 1.0), allowing the lighting shader to sample a mip level matching the surface roughness:
 
 ```wgsl
-// ── from src/shaders/ibl.wgsl ──
+// ── from src/shaders/ibl_baking.wgsl ──
 @compute @workgroup_size(8, 8, 1)
 fn cs_prefilter(@builtin(global_invocation_id) id: vec3u) {
   let uv = (vec2f(id.xy) + 0.5) / f32(mipSize);
@@ -599,9 +599,9 @@ Lighting is a composition of several systems:
 All paths share the same PBR BRDF functions, ensuring consistent appearance regardless of rendering path.
 
 **Further reading:**
-- `src/shaders/lighting.wgsl` — Deferred lighting shader (full PBR evaluation)
+- `src/shaders/deferred_lighting.wgsl` — Deferred lighting shader (full PBR evaluation)
 - `src/shaders/forward_pbr.wgsl` — Forward PBR shader
-- `src/shaders/ibl.wgsl` — IBL sampling functions and baking compute shaders
+- `src/shaders/ibl_baking.wgsl` — IBL sampling functions and baking compute shaders
 - `src/assets/ibl.ts` — GPU-based IBL pre-computation pipeline
 - `src/renderer/passes/deferred_lighting_pass.ts` — Deferred lighting pass
 - `src/renderer/passes/forward_pass.ts` — Forward lighting pass

@@ -116,7 +116,7 @@ export class CloudShadowPass extends RenderPass {
       ],
     });
 
-    const shader = device.createShaderModule({ label: 'CloudShadowShader', code: cloudShadowWgsl });
+    const shader = ctx.createShaderModule(cloudShadowWgsl, 'CloudShadowShader');
     const pipeline = device.createRenderPipeline({
       label: 'CloudShadowPipeline',
       layout: device.createPipelineLayout({ bindGroupLayouts: [uniformBGL, noiseBGL] }),

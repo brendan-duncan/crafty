@@ -4,7 +4,7 @@
 
 const PI: f32 = 3.14159265358979323846;
 
-// ---- Camera (same layout as lighting.wgsl, 288 bytes) -------------------------
+// ---- Camera (same layout as deferred_lighting.wgsl, 288 bytes) -------------------------
 
 struct CameraUniforms {
   view       : mat4x4<f32>,
@@ -109,7 +109,7 @@ fn point_attenuation(dist: f32, radius: f32) -> f32 {
   return pow(saturate(1.0 - r * r * r * r), 2.0) / max(dist * dist, 0.0001);
 }
 
-// ---- BRDF (same as lighting.wgsl) --------------------------------------------
+// ---- BRDF (same as deferred_lighting.wgsl) --------------------------------------------
 
 fn distribution_ggx(NdotH: f32, roughness: f32) -> f32 {
   let a  = roughness * roughness;

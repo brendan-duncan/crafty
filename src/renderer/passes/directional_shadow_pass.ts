@@ -96,10 +96,7 @@ export class DirectionalShadowPass extends RenderPass {
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
-    const shaderModule = device.createShaderModule({
-      label: 'DirectionalShadowShader',
-      code: shadowWgsl,
-    });
+    const shaderModule = ctx.createShaderModule(shadowWgsl, 'DirectionalShadowShader');
 
     const pipeline = device.createRenderPipeline({
       label: 'DirectionalShadowPipeline',

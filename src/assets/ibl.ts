@@ -1,4 +1,4 @@
-import iblWgsl from '../shaders/ibl.wgsl?raw';
+import iblWgsl from '../shaders/ibl_baking.wgsl?raw';
 
 /**
  * Precomputed image-based lighting textures derived from a sky environment.

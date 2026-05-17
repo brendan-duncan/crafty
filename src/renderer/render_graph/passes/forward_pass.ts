@@ -32,11 +32,32 @@ export interface ForwardDrawItem {
   material: Material;
 }
 
+/**
+ * How a {@link ForwardPass} attachment slot is sourced.
+ *
+ * - `ResourceHandle` — write into the supplied handle (caller provides the texture).
+ * - `'backbuffer'`   — write into the graph's registered backbuffer / backbuffer depth.
+ *                      Requires {@link RenderGraph.setBackbuffer} (and, for depth,
+ *                      {@link RenderGraph.setBackbufferDepth}) to have been called.
+ * - `'auto'`         — use the backbuffer when one is registered; otherwise
+ *                      fall back to creating a transient texture. The caller is
+ *                      responsible for choosing `loadOp` ('clear' if this pass
+ *                      is the first writer, 'load' if a previous pass already
+ *                      cleared/wrote to the same backbuffer).
+ * - `undefined`      — always create a transient texture (HDR `rgba16float` for
+ *                      color, `depth32float` for depth). This is the legacy default.
+ */
+export type ForwardTargetSpec = ResourceHandle | 'backbuffer' | 'auto';
+
 export interface ForwardDeps {
-  output?: ResourceHandle;
-  depth?: ResourceHandle;
+  output?: ForwardTargetSpec;
+  depth?: ForwardTargetSpec;
   iblTextures?: IblTextures;
   loadOp?: GPULoadOp;
+  /** Defaults to `'clear'`. Set to `'load'` when reusing an existing depth
+   *  buffer (e.g. the gbuffer depth from a prior deferred pass) so previously
+   *  drawn geometry still depth-tests transparents correctly. */
+  depthLoadOp?: GPULoadOp;
   clearColor?: GPUColor | Vec3 | Vec4;
   /** Optional external shadow map to copy into this pass's internal shadow array layer 0. */
   shadowMapSource?: ResourceHandle;
@@ -450,8 +471,9 @@ export class ForwardPass extends Pass<ForwardDeps, ForwardOutputs> {
 
   addToGraph(graph: RenderGraph, deps: ForwardDeps = {}): ForwardOutputs {
     const { ctx } = graph;
-    let { output, depth, iblTextures, loadOp, clearColor, shadowMapSource } = deps;
-    loadOp ??= 'clear';
+    const { iblTextures, clearColor, shadowMapSource } = deps;
+    const loadOp: GPULoadOp = deps.loadOp ?? 'clear';
+    const depthLoadOp: GPULoadOp = deps.depthLoadOp ?? 'clear';
 
     const clear: GPUColor = !clearColor ? [0, 0, 0, 1]
         : 'r' in clearColor ? clearColor
@@ -461,6 +483,11 @@ export class ForwardPass extends Pass<ForwardDeps, ForwardOutputs> {
         : [0, 0, 0, 1];
 
     this._externalShadowHandle = shadowMapSource ?? null;
+
+    const colorTarget = this._resolveColorTarget(graph, deps.output);
+    const depthTarget = this._resolveDepthTarget(graph, deps.depth);
+    const colorFormat = colorTarget.format;
+    const depthFormat = depthTarget.format;
 
     let outOutput!: ResourceHandle;
     let outDepth!: ResourceHandle;
@@ -472,26 +499,22 @@ export class ForwardPass extends Pass<ForwardDeps, ForwardOutputs> {
         b.read(shadowMapSource, 'sampled');
       }
 
-      if (!output) {
-        output = b.createTexture({
-          label: 'ForwardOutput',
-          format: HDR_FORMAT,
-          width: ctx.width,
-          height: ctx.height,
-        });
-      }
+      const output = colorTarget.handle ?? b.createTexture({
+        label: 'ForwardOutput',
+        format: colorFormat,
+        width: ctx.width,
+        height: ctx.height,
+      });
       outOutput = b.write(output, 'attachment', { loadOp, storeOp: 'store', clearValue: clear });
 
-      if (!depth) {
-        depth = b.createTexture({
-          label: 'ForwardDepth',
-          format: 'depth32float',
-          width: ctx.width,
-          height: ctx.height,
-        });
-      }
+      const depth = depthTarget.handle ?? b.createTexture({
+        label: 'ForwardDepth',
+        format: depthFormat,
+        width: ctx.width,
+        height: ctx.height,
+      });
       outDepth = b.write(depth, 'depth-attachment', {
-        depthLoadOp: 'clear', depthStoreOp: 'store', depthClearValue: 1.0,
+        depthLoadOp, depthStoreOp: 'store', depthClearValue: 1.0,
       });
 
       b.setExecute((pctx, res) => {
@@ -522,10 +545,10 @@ export class ForwardPass extends Pass<ForwardDeps, ForwardOutputs> {
         enc.setBindGroup(3, lightingIblBindGroup);
 
         for (const item of this._opaqueItems) {
-          this._drawItem(enc, item, false);
+          this._drawItem(enc, item, false, colorFormat, depthFormat);
         }
         for (const item of this._transparentItems) {
-          this._drawItem(enc, item, true);
+          this._drawItem(enc, item, true, colorFormat, depthFormat);
         }
       });
     });
@@ -533,12 +556,67 @@ export class ForwardPass extends Pass<ForwardDeps, ForwardOutputs> {
     return { output: outOutput, depth: outDepth };
   }
 
-  private _drawItem(enc: GPURenderPassEncoder, item: ForwardDrawItem, transparent: boolean): void {
+  private _resolveColorTarget(
+    graph: RenderGraph,
+    spec: ForwardTargetSpec | undefined,
+  ): { handle: ResourceHandle | null; format: GPUTextureFormat } {
+    if (spec === undefined) {
+      return { handle: null, format: HDR_FORMAT };
+    }
+    if (spec === 'backbuffer') {
+      const bb = graph.getBackbuffer();
+      return { handle: bb, format: graph.ctx.format };
+    }
+    if (spec === 'auto') {
+      const bb = tryGetBackbuffer(graph);
+      if (bb) {
+        return { handle: bb, format: graph.ctx.format };
+      }
+      return { handle: null, format: HDR_FORMAT };
+    }
+    const info = graph.getResourceInfo(spec.id);
+    return { handle: spec, format: (info?.format as GPUTextureFormat) ?? HDR_FORMAT };
+  }
+
+  private _resolveDepthTarget(
+    graph: RenderGraph,
+    spec: ForwardTargetSpec | undefined,
+  ): { handle: ResourceHandle | null; format: GPUTextureFormat } {
+    if (spec === undefined) {
+      return { handle: null, format: 'depth32float' };
+    }
+    if (spec === 'backbuffer') {
+      const bb = graph.getBackbufferDepth();
+      if (!bb) {
+        throw new Error('[ForwardPass] depth: "backbuffer" requested but graph.setBackbufferDepth() was not called');
+      }
+      const info = graph.getResourceInfo(bb.id);
+      return { handle: bb, format: (info?.format as GPUTextureFormat) ?? 'depth32float' };
+    }
+    if (spec === 'auto') {
+      const bb = graph.getBackbufferDepth();
+      if (bb) {
+        const info = graph.getResourceInfo(bb.id);
+        return { handle: bb, format: (info?.format as GPUTextureFormat) ?? 'depth32float' };
+      }
+      return { handle: null, format: 'depth32float' };
+    }
+    const info = graph.getResourceInfo(spec.id);
+    return { handle: spec, format: (info?.format as GPUTextureFormat) ?? 'depth32float' };
+  }
+
+  private _drawItem(
+    enc: GPURenderPassEncoder,
+    item: ForwardDrawItem,
+    transparent: boolean,
+    colorFormat: GPUTextureFormat,
+    depthFormat: GPUTextureFormat,
+  ): void {
     const material = item.material;
     material.update?.(this._device.queue);
 
     const variantMask = 'variantMask' in material ? (material as any).variantMask as number : 0;
-    enc.setPipeline(this._getPipeline(material, variantMask, transparent));
+    enc.setPipeline(this._getPipeline(material, variantMask, transparent, colorFormat, depthFormat));
 
     this._modelData.set(item.modelMatrix.data, 0);
     this._modelData.set(item.normalMatrix.data, 16);
@@ -552,9 +630,15 @@ export class ForwardPass extends Pass<ForwardDeps, ForwardOutputs> {
     enc.drawIndexed(item.mesh.indexCount);
   }
 
-  private _getPipeline(material: Material, variantMask: number, transparent: boolean): GPURenderPipeline {
+  private _getPipeline(
+    material: Material,
+    variantMask: number,
+    transparent: boolean,
+    colorFormat: GPUTextureFormat,
+    depthFormat: GPUTextureFormat,
+  ): GPURenderPipeline {
     const cache = transparent ? this._transparentPipelineCache : this._opaquePipelineCache;
-    const key = `${material.shaderId}:${variantMask}`;
+    const key = `${material.shaderId}:${variantMask}:${colorFormat}:${depthFormat}`;
     let pipeline = cache.get(key);
     if (pipeline) {
       return pipeline;
@@ -583,13 +667,13 @@ export class ForwardPass extends Pass<ForwardDeps, ForwardOutputs> {
 
     const colorTarget: GPUColorTargetState = transparent
       ? {
-          format: HDR_FORMAT,
+          format: colorFormat,
           blend: {
             color: { srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha', operation: 'add' },
             alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha', operation: 'add' },
           },
         }
-      : { format: HDR_FORMAT };
+      : { format: colorFormat };
 
     pipeline = this._device.createRenderPipeline({
       label: `ForwardPipeline[${key}${transparent ? ':t' : ''}]`,
@@ -605,7 +689,7 @@ export class ForwardPass extends Pass<ForwardDeps, ForwardOutputs> {
         targets: [colorTarget],
       },
       depthStencil: {
-        format: 'depth32float',
+        format: depthFormat,
         depthWriteEnabled: !transparent,
         depthCompare: 'less',
       },
@@ -657,5 +741,14 @@ export class ForwardPass extends Pass<ForwardDeps, ForwardOutputs> {
     for (const buf of this._modelBuffers) {
       buf.destroy();
     }
+  }
+}
+
+/** Returns the graph's registered backbuffer handle, or null if `setBackbuffer` was never called. */
+function tryGetBackbuffer(graph: RenderGraph): ResourceHandle | null {
+  try {
+    return graph.getBackbuffer();
+  } catch {
+    return null;
   }
 }

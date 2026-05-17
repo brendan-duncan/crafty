@@ -161,7 +161,7 @@ export class GodrayPass extends RenderPass {
       new Float32Array([0.0, 0.0, 2.0, 0.0]).buffer as ArrayBuffer);
 
     // ---- March pipeline ----
-    const marchShader = device.createShaderModule({ label: 'GodrayMarchShader', code: godrayMarchWgsl });
+    const marchShader = ctx.createShaderModule(godrayMarchWgsl, 'GodrayMarchShader');
     const marchPipeline = device.createRenderPipeline({
       label: 'GodrayMarchPipeline', layout: 'auto',
       vertex:   { module: marchShader, entryPoint: 'vs_main' },
@@ -186,7 +186,7 @@ export class GodrayPass extends RenderPass {
     });
 
     // ---- Blur + composite pipelines ----
-    const compShader = device.createShaderModule({ label: 'GodrayCompositeShader', code: godrayCompositeWgsl });
+    const compShader = ctx.createShaderModule(godrayCompositeWgsl, 'GodrayCompositeShader');
 
     const blurHPipeline = device.createRenderPipeline({
       label: 'GodrayBlurHPipeline', layout: 'auto',

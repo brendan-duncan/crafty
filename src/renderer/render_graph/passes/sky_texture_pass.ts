@@ -9,19 +9,32 @@ import skyWgsl from '../../../shaders/sky.wgsl?raw';
 // invViewProj (mat4 = 64) + cameraPos (vec3 = 12) + exposure (4) = 80 bytes
 const SKY_UNIFORM_SIZE = 80;
 
+/**
+ * How a {@link SkyTexturePass} output is sourced.
+ *
+ * - `ResourceHandle` — write into the supplied handle.
+ * - `'backbuffer'`   — write into the graph's registered backbuffer.
+ * - `'auto'`         — use the backbuffer when one is registered; otherwise
+ *                      create a transient HDR texture.
+ * - `undefined`      — always create a transient HDR (`rgba16float`) texture
+ *                      (legacy default).
+ */
+export type SkyTargetSpec = ResourceHandle | 'backbuffer' | 'auto';
+
 export interface SkyTextureDeps {
   /**
-   * Optional HDR target the sky is written into. When omitted the pass
-   * creates a fresh `rgba16float` screen-sized texture (the typical case
-   * since the sky is normally the first color writer in the frame).
+   * Where the sky color is written. See {@link SkyTargetSpec}.
+   * Backwards-compatible alias `hdr` is honored when `output` is absent.
    */
+  output?: SkyTargetSpec;
+  /** @deprecated use `output` instead. */
   hdr?: ResourceHandle;
   /** Defaults to `'clear'` when sky is the first writer, else `'load'`. */
   load?: GPULoadOp;
 }
 
 export interface SkyTextureOutputs {
-  /** Resulting HDR handle after the sky has been rendered. */
+  /** Resulting handle after the sky has been rendered. */
   hdr: ResourceHandle;
 }
 
@@ -38,7 +51,9 @@ export class SkyTexturePass extends Pass<SkyTextureDeps, SkyTextureOutputs> {
   readonly name = 'SkyTexturePass';
 
   private readonly _device: GPUDevice;
-  private readonly _pipeline: GPURenderPipeline;
+  private readonly _shader: GPUShaderModule;
+  private readonly _pipelineLayout: GPUPipelineLayout;
+  private readonly _pipelineCache = new Map<GPUTextureFormat, GPURenderPipeline>();
   private readonly _uniformBuffer: GPUBuffer;
   private readonly _uniformBg: GPUBindGroup;
   private _textureBg: GPUBindGroup;
@@ -48,7 +63,8 @@ export class SkyTexturePass extends Pass<SkyTextureDeps, SkyTextureOutputs> {
 
   private constructor(
     device: GPUDevice,
-    pipeline: GPURenderPipeline,
+    shader: GPUShaderModule,
+    pipelineLayout: GPUPipelineLayout,
     uniformBuffer: GPUBuffer,
     uniformBg: GPUBindGroup,
     textureBg: GPUBindGroup,
@@ -57,7 +73,8 @@ export class SkyTexturePass extends Pass<SkyTextureDeps, SkyTextureOutputs> {
   ) {
     super();
     this._device = device;
-    this._pipeline = pipeline;
+    this._shader = shader;
+    this._pipelineLayout = pipelineLayout;
     this._uniformBuffer = uniformBuffer;
     this._uniformBg = uniformBg;
     this._textureBg = textureBg;
@@ -109,15 +126,23 @@ export class SkyTexturePass extends Pass<SkyTextureDeps, SkyTextureOutputs> {
     });
 
     const shader = ctx.createShaderModule(skyWgsl, 'SkyShader');
-    const pipeline = device.createRenderPipeline({
-      label: 'SkyPipeline',
-      layout: device.createPipelineLayout({ bindGroupLayouts: [uniformBgl, textureBgl] }),
-      vertex: { module: shader, entryPoint: 'vs_main' },
-      fragment: { module: shader, entryPoint: 'fs_main', targets: [{ format: HDR_FORMAT }] },
+    const pipelineLayout = device.createPipelineLayout({ bindGroupLayouts: [uniformBgl, textureBgl] });
+
+    return new SkyTexturePass(device, shader, pipelineLayout, uniformBuffer, uniformBg, textureBg, textureBgl, sampler);
+  }
+
+  private _getPipeline(format: GPUTextureFormat): GPURenderPipeline {
+    let pipeline = this._pipelineCache.get(format);
+    if (pipeline) return pipeline;
+    pipeline = this._device.createRenderPipeline({
+      label: `SkyPipeline[${format}]`,
+      layout: this._pipelineLayout,
+      vertex: { module: this._shader, entryPoint: 'vs_main' },
+      fragment: { module: this._shader, entryPoint: 'fs_main', targets: [{ format }] },
       primitive: { topology: 'triangle-list' },
     });
-
-    return new SkyTexturePass(device, pipeline, uniformBuffer, uniformBg, textureBg, textureBgl, sampler);
+    this._pipelineCache.set(format, pipeline);
+    return pipeline;
   }
 
   /** Replace the equirectangular HDR sky source. */
@@ -152,20 +177,19 @@ export class SkyTexturePass extends Pass<SkyTextureDeps, SkyTextureOutputs> {
 
   addToGraph(graph: RenderGraph, deps: SkyTextureDeps = {}): SkyTextureOutputs {
     const { ctx } = graph;
-    const hasInput = !!deps.hdr;
-    let target: ResourceHandle = deps.hdr ?? (undefined as unknown as ResourceHandle);
+    const resolved = this._resolveColorTarget(graph, deps.output ?? deps.hdr);
+    const format = resolved.format;
+    const hasInput = resolved.handle !== null;
     let hdr!: ResourceHandle;
 
     graph.addPass(this.name, 'render', (b: PassBuilder) => {
-      if (!hasInput) {
-        target = b.createTexture({
-          label: 'sky.hdr',
-          format: HDR_FORMAT,
-          width: ctx.width,
-          height: ctx.height,
-          extraUsage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC,
-        });
-      }
+      const target = resolved.handle ?? b.createTexture({
+        label: 'sky.hdr',
+        format,
+        width: ctx.width,
+        height: ctx.height,
+        extraUsage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC,
+      });
       hdr = b.write(target, 'attachment', {
         loadOp: deps.load ?? (hasInput ? 'load' : 'clear'),
         storeOp: 'store',
@@ -173,7 +197,7 @@ export class SkyTexturePass extends Pass<SkyTextureDeps, SkyTextureOutputs> {
       });
       b.setExecute((pctx) => {
         const enc = pctx.renderPassEncoder!;
-        enc.setPipeline(this._pipeline);
+        enc.setPipeline(this._getPipeline(format));
         enc.setBindGroup(0, this._uniformBg);
         enc.setBindGroup(1, this._textureBg);
         enc.draw(3);
@@ -181,6 +205,29 @@ export class SkyTexturePass extends Pass<SkyTextureDeps, SkyTextureOutputs> {
     });
 
     return { hdr };
+  }
+
+  private _resolveColorTarget(
+    graph: RenderGraph,
+    spec: SkyTargetSpec | undefined,
+  ): { handle: ResourceHandle | null; format: GPUTextureFormat } {
+    if (spec === undefined) {
+      return { handle: null, format: HDR_FORMAT };
+    }
+    if (spec === 'backbuffer') {
+      const bb = graph.getBackbuffer();
+      return { handle: bb, format: graph.ctx.format };
+    }
+    if (spec === 'auto') {
+      try {
+        const bb = graph.getBackbuffer();
+        return { handle: bb, format: graph.ctx.format };
+      } catch {
+        return { handle: null, format: HDR_FORMAT };
+      }
+    }
+    const info = graph.getResourceInfo(spec.id);
+    return { handle: spec, format: (info?.format as GPUTextureFormat) ?? HDR_FORMAT };
   }
 
   destroy(): void {

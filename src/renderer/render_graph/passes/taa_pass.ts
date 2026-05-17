@@ -16,11 +16,33 @@ const HISTORY_DESC: TextureDesc = {
   height: 0,
 };
 
+/**
+ * How {@link TAAPass} sources its resolve target.
+ *
+ * - `ResourceHandle` — write into the supplied handle. Must be `rgba16float`.
+ * - `'backbuffer'`   — write the canvas directly. Requires the canvas to be
+ *                      configured with `rgba16float` (i.e. HDR canvas); throws
+ *                      otherwise, because TAA blends in HDR and routing it to a
+ *                      SDR canvas produces washed-out output.
+ * - `'auto'`         — use the backbuffer when registered AND the canvas format
+ *                      is `rgba16float`; otherwise create a transient HDR
+ *                      texture (the legacy default).
+ * - `undefined`      — always create a transient HDR (`rgba16float`) texture.
+ */
+export type TAATargetSpec = ResourceHandle | 'backbuffer' | 'auto';
+
 export interface TAADeps {
   /** Lit HDR color to anti-alias. */
   hdr: ResourceHandle;
   /** GBuffer depth32float used for reprojection. */
   depth: ResourceHandle;
+  /**
+   * Where the resolved frame is written. See {@link TAATargetSpec}. When this
+   * routes to the backbuffer, the canvas is also used as the COPY_SRC for the
+   * persistent history texture (the graph's `RenderContext` configures the
+   * swapchain with COPY_SRC).
+   */
+  output?: TAATargetSpec;
 }
 
 export interface TAAOutputs {
@@ -119,6 +141,7 @@ export class TAAPass extends Pass<TAADeps, TAAOutputs> {
 
   addToGraph(graph: RenderGraph, deps: TAADeps): TAAOutputs {
     const { ctx } = graph;
+    const explicitTarget = this._resolveTarget(graph, deps.output);
 
     const history = graph.importPersistentTexture(TAA_HISTORY_KEY, {
       ...HISTORY_DESC,
@@ -131,14 +154,14 @@ export class TAAPass extends Pass<TAADeps, TAAOutputs> {
 
     // Pass 1: render the resolved frame from {hdr, history, depth}.
     graph.addPass('TAAPass.resolve', 'render', (b: PassBuilder) => {
-      resolved = b.createTexture({
+      const target = explicitTarget ?? b.createTexture({
         label: 'TAAResolved',
         format: HDR_FORMAT,
         width: ctx.width,
         height: ctx.height,
         extraUsage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC,
       });
-      resolved = b.write(resolved, 'attachment', {
+      resolved = b.write(target, 'attachment', {
         loadOp: 'clear', storeOp: 'store', clearValue: [0, 0, 0, 1],
       });
       b.read(deps.hdr, 'sampled');
@@ -177,6 +200,42 @@ export class TAAPass extends Pass<TAADeps, TAAOutputs> {
     });
 
     return { resolved, history: nextHistory };
+  }
+
+  /**
+   * Resolve a {@link TAATargetSpec} into an explicit handle (or null to mean
+   * "create a transient"). Throws when the spec asks for an incompatible
+   * target (e.g. an explicit `'backbuffer'` on a SDR canvas).
+   */
+  private _resolveTarget(graph: RenderGraph, spec: TAATargetSpec | undefined): ResourceHandle | null {
+    if (spec === undefined) return null;
+    if (spec === 'backbuffer') {
+      const bb = graph.getBackbuffer();
+      const info = graph.getResourceInfo(bb.id);
+      if (info?.format !== HDR_FORMAT) {
+        throw new Error(
+          `[TAAPass] output: 'backbuffer' requires canvas format ${HDR_FORMAT}, got ${info?.format}.`,
+        );
+      }
+      return bb;
+    }
+    if (spec === 'auto') {
+      try {
+        const bb = graph.getBackbuffer();
+        const info = graph.getResourceInfo(bb.id);
+        // Only safe on an HDR canvas — see TAATargetSpec doc.
+        return info?.format === HDR_FORMAT ? bb : null;
+      } catch {
+        return null;
+      }
+    }
+    const info = graph.getResourceInfo(spec.id);
+    if (info?.format !== HDR_FORMAT) {
+      throw new Error(
+        `[TAAPass] output handle must have format ${HDR_FORMAT}, got ${info?.format}.`,
+      );
+    }
+    return spec;
   }
 
   destroy(): void {

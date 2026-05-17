@@ -210,6 +210,10 @@ export class RenderContext {
     let format: GPUTextureFormat;
     let hdr = false;
 
+    // RENDER_ATTACHMENT | COPY_SRC: the COPY_SRC bit lets passes like TAA copy
+    // the canvas to a history texture when the canvas is the last color writer.
+    const canvasUsage = GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC;
+
     try {
       (context as any).configure({
         device,
@@ -217,6 +221,7 @@ export class RenderContext {
         alphaMode: 'opaque',
         colorSpace: 'display-p3',
         toneMapping: { mode: 'extended' },
+        usage: canvasUsage,
       });
       const config = context.getConfiguration();
       // Verify that we actually got an HDR display.
@@ -229,7 +234,7 @@ export class RenderContext {
       }
     } catch {
       format = navigator.gpu.getPreferredCanvasFormat();
-      context.configure({ device, format, alphaMode: 'opaque' });
+      context.configure({ device, format, alphaMode: 'opaque', usage: canvasUsage });
     }
 
     canvas.width = canvas.clientWidth * devicePixelRatio;

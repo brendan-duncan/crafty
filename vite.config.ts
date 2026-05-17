@@ -22,11 +22,10 @@ export default defineConfig({
          terraforming_test: 'samples/terraforming_test.html',
          animal_test: 'samples/animal_test.html',
          rg_procedural: 'samples/rg_procedural.html',
-         rg_forward: 'samples/rg_forward.html',
-         rg_forward_shadows: 'samples/rg_forward_shadows.html',
-         rg_deferred: 'samples/rg_deferred.html',
-         rg_sky_dof: 'samples/rg_sky_dof.html',
-         rg_full: 'samples/rg_full.html',
+         rg_forward_simple: 'samples/rg_forward_simple.html',
+         rg_forward_full: 'samples/rg_forward_full.html',
+         rg_deferred_simple: 'samples/rg_deferred_simple.html',
+         rg_deferred_full: 'samples/rg_deferred_full.html',
          rg_engine_test: 'samples/rg_engine_test.html',
         }
     }

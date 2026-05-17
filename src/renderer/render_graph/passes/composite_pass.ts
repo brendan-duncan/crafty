@@ -134,7 +134,7 @@ export class CompositePass extends Pass<CompositeDeps, void> {
     // params/stars sub-bindings. The full bind group is constructed in setExecute.
     // Instead, store paramsBgl and rebuild per frame.
 
-    const shader = device.createShaderModule({ label: 'CompositeShader', code: compositeWgsl });
+    const shader = ctx.createShaderModule(compositeWgsl, 'CompositeShader');
     const pipeline = device.createRenderPipeline({
       label: 'CompositePipeline',
       layout: device.createPipelineLayout({ bindGroupLayouts: [texturesBgl, bufBgl, paramsBgl] }),

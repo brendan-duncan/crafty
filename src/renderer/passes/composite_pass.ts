@@ -189,7 +189,7 @@ export class CompositePass extends RenderPass {
       ],
     });
 
-    const shader   = device.createShaderModule({ label: 'CompositeShader', code: compositeWgsl });
+    const shader   = ctx.createShaderModule(compositeWgsl, 'CompositeShader');
     const layout   = device.createPipelineLayout({ bindGroupLayouts: [bgl0, bgl1, bgl2] });
     const pipeline = device.createRenderPipeline({
       label   : 'CompositePipeline',

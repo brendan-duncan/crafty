@@ -133,7 +133,7 @@ export class DofPass extends RenderPass {
       ],
     });
 
-    const shader = device.createShaderModule({ label: 'DofShader', code: dofWgsl });
+    const shader = ctx.createShaderModule(dofWgsl, 'DofShader');
 
     const prefilterPipeline = device.createRenderPipeline({
       label: 'DofPrefilterPipeline',

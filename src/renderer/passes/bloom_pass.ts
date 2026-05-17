@@ -135,8 +135,8 @@ export class BloomPass extends RenderPass {
       ],
     });
 
-    const bloomShader     = device.createShaderModule({ label: 'BloomShader',     code: bloomWgsl });
-    const compositeShader = device.createShaderModule({ label: 'BloomComposite',  code: bloomCompositeWgsl });
+    const bloomShader     = ctx.createShaderModule(bloomWgsl,          'BloomShader');
+    const compositeShader = ctx.createShaderModule(bloomCompositeWgsl, 'BloomComposite');
     const singleLayout    = device.createPipelineLayout({ bindGroupLayouts: [singleBGL] });
     const compositeLayout = device.createPipelineLayout({ bindGroupLayouts: [compositeBGL] });
 

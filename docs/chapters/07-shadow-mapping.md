@@ -108,7 +108,7 @@ for (let cascade = 0; cascade < this._cascadeCount; cascade++) {
 During the deferred lighting pass, each fragment determines which cascade to sample based on its view-space depth:
 
 ```wgsl
-// ── from src/shaders/lighting.wgsl ──
+// ── from src/shaders/deferred_lighting.wgsl ──
 let viewDepth = -camera.view[3].z;  // negative for right-handed
 
 // Select cascade based on view depth
@@ -245,7 +245,7 @@ const shadowSampler = device.createSampler({
 A Poisson-disk kernel distributes samples within the filter radius to reduce banding:
 
 ```wgsl
-// ── from src/shaders/lighting.wgsl ──
+// ── from src/shaders/deferred_lighting.wgsl ──
 let shadow = 0.0;
 let kernelSize = 16;
 for (var i = 0u; i < kernelSize; i++) {
@@ -279,7 +279,7 @@ depthBiasSlopeScale: 1.5,
 Crafty's CSM uses a **cascade border** — each cascade is rendered slightly larger than its theoretical frustum, and a blend region between cascades smooths the transition:
 
 ```wgsl
-// ── from src/shaders/lighting.wgsl ──
+// ── from src/shaders/deferred_lighting.wgsl ──
 // Blend between adjacent cascades near the split boundary
 let blend = smoothstep(cascadeSplits[cascadeIndex] - blendRegion,
                         cascadeSplits[cascadeIndex], viewDepth);
@@ -297,7 +297,7 @@ PCSS adds two steps before the standard PCF sample loop:
 **1. Blocker search.** A small fixed-radius search (8 taps, 0.3 world units) samples the shadow map around the fragment and averages the depth of all texels that are closer than the fragment. If no blockers are found, the fragment is fully lit and we skip PCF entirely:
 
 ```wgsl
-// ── from src/shaders/lighting.wgsl ──
+// ── from src/shaders/deferred_lighting.wgsl ──
 fn pcss_blocker_search(cascade: u32, sc: vec3f, search_radius: f32) -> f32 {
   var total = 0.0; var count = 0.0;
   for (var i = 0u; i < 8u; i++) {
@@ -313,7 +313,7 @@ fn pcss_blocker_search(cascade: u32, sc: vec3f, search_radius: f32) -> f32 {
 **2. Penumbra estimation.** The penumbra width is proportional to the distance from the fragment to the average blocker, multiplied by a configurable `shadowSoftness` factor. This width is converted from world units to texels in the selected cascade:
 
 ```wgsl
-// ── from src/shaders/lighting.wgsl ──
+// ── from src/shaders/deferred_lighting.wgsl ──
 let avg_blocker = pcss_blocker_search(cascade, sc0, search_tex);
 if (avg_blocker >= 0.0) {
   let occluder_dist = (sc0.z - avg_blocker) * depth_world;
@@ -325,7 +325,7 @@ if (avg_blocker >= 0.0) {
 **3. PCF with variable kernel.** The standard 16-tap Poisson-disk PCF loop runs with the per-fragment kernel radius:
 
 ```wgsl
-// ── from src/shaders/lighting.wgsl ──
+// ── from src/shaders/deferred_lighting.wgsl ──
 let s = pcf_shadow(cascade, sc0, bias, kernel, screen_pos);
 ```
 
@@ -343,7 +343,7 @@ Crafty applies PCSS to the directional sun light's cascaded shadow maps. The `sh
 
 **Further reading:**
 - `src/renderer/passes/shadow_pass.ts` — CSM for directional light
-- `src/shaders/lighting.wgsl` — PCSS blocker search and variable-kernel PCF
+- `src/shaders/deferred_lighting.wgsl` — PCSS blocker search and variable-kernel PCF
 - `src/renderer/passes/block_shadow_pass.ts` — Chunk shadow maps (appends to CSM)
 - `src/renderer/passes/point_shadow_pass.ts` — Point light cube shadows
 - `src/renderer/passes/spot_shadow_pass.ts` — Spot light depth shadows

@@ -80,7 +80,7 @@ export class DebugLightPass extends RenderPass {
       entries: [{ binding: 0, resource: { buffer: uniformBuffer } }],
     });
 
-    const shader = device.createShaderModule({ label: 'DebugLightShader', code: debugLightWgsl });
+    const shader = ctx.createShaderModule(debugLightWgsl, 'DebugLightShader');
 
     const pipeline = device.createRenderPipeline({
       label: 'DebugLightPipeline',

@@ -5,7 +5,7 @@ import type { ShadowPass } from './shadow_pass.js';
 import type { Mat4 } from '../../math/mat4.js';
 import type { CascadeData } from '../../engine/components/directional_light.js';
 import type { IblTextures } from '../../assets/ibl.js';
-import lightingWgsl from '../../shaders/lighting.wgsl?raw';
+import lightingWgsl from '../../shaders/deferred_lighting.wgsl?raw';
 
 /**
  * Pixel format used for the HDR color target the lighting pass writes into and
@@ -290,7 +290,7 @@ export class DeferredLightingPass extends RenderPass {
       ],
     });
 
-    const shaderModule = device.createShaderModule({ label: 'LightingShader', code: lightingWgsl });
+    const shaderModule = ctx.createShaderModule(lightingWgsl, 'LightingShader');
 
     const pipeline = device.createRenderPipeline({
       label: 'LightingPipeline',
