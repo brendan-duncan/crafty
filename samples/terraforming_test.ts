@@ -3,6 +3,7 @@ import { RenderPass } from '../src/renderer/render_pass.js';
 import { RenderContext } from '../src/renderer/render_context.js';
 import { CameraController } from '../src/engine/index.js';
 import { Mesh } from '../src/assets/mesh.js';
+import { GameObject, Camera } from '../src/engine/index.js';
 
 import densityWgsl from './terraforming/mc_density.wgsl?raw';
 import marchWgsl from './terraforming/mc_march.wgsl?raw';
@@ -626,10 +627,12 @@ async function main() {
   const ctx = await RenderContext.create(canvas, { enableErrorHandling: false });
   const device = ctx.device;
 
-  const camPos = new Vec3(0, 10, 25);
-  const cameraController = CameraController.create({ yaw: 0, pitch: -15 * Math.PI / 180, speed: 15, sensitivity: 0.002, pointerLock: false });
+  const cameraGO = new GameObject({ name: 'Camera' });
+  cameraGO.position.set(0, 10, 25);
+  const camera = cameraGO.addComponent(Camera.createPerspective(60, 0.1, 100, ctx.width / ctx.height));
+
+  const cameraController = CameraController.create({ yaw: 0, pitch: 10 * Math.PI / 180, speed: 15, sensitivity: 0.002, pointerLock: false });
   cameraController.attach(canvas);
-  const fakeGO = { position: camPos, rotation: { x: 0, y: 0, z: 0, w: 1 } };
 
   let brushRadius = 2.0;
   let brushStrength = 0.2;
@@ -683,19 +686,19 @@ async function main() {
     const mode = brushStrength > 0 ? 'Add' : 'Remove';
     brushInfo.textContent = `Brush: ${mode} | Radius: ${brushRadius.toFixed(1)}`;
 
-    cameraController.update(fakeGO as any, ctx.deltaTime);
+    cameraController.update(cameraGO, ctx.deltaTime);
 
     const sinY = Math.sin(cameraController.yaw);
     const cosY = Math.cos(cameraController.yaw);
     const sinP = Math.sin(cameraController.pitch);
     const cosP = Math.cos(cameraController.pitch);
     const forward = new Vec3(-sinY * cosP, -sinP, -cosY * cosP).normalize();
+    const camPos = cameraGO.position;
     brushPosition = camPos.add(forward.scale(15.0));
-    const target = camPos.add(forward);
-    const view = Mat4.lookAt(camPos, target, new Vec3(0, 1, 0));
-    const aspect = ctx.width / ctx.height;
-    const proj = Mat4.perspective(60 * Math.PI / 180, aspect, 0.1, 200);
-    const viewProj = proj.multiply(view);
+
+    const view = camera.viewMatrix();
+    const proj = camera.projectionMatrix();
+    const viewProj = camera.viewProjectionMatrix();
     const invViewProj = viewProj.invert();
 
     mcPass.updateCamera(
