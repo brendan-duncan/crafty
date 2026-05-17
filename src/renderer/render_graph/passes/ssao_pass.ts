@@ -5,6 +5,8 @@ import type { Mat4 } from '../../../math/mat4.js';
 import ssaoWgsl from '../../../shaders/ssao.wgsl?raw';
 import ssaoBlurWgsl from '../../../shaders/ssao_blur.wgsl?raw';
 
+export type SsaoBlurQuality = 'performance' | 'quality';
+
 const AO_FORMAT: GPUTextureFormat = 'r8unorm';
 const KERNEL_SIZE = 16;
 const UNIFORM_SIZE = 464; // 3×mat4(192) + params(16) + kernel(256)
@@ -61,7 +63,10 @@ export class SSAOPass extends Pass<SSAODeps, SSAOOutputs> {
 
   private readonly _device: GPUDevice;
   private readonly _ssaoPipeline: GPURenderPipeline;
-  private readonly _blurPipeline: GPURenderPipeline;
+  private readonly _blurHPipeline: GPURenderPipeline;
+  private readonly _blurVPipeline: GPURenderPipeline;
+  private readonly _boxBlurPipeline: GPURenderPipeline;
+  private _blurQuality: SsaoBlurQuality;
   private readonly _uniformBuffer: GPUBuffer;
   private readonly _noiseTex: GPUTexture;
   private readonly _noiseView: GPUTextureView;
@@ -76,7 +81,9 @@ export class SSAOPass extends Pass<SSAODeps, SSAOOutputs> {
   private constructor(
     device: GPUDevice,
     ssaoPipeline: GPURenderPipeline,
-    blurPipeline: GPURenderPipeline,
+    blurHPipeline: GPURenderPipeline,
+    blurVPipeline: GPURenderPipeline,
+    boxBlurPipeline: GPURenderPipeline,
     uniformBuffer: GPUBuffer,
     noiseTex: GPUTexture,
     noiseView: GPUTextureView,
@@ -84,11 +91,15 @@ export class SSAOPass extends Pass<SSAODeps, SSAOOutputs> {
     blurBgl: GPUBindGroupLayout,
     ssaoBg0: GPUBindGroup,
     blurSampler: GPUSampler,
+    blurQuality: SsaoBlurQuality,
   ) {
     super();
     this._device = device;
     this._ssaoPipeline = ssaoPipeline;
-    this._blurPipeline = blurPipeline;
+    this._blurHPipeline = blurHPipeline;
+    this._blurVPipeline = blurVPipeline;
+    this._boxBlurPipeline = boxBlurPipeline;
+    this._blurQuality = blurQuality;
     this._uniformBuffer = uniformBuffer;
     this._noiseTex = noiseTex;
     this._noiseView = noiseView;
@@ -98,7 +109,7 @@ export class SSAOPass extends Pass<SSAODeps, SSAOOutputs> {
     this._blurSampler = blurSampler;
   }
 
-  static create(ctx: RenderContext): SSAOPass {
+  static create(ctx: RenderContext, blurQuality: SsaoBlurQuality = 'quality'): SSAOPass {
     const { device } = ctx;
 
     const noiseTex = device.createTexture({
@@ -145,7 +156,8 @@ export class SSAOPass extends Pass<SSAODeps, SSAOOutputs> {
       label: 'SsaoBlurBGL',
       entries: [
         { binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } },
-        { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } },
+        { binding: 1, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'depth' } },
+        { binding: 2, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } },
       ],
     });
 
@@ -160,8 +172,24 @@ export class SSAOPass extends Pass<SSAODeps, SSAOOutputs> {
       primitive: { topology: 'triangle-list' },
     });
 
-    const blurPipeline = device.createRenderPipeline({
-      label: 'SsaoBlurPipeline',
+    const blurHPipeline = device.createRenderPipeline({
+      label: 'SsaoBlurHPipeline',
+      layout: device.createPipelineLayout({ bindGroupLayouts: [blurBgl] }),
+      vertex: { module: blurShader, entryPoint: 'vs_main' },
+      fragment: { module: blurShader, entryPoint: 'fs_blur_h', targets: [{ format: AO_FORMAT }] },
+      primitive: { topology: 'triangle-list' },
+    });
+
+    const blurVPipeline = device.createRenderPipeline({
+      label: 'SsaoBlurVPipeline',
+      layout: device.createPipelineLayout({ bindGroupLayouts: [blurBgl] }),
+      vertex: { module: blurShader, entryPoint: 'vs_main' },
+      fragment: { module: blurShader, entryPoint: 'fs_blur_v', targets: [{ format: AO_FORMAT }] },
+      primitive: { topology: 'triangle-list' },
+    });
+
+    const boxBlurPipeline = device.createRenderPipeline({
+      label: 'SsaoBoxBlurPipeline',
       layout: device.createPipelineLayout({ bindGroupLayouts: [blurBgl] }),
       vertex: { module: blurShader, entryPoint: 'vs_main' },
       fragment: { module: blurShader, entryPoint: 'fs_blur', targets: [{ format: AO_FORMAT }] },
@@ -177,7 +205,9 @@ export class SSAOPass extends Pass<SSAODeps, SSAOOutputs> {
     return new SSAOPass(
       device,
       ssaoPipeline,
-      blurPipeline,
+      blurHPipeline,
+      blurVPipeline,
+      boxBlurPipeline,
       uniformBuffer,
       noiseTex,
       noiseView,
@@ -185,6 +215,7 @@ export class SSAOPass extends Pass<SSAODeps, SSAOOutputs> {
       blurBgl,
       ssaoBg0,
       blurSampler,
+      blurQuality,
     );
   }
 
@@ -195,6 +226,11 @@ export class SSAOPass extends Pass<SSAODeps, SSAOOutputs> {
     data.set(proj.data, 16);
     data.set(invProj.data, 32);
     ctx.device.queue.writeBuffer(this._uniformBuffer, 0, data.buffer as ArrayBuffer);
+  }
+
+  /** Switch between box blur (performance) and bilateral Gaussian (quality). */
+  setBlurQuality(quality: SsaoBlurQuality): void {
+    this._blurQuality = quality;
   }
 
   /** Update the SSAO tuning parameters in the GPU uniform buffer. */
@@ -240,27 +276,80 @@ export class SSAOPass extends Pass<SSAODeps, SSAOOutputs> {
       });
     });
 
-    // Pass 2: separable blur → final AO.
-    graph.addPass('SSAOPass.blur', 'render', (b: PassBuilder) => {
-      ao = b.createTexture({ label: 'SsaoBlurred', ...halfDesc });
-      ao = b.write(ao, 'attachment', { loadOp: 'clear', storeOp: 'store', clearValue: [1, 0, 0, 1] });
-      b.read(raw, 'sampled');
+    if (this._blurQuality === 'quality') {
+      // Pass 2: horizontal bilateral Gaussian blur → intermediate.
+      let horiz!: ResourceHandle;
+      graph.addPass('SSAOPass.blurH', 'render', (b: PassBuilder) => {
+        horiz = b.createTexture({ label: 'SsaoBlurH', ...halfDesc });
+        horiz = b.write(horiz, 'attachment', { loadOp: 'clear', storeOp: 'store', clearValue: [1, 0, 0, 1] });
+        b.read(raw, 'sampled');
+        b.read(deps.depth, 'sampled');
 
-      b.setExecute((pctx, res) => {
-        const bg = this._device.createBindGroup({
-          label: 'SsaoBlurBG',
-          layout: this._blurBgl,
-          entries: [
-            { binding: 0, resource: res.getTextureView(raw) },
-            { binding: 1, resource: this._blurSampler },
-          ],
+        b.setExecute((pctx, res) => {
+          const bg = this._device.createBindGroup({
+            label: 'SsaoBlurHBG',
+            layout: this._blurBgl,
+            entries: [
+              { binding: 0, resource: res.getTextureView(raw) },
+              { binding: 1, resource: res.getTextureView(deps.depth) },
+              { binding: 2, resource: this._blurSampler },
+            ],
+          });
+          const enc = pctx.renderPassEncoder!;
+          enc.setPipeline(this._blurHPipeline);
+          enc.setBindGroup(0, bg);
+          enc.draw(3);
         });
-        const enc = pctx.renderPassEncoder!;
-        enc.setPipeline(this._blurPipeline);
-        enc.setBindGroup(0, bg);
-        enc.draw(3);
       });
-    });
+
+      // Pass 3: vertical bilateral Gaussian blur → final AO.
+      graph.addPass('SSAOPass.blurV', 'render', (b: PassBuilder) => {
+        ao = b.createTexture({ label: 'SsaoBlurred', ...halfDesc });
+        ao = b.write(ao, 'attachment', { loadOp: 'clear', storeOp: 'store', clearValue: [1, 0, 0, 1] });
+        b.read(horiz, 'sampled');
+        b.read(deps.depth, 'sampled');
+
+        b.setExecute((pctx, res) => {
+          const bg = this._device.createBindGroup({
+            label: 'SsaoBlurVBG',
+            layout: this._blurBgl,
+            entries: [
+              { binding: 0, resource: res.getTextureView(horiz) },
+              { binding: 1, resource: res.getTextureView(deps.depth) },
+              { binding: 2, resource: this._blurSampler },
+            ],
+          });
+          const enc = pctx.renderPassEncoder!;
+          enc.setPipeline(this._blurVPipeline);
+          enc.setBindGroup(0, bg);
+          enc.draw(3);
+        });
+      });
+    } else {
+      // Pass 2: single-pass box blur → final AO (lower quality, faster).
+      graph.addPass('SSAOPass.boxBlur', 'render', (b: PassBuilder) => {
+        ao = b.createTexture({ label: 'SsaoBoxBlurred', ...halfDesc });
+        ao = b.write(ao, 'attachment', { loadOp: 'clear', storeOp: 'store', clearValue: [1, 0, 0, 1] });
+        b.read(raw, 'sampled');
+        b.read(deps.depth, 'sampled');
+
+        b.setExecute((pctx, res) => {
+          const bg = this._device.createBindGroup({
+            label: 'SsaoBoxBlurBG',
+            layout: this._blurBgl,
+            entries: [
+              { binding: 0, resource: res.getTextureView(raw) },
+              { binding: 1, resource: res.getTextureView(deps.depth) },
+              { binding: 2, resource: this._blurSampler },
+            ],
+          });
+          const enc = pctx.renderPassEncoder!;
+          enc.setPipeline(this._boxBlurPipeline);
+          enc.setBindGroup(0, bg);
+          enc.draw(3);
+        });
+      });
+    }
 
     return { ao };
   }

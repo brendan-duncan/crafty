@@ -53,12 +53,15 @@ export class SSAOPass extends RenderPass {
   // Blurred AO texture — bound by DeferredLightingPass as group 3.
   readonly aoView: GPUTextureView;
 
-  private _raw    : GPUTexture;
-  private _blurred: GPUTexture;
-  private _rawView: GPUTextureView;
+  private _raw     : GPUTexture;
+  private _horiz   : GPUTexture;
+  private _blurred : GPUTexture;
+  private _rawView : GPUTextureView;
+  private _horizView: GPUTextureView;
 
-  private _ssaoPipeline: GPURenderPipeline;
-  private _blurPipeline: GPURenderPipeline;
+  private _ssaoPipeline  : GPURenderPipeline;
+  private _blurHPipeline : GPURenderPipeline;
+  private _blurVPipeline : GPURenderPipeline;
 
   private _uniformBuffer: GPUBuffer;
   private _noiseTex     : GPUTexture;
@@ -67,31 +70,39 @@ export class SSAOPass extends RenderPass {
 
   private _ssaoBG0: GPUBindGroup;
   private _ssaoBG1: GPUBindGroup;
-  private _blurBG : GPUBindGroup;
+  private _blurHBG: GPUBindGroup;
+  private _blurVBG: GPUBindGroup;
 
   private constructor(
     raw: GPUTexture, rawView: GPUTextureView,
+    horiz: GPUTexture, horizView: GPUTextureView,
     blurred: GPUTexture, aoView: GPUTextureView,
     ssaoPipeline: GPURenderPipeline,
-    blurPipeline: GPURenderPipeline,
+    blurHPipeline: GPURenderPipeline,
+    blurVPipeline: GPURenderPipeline,
     uniformBuffer: GPUBuffer,
     noiseTex: GPUTexture,
     ssaoBG0: GPUBindGroup,
     ssaoBG1: GPUBindGroup,
-    blurBG: GPUBindGroup,
+    blurHBG: GPUBindGroup,
+    blurVBG: GPUBindGroup,
   ) {
     super();
-    this._raw    = raw;
+    this._raw     = raw;
     this._rawView = rawView;
+    this._horiz   = horiz;
+    this._horizView = horizView;
     this._blurred = blurred;
-    this.aoView  = aoView;
-    this._ssaoPipeline = ssaoPipeline;
-    this._blurPipeline = blurPipeline;
+    this.aoView   = aoView;
+    this._ssaoPipeline  = ssaoPipeline;
+    this._blurHPipeline = blurHPipeline;
+    this._blurVPipeline = blurVPipeline;
     this._uniformBuffer = uniformBuffer;
     this._noiseTex = noiseTex;
     this._ssaoBG0 = ssaoBG0;
     this._ssaoBG1 = ssaoBG1;
-    this._blurBG  = blurBG;
+    this._blurHBG = blurHBG;
+    this._blurVBG = blurVBG;
   }
 
   /**
@@ -108,8 +119,10 @@ export class SSAOPass extends RenderPass {
     const hw = Math.max(1, width  >> 1);
     const hh = Math.max(1, height >> 1);
     const raw     = device.createTexture({ label: 'SsaoRaw',     size: { width: hw, height: hh }, format: AO_FORMAT, usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING });
+    const horiz   = device.createTexture({ label: 'SsaoBlurH',   size: { width: hw, height: hh }, format: AO_FORMAT, usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING });
     const blurred = device.createTexture({ label: 'SsaoBlurred', size: { width: hw, height: hh }, format: AO_FORMAT, usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING });
     const rawView    = raw.createView();
+    const horizView  = horiz.createView();
     const aoView     = blurred.createView();
 
     // Static noise texture (4×4, tiled across screen for kernel rotation)
@@ -162,12 +175,13 @@ export class SSAOPass extends RenderPass {
       ],
     });
 
-    // Group 0 for blur: ao_tex + sampler
-    const bgl0Blur = device.createBindGroupLayout({
+    // Group 0 for blur: ao_tex + depth_tex + sampler
+    const bglBlur = device.createBindGroupLayout({
       label: 'SsaoBlurBGL',
       entries: [
         { binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } },
-        { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } },
+        { binding: 1, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'depth' } },
+        { binding: 2, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } },
       ],
     });
 
@@ -182,11 +196,19 @@ export class SSAOPass extends RenderPass {
       primitive: { topology: 'triangle-list' },
     });
 
-    const blurPipeline = device.createRenderPipeline({
-      label: 'SsaoBlurPipeline',
-      layout: device.createPipelineLayout({ bindGroupLayouts: [bgl0Blur] }),
+    const blurHPipeline = device.createRenderPipeline({
+      label: 'SsaoBlurHPipeline',
+      layout: device.createPipelineLayout({ bindGroupLayouts: [bglBlur] }),
       vertex:   { module: blurShader, entryPoint: 'vs_main' },
-      fragment: { module: blurShader, entryPoint: 'fs_blur', targets: [{ format: AO_FORMAT }] },
+      fragment: { module: blurShader, entryPoint: 'fs_blur_h', targets: [{ format: AO_FORMAT }] },
+      primitive: { topology: 'triangle-list' },
+    });
+
+    const blurVPipeline = device.createRenderPipeline({
+      label: 'SsaoBlurVPipeline',
+      layout: device.createPipelineLayout({ bindGroupLayouts: [bglBlur] }),
+      vertex:   { module: blurShader, entryPoint: 'vs_main' },
+      fragment: { module: blurShader, entryPoint: 'fs_blur_v', targets: [{ format: AO_FORMAT }] },
       primitive: { topology: 'triangle-list' },
     });
 
@@ -204,19 +226,29 @@ export class SSAOPass extends RenderPass {
       ],
     });
 
-    const blurBG = device.createBindGroup({
-      label: 'SsaoBlurBG', layout: bgl0Blur,
+    const blurHBG = device.createBindGroup({
+      label: 'SsaoBlurHBG', layout: bglBlur,
       entries: [
         { binding: 0, resource: rawView },
-        { binding: 1, resource: sampler },
+        { binding: 1, resource: gbuffer.depthView },
+        { binding: 2, resource: sampler },
+      ],
+    });
+
+    const blurVBG = device.createBindGroup({
+      label: 'SsaoBlurVBG', layout: bglBlur,
+      entries: [
+        { binding: 0, resource: horizView },
+        { binding: 1, resource: gbuffer.depthView },
+        { binding: 2, resource: sampler },
       ],
     });
 
     return new SSAOPass(
-      raw, rawView, blurred, aoView,
-      ssaoPipeline, blurPipeline,
+      raw, rawView, horiz, horizView, blurred, aoView,
+      ssaoPipeline, blurHPipeline, blurVPipeline,
       uniformBuffer, noiseTex,
-      ssaoBG0, ssaoBG1, blurBG,
+      ssaoBG0, ssaoBG1, blurHBG, blurVBG,
     );
   }
 
@@ -277,14 +309,26 @@ export class SSAOPass extends RenderPass {
       pass.end();
     }
 
-    // 2. Blur: raw → blurred (the aoView that DeferredLightingPass reads)
+    // 2. Horizontal blur: raw → horiz
     {
       const pass = encoder.beginRenderPass({
-        label: 'SSAOBlur',
+        label: 'SSAOBlurH',
+        colorAttachments: [{ view: this._horizView, clearValue: [1, 0, 0, 1], loadOp: 'clear', storeOp: 'store' }],
+      });
+      pass.setPipeline(this._blurHPipeline);
+      pass.setBindGroup(0, this._blurHBG);
+      pass.draw(3);
+      pass.end();
+    }
+
+    // 3. Vertical blur: horiz → blurred (the aoView that DeferredLightingPass reads)
+    {
+      const pass = encoder.beginRenderPass({
+        label: 'SSAOBlurV',
         colorAttachments: [{ view: this.aoView, clearValue: [1, 0, 0, 1], loadOp: 'clear', storeOp: 'store' }],
       });
-      pass.setPipeline(this._blurPipeline);
-      pass.setBindGroup(0, this._blurBG);
+      pass.setPipeline(this._blurVPipeline);
+      pass.setBindGroup(0, this._blurVBG);
       pass.draw(3);
       pass.end();
     }
@@ -293,6 +337,7 @@ export class SSAOPass extends RenderPass {
   /** Releases the raw and blurred AO textures, the uniform buffer, and the noise texture. */
   destroy(): void {
     this._raw.destroy();
+    this._horiz.destroy();
     this._blurred.destroy();
     this._uniformBuffer.destroy();
     this._noiseTex.destroy();
