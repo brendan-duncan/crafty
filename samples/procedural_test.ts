@@ -1,16 +1,18 @@
 import { Mat4, Vec3 } from '../src/math/index.js';
 import { Material } from '../src/renderer/material.js';
 import type { MaterialPassType } from '../src/renderer/material.js';
-import { ForwardPass } from '../src/renderer/passes/forward_pass.js';
-import type { ForwardDrawItem } from '../src/renderer/passes/forward_pass.js';
-import { DirectionalShadowPass } from '../src/renderer/passes/directional_shadow_pass.js';
-import type { DirectionalShadowDrawItem } from '../src/renderer/passes/directional_shadow_pass.js';
 import { RenderContext } from '../src/renderer/render_context.js';
+import { PhysicalResourceCache, RenderGraph } from '../src/renderer/render_graph/index.js';
+import { ForwardPass, type ForwardDrawItem } from '../src/renderer/render_graph/passes/forward_pass.js';
+import { ShadowPass, type ShadowMeshDraw } from '../src/renderer/render_graph/passes/shadow_pass.js';
+import { TonemapPass } from '../src/renderer/render_graph/passes/tonemap_pass.js';
+import type { DirectionalLight } from '../src/renderer/directional_light.js';
+import type { CascadeData } from '../src/engine/components/directional_light.js';
 import { CameraController } from '../src/engine/camera_controller.js';
-import { RenderGraph } from '../src/renderer/render_graph.js';
 import { Mesh } from '../src/assets/mesh.js';
 import proceduralWgsl from './procedural_test.wgsl?raw';
 import { Camera, GameObject } from '../src/index.js';
+import { createRenderGraphViz } from '../src/renderer/render_graph/ui/render_graph_viz.js';
 
 const ALIGNMENT = 256;
 
@@ -98,23 +100,22 @@ class ProceduralMaterial extends Material {
   }
 }
 
-async function main() {
+async function main(): Promise<void> {
   const canvas = document.getElementById('canvas') as HTMLCanvasElement;
   const fpsEl = document.getElementById('fps')!;
 
   canvas.width = canvas.clientWidth;
   canvas.height = canvas.clientHeight;
 
-  const ctx = await RenderContext.create(canvas);
+  const ctx = await RenderContext.create(canvas, { enableErrorHandling: true });
   const { device } = ctx;
+  const cache = new PhysicalResourceCache(device);
 
-  // Meshes
   const planeMesh = Mesh.createPlane(device, 30, 30);
   const cubeMesh = Mesh.createCube(device, 1.5);
   const sphereMesh = Mesh.createSphere(device, 0.9, 24, 24);
   const coneMesh = Mesh.createCone(device, 0.8, 1.6, 20);
 
-  // Procedural material instances with different colors
   const matA = new ProceduralMaterial();
   matA.baseColor.set([0.1, 0.3, 0.8, 1.0]);
   matA.accentColor.set([1.0, 0.4, 0.1, 1.0]);
@@ -132,68 +133,62 @@ async function main() {
   matC.patternScale = 3.0;
   matC.edgeWidth = 0.08;
 
-  // Forward pass + shadow pass
-  const forwardPass = ForwardPass.create(ctx, { clearColor: [0.2, 0.2, 0.45, 1.0] });
-  const dirShadowPass = DirectionalShadowPass.create(ctx, forwardPass.getShadowMap(0));
-
-  // Camera
   const cameraGO = new GameObject({ position: new Vec3(0, 4, 12) });
   const camera = cameraGO.addComponent(Camera.createPerspective(60, 0.1, 100, ctx.width / ctx.height));
   const cameraController = CameraController.create({ yaw: 0, pitch: 0, speed: 5, sensitivity: 0.002, pointerLock: false });
   cameraController.attach(canvas);
 
-  // Animation state
+  const shadowPass = ShadowPass.create(ctx);
+  const forwardPass = ForwardPass.create(ctx);
+  const tonemapPass = TonemapPass.create(ctx);
+  tonemapPass.updateParams(ctx, 1.0, false, false);
+  const graphViz = createRenderGraphViz(null).attach();
 
-  const renderGraph = new RenderGraph();
-  renderGraph.addPass(dirShadowPass);
-  renderGraph.addPass(forwardPass);
+  const resizeObserver = new ResizeObserver(() => {
+    const w = Math.max(1, Math.round(canvas.clientWidth * devicePixelRatio));
+    const h = Math.max(1, Math.round(canvas.clientHeight * devicePixelRatio));
+    if (w === canvas.width && h === canvas.height) return;
+    canvas.width = w;
+    canvas.height = h;
+    cache.trimUnused();
+  });
+  resizeObserver.observe(canvas);
 
-  async function frame() {
+  function frame(): void {
     ctx.update();
-
-    const currentView = ctx.backbufferView;
-
     fpsEl.textContent = `FPS: ${ctx.fps}`;
 
-    // Camera
     cameraController.update(cameraGO, ctx.deltaTime);
     camera.updateRender(ctx);
     ctx.activeCamera = camera;
 
-    forwardPass.updateCamera(ctx);
-
-    // Sun
+    // Single-cascade directional light covering the small scene.
     const sunDir = new Vec3(0.4, -0.7, -0.5).normalize();
-    const sceneCenter = new Vec3(0, 1, 0);
+    const center = new Vec3(0, 1, 0);
     const shadowDist = 25;
-    const shadowCamPos = sceneCenter.sub(sunDir.scale(shadowDist));
-    const lightView = Mat4.lookAt(shadowCamPos, sceneCenter, new Vec3(0, 1, 0));
-    const lightProj = Mat4.orthographic(-12, 12, -12, 12, 1, 50);
-    const lightViewProj = lightProj.multiply(lightView);
+    const lv = Mat4.lookAt(center.sub(sunDir.scale(shadowDist)), center, Vec3.UP);
+    const lp = Mat4.orthographic(-12, 12, -12, 12, 1, 50);
+    const cascades: CascadeData[] = [{
+      lightViewProj: lp.multiply(lv),
+      splitFar: 100,
+      depthRange: 49,
+      texelWorldSize: 24 / 2048,
+    }];
 
-    const directionalLight = {
+    const directionalLight: DirectionalLight = {
       direction: sunDir,
       intensity: 1.5,
       color: new Vec3(1.0, 0.95, 0.9),
       castShadows: true,
-      lightViewProj,
-      shadowMap: forwardPass.getShadowMap(0),
+      cascades,
     };
 
-    // Animated objects
     const spread = 4.0;
     const items: ForwardDrawItem[] = [
-      {
-        mesh: planeMesh,
-        modelMatrix: Mat4.translation(0, -0.5, 0),
-        normalMatrix: Mat4.identity(),
-        material: matA,
-      },
+      { mesh: planeMesh,  modelMatrix: Mat4.translation(0, -0.5, 0), normalMatrix: Mat4.identity(), material: matA },
       {
         mesh: cubeMesh,
-        modelMatrix: Mat4.translation(0, 1.5, 0).multiply(
-          Mat4.rotationY(ctx.elapsedTime * 40 * Math.PI / 180),
-        ),
+        modelMatrix: Mat4.translation(0, 1.5, 0).multiply(Mat4.rotationY(ctx.elapsedTime * 40 * Math.PI / 180)),
         normalMatrix: Mat4.identity(),
         material: matB,
       },
@@ -201,9 +196,7 @@ async function main() {
         mesh: sphereMesh,
         modelMatrix: Mat4.translation(
           Math.sin(ctx.elapsedTime * 0.6) * spread, 1.5, Math.cos(ctx.elapsedTime * 0.6) * spread,
-        ).multiply(
-          Mat4.rotationY(ctx.elapsedTime * 60 * Math.PI / 180),
-        ),
+        ).multiply(Mat4.rotationY(ctx.elapsedTime * 60 * Math.PI / 180)),
         normalMatrix: Mat4.identity(),
         material: matC,
       },
@@ -217,7 +210,6 @@ async function main() {
       },
     ];
 
-    // Update procedural material time uniform
     matA.time = ctx.elapsedTime;
     matB.time = ctx.elapsedTime;
     matC.time = ctx.elapsedTime;
@@ -225,21 +217,25 @@ async function main() {
     matB.markDirty();
     matC.markDirty();
 
-    // Shadow draw items
-    const shadowItems: DirectionalShadowDrawItem[] = items.map((item) => ({
-      mesh: item.mesh,
-      modelMatrix: item.modelMatrix,
-    }));
+    const shadowItems: ShadowMeshDraw[] = items.map((it) => ({ mesh: it.mesh, modelMatrix: it.modelMatrix }));
 
-    // Render
-    dirShadowPass.setDrawItems(shadowItems);
-    dirShadowPass.updateCamera(ctx, lightViewProj);
-
-    forwardPass.updateLights(ctx, directionalLight, [], []);
     forwardPass.setDrawItems(items);
-    forwardPass.setOutput(currentView, ctx.backbufferDepthView);
+    forwardPass.updateCamera(ctx);
+    forwardPass.updateLights(ctx, directionalLight, [], []);
 
-    renderGraph.execute(ctx);
+    const graph = new RenderGraph(ctx, cache);
+    const bb = graph.setBackbuffer('canvas');
+
+    const shadow = shadowPass.addToGraph(graph, { cascades, drawItems: shadowItems });
+    const lit = forwardPass.addToGraph(graph, {
+      clearColor: [0.2, 0.2, 0.45, 1.0],
+      shadowMapSource: shadow.shadowMap,
+    });
+    tonemapPass.addToGraph(graph, { hdr: lit.output, backbuffer: bb });
+
+    const compiled = graph.compile();
+    graphViz.setGraph(graph, compiled);
+    void graph.execute(compiled);
 
     requestAnimationFrame(frame);
   }
@@ -247,4 +243,7 @@ async function main() {
   frame();
 }
 
-main();
+main().catch(err => {
+  document.body.innerHTML = `<pre style="color:red;padding:1rem">${err.message ?? err}</pre>`;
+  console.error(err);
+});

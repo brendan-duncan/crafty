@@ -28,7 +28,12 @@ export interface WaterDeps {
   depth: ResourceHandle;
 }
 
-export class WaterPass extends Pass<WaterDeps, void> {
+export interface WaterOutputs {
+  /** HDR after water has been alpha-blended in. */
+  hdr: ResourceHandle;
+}
+
+export class WaterPass extends Pass<WaterDeps, WaterOutputs> {
   readonly name = 'WaterPass';
 
   private readonly _device: GPUDevice;
@@ -220,11 +225,12 @@ export class WaterPass extends Pass<WaterDeps, void> {
     this._chunks.delete(chunk);
   }
 
-  addToGraph(graph: RenderGraph, deps: WaterDeps): void {
+  addToGraph(graph: RenderGraph, deps: WaterDeps): WaterOutputs {
     const { ctx } = graph;
     const { width, height } = ctx;
 
     let refrac!: ResourceHandle;
+    let outHdr!: ResourceHandle;
 
     // Pass 1: Copy HDR scene into refraction texture
     graph.addPass(`${this.name}.copy`, 'transfer', (b: PassBuilder) => {
@@ -235,7 +241,11 @@ export class WaterPass extends Pass<WaterDeps, void> {
         width,
         height,
       } as TextureDesc);
-      b.write(refrac, 'copy-dst');
+      // Capture the new version so the render pass's `b.read(refrac, ...)`
+      // declares a real dependency on this copy. Without the reassignment
+      // the read sees v=0 (the create handle) and the cull walker treats
+      // it as "initial state", silently dropping this pass.
+      refrac = b.write(refrac, 'copy-dst');
 
       b.setExecute((pctx, res) => {
         pctx.commandEncoder.copyTextureToTexture(
@@ -250,7 +260,7 @@ export class WaterPass extends Pass<WaterDeps, void> {
     graph.addPass(this.name, 'render', (b: PassBuilder) => {
       b.read(refrac, 'sampled');
       b.read(deps.depth, 'sampled');
-      b.write(deps.hdr, 'attachment', { loadOp: 'load', storeOp: 'store' });
+      outHdr = b.write(deps.hdr, 'attachment', { loadOp: 'load', storeOp: 'store' });
 
       b.setExecute((pctx, res) => {
         const sceneBG = res.getOrCreateBindGroup({
@@ -281,6 +291,8 @@ export class WaterPass extends Pass<WaterDeps, void> {
         }
       });
     });
+
+    return { hdr: outHdr };
   }
 
   destroy(): void {

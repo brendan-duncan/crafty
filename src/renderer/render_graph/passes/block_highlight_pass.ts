@@ -16,7 +16,14 @@ export interface BlockHighlightDeps {
   depth: ResourceHandle;
 }
 
-export class BlockHighlightPass extends Pass<BlockHighlightDeps, void> {
+export interface BlockHighlightOutputs {
+  /** HDR after the highlight quad is blended in (load+store, even when inactive). */
+  hdr: ResourceHandle;
+  /** Depth attachment (load+store). */
+  depth: ResourceHandle;
+}
+
+export class BlockHighlightPass extends Pass<BlockHighlightDeps, BlockHighlightOutputs> {
   readonly name = 'BlockHighlightPass';
 
   private readonly _facePipeline: GPURenderPipeline;
@@ -125,10 +132,12 @@ export class BlockHighlightPass extends Pass<BlockHighlightDeps, void> {
     ctx.queue.writeBuffer(this._uniformBuf, 0, data.buffer as ArrayBuffer);
   }
 
-  addToGraph(graph: RenderGraph, deps: BlockHighlightDeps): void {
+  addToGraph(graph: RenderGraph, deps: BlockHighlightDeps): BlockHighlightOutputs {
+    let outHdr!: ResourceHandle;
+    let outDepth!: ResourceHandle;
     graph.addPass(this.name, 'render', (b: PassBuilder) => {
-      b.write(deps.hdr, 'attachment', { loadOp: 'load', storeOp: 'store' });
-      b.write(deps.depth, 'depth-attachment', { depthLoadOp: 'load', depthStoreOp: 'store' });
+      outHdr = b.write(deps.hdr, 'attachment', { loadOp: 'load', storeOp: 'store' });
+      outDepth = b.write(deps.depth, 'depth-attachment', { depthLoadOp: 'load', depthStoreOp: 'store' });
 
       b.setExecute((pctx) => {
         if (!this._active) return;
@@ -140,6 +149,7 @@ export class BlockHighlightPass extends Pass<BlockHighlightDeps, void> {
         enc.draw(144);
       });
     });
+    return { hdr: outHdr, depth: outDepth };
   }
 
   destroy(): void {

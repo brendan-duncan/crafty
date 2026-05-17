@@ -19,7 +19,6 @@ import type { PointLight } from '../src/renderer/point_light.js';
 import { SpotLight } from '../src/renderer/spot_light.js';
 import type { CascadeData } from '../src/engine/components/directional_light.js';
 import { createRenderGraphViz } from '../src/renderer/render_graph/ui/render_graph_viz.js';
-import type { PassNodeData, TextureNodeData, GraphEdge, FullGraphData } from '../src/renderer/render_graph/ui/render_graph_viz.js';
 
 async function main(): Promise<void> {
   const canvas = document.getElementById('canvas') as HTMLCanvasElement;
@@ -78,26 +77,10 @@ async function main(): Promise<void> {
   });
   resizeObserver.observe(canvas);
 
-  let lastGraphData: FullGraphData = { passes: [], textures: [], edges: [] };
-  const graphViz = createRenderGraphViz(null);
-  const graphHint = document.createElement('div');
-  graphHint.textContent = 'G: toggle render-graph viz   |   F: toggle DOF';
-  graphHint.style.cssText = [
-    'position:fixed', 'bottom:40px', 'left:50%', 'transform:translateX(-50%)',
-    'padding:4px 10px', 'border-radius:4px', 'background:rgba(0,0,0,0.45)', 'color:#888',
-    'font-family:ui-monospace,monospace', 'font-size:11px', 'pointer-events:none',
-  ].join(';');
-  document.body.appendChild(graphHint);
+  const graphViz = createRenderGraphViz(null).attach({ hint: 'G: toggle render-graph viz   |   F: toggle DOF' });
 
   window.addEventListener('keydown', (e) => {
-    if (e.code === 'KeyG' && !e.repeat) {
-      if (graphViz.isOpen()) {
-        graphViz.close();
-      } else if (lastGraphData.passes.length > 0) {
-        graphViz.setFullGraph(lastGraphData);
-        graphViz.open();
-      }
-    } else if (e.code === 'KeyF' && !e.repeat) {
+    if (e.code === 'KeyF' && !e.repeat) {
       dofEnabled = !dofEnabled;
     }
   });
@@ -240,47 +223,7 @@ async function main(): Promise<void> {
     tonemapPass.addToGraph(graph, { hdr: finalHdr, backbuffer: bb });
 
     const compiled = graph.compile();
-    const compiledNames = new Set(compiled.passes.map(cp => cp.node.name));
-    const passes: PassNodeData[] = graph.passList.map((p, i) => ({
-      id: i, name: p.name, enabled: compiledNames.has(p.name), type: p.type,
-    }));
-    const texMap = new Map<number, TextureNodeData>();
-    const edges: GraphEdge[] = [];
-    graph.passList.forEach((p, i) => {
-      for (const r of p.reads) {
-        edges.push({ fromType: 'texture', fromId: r.id, toType: 'pass', toId: i });
-        if (!texMap.has(r.id)) {
-          const info = graph.getResourceInfo(r.id);
-          texMap.set(r.id, {
-            id: r.id,
-            label: info?.label ?? `id:${r.id}`,
-            isBackbuffer: info?.isBackbuffer ?? false,
-            format: info?.format,
-            kind: info?.kind,
-            width: info?.kind === 'texture' ? info?.width : undefined,
-            height: info?.kind === 'texture' ? info?.height : undefined,
-            size: info?.kind === 'buffer' ? info?.size : undefined,
-          });
-        }
-      }
-      for (const w of p.writes) {
-        edges.push({ fromType: 'pass', fromId: i, toType: 'texture', toId: w.id });
-        if (!texMap.has(w.id)) {
-          const info = graph.getResourceInfo(w.id);
-          texMap.set(w.id, {
-            id: w.id,
-            label: info?.label ?? `id:${w.id}`,
-            isBackbuffer: info?.isBackbuffer ?? false,
-            format: info?.format,
-            kind: info?.kind,
-            width: info?.kind === 'texture' ? info?.width : undefined,
-            height: info?.kind === 'texture' ? info?.height : undefined,
-            size: info?.kind === 'buffer' ? info?.size : undefined,
-          });
-        }
-      }
-    });
-    lastGraphData = { passes, textures: [...texMap.values()], edges };
+    graphViz.setGraph(graph, compiled);
     void graph.execute(compiled);
 
     requestAnimationFrame(frame);

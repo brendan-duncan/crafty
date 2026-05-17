@@ -1,5 +1,7 @@
 import { Mat4, Vec3 } from '../src/math/index.js';
-import { RenderPass } from '../src/renderer/render_pass.js';
+import { Pass } from '../src/renderer/render_graph/pass.js';
+import type { PassBuilder, RenderGraph, ResourceHandle, TextureDesc } from '../src/renderer/render_graph/index.js';
+import { PhysicalResourceCache, RenderGraph as RG } from '../src/renderer/render_graph/index.js';
 import { RenderContext } from '../src/renderer/render_context.js';
 import { CameraController } from '../src/engine/index.js';
 import { Mesh } from '../src/assets/mesh.js';
@@ -9,6 +11,7 @@ import densityWgsl from './terraforming/mc_density.wgsl?raw';
 import marchWgsl from './terraforming/mc_march.wgsl?raw';
 import renderWgsl from './terraforming/mc_render.wgsl?raw';
 import { EDGE_TABLE, TRIANGLE_TABLE } from './terraforming/mc_tables.js';
+import { createRenderGraphViz } from '../src/renderer/render_graph/ui/render_graph_viz.js';
 
 const BRUSH_SPHERE_WGSL = `
   struct Uniforms {
@@ -63,13 +66,23 @@ const DEFAULT_CONFIG: GridConfig = {
   maxVertices: 128 * 1024,
 };
 
-class MarchingCubesPass extends RenderPass {
+interface McDeps {
+  /** Optional explicit color/depth handles; defaults to canvas backbuffer + transient depth. */
+  color?: ResourceHandle;
+  depth?: ResourceHandle;
+}
+
+/**
+ * Self-contained marching-cubes pass (new render-graph version). Owns the
+ * density grid, vertex buffer, brush state, compute pipelines, and the final
+ * triangle/brush-sphere render. Exposes a single `addToGraph` that wires both
+ * the compute work (density → march → indirect) and the render pass.
+ */
+class MarchingCubesPass extends Pass<McDeps, void> {
   readonly name = 'MarchingCubesPass';
 
+  private readonly _ctx: RenderContext;
   private readonly _config: GridConfig;
-
-  private _colorView: GPUTextureView;
-  private _depthView: GPUTextureView;
 
   private readonly _densityBuffer: GPUBuffer;
   private readonly _vertexBuffer: GPUBuffer;
@@ -79,7 +92,6 @@ class MarchingCubesPass extends RenderPass {
   private readonly _triTableBuffer: GPUBuffer;
 
   private readonly _densityUniforms: GPUBuffer;
-  private readonly _mcUniforms: GPUBuffer;
   private readonly _renderUniforms: GPUBuffer;
 
   private readonly _densityPipeline: GPUComputePipeline;
@@ -111,12 +123,7 @@ class MarchingCubesPass extends RenderPass {
   private readonly _zeroU32 = new Uint32Array([0]);
   private readonly _densityUniBuf = new Float32Array(64);
 
-  static create(
-    ctx: RenderContext,
-    colorView: GPUTextureView,
-    depthView: GPUTextureView,
-    config: Partial<GridConfig> = {},
-  ): MarchingCubesPass {
+  static create(ctx: RenderContext, config: Partial<GridConfig> = {}): MarchingCubesPass {
     const cfg: GridConfig = { ...DEFAULT_CONFIG, ...config };
     const { device } = ctx;
 
@@ -174,13 +181,11 @@ class MarchingCubesPass extends RenderPass {
       size: 256,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
-
     const mcUniforms = device.createBuffer({
       label: 'McMarchUniforms',
       size: 256,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
-
     const renderUniforms = device.createBuffer({
       label: 'McRenderUniforms',
       size: 512,
@@ -194,7 +199,6 @@ class MarchingCubesPass extends RenderPass {
         { binding: 1, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'uniform' } },
       ],
     });
-
     const marchBGL = device.createBindGroupLayout({
       label: 'McMarchBGL',
       entries: [
@@ -207,7 +211,6 @@ class MarchingCubesPass extends RenderPass {
         { binding: 6, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'read-only-storage' } },
       ],
     });
-
     const renderBGL = device.createBindGroupLayout({
       label: 'McRenderBGL',
       entries: [
@@ -220,80 +223,43 @@ class MarchingCubesPass extends RenderPass {
     const marchModule = ctx.createShaderModule(marchWgsl, 'McMarchShader');
     const renderModule = ctx.createShaderModule(renderWgsl, 'McRenderShader');
 
-    const densityLayout = device.createPipelineLayout({
-      bindGroupLayouts: [densityBGL],
-    });
-
-    const marchLayout = device.createPipelineLayout({
-      bindGroupLayouts: [marchBGL],
-    });
-
-    const renderLayout = device.createPipelineLayout({
-      bindGroupLayouts: [renderBGL],
-    });
+    const densityLayout = device.createPipelineLayout({ bindGroupLayouts: [densityBGL] });
+    const marchLayout = device.createPipelineLayout({ bindGroupLayouts: [marchBGL] });
+    const renderLayout = device.createPipelineLayout({ bindGroupLayouts: [renderBGL] });
 
     const densityPipeline = device.createComputePipeline({
-      label: 'McDensityPipeline',
-      layout: densityLayout,
+      label: 'McDensityPipeline', layout: densityLayout,
       compute: { module: densityModule, entryPoint: 'cs_generate' },
     });
-
     const brushPipeline = device.createComputePipeline({
-      label: 'McBrushPipeline',
-      layout: densityLayout,
+      label: 'McBrushPipeline', layout: densityLayout,
       compute: { module: densityModule, entryPoint: 'cs_brush' },
     });
-
     const marchPipeline = device.createComputePipeline({
-      label: 'McMarchPipeline',
-      layout: marchLayout,
+      label: 'McMarchPipeline', layout: marchLayout,
       compute: { module: marchModule, entryPoint: 'cs_march' },
     });
-
     const indirectPipeline = device.createComputePipeline({
-      label: 'McIndirectPipeline',
-      layout: marchLayout,
+      label: 'McIndirectPipeline', layout: marchLayout,
       compute: { module: marchModule, entryPoint: 'cs_write_indirect' },
     });
-
     const renderPipeline = device.createRenderPipeline({
-      label: 'McRenderPipeline',
-      layout: renderLayout,
-      vertex: {
-        module: renderModule,
-        entryPoint: 'vs_main',
-        buffers: [],
-      },
-      fragment: {
-        module: renderModule,
-        entryPoint: 'fs_main',
-        targets: [{
-          format: ctx.format,
-        }],
-      },
-      depthStencil: {
-        format: 'depth32float',
-        depthWriteEnabled: true,
-        depthCompare: 'less',
-      },
-      primitive: {
-        topology: 'triangle-list',
-        cullMode: 'none',
-      },
+      label: 'McRenderPipeline', layout: renderLayout,
+      vertex: { module: renderModule, entryPoint: 'vs_main', buffers: [] },
+      fragment: { module: renderModule, entryPoint: 'fs_main', targets: [{ format: ctx.format }] },
+      depthStencil: { format: 'depth32float', depthWriteEnabled: true, depthCompare: 'less' },
+      primitive: { topology: 'triangle-list', cullMode: 'none' },
     });
 
     const densityBG = device.createBindGroup({
-      label: 'McDensityBG',
-      layout: densityBGL,
+      label: 'McDensityBG', layout: densityBGL,
       entries: [
         { binding: 0, resource: { buffer: densityBuffer } },
         { binding: 1, resource: { buffer: densityUniforms } },
       ],
     });
-
     const marchBG = device.createBindGroup({
-      label: 'McMarchBG',
-      layout: marchBGL,
+      label: 'McMarchBG', layout: marchBGL,
       entries: [
         { binding: 0, resource: { buffer: densityBuffer } },
         { binding: 1, resource: { buffer: vertexBuffer } },
@@ -304,10 +270,8 @@ class MarchingCubesPass extends RenderPass {
         { binding: 6, resource: { buffer: triTableBuffer } },
       ],
     });
-
     const renderBG = device.createBindGroup({
-      label: 'McRenderBG',
-      layout: renderBGL,
+      label: 'McRenderBG', layout: renderBGL,
       entries: [
         { binding: 0, resource: { buffer: renderUniforms } },
         { binding: 1, resource: { buffer: vertexBuffer } },
@@ -328,36 +292,25 @@ class MarchingCubesPass extends RenderPass {
     device.queue.writeBuffer(mcUniforms, 0, mcUniBuf);
 
     const sphereMesh = Mesh.createSphere(device, 1, 16, 16);
-
     const brushSphereModule = ctx.createShaderModule(BRUSH_SPHERE_WGSL, 'McBrushSphereShader');
-
     const brushSphereBGL = device.createBindGroupLayout({
       label: 'McBrushSphereBGL',
       entries: [
         { binding: 0, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, buffer: { type: 'uniform' } },
       ],
     });
-
-    const brushSpherePL = device.createPipelineLayout({
-      bindGroupLayouts: [brushSphereBGL],
-    });
-
+    const brushSpherePL = device.createPipelineLayout({ bindGroupLayouts: [brushSphereBGL] });
     const brushSpherePipeline = device.createRenderPipeline({
-      label: 'McBrushSpherePipeline',
-      layout: brushSpherePL,
+      label: 'McBrushSpherePipeline', layout: brushSpherePL,
       vertex: {
-        module: brushSphereModule,
-        entryPoint: 'vs_main',
+        module: brushSphereModule, entryPoint: 'vs_main',
         buffers: [{
           arrayStride: 48,
-          attributes: [
-            { shaderLocation: 0, offset: 0, format: 'float32x3' },
-          ],
+          attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x3' }],
         }],
       },
       fragment: {
-        module: brushSphereModule,
-        entryPoint: 'fs_main',
+        module: brushSphereModule, entryPoint: 'fs_main',
         targets: [{
           format: ctx.format,
           blend: {
@@ -366,39 +319,26 @@ class MarchingCubesPass extends RenderPass {
           },
         }],
       },
-      depthStencil: {
-        format: 'depth32float',
-        depthWriteEnabled: false,
-        depthCompare: 'less',
-      },
-      primitive: {
-        topology: 'triangle-list',
-        cullMode: 'none',
-      },
+      depthStencil: { format: 'depth32float', depthWriteEnabled: false, depthCompare: 'less' },
+      primitive: { topology: 'triangle-list', cullMode: 'none' },
     });
-
     const brushSphereUniforms = device.createBuffer({
       label: 'McBrushSphereUniforms',
       size: 96,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
-
     const brushSphereUniBuf = new Float32Array(24);
-
     const brushSphereBG = device.createBindGroup({
-      label: 'McBrushSphereBG',
-      layout: brushSphereBGL,
-      entries: [
-        { binding: 0, resource: { buffer: brushSphereUniforms } },
-      ],
+      label: 'McBrushSphereBG', layout: brushSphereBGL,
+      entries: [{ binding: 0, resource: { buffer: brushSphereUniforms } }],
     });
 
     return new MarchingCubesPass(
+      ctx,
       cfg,
-      colorView, depthView,
       densityBuffer, vertexBuffer, vertexCounter, indirectBuffer,
       edgeTableBuffer, triTableBuffer,
-      densityUniforms, mcUniforms, renderUniforms,
+      densityUniforms, renderUniforms,
       densityPipeline, brushPipeline, marchPipeline, indirectPipeline, renderPipeline,
       densityBG, marchBG, renderBG,
       sphereMesh, brushSphereUniforms, brushSpherePipeline, brushSphereBG, brushSphereUniBuf,
@@ -406,9 +346,8 @@ class MarchingCubesPass extends RenderPass {
   }
 
   private constructor(
+    ctx: RenderContext,
     config: GridConfig,
-    colorView: GPUTextureView,
-    depthView: GPUTextureView,
     densityBuffer: GPUBuffer,
     vertexBuffer: GPUBuffer,
     vertexCounter: GPUBuffer,
@@ -416,7 +355,6 @@ class MarchingCubesPass extends RenderPass {
     edgeTableBuffer: GPUBuffer,
     triTableBuffer: GPUBuffer,
     densityUniforms: GPUBuffer,
-    mcUniforms: GPUBuffer,
     renderUniforms: GPUBuffer,
     densityPipeline: GPUComputePipeline,
     brushPipeline: GPUComputePipeline,
@@ -433,9 +371,8 @@ class MarchingCubesPass extends RenderPass {
     brushSphereUniBuf: Float32Array,
   ) {
     super();
+    this._ctx = ctx;
     this._config = config;
-    this._colorView = colorView;
-    this._depthView = depthView;
     this._densityBuffer = densityBuffer;
     this._vertexBuffer = vertexBuffer;
     this._vertexCounter = vertexCounter;
@@ -443,7 +380,6 @@ class MarchingCubesPass extends RenderPass {
     this._edgeTableBuffer = edgeTableBuffer;
     this._triTableBuffer = triTableBuffer;
     this._densityUniforms = densityUniforms;
-    this._mcUniforms = mcUniforms;
     this._renderUniforms = renderUniforms;
     this._densityPipeline = densityPipeline;
     this._brushPipeline = brushPipeline;
@@ -458,11 +394,6 @@ class MarchingCubesPass extends RenderPass {
     this._brushSpherePipeline = brushSpherePipeline;
     this._brushSphereBG = brushSphereBG;
     this._brushSphereUniBuf = brushSphereUniBuf;
-  }
-
-  updateAttachments(colorView: GPUTextureView, depthView: GPUTextureView): void {
-    this._colorView = colorView;
-    this._depthView = depthView;
   }
 
   setBrush(center: Vec3, radius: number, strength: number, active = true): void {
@@ -493,114 +424,132 @@ class MarchingCubesPass extends RenderPass {
     ctx.queue.writeBuffer(this._renderUniforms, 0, buf);
   }
 
-  execute(encoder: GPUCommandEncoder, ctx: RenderContext): void {
-    const d = this._densityUniBuf;
-    d[0] = this._config.gridSize[0];
-    d[1] = this._config.gridSize[1];
-    d[2] = this._config.gridSize[2];
-    d[4] = this._config.isolevel;
-    d[8] = this._config.gridExtent[0];
-    d[9] = this._config.gridExtent[1];
-    d[10] = this._config.gridExtent[2];
-    d[12] = this._config.gridOffset[0];
-    d[13] = this._config.gridOffset[1];
-    d[14] = this._config.gridOffset[2];
-    d[16] = this._config.noiseScale;
-    d[17] = this._config.noiseHeight;
-    d[18] = this._config.detailScale;
-    d[19] = this._config.detailStrength;
+  addToGraph(graph: RenderGraph, deps: McDeps = {}): void {
+    const { ctx } = graph;
+    const color = deps.color ?? graph.getBackbuffer();
+    const depth = deps.depth ?? (undefined as unknown as ResourceHandle);
 
-    d[24] = this._brush.center.x;
-    d[25] = this._brush.center.y;
-    d[26] = this._brush.center.z;
-    d[28] = this._brush.radius;
-    d[29] = this._brush.strength;
-    d[30] = this._brush.enabled ? 1 : 0;
+    // 1. Compute pass: density (first frame) + brush (when active) + march + indirect.
+    // We import the indirect buffer so the render pass depends on it and the
+    // compute pass isn't culled.
+    const indirectHandle = graph.importExternalBuffer(this._indirectBuffer, {
+      label: 'McIndirect',
+      size: 16,
+    });
+    let indirectAfterCompute!: ResourceHandle;
+    graph.addPass(this.name + '.compute', 'compute', (b: PassBuilder) => {
+      indirectAfterCompute = b.write(indirectHandle, 'storage-write');
+      b.setExecute((pctx) => {
+        // Upload density-uniforms (config + brush state) lazily on first compute.
+        const d = this._densityUniBuf;
+        d[0] = this._config.gridSize[0];
+        d[1] = this._config.gridSize[1];
+        d[2] = this._config.gridSize[2];
+        d[4] = this._config.isolevel;
+        d[8] = this._config.gridExtent[0];
+        d[9] = this._config.gridExtent[1];
+        d[10] = this._config.gridExtent[2];
+        d[12] = this._config.gridOffset[0];
+        d[13] = this._config.gridOffset[1];
+        d[14] = this._config.gridOffset[2];
+        d[16] = this._config.noiseScale;
+        d[17] = this._config.noiseHeight;
+        d[18] = this._config.detailScale;
+        d[19] = this._config.detailStrength;
+        d[24] = this._brush.center.x;
+        d[25] = this._brush.center.y;
+        d[26] = this._brush.center.z;
+        d[28] = this._brush.radius;
+        d[29] = this._brush.strength;
+        d[30] = this._brush.enabled ? 1 : 0;
+        this._ctx.queue.writeBuffer(this._densityUniforms, 0, d);
+        this._ctx.queue.writeBuffer(this._vertexCounter, 0, this._zeroU32);
 
-    ctx.queue.writeBuffer(this._densityUniforms, 0, d);
-    ctx.queue.writeBuffer(this._vertexCounter, 0, this._zeroU32);
+        const enc = pctx.computePassEncoder!;
+        if (!this._generated) {
+          enc.setPipeline(this._densityPipeline);
+          enc.setBindGroup(0, this._densityBG);
+          enc.dispatchWorkgroups(
+            Math.ceil(this._config.gridSize[0] / 8),
+            Math.ceil(this._config.gridSize[1] / 4),
+            Math.ceil(this._config.gridSize[2] / 8),
+          );
+          this._generated = true;
+        }
+        if (this._brush.enabled) {
+          enc.setPipeline(this._brushPipeline);
+          enc.setBindGroup(0, this._densityBG);
+          enc.dispatchWorkgroups(
+            Math.ceil(this._config.gridSize[0] / 8),
+            Math.ceil(this._config.gridSize[1] / 4),
+            Math.ceil(this._config.gridSize[2] / 8),
+          );
+        }
+        enc.setPipeline(this._marchPipeline);
+        enc.setBindGroup(0, this._marchBG);
+        enc.dispatchWorkgroups(
+          Math.ceil((this._config.gridSize[0] - 1) / 8),
+          Math.ceil((this._config.gridSize[1] - 1) / 4),
+          Math.ceil((this._config.gridSize[2] - 1) / 8),
+        );
+        enc.setPipeline(this._indirectPipeline);
+        enc.setBindGroup(0, this._marchBG);
+        enc.dispatchWorkgroups(1);
+      });
+    });
 
-    const compute = encoder.beginComputePass({ label: 'McCompute' });
-
-    if (!this._generated) {
-      compute.setPipeline(this._densityPipeline);
-      compute.setBindGroup(0, this._densityBG);
-      compute.dispatchWorkgroups(
-        Math.ceil(this._config.gridSize[0] / 8),
-        Math.ceil(this._config.gridSize[1] / 4),
-        Math.ceil(this._config.gridSize[2] / 8),
-      );
-      this._generated = true;
-    }
-
-    if (this._brush.enabled) {
-      compute.setPipeline(this._brushPipeline);
-      compute.setBindGroup(0, this._densityBG);
-      compute.dispatchWorkgroups(
-        Math.ceil(this._config.gridSize[0] / 8),
-        Math.ceil(this._config.gridSize[1] / 4),
-        Math.ceil(this._config.gridSize[2] / 8),
-      );
-    }
-
-    compute.setPipeline(this._marchPipeline);
-    compute.setBindGroup(0, this._marchBG);
-    compute.dispatchWorkgroups(
-      Math.ceil((this._config.gridSize[0] - 1) / 8),
-      Math.ceil((this._config.gridSize[1] - 1) / 4),
-      Math.ceil((this._config.gridSize[2] - 1) / 8),
-    );
-
-    compute.setPipeline(this._indirectPipeline);
-    compute.setBindGroup(0, this._marchBG);
-    compute.dispatchWorkgroups(1);
-
-    compute.end();
-
-    const pass = encoder.beginRenderPass({
-      label: 'McRender',
-      colorAttachments: [
-        {
-          view: this._colorView,
-          loadOp: 'clear',
-          storeOp: 'store',
-          clearValue: { r: 0.45, g: 0.65, b: 0.9, a: 1.0 },
-        },
-      ],
-      depthStencilAttachment: {
-        view: this._depthView,
+    // 2. Render pass: marching-cubes triangles + brush sphere overlay.
+    graph.addPass(this.name, 'render', (b: PassBuilder) => {
+      b.write(color, 'attachment', {
+        loadOp: 'clear',
+        storeOp: 'store',
+        clearValue: [0.45, 0.65, 0.9, 1.0],
+      });
+      let depthHandle = depth;
+      if (depthHandle === undefined) {
+        depthHandle = b.createTexture({
+          label: 'McDepth',
+          format: 'depth32float',
+          width: ctx.width,
+          height: ctx.height,
+        } as TextureDesc);
+      }
+      b.write(depthHandle, 'depth-attachment', {
         depthLoadOp: 'clear',
         depthStoreOp: 'store',
         depthClearValue: 1.0,
-      },
+      });
+      b.read(indirectAfterCompute, 'indirect');
+
+      b.setExecute((pctx) => {
+        const enc = pctx.renderPassEncoder!;
+        enc.setPipeline(this._renderPipeline);
+        enc.setBindGroup(0, this._renderBG);
+        enc.drawIndirect(this._indirectBuffer, 0);
+
+        // Brush sphere overlay (alpha-blended). Color encodes add vs remove mode.
+        const u = this._brushSphereUniBuf;
+        u.set(this._viewProj.data, 0);
+        u[16] = this._brush.center.x;
+        u[17] = this._brush.center.y;
+        u[18] = this._brush.center.z;
+        u[19] = this._brush.radius;
+        if (this._brush.strength >= 0) {
+          u[20] = 0; u[21] = 1; u[22] = 0; u[23] = 0.25;
+        } else {
+          u[20] = 1; u[21] = 0; u[22] = 0; u[23] = 0.25;
+        }
+        this._ctx.queue.writeBuffer(
+          this._brushSphereUniforms, 0,
+          u.buffer as ArrayBuffer, u.byteOffset, u.byteLength,
+        );
+        enc.setPipeline(this._brushSpherePipeline);
+        enc.setBindGroup(0, this._brushSphereBG);
+        enc.setVertexBuffer(0, this._sphereMesh.vertexBuffer);
+        enc.setIndexBuffer(this._sphereMesh.indexBuffer, 'uint32');
+        enc.drawIndexed(this._sphereMesh.indexCount);
+      });
     });
-
-    pass.setPipeline(this._renderPipeline);
-    pass.setBindGroup(0, this._renderBG);
-    pass.drawIndirect(this._indirectBuffer, 0);
-
-    {
-      const u = this._brushSphereUniBuf;
-      u.set(this._viewProj.data, 0);
-      u[16] = this._brush.center.x;
-      u[17] = this._brush.center.y;
-      u[18] = this._brush.center.z;
-      u[19] = this._brush.radius;
-      if (this._brush.strength >= 0) {
-        u[20] = 0; u[21] = 1; u[22] = 0; u[23] = 0.25;
-      } else {
-        u[20] = 1; u[21] = 0; u[22] = 0; u[23] = 0.25;
-      }
-      ctx.device.queue.writeBuffer(this._brushSphereUniforms, 0, u.buffer as ArrayBuffer, u.byteOffset, u.byteLength);
-
-      pass.setPipeline(this._brushSpherePipeline);
-      pass.setBindGroup(0, this._brushSphereBG);
-      pass.setVertexBuffer(0, this._sphereMesh.vertexBuffer);
-      pass.setIndexBuffer(this._sphereMesh.indexBuffer, 'uint32');
-      pass.drawIndexed(this._sphereMesh.indexCount);
-    }
-
-    pass.end();
   }
 
   destroy(): void {
@@ -611,13 +560,12 @@ class MarchingCubesPass extends RenderPass {
     this._edgeTableBuffer.destroy();
     this._triTableBuffer.destroy();
     this._densityUniforms.destroy();
-    this._mcUniforms.destroy();
     this._renderUniforms.destroy();
     this._sphereMesh.destroy();
   }
 }
 
-async function main() {
+async function main(): Promise<void> {
   const canvas = document.getElementById('canvas') as HTMLCanvasElement;
   const fpsElement = document.getElementById('fps')!;
 
@@ -625,7 +573,7 @@ async function main() {
   canvas.height = canvas.clientHeight * devicePixelRatio;
 
   const ctx = await RenderContext.create(canvas, { enableErrorHandling: false });
-  const device = ctx.device;
+  const cache = new PhysicalResourceCache(ctx.device);
 
   const cameraGO = new GameObject({ name: 'Camera' });
   cameraGO.position.set(0, 10, 25);
@@ -661,26 +609,26 @@ async function main() {
       brushActive = true;
     }
   });
-
-  canvas.addEventListener('contextmenu', (e) => {
-    e.preventDefault();
-  });
-
+  canvas.addEventListener('contextmenu', (e) => e.preventDefault());
   window.addEventListener('pointerup', (e) => {
-    if (e.button === 2) {
-      brushActive = false;
-    }
+    if (e.button === 2) brushActive = false;
   });
 
-  const mcPass = MarchingCubesPass.create(
-    ctx,
-    ctx.backbufferView,
-    ctx.backbufferDepthView!
-  );
+  const mcPass = MarchingCubesPass.create(ctx);
+  const graphViz = createRenderGraphViz(null).attach();
 
-  async function frame() {
+  const resizeObserver = new ResizeObserver(() => {
+    const w = Math.max(1, Math.round(canvas.clientWidth * devicePixelRatio));
+    const h = Math.max(1, Math.round(canvas.clientHeight * devicePixelRatio));
+    if (w === canvas.width && h === canvas.height) return;
+    canvas.width = w;
+    canvas.height = h;
+    cache.trimUnused();
+  });
+  resizeObserver.observe(canvas);
+
+  function frame(): void {
     ctx.update();
-
     fpsElement.textContent = `FPS: ${ctx.fps}`;
     const brushInfo = document.getElementById('brush-info')!;
     const mode = brushStrength > 0 ? 'Add' : 'Remove';
@@ -702,23 +650,16 @@ async function main() {
     const viewProj = camera.viewProjectionMatrix();
     const invViewProj = camera.inverseViewProjectionMatrix();
 
-    mcPass.updateCamera(
-      ctx,
-      view, proj, viewProj, invViewProj,
-      camPos, 0.1, 200,
-    );
-
+    mcPass.updateCamera(ctx, view, proj, viewProj, invViewProj, camPos, 0.1, 200);
     mcPass.setBrush(brushPosition, brushRadius, brushStrength, brushActive);
 
-    mcPass.updateAttachments(ctx.backbufferView, ctx.backbufferDepthView!);
+    const graph = new RG(ctx, cache);
+    graph.setBackbuffer('canvas');
+    mcPass.addToGraph(graph);
 
-    const encoder = device.createCommandEncoder({ label: 'McMainEncoder' });
-
-    if (mcPass.enabled) {
-      mcPass.execute(encoder, ctx);
-    }
-
-    device.queue.submit([encoder.finish()]);
+    const compiled = graph.compile();
+    graphViz.setGraph(graph, compiled);
+    void graph.execute(compiled);
 
     requestAnimationFrame(frame);
   }
@@ -726,4 +667,7 @@ async function main() {
   frame();
 }
 
-main();
+main().catch(err => {
+  document.body.innerHTML = `<pre style="color:red;padding:1rem">${err.message ?? err}</pre>`;
+  console.error(err);
+});

@@ -177,7 +177,9 @@ export class RenderContext {
       throw new Error('WebGPU not supported');
     }
 
-    const adapter = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' });
+    // Note that powerPreference: 'high-performance' currently causes browser warnings
+    // as they haven't implemented it yet.
+    const adapter = await navigator.gpu.requestAdapter();
     if (!adapter) {
       throw new Error('No WebGPU adapter found');
     }

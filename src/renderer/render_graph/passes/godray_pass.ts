@@ -19,7 +19,12 @@ export interface GodrayDeps {
   lightBuffer: ResourceHandle;
 }
 
-export class GodrayPass extends Pass<GodrayDeps, void> {
+export interface GodrayOutputs {
+  /** HDR after the godray contribution is composited in. */
+  hdr: ResourceHandle;
+}
+
+export class GodrayPass extends Pass<GodrayDeps, GodrayOutputs> {
   readonly name = 'GodrayPass';
 
   scattering = 0.3;
@@ -143,55 +148,47 @@ export class GodrayPass extends Pass<GodrayDeps, void> {
     const marchShader = ctx.createShaderModule(godrayMarchWgsl, 'GodrayMarchShader');
     const compShader = ctx.createShaderModule(godrayCompositeWgsl, 'GodrayCompositeShader');
 
-    // Bind group layouts discovered via 'auto' layout for each pipeline.
-    // We create the pipelines first to extract layouts, then store layouts
-    // so per-frame bind groups can be rebuilt without re-creating pipelines.
-    const tempMarchPipeline = device.createRenderPipeline({
-      label: 'GodrayMarchPipeline', layout: 'auto',
-      vertex: { module: marchShader, entryPoint: 'vs_main' },
-      fragment: { module: marchShader, entryPoint: 'fs_march', targets: [{ format: FOG_FORMAT }] },
-      primitive: { topology: 'triangle-list' },
+    // Explicit BGLs — must not be reused from an auto-layout pipeline's
+    // getBindGroupLayout() because the spec forbids passing those into a
+    // user-built GPUPipelineLayoutDescriptor.
+    const bglMarch = device.createBindGroupLayout({
+      label: 'GodrayMarchBGL',
+      entries: [
+        { binding: 0, visibility: GPUShaderStage.FRAGMENT, buffer: { type: 'uniform' } },
+        { binding: 1, visibility: GPUShaderStage.FRAGMENT, buffer: { type: 'uniform' } },
+        { binding: 2, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'depth' } },
+        { binding: 3, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'depth', viewDimension: '2d-array' } },
+        { binding: 4, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'comparison' } },
+        { binding: 5, visibility: GPUShaderStage.FRAGMENT, buffer: { type: 'uniform' } },
+        { binding: 6, visibility: GPUShaderStage.FRAGMENT, buffer: { type: 'uniform' } },
+        { binding: 7, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float', viewDimension: '3d' } },
+        { binding: 8, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float', viewDimension: '3d' } },
+        { binding: 9, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } },
+      ],
     });
-    const bglMarch = tempMarchPipeline.getBindGroupLayout(0);
-
-    const tempBlurHPipeline = device.createRenderPipeline({
-      label: 'GodrayBlurHPipeline', layout: 'auto',
-      vertex: { module: compShader, entryPoint: 'vs_main' },
-      fragment: { module: compShader, entryPoint: 'fs_blur', targets: [{ format: FOG_FORMAT }] },
-      primitive: { topology: 'triangle-list' },
+    const bglBlur = device.createBindGroupLayout({
+      label: 'GodrayBlurBGL',
+      entries: [
+        { binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } },
+        { binding: 1, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'depth' } },
+        { binding: 2, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } },
+        { binding: 3, visibility: GPUShaderStage.FRAGMENT, buffer: { type: 'uniform' } },
+      ],
     });
-    const bglBlur = tempBlurHPipeline.getBindGroupLayout(0);
-
-    const tempBlurVPipeline = device.createRenderPipeline({
-      label: 'GodrayBlurVPipeline', layout: 'auto',
-      vertex: { module: compShader, entryPoint: 'vs_main' },
-      fragment: { module: compShader, entryPoint: 'fs_blur', targets: [{ format: FOG_FORMAT }] },
-      primitive: { topology: 'triangle-list' },
+    const bglComposite = device.createBindGroupLayout({
+      label: 'GodrayCompositeBGL',
+      entries: [
+        { binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } },
+        { binding: 1, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'depth' } },
+        { binding: 2, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } },
+        { binding: 3, visibility: GPUShaderStage.FRAGMENT, buffer: { type: 'uniform' } },
+        { binding: 4, visibility: GPUShaderStage.FRAGMENT, buffer: { type: 'uniform' } },
+      ],
     });
-    const bglBlurV = tempBlurVPipeline.getBindGroupLayout(0);
 
-    const tempCompositePipeline = device.createRenderPipeline({
-      label: 'GodrayCompositePipeline', layout: 'auto',
-      vertex: { module: compShader, entryPoint: 'vs_main' },
-      fragment: {
-        module: compShader, entryPoint: 'fs_composite',
-        targets: [{
-          format: HDR_FORMAT,
-          blend: {
-            color: { operation: 'add', srcFactor: 'one', dstFactor: 'one' },
-            alpha: { operation: 'add', srcFactor: 'one', dstFactor: 'one' },
-          },
-        }],
-      },
-      primitive: { topology: 'triangle-list' },
-    });
-    const bglComposite = tempCompositePipeline.getBindGroupLayout(0);
-
-    // Re-create the pipelines with explicit layouts so the bind group layouts
-    // are accessible (auto-layout pipelines may not expose BGLs in all impls).
     const plMarch = device.createPipelineLayout({ bindGroupLayouts: [bglMarch] });
     const plBlurH = device.createPipelineLayout({ bindGroupLayouts: [bglBlur] });
-    const plBlurV = device.createPipelineLayout({ bindGroupLayouts: [bglBlurV] });
+    const plBlurV = device.createPipelineLayout({ bindGroupLayouts: [bglBlur] });
     const plComposite = device.createPipelineLayout({ bindGroupLayouts: [bglComposite] });
 
     const marchPipeline = device.createRenderPipeline({
@@ -266,7 +263,7 @@ export class GodrayPass extends Pass<GodrayDeps, void> {
     ctx.queue.writeBuffer(this._cloudDensityBuf, 0, data.buffer as ArrayBuffer);
   }
 
-  addToGraph(graph: RenderGraph, deps: GodrayDeps): void {
+  addToGraph(graph: RenderGraph, deps: GodrayDeps): GodrayOutputs {
     const { ctx } = graph;
     const hw = Math.max(1, ctx.width >> 1);
     const hh = Math.max(1, ctx.height >> 1);
@@ -274,11 +271,12 @@ export class GodrayPass extends Pass<GodrayDeps, void> {
 
     let fogA!: ResourceHandle;
     let fogB!: ResourceHandle;
+    let outHdr!: ResourceHandle;
 
     // Pass 1: Ray march → fogA
     graph.addPass(`${this.name}.march`, 'render', (b: PassBuilder) => {
       fogA = b.createTexture({ label: 'GodrayFogA', ...halfDesc });
-      b.write(fogA, 'attachment', { loadOp: 'clear', storeOp: 'store', clearValue: [0, 0, 0, 0] });
+      fogA = b.write(fogA, 'attachment', { loadOp: 'clear', storeOp: 'store', clearValue: [0, 0, 0, 0] });
       b.read(deps.depth, 'sampled');
       b.read(deps.shadowMap, 'sampled');
       b.read(deps.cameraBuffer, 'uniform');
@@ -311,7 +309,7 @@ export class GodrayPass extends Pass<GodrayDeps, void> {
     // Pass 2: Horizontal blur fogA → fogB
     graph.addPass(`${this.name}.blurH`, 'render', (b: PassBuilder) => {
       fogB = b.createTexture({ label: 'GodrayFogB', ...halfDesc });
-      b.write(fogB, 'attachment', { loadOp: 'clear', storeOp: 'store', clearValue: [0, 0, 0, 0] });
+      fogB = b.write(fogB, 'attachment', { loadOp: 'clear', storeOp: 'store', clearValue: [0, 0, 0, 0] });
       b.read(fogA, 'sampled');
       b.read(deps.depth, 'sampled');
 
@@ -335,7 +333,7 @@ export class GodrayPass extends Pass<GodrayDeps, void> {
 
     // Pass 3: Vertical blur fogB → fogA (overwrite)
     graph.addPass(`${this.name}.blurV`, 'render', (b: PassBuilder) => {
-      b.write(fogA, 'attachment', { loadOp: 'clear', storeOp: 'store', clearValue: [0, 0, 0, 0] });
+      fogA = b.write(fogA, 'attachment', { loadOp: 'clear', storeOp: 'store', clearValue: [0, 0, 0, 0] });
       b.read(fogB, 'sampled');
       b.read(deps.depth, 'sampled');
 
@@ -359,7 +357,7 @@ export class GodrayPass extends Pass<GodrayDeps, void> {
 
     // Pass 4: Composite fogA onto HDR
     graph.addPass(`${this.name}.composite`, 'render', (b: PassBuilder) => {
-      b.write(deps.hdr, 'attachment', { loadOp: 'load', storeOp: 'store' });
+      outHdr = b.write(deps.hdr, 'attachment', { loadOp: 'load', storeOp: 'store' });
       b.read(fogA, 'sampled');
       b.read(deps.depth, 'sampled');
       b.read(deps.lightBuffer, 'uniform');
@@ -382,6 +380,8 @@ export class GodrayPass extends Pass<GodrayDeps, void> {
         enc.draw(3);
       });
     });
+
+    return { hdr: outHdr };
   }
 
   destroy(): void {

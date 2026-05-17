@@ -9,7 +9,9 @@ import flashlightUrl from '../assets/flashlight.jpg?url';
 import { Mat4, Vec3 } from '../src/math/index.js';
 import { GameObject, Scene, DirectionalLight, blockTypeToSurface } from '../src/engine/index.js';
 import type { CascadeData } from '../src/engine/index.js';
-import { RenderContext, ShadowPass } from '../src/renderer/index.js';
+import { RenderContext } from '../src/renderer/index.js';
+import { ShadowPass } from '../src/renderer/render_graph/passes/shadow_pass.js';
+import { createRenderGraphViz } from '../src/renderer/render_graph/ui/render_graph_viz.js';
 import { createCloudNoiseTextures } from '../src/assets/cloud_noise.js';
 import type { CloudNoiseTextures } from '../src/assets/cloud_noise.js';
 import { computeIblGpu } from '../src/assets/ibl.js';
@@ -19,7 +21,7 @@ import { parseHdr, createHdrTexture } from '../src/assets/hdr_loader.js';
 import { BlockTexture } from '../src/assets/block_texture.js';
 import { BlockWorld, BiomeType, BlockType, EnvironmentEffect, getBiomeCloudBounds, isBlockWater } from '../src/block/index.js';
 import type { Chunk, ChunkMesh } from '../src/block/index.js';
-import type { DrawItem } from '../src/renderer/passes/geometry_pass.js';
+import type { DrawItem, ShadowMeshDraw } from './renderer_setup.js';
 import { NPCEntity } from './game/npc_entity.js';
 import { Duck, Duckling } from './game/entities/duck_entity.js';
 import { Pig } from './game/entities/pig_entity.js';
@@ -42,7 +44,7 @@ import { createBlockInteractionState, setupBlockInteractionHandlers, updateBlock
 import { loadBlockColors, getBlockColor } from './game/block_colors.js';
 import { setupTouchControlsLazy, isTouchDevice } from './game/touch_controls.js';
 import { AudioManager } from './game/audio_manager.js';
-import { getWeatherCloudCoverage, getWeatherEnvironmentEffect, getWeatherSpawnRate, getWeatherName, pickRandomWeather, getWeatherChangeInterval } from './game/weather_system.js';
+import { getWeatherCloudCoverage, getWeatherEnvironmentEffect, getWeatherSpawnRate, getWeatherName, pickRandomWeather, getWeatherChangeInterval, nextWeather } from './game/weather_system.js';
 import { updateTorchFlicker, updateMagmaFlicker } from './game/lights.js';
 import { setupAnimalSpawning } from './game/animal_spawner.js';
 import { setupVillageGeneration } from './game/village_gen.js';
@@ -238,8 +240,27 @@ async function main(): Promise<void> {
   const effects = { ...DEFAULT_EFFECTS };
 
   // Renderer setup
-  const shadowPass = ShadowPass.create(ctx, 3);
+  const shadowPass = ShadowPass.create(ctx);
   let passes: Partial<RenderPasses> = { shadowPass, currentWeatherEffect: EnvironmentEffect.None };
+
+  // Debug overlay: press G to see the per-frame render graph. The viz hides
+  // its hint pill behind the reticle anchor so it doesn't fight with the HUD.
+  // Releasing pointer lock on open frees the mouse so the user can pan, zoom,
+  // and drag nodes inside the overlay. The menu auto-opens on `pointerlockchange`
+  // (it's the standard pause-on-ESC behavior), so we suppress that and force-close
+  // it for the duration of the viz; the user can re-open via ESC after closing.
+  const graphViz = createRenderGraphViz(hud.reticle, {
+    onBeforeOpen: () => {
+      menu.setSuppressAutoOpen(true);
+      menu.close();
+      if (document.pointerLockElement === canvas) {
+        document.exitPointerLock();
+      }
+    },
+    onAfterClose: () => {
+      menu.setSuppressAutoOpen(false);
+    },
+  }).attach();
 
   async function rebuildRenderTargets(): Promise<void> {
     const newPasses = await buildRenderTargets(
@@ -728,9 +749,10 @@ async function main(): Promise<void> {
   let cloudBase = _initBounds.cloudBase;
   let cloudTop  = _initBounds.cloudTop;
 
+  let cycleWeatherRequested = false;
   window.addEventListener('keydown', (e) => {
     if (e.code === 'KeyO') {
-      weatherTimer = 0;
+      cycleWeatherRequested = true;
     }
   });
 
@@ -912,10 +934,14 @@ async function main(): Promise<void> {
 
     const biome = world.getBiomeAt(camPos.x, camPos.y, camPos.z);
 
-    // Weather transitions over time
+    // Weather transitions: weighted-random on the timer, deterministic
+    // cycle through the biome's available weathers when the O hotkey is held.
     weatherTimer -= dt;
-    if (weatherTimer <= 0) {
-      currentWeather = pickRandomWeather(biome, currentWeather);
+    if (cycleWeatherRequested || weatherTimer <= 0) {
+      currentWeather = cycleWeatherRequested
+        ? nextWeather(biome, currentWeather)
+        : pickRandomWeather(biome, currentWeather);
+      cycleWeatherRequested = false;
       weatherTimer = getWeatherChangeInterval();
 
       const newEffect = getWeatherEnvironmentEffect(currentWeather);
@@ -963,14 +989,10 @@ async function main(): Promise<void> {
       const w = mr.gameObject.localToWorld();
       return { mesh: mr.mesh, modelMatrix: w, normalMatrix: w.normalMatrix(), material: mr.material };
     });
-    const shadowItems = meshRenderers
+    const shadowItems: ShadowMeshDraw[] = meshRenderers
       .filter((mr: MeshRenderer) => mr.castShadow)
       .map((mr: MeshRenderer) => ({ mesh: mr.mesh, modelMatrix: mr.gameObject.localToWorld() }));
-
-    shadowPass.setSceneSnapshot(shadowItems);
-    shadowPass.updateScene(scene, camera, sun, 128);
-    passes.blockShadowPass!.enabled = sun.intensity > 0;
-    passes.blockShadowPass!.update(ctx, cascades, camPos.x, camPos.z);
+    const blockShadowEnabled = sun.intensity > 0;
 
     const dayT = Math.max(0, elev);
     const cloudAmbient: [number, number, number] = [0.02 + 0.38 * dayT, 0.03 + 0.52 * dayT, 0.05 + 0.65 * dayT];
@@ -1006,7 +1028,6 @@ async function main(): Promise<void> {
     passes.lightingPass!.updateCloudShadow(ctx, passes.cloudShadowPass ? camPos.x : 0, passes.cloudShadowPass ? camPos.z : 0, 128);
     passes.ssaoPass!.updateCamera(ctx);
     passes.ssaoPass!.updateParams(ctx, 1.0, 0.005, effects.ssao ? 2.0 : 0.0);
-    passes.ssgiPass!.enabled = effects.ssgi;
     passes.ssgiPass!.updateSettings({ strength: effects.ssgi ? 1.0 : 0.0 });
     if (effects.ssgi) {
       passes.ssgiPass!.updateCamera(ctx);
@@ -1061,7 +1082,13 @@ async function main(): Promise<void> {
       labelLayer.update(vp, camPos, canvas.clientWidth, canvas.clientHeight, _labelAnchors);
     }
 
-    await passes.graph!.execute(ctx);
+    await passes.render!(ctx, {
+      iblTextures,
+      cascades,
+      shadowItems,
+      camPos,
+      blockShadowEnabled,
+    }, graphViz);
     await ctx.popPassErrorScope('frame');
 
     // Auto-save tick (local mode only). Mark dirty if the player moved enough,

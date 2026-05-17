@@ -4,8 +4,8 @@ The actual game built on top of [src/](../src/). Engine code stays in `src/`; an
 
 ## Layout
 
-- [main.ts](main.ts) — game entry point. Sets up `RenderContext`, the **old** render graph, scene, world, networking, input.
-- [renderer_setup.ts](renderer_setup.ts) — wires up the deferred-rendering pipeline (old API).
+- [main.ts](main.ts) — game entry point. Sets up `RenderContext`, scene, world, networking, input; per-frame uploads pass uniforms and calls `passes.render(ctx, frameDeps)`.
+- [renderer_setup.ts](renderer_setup.ts) — wires up the deferred-rendering pipeline on the **new** render graph: owns persistent pass instances and builds a fresh `RenderGraph` each frame inside `render()`.
 - [config/](config/) — gameplay-visible tuning: effect settings, particle configs.
 - [game/](game/) — runtime game systems.
   - [entities/](game/entities/) — concrete entities (creeper, duck, pig, bee).
@@ -17,6 +17,6 @@ The actual game built on top of [src/](../src/). Engine code stays in `src/`; an
 
 ## Conventions
 
-- Game code uses the **old** render graph. If you need a new pass here, it goes in [../src/renderer/passes/](../src/renderer/passes/) (old API), not under `render_graph/passes/`.
+- Game code uses the **new** render graph ([../src/renderer/render_graph/](../src/renderer/render_graph/)). New passes go under [../src/renderer/render_graph/passes/](../src/renderer/render_graph/passes/); wire them into the per-frame graph build in [renderer_setup.ts](renderer_setup.ts).
 - Entities extend `GameObject` and compose `Component`s. AI lives in components in [game/components/](game/components/).
 - Multiplayer is authoritative on the server; client-side prediction is minimal. Wire format in [../shared/net_protocol.ts](../shared/net_protocol.ts).

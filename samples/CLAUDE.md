@@ -2,12 +2,9 @@
 
 Each sample is a `<name>.html` + `<name>.ts` pair served by Vite. They're entry points for ad-hoc demos and for exercising the new render graph in isolation.
 
-## Two flavors
+All samples use the **new** render graph ([src/renderer/render_graph/](../src/renderer/render_graph/)). The `rg_*.ts` files are the small, focused reference samples (forward/deferred wiring, the render-graph viz, etc.); the others are the larger demos (clouds, terraforming, animal display, procedural materials).
 
-- **`rg_*.ts`** — use the **new** render graph ([src/renderer/render_graph/](../src/renderer/render_graph/)).
-- **Everything else** — use the **old** render graph ([src/renderer/render_graph.ts](../src/renderer/render_graph.ts)) or hand-roll `RenderPass` instances directly.
-
-When adding a new sample, pick one or the other. Don't mix.
+When adding a new sample, register it in [../vite.config.ts](../vite.config.ts) under `rollupOptions.input` and add it to the launcher list in [index.html](index.html).
 
 ## Structure (typical sample)
 
@@ -15,11 +12,15 @@ When adding a new sample, pick one or the other. Don't mix.
 async function main(): Promise<void> {
   const canvas = document.getElementById('canvas') as HTMLCanvasElement;
   const ctx = await RenderContext.create(canvas, { enableErrorHandling: true });
-  // ... create meshes, materials, passes ...
+  const cache = new PhysicalResourceCache(ctx.device);
+  // ... create meshes, materials, persistent pass instances ...
   function frame(): void {
     ctx.update();
-    // update pass uniforms
-    // (new RG) build graph, compile, execute
+    // update per-frame pass uniforms via pass.updateX(ctx, ...)
+    const graph = new RenderGraph(ctx, cache);
+    const bb = graph.setBackbuffer('canvas');
+    // pass.addToGraph(graph, deps) for each pass
+    void graph.execute(graph.compile());
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
@@ -27,7 +28,7 @@ async function main(): Promise<void> {
 main().catch(err => { /* show in DOM */ });
 ```
 
-`rg_forward.ts` is the cleanest reference for the new-graph pattern, including the optional render-graph viz overlay (press `G`).
+`rg_forward_full.ts` and `rg_deferred_full.ts` are the cleanest references for the new-graph pattern, including the optional render-graph viz overlay (press `G`).
 
 ## Special files
 

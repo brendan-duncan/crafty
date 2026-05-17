@@ -9,7 +9,7 @@ This directory contains a **work-in-progress** new render graph API being develo
 - Pass system uses a builder pattern (`PassBuilder`) with automatic versioning of resource handles
 - Render graph visualization is in `src/renderer/render_graph/ui/render_graph_viz.ts`
 
-The old `src/renderer/render_graph.ts` (Replaced by this new system) is still used by the crafty game (`crafty/main.ts`), while this new system is exercised by the samples until it is ready to replace the old system.
+The crafty game (`crafty/main.ts` + `crafty/renderer_setup.ts`) and all `samples/rg_*.ts` samples use this system. The old `src/renderer/render_graph.ts` is still used by non-`rg_*` samples and is being phased out.
 
 ## Architecture
 

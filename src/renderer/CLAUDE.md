@@ -18,9 +18,9 @@ WebGPU rendering layer. Two render-graph systems coexist — see root CLAUDE.md.
 
 | If the calling code is...                  | Use                                               |
 | ------------------------------------------ | ------------------------------------------------- |
-| [crafty/main.ts](../../crafty/main.ts) game | Old (`render_graph.ts` + `passes/`)              |
+| [crafty/main.ts](../../crafty/main.ts) game | New (`render_graph/` + `render_graph/passes/`)   |
 | `samples/rg_*.ts`                          | New (`render_graph/` + `render_graph/passes/`)   |
-| Other `samples/*.ts`                       | Old                                               |
+| Other `samples/*.ts`                       | Old (`render_graph.ts` + `passes/`)               |
 | New code from scratch                      | New — old API is being phased out                 |
 
 ## Common patterns (both APIs)

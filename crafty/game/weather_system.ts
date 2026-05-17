@@ -94,3 +94,17 @@ export function pickRandomWeather(biome: BiomeType, _current?: WeatherType): Wea
 export function getWeatherChangeInterval(): number {
   return 30 + Math.random() * 90;
 }
+
+/**
+ * Next weather in the biome's available list (wraps around). When `current`
+ * isn't in the list (e.g. just moved biomes) the first available weather is
+ * returned. Used by the debug `O` hotkey to cycle deterministically through
+ * weathers instead of rolling another random pick.
+ */
+export function nextWeather(biome: BiomeType, current: WeatherType): WeatherType {
+  const available = BIOME_WEATHERS[biome];
+  if (!available || available.length === 0) return WeatherType.Clear;
+  const idx = available.indexOf(current);
+  if (idx === -1) return available[0];
+  return available[(idx + 1) % available.length];
+}

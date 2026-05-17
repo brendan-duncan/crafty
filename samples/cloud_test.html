@@ -21,11 +21,15 @@
     }
     #sun-control {
       position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-      display: flex; align-items: center; gap: 12px;
+      display: flex; flex-direction: column; gap: 8px;
       color: white; font-family: monospace; font-size: 13px;
       background: rgba(0,0,0,0.7); padding: 10px 16px; border-radius: 6px;
     }
-    #sun-control input { width: 240px; cursor: pointer; }
+    #sun-control .row { display: flex; align-items: center; gap: 12px; }
+    #sun-control .row > * { flex-shrink: 0; white-space: nowrap; }
+    #sun-control .row > span:not(.value) { min-width: 4.5em; text-align: right; }
+    #sun-control .row > span.value { min-width: 3em; }
+    #sun-control input { width: 150px; cursor: pointer; }
     .toggle-btn {
       padding: 5px 10px; border-width: 1px; border-style: solid;
       border-radius: 4px; cursor: pointer; letter-spacing: 0.04em;
@@ -47,18 +51,28 @@
   </div>
   <div id="panel"></div>
   <div id="sun-control">
-    <span>SUN</span>
-    <input type="range" id="sun-angle" min="0" max="180" value="150" step="1">
-    <span id="sun-label">150°</span>
-    <span>DENSITY</span>
-    <input type="range" id="cloud-density" min="0" max="3" value="0.8" step="0.01">
-    <span id="density-label">0.80</span>
-    <span>COVERAGE</span>
-    <input type="range" id="cloud-coverage" min="0" max="2" value="0.95" step="0.01">
-    <span id="coverage-label">0.95</span>
-    <span>EXTINCTION</span>
-    <input type="range" id="cloud-extinction" min="0" max="2" value="0.6" step="0.01">
-    <span id="extinction-label">0.60</span>
+    <div class="row">
+      <span>SUN</span>
+      <input type="range" id="sun-angle" min="0" max="180" value="150" step="1">
+      <span class="value" id="sun-label">150°</span>
+      <span>DENSITY</span>
+      <input type="range" id="cloud-density" min="0" max="3" value="0.8" step="0.01">
+      <span class="value" id="density-label">0.80</span>
+      <span>COVERAGE</span>
+      <input type="range" id="cloud-coverage" min="0" max="2" value="0.95" step="0.01">
+      <span class="value" id="coverage-label">0.95</span>
+    </div>
+    <div class="row">
+      <span>EXTINCTION</span>
+      <input type="range" id="cloud-extinction" min="0" max="2" value="0.6" step="0.01">
+      <span class="value" id="extinction-label">0.60</span>
+      <span>MIN H</span>
+      <input type="range" id="cloud-min-height" min="0" max="200" value="30" step="1">
+      <span class="value" id="min-height-label">30</span>
+      <span>MAX H</span>
+      <input type="range" id="cloud-max-height" min="0" max="200" value="55" step="1">
+      <span class="value" id="max-height-label">55</span>
+    </div>
   </div>
   <script type="module" src="./cloud_test.ts"></script>
 </body>

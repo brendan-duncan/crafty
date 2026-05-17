@@ -1,1 +1,0 @@
-var d=Object.defineProperty;var t=(s,e,a)=>e in s?d(s,e,{enumerable:!0,configurable:!0,writable:!0,value:a}):s[e]=a;var r=(s,e,a)=>t(s,typeof e!="symbol"?e+"":e,a);class n{constructor(){r(this,"enabled",!0)}destroy(){}}export{n as R};

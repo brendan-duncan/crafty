@@ -1,4 +1,4 @@
-import type { RenderGraph } from '../../index.js';
+import type { RenderGraph, CompiledGraph } from '../index.js';
 
 export interface PassNodeData {
   id: number;
@@ -36,14 +36,34 @@ export interface RenderGraphVizCallbacks {
   onAfterClose?: () => void;
 }
 
+export interface RenderGraphAttachOptions {
+  /** Hotkey code (KeyboardEvent.code) that toggles the overlay. Default `'KeyG'`. Pass `null` to skip. */
+  hotkey?: string | null;
+  /** When provided, a small hint pill is inserted at the bottom of the page. Pass `null` to skip. Default text describes the hotkey. */
+  hint?: string | null;
+  /** Where to attach the hint label. Defaults to `document.body`. */
+  hintParent?: HTMLElement;
+}
+
 export interface RenderGraphViz {
   overlay: HTMLDivElement;
   open: () => void;
   close: () => void;
   isOpen: () => boolean;
-  setGraph: (graph: RenderGraph) => void;
+  /**
+   * Capture the structure of `graph` (and optionally `compiled`, used to mark
+   * culled passes) and render it inside the overlay. Safe to call every frame —
+   * the data is only rebuilt when the overlay is open or the next time it is.
+   */
+  setGraph: (graph: RenderGraph, compiled?: CompiledGraph) => void;
   setPasses: (passes: PassNodeData[]) => void;
   setFullGraph: (data: FullGraphData) => void;
+  /**
+   * One-call wiring: installs the toggle hotkey and (unless suppressed) a
+   * small hint pill at the bottom of the page. Returns the viz unchanged so
+   * the call can be chained.
+   */
+  attach: (opts?: RenderGraphAttachOptions) => RenderGraphViz;
 }
 
 const NODE_W = 176;
@@ -163,6 +183,10 @@ export function createRenderGraphViz(
   let tx = 0, ty = 0, scale = 0.7;
   let _isOpen = false;
   let _lastData: FullGraphData | null = null;
+  /** Pending (graph, compiled) snapshot from {@link setGraph}, extracted into
+   * `_lastData` lazily on open() so per-frame `setGraph` calls stay cheap when
+   * the overlay is hidden. */
+  let _pendingGraph: { graph: RenderGraph; compiled?: CompiledGraph } | null = null;
   let _totalW = 0, _totalH = 0;
   const _texSz = new Map<number, number>();
 
@@ -230,6 +254,11 @@ export function createRenderGraphViz(
     _isOpen = true;
     overlay.style.display = '';
     if (reticle) reticle.style.display = 'none';
+    // Build (or rebuild) the DOM from the latest snapshot recorded via setGraph
+    // while the overlay was hidden.
+    if (_pendingGraph) {
+      setFullGraph(_extractFullGraphData(_pendingGraph.graph, _pendingGraph.compiled));
+    }
     _frameAll();
 
     const blocker = (e: KeyboardEvent): void => {
@@ -259,8 +288,41 @@ export function createRenderGraphViz(
     return _isOpen;
   }
 
-  function setGraph(graph: RenderGraph): void {
-    setPasses(Array.from(graph.passes, (p, i) => ({ id: i, name: p.name, enabled: p.enabled })));
+  function setGraph(graph: RenderGraph, compiled?: CompiledGraph): void {
+    // Just snapshot the refs. The DOM is rebuilt from this snapshot the next
+    // time the overlay is opened — rebuilding every frame while open would
+    // throw away node positions the user just dragged.
+    _pendingGraph = { graph, compiled };
+  }
+
+  function attach(opts: RenderGraphAttachOptions = {}): RenderGraphViz {
+    const hotkey = opts.hotkey === undefined ? 'KeyG' : opts.hotkey;
+    /*const hintText = opts.hint === undefined
+      ? (hotkey ? `${_hotkeyLabel(hotkey)}: toggle render-graph viz` : null)
+      : opts.hint;*/
+
+    if (hotkey) {
+      window.addEventListener('keydown', (e) => {
+        if (e.code !== hotkey || e.repeat) return;
+        if (_isOpen) {
+          close();
+        } else if (_pendingGraph || (_lastData !== null && _lastData.passes.length > 0)) {
+          open();
+        }
+      });
+    }
+    /*if (hintText) {
+      const hintEl = document.createElement('div');
+      hintEl.textContent = hintText;
+      hintEl.style.cssText = [
+        'position:fixed', 'bottom:40px', 'left:50%', 'transform:translateX(-50%)',
+        'padding:4px 10px', 'border-radius:4px', 'background:rgba(0,0,0,0.45)', 'color:#888',
+        'font-family:ui-monospace,monospace', 'font-size:11px', 'pointer-events:none',
+        'z-index:70',
+      ].join(';');
+      (opts.hintParent ?? document.body).appendChild(hintEl);
+    }*/
+    return viz;
   }
 
   function _clear(): void {
@@ -870,5 +932,55 @@ export function createRenderGraphViz(
     _buildLabel(data);
   }
 
-  return { overlay, open, close, isOpen, setGraph, setPasses, setFullGraph };
+  const viz: RenderGraphViz = { overlay, open, close, isOpen, setGraph, setPasses, setFullGraph, attach };
+  return viz;
+}
+
+/*function _hotkeyLabel(code: string): string {
+  // Strip the `Key` / `Digit` / `Arrow` prefix common to KeyboardEvent.code values.
+  return code.replace(/^Key|^Digit|^Arrow/, '');
+}*/
+
+/**
+ * Walk `graph.passList` and (optionally) `compiled.passes` to produce the
+ * pass/texture/edge data the viz renders. Pulled out of the per-frame loop
+ * in every sample — see {@link RenderGraphViz.setGraph}.
+ */
+function _extractFullGraphData(graph: RenderGraph, compiled?: CompiledGraph): FullGraphData {
+  const compiledNames = compiled
+    ? new Set(compiled.passes.map((cp) => cp.node.name))
+    : null;
+  const passes: PassNodeData[] = graph.passList.map((p, i) => ({
+    id: i,
+    name: p.name,
+    enabled: compiledNames === null ? true : compiledNames.has(p.name),
+    type: p.type,
+  }));
+  const texMap = new Map<number, TextureNodeData>();
+  const edges: GraphEdge[] = [];
+  const addNode = (id: number): void => {
+    if (texMap.has(id)) return;
+    const info = graph.getResourceInfo(id);
+    texMap.set(id, {
+      id,
+      label: info?.label ?? `id:${id}`,
+      isBackbuffer: info?.isBackbuffer ?? false,
+      format: info?.format,
+      kind: info?.kind,
+      width: info?.kind === 'texture' ? info?.width : undefined,
+      height: info?.kind === 'texture' ? info?.height : undefined,
+      size: info?.kind === 'buffer' ? info?.size : undefined,
+    });
+  };
+  graph.passList.forEach((p, i) => {
+    for (const r of p.reads) {
+      edges.push({ fromType: 'texture', fromId: r.id, toType: 'pass', toId: i });
+      addNode(r.id);
+    }
+    for (const w of p.writes) {
+      edges.push({ fromType: 'pass', fromId: i, toType: 'texture', toId: w.id });
+      addNode(w.id);
+    }
+  });
+  return { passes, textures: [...texMap.values()], edges };
 }

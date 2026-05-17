@@ -37,8 +37,8 @@ No lint script. Type-check via `npm run build` or `tsc --noEmit`.
 
 This is the single biggest gotcha — keep them straight:
 
-- **Old API** — [src/renderer/render_graph.ts](src/renderer/render_graph.ts): linear ordered list of `RenderPass` instances. Used by the actual game ([crafty/main.ts](crafty/main.ts)) and most non-`rg_*` samples.
-- **New API** — [src/renderer/render_graph/](src/renderer/render_graph/) directory: real dependency-graph builder with virtual resources, culling, pooled physical resources, `Pass` base class with typed deps/outputs. Used by `samples/rg_*.ts` and being migrated toward.
+- **New API** — [src/renderer/render_graph/](src/renderer/render_graph/) directory: real dependency-graph builder with virtual resources, culling, pooled physical resources, `Pass` base class with typed deps/outputs. Used by the game ([crafty/main.ts](crafty/main.ts) + [crafty/renderer_setup.ts](crafty/renderer_setup.ts)) and by `samples/rg_*.ts`.
+- **Old API** — [src/renderer/render_graph.ts](src/renderer/render_graph.ts): linear ordered list of `RenderPass` instances. Still used by non-`rg_*` samples; being phased out.
 
 When asked to add/modify a pass, first determine which system the calling code uses. Pass classes for the new system live under [src/renderer/render_graph/passes/](src/renderer/render_graph/passes/); old-system passes are in [src/renderer/passes/](src/renderer/passes/). Same filenames, different APIs.
 

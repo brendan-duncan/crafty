@@ -93,7 +93,24 @@ export interface AttachmentOptions {
   resolveTarget?: ResourceHandle;
 }
 
-/** Pass type: drives which encoder the graph hands to the execute callback. */
+/**
+ * Pass type: drives which encoder the graph hands to the execute callback.
+ *
+ * - `'render'` — graph builds a `GPURenderPassDescriptor` from the declared
+ *   attachments, begins a render pass, and passes both the command encoder and
+ *   the render pass encoder to `execute`.
+ * - `'compute'` — graph begins a compute pass and passes both the command
+ *   encoder and the compute pass encoder to `execute`.
+ * - `'transfer'` — graph passes only the raw `GPUCommandEncoder` to `execute`;
+ *   no render or compute pass is opened. Use this for work that lives directly
+ *   on the command encoder rather than inside a sub-pass: copy commands
+ *   (`copyBufferToBuffer`, `copyTextureToTexture`, `copyBufferToTexture`,
+ *   `copyTextureToBuffer`), `clearBuffer`, or passes that manage their own
+ *   internal sub-passes (e.g. shadow passes that begin many render passes of
+ *   their own, history-buffer copies for TAA / SSGI). It is also a convenient
+ *   no-op placeholder for a disabled pass that still needs to participate in
+ *   the dependency graph.
+ */
 export type PassType = 'render' | 'compute' | 'transfer';
 
 /**

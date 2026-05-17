@@ -1,5 +1,6 @@
 import { RenderContext } from '../src/renderer/render_context.js';
 import { PhysicalResourceCache, RenderGraph } from '../src/renderer/render_graph/index.js';
+import { createRenderGraphViz } from '../src/renderer/render_graph/ui/render_graph_viz.js';
 
 const VS_FULLTRI = `@vertex fn vs(@builtin(vertex_index) vi: u32) -> @builtin(position) vec4<f32> {
   let pos = array(vec2(-1.0,-1.0), vec2(3.0,-1.0), vec2(-1.0,3.0));
@@ -69,6 +70,7 @@ async function main(): Promise<void> {
   const pl: Record<string, Pipeline> = {
     proc: createPipeline(device, 'Procedural', PROC_BB_FS, fmt, 16),
   };
+  const graphViz = createRenderGraphViz(null).attach();
 
   const resizeObserver = new ResizeObserver(() => {
     const w = Math.max(1, Math.round(canvas.clientWidth * devicePixelRatio));
@@ -106,6 +108,7 @@ async function main(): Promise<void> {
     });
 
     const compiled = graph.compile();
+    graphViz.setGraph(graph, compiled);
     void graph.execute(compiled);
 
     requestAnimationFrame(frame);
