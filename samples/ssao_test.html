@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Crafty — SSAO Test</title>
+  <style>
+    html, body {
+      margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
+      background: #000; color: #fff;
+      font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+    }
+    canvas { display: block; width: 100%; height: 100%; }
+
+    #stats {
+      position: fixed; top: 12px; right: 12px; z-index: 10;
+      font-size: 12px; color: #aaa;
+      background: rgba(0, 0, 0, 0.55); padding: 4px 8px; border-radius: 4px;
+      pointer-events: none;
+    }
+
+    #controls {
+      position: fixed; top: 12px; left: 12px; z-index: 10;
+      background: rgba(15, 15, 18, 0.85);
+      border: 1px solid #2a2a38;
+      border-radius: 6px;
+      padding: 10px 12px;
+      min-width: 240px;
+      font-size: 12px;
+      color: #d4d4e8;
+    }
+
+    #controls h3 {
+      margin: 0 0 8px;
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #5ef0c8;
+      font-weight: 600;
+    }
+
+    #controls label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 6px 0;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    #controls label > span:first-child {
+      flex: 1;
+      color: #aaa;
+      font-size: 11px;
+    }
+
+    #controls select,
+    #controls input[type="range"] {
+      background: #16161c;
+      color: #d4d4e8;
+      border: 1px solid #2a2a38;
+      border-radius: 3px;
+      padding: 3px 6px;
+      font-family: inherit;
+      font-size: 11px;
+    }
+
+    #controls select { min-width: 130px; }
+    #controls input[type="range"] { width: 130px; }
+
+    #controls .val {
+      display: inline-block;
+      min-width: 36px;
+      text-align: right;
+      color: #5ef0c8;
+      font-size: 11px;
+      margin-left: 6px;
+    }
+
+    #controls hr {
+      border: none;
+      border-top: 1px solid #2a2a38;
+      margin: 10px 0 8px;
+    }
+
+    #desc {
+      position: fixed; bottom: 12px; left: 12px; right: 12px; z-index: 10;
+      font-size: 11px; color: rgba(255, 255, 255, 0.5); text-align: center;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <div id="stats"></div>
+  <div id="controls">
+    <h3>SSAO</h3>
+    <label>
+      <span>Mode</span>
+      <select id="mode">
+        <option value="quality" selected>Quality (bilateral blur)</option>
+        <option value="performance">Performance (box blur)</option>
+        <option value="off">Off (strength = 0)</option>
+      </select>
+    </label>
+    <label>
+      <span>Radius</span>
+      <input id="radius" type="range" min="0.1" max="3.0" step="0.05" value="1.0">
+      <span class="val" id="radiusVal">1.00</span>
+    </label>
+    <label>
+      <span>Bias</span>
+      <input id="bias" type="range" min="0.0" max="0.05" step="0.001" value="0.005">
+      <span class="val" id="biasVal">0.005</span>
+    </label>
+    <label>
+      <span>Strength</span>
+      <input id="strength" type="range" min="0.0" max="4.0" step="0.1" value="2.0">
+      <span class="val" id="strengthVal">2.0</span>
+    </label>
+    <hr>
+    <label>
+      <span>View</span>
+      <select id="view">
+        <option value="ao" selected>Debug AO</option>
+        <option value="lit">Lit scene</option>
+      </select>
+    </label>
+  </div>
+  <div id="desc">SSAO test — single 16×16×16 chunk of random blocks. Drag to orbit · scroll to zoom.</div>
+  <script type="module" src="./ssao_test.ts"></script>
+</body>
+</html>

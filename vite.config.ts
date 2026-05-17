@@ -24,6 +24,7 @@ export default defineConfig({
          rg_deferred_simple: 'samples/rg_deferred_simple.html',
          rg_deferred_full: 'samples/rg_deferred_full.html',
          rg_engine_test: 'samples/rg_engine_test.html',
+         ssao_test: 'samples/ssao_test.html',
         }
     }
   },
