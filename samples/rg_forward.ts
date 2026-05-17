@@ -7,7 +7,6 @@ import { RenderContext } from '../src/renderer/render_context.js';
 import { PhysicalResourceCache, RenderGraph } from '../src/renderer/render_graph/index.js';
 import { PbrMaterial } from '../src/renderer/materials/pbr_material.js';
 import { ForwardPass, type ForwardDrawItem } from '../src/renderer/render_graph/passes/forward_pass.js';
-import { TonemapPass } from '../src/renderer/render_graph/passes/tonemap_pass.js';
 import type { DirectionalLight } from '../src/renderer/directional_light.js';
 import { SpotLight } from '../src/renderer/spot_light.js';
 import type { PointLight } from '../src/renderer/point_light.js';
@@ -54,8 +53,6 @@ async function main(): Promise<void> {
   cameraController.attach(canvas);
 
   const forwardPass = ForwardPass.create(ctx);
-  const tonemapPass = TonemapPass.create(ctx);
-  tonemapPass.updateParams(ctx, 1.0, false, false);
 
   const resizeObserver = new ResizeObserver(() => {
     const w = Math.max(1, Math.round(canvas.clientWidth * devicePixelRatio));
@@ -158,11 +155,13 @@ async function main(): Promise<void> {
     forwardPass.updateLights(ctx, directionalLight, pointLights, spotLights);
 
     const graph = new RenderGraph(ctx, cache);
-    const bb = graph.setBackbuffer('canvas');
+    graph.setBackbuffer('canvas');
+    graph.setBackbufferDepth('canvas');
 
-    const { output } = forwardPass.addToGraph(graph);
-
-    tonemapPass.addToGraph(graph, { hdr: output, backbuffer: bb });
+    // `output: 'auto'` and `depth: 'auto'` route ForwardPass straight at the
+    // canvas (and its depth) when the graph has them registered and no earlier
+    // pass writes to them — avoiding an HDR transient + tonemap blit.
+    forwardPass.addToGraph(graph, { output: 'auto', depth: 'auto' });
 
     const compiled = graph.compile();
     const compiledNames = new Set(compiled.passes.map(cp => cp.node.name));

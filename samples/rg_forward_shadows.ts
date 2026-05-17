@@ -1,5 +1,7 @@
+import skyHdrUrl from '../assets/cubemaps/hdr/clear_sky.hdr?url';
 import { Mat4, Vec3 } from '../src/math/index.js';
 import { Mesh } from '../src/assets/mesh.js';
+import { parseHdr, createHdrTexture } from '../src/assets/hdr_loader.js';
 import { CameraController } from '../src/engine/camera_controller.js';
 import { GameObject } from '../src/engine/game_object.js';
 import { Camera } from '../src/engine/components/camera.js';
@@ -8,11 +10,34 @@ import { PhysicalResourceCache, RenderGraph } from '../src/renderer/render_graph
 import { PbrMaterial } from '../src/renderer/materials/pbr_material.js';
 import { ForwardPass, type ForwardDrawItem } from '../src/renderer/render_graph/passes/forward_pass.js';
 import { ShadowPass, type ShadowMeshDraw } from '../src/renderer/render_graph/passes/shadow_pass.js';
+import { SkyTexturePass } from '../src/renderer/render_graph/passes/sky_texture_pass.js';
+import { TAAPass } from '../src/renderer/render_graph/passes/taa_pass.js';
 import { TonemapPass } from '../src/renderer/render_graph/passes/tonemap_pass.js';
 import type { DirectionalLight } from '../src/renderer/directional_light.js';
+import type { PointLight } from '../src/renderer/point_light.js';
+import { SpotLight } from '../src/renderer/spot_light.js';
 import type { CascadeData } from '../src/engine/components/directional_light.js';
 import { createRenderGraphViz } from '../src/renderer/render_graph/ui/render_graph_viz.js';
 import type { PassNodeData, TextureNodeData, GraphEdge, FullGraphData } from '../src/renderer/render_graph/ui/render_graph_viz.js';
+
+function halton(index: number, base: number): number {
+  let result = 0, f = 1;
+  while (index > 0) {
+    f /= base;
+    result += f * (index % base);
+    index = Math.floor(index / base);
+  }
+  return result;
+}
+
+function applyJitter(vp: Mat4, jx: number, jy: number): Mat4 {
+  const m = vp.clone();
+  for (let c = 0; c < 4; c++) {
+    m.data[c * 4 + 0] += jx * m.data[c * 4 + 3];
+    m.data[c * 4 + 1] += jy * m.data[c * 4 + 3];
+  }
+  return m;
+}
 
 async function main(): Promise<void> {
   const canvas = document.getElementById('canvas') as HTMLCanvasElement;
@@ -22,18 +47,25 @@ async function main(): Promise<void> {
   const device = ctx.device;
   const cache = new PhysicalResourceCache(device);
 
+  const skyTexture = await createHdrTexture(device, parseHdr(await (await fetch(skyHdrUrl)).arrayBuffer()));
+
   const sphereMesh = Mesh.createSphere(device, 1, 24, 24);
   const planeMesh = Mesh.createPlane(device, 30, 30);
+  const cubeMesh = Mesh.createCube(device);
 
   const sphereMat = new PbrMaterial({ albedo: [0.9, 0.2, 0.1, 1], roughness: 0.3, metallic: 0 });
   const planeMat = new PbrMaterial({ albedo: [0.6, 0.6, 0.6, 1], roughness: 0.8, metallic: 0 });
-  sphereMat.getBindGroup(device);
-  sphereMat.update(device.queue);
-  planeMat.getBindGroup(device);
-  planeMat.update(device.queue);
+  const metalMat = new PbrMaterial({ albedo: [0.8, 0.8, 0.8, 1], roughness: 0.4, metallic: 0.5 });
+  const glassMat = new PbrMaterial({ albedo: [0.2, 0.6, 1.0, 0.5], roughness: 0.1, metallic: 0, transparent: true });
+  sphereMat.getBindGroup(device); sphereMat.update(device.queue);
+  planeMat.getBindGroup(device); planeMat.update(device.queue);
+  metalMat.getBindGroup(device); metalMat.update(device.queue);
+  glassMat.getBindGroup(device); glassMat.update(device.queue);
 
-  const sphereModel = Mat4.translation(0, 1, 0);
+  const sphereModel = Mat4.translation(0, 1.5, 0);
   const planeModel = Mat4.identity();
+  const metalModel = Mat4.translation(-3, 1, 0);
+  const glassModel = Mat4.translation(3, 1, 0);
 
   const cameraGO = new GameObject({ name: 'Camera' });
   cameraGO.position.set(0, 3, -6);
@@ -46,6 +78,8 @@ async function main(): Promise<void> {
 
   const shadowPass = ShadowPass.create(ctx);
   const forwardPass = ForwardPass.create(ctx);
+  const skyPass = SkyTexturePass.create(ctx, skyTexture);
+  const taaPass = TAAPass.create(ctx);
   const tonemapPass = TonemapPass.create(ctx);
   tonemapPass.updateParams(ctx, 1.0, false, false);
 
@@ -81,6 +115,9 @@ async function main(): Promise<void> {
     }
   });
 
+  let frameIndex = 0;
+  let prevViewProj: Mat4 | null = null;
+
   function frame(): void {
     ctx.update();
     statsEl.textContent = `FPS: ${ctx.fps}`;
@@ -95,6 +132,12 @@ async function main(): Promise<void> {
     const viewProj = camera.viewProjectionMatrix();
     const invViewProj = viewProj.invert();
     const camPos = camera.position();
+
+    // Sub-pixel jitter so TAA has something to converge against.
+    const hi = (frameIndex % 16) + 1;
+    const jx = (halton(hi, 2) - 0.5) * (2 / ctx.width);
+    const jy = (halton(hi, 3) - 0.5) * (2 / ctx.height);
+    const jitViewProj = applyJitter(viewProj, jx, jy);
 
     const lightDir = new Vec3(Math.cos(sunAngle), -0.8, Math.sin(sunAngle)).normalize();
     const center = new Vec3(0, 1, 0);
@@ -154,27 +197,63 @@ async function main(): Promise<void> {
       cascades,
     };
 
+    const pointLights: PointLight[] = [
+      {
+        position: new Vec3(Math.sin(ctx.elapsedTime) * 3, 2, Math.cos(ctx.elapsedTime) * 3),
+        range: 8,
+        color: new Vec3(1.0, 0.3, 0.3),
+        intensity: 10,
+        castShadows: false,
+      },
+    ];
+
+    const spotLights: SpotLight[] = [
+      new SpotLight({
+        position: new Vec3(0, 5, 0),
+        range: 10,
+        direction: new Vec3(0, -1, 0),
+        innerAngle: 20,
+        color: new Vec3(1.0, 1.0, 0.5),
+        outerAngle: 30,
+        intensity: 15,
+        castShadows: false,
+      }),
+    ];
+
     const drawItems: ForwardDrawItem[] = [
       { mesh: sphereMesh, modelMatrix: sphereModel, normalMatrix: sphereModel.normalMatrix(), material: sphereMat },
       { mesh: planeMesh, modelMatrix: planeModel, normalMatrix: planeModel.normalMatrix(), material: planeMat },
+      { mesh: cubeMesh, modelMatrix: metalModel, normalMatrix: metalModel.normalMatrix(), material: metalMat },
+      { mesh: cubeMesh, modelMatrix: glassModel, normalMatrix: glassModel.normalMatrix(), material: glassMat },
     ];
 
     const shadowItems: ShadowMeshDraw[] = [
       { mesh: sphereMesh, modelMatrix: sphereModel },
       { mesh: planeMesh, modelMatrix: planeModel },
+      { mesh: cubeMesh, modelMatrix: metalModel },
+      { mesh: cubeMesh, modelMatrix: glassModel },
     ];
 
     forwardPass.setDrawItems(drawItems);
-    forwardPass.updateCamera(ctx, view, proj, viewProj, invViewProj, camPos, 0.1, 100);
-    forwardPass.updateLights(ctx, directionalLight, [], []);
+    // Use the jittered VP for vertex transforms so TAA gets sub-pixel motion.
+    forwardPass.updateCamera(ctx, view, proj, jitViewProj, invViewProj, camPos, 0.1, 100);
+    forwardPass.updateLights(ctx, directionalLight, pointLights, spotLights);
+    skyPass.updateCamera(ctx, invViewProj, camPos);
+    taaPass.updateCamera(ctx, invViewProj, prevViewProj ?? viewProj);
 
     const graph = new RenderGraph(ctx, cache);
     const bb = graph.setBackbuffer('canvas');
 
     const shadow = shadowPass.addToGraph(graph, { cascades, drawItems: shadowItems });
-    const { output } = forwardPass.addToGraph(graph, { shadowMapSource: shadow.shadowMap });
-
-    tonemapPass.addToGraph(graph, { hdr: output, backbuffer: bb });
+    // Sky clears the HDR target; forward loads it and draws the scene on top.
+    const sky = skyPass.addToGraph(graph);
+    const lit = forwardPass.addToGraph(graph, {
+      output: sky.hdr,
+      loadOp: 'load',
+      shadowMapSource: shadow.shadowMap,
+    });
+    const taaOut = taaPass.addToGraph(graph, { hdr: lit.output, depth: lit.depth });
+    tonemapPass.addToGraph(graph, { hdr: taaOut.resolved, backbuffer: bb });
 
     const compiled = graph.compile();
     const compiledNames = new Set(compiled.passes.map(cp => cp.node.name));
@@ -220,6 +299,8 @@ async function main(): Promise<void> {
     lastGraphData = { passes, textures: [...texMap.values()], edges };
     void graph.execute(compiled);
 
+    prevViewProj = viewProj;
+    frameIndex++;
     requestAnimationFrame(frame);
   }
 

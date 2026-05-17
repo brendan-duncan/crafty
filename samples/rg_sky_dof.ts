@@ -10,10 +10,30 @@ import { DeferredLightingPass } from '../src/renderer/render_graph/passes/deferr
 import { ShadowPass, type ShadowMeshDraw } from '../src/renderer/render_graph/passes/shadow_pass.js';
 import { AtmospherePass } from '../src/renderer/render_graph/passes/atmosphere_pass.js';
 import { DofPass } from '../src/renderer/render_graph/passes/dof_pass.js';
+import { TAAPass } from '../src/renderer/render_graph/passes/taa_pass.js';
 import { TonemapPass } from '../src/renderer/render_graph/passes/tonemap_pass.js';
 import type { CascadeData } from '../src/engine/components/directional_light.js';
 import { createRenderGraphViz } from '../src/renderer/render_graph/ui/render_graph_viz.js';
 import type { PassNodeData, TextureNodeData, GraphEdge, FullGraphData } from '../src/renderer/render_graph/ui/render_graph_viz.js';
+
+function halton(index: number, base: number): number {
+  let result = 0, f = 1;
+  while (index > 0) {
+    f /= base;
+    result += f * (index % base);
+    index = Math.floor(index / base);
+  }
+  return result;
+}
+
+function applyJitter(vp: Mat4, jx: number, jy: number): Mat4 {
+  const m = vp.clone();
+  for (let c = 0; c < 4; c++) {
+    m.data[c * 4 + 0] += jx * m.data[c * 4 + 3];
+    m.data[c * 4 + 1] += jy * m.data[c * 4 + 3];
+  }
+  return m;
+}
 
 async function main(): Promise<void> {
   const canvas = document.getElementById('canvas') as HTMLCanvasElement;
@@ -47,6 +67,7 @@ async function main(): Promise<void> {
   const geometryPass = GeometryPass.create(ctx);
   const atmospherePass = AtmospherePass.create(ctx);
   const lightingPass = DeferredLightingPass.create(ctx);
+  const taaPass = TAAPass.create(ctx);
   const dofPass = DofPass.create(ctx);
   const tonemapPass = TonemapPass.create(ctx);
   tonemapPass.updateParams(ctx, 1.0, false, false);
@@ -84,12 +105,14 @@ async function main(): Promise<void> {
   });
 
   let smoothFps = 0;
+  let frameIndex = 0;
+  let prevViewProj: Mat4 | null = null;
 
   function frame(): void {
     ctx.update();
     if (ctx.deltaTime > 0) {
       smoothFps += (1 / ctx.deltaTime - smoothFps) * 0.1;
-      statsEl.textContent = `${smoothFps.toFixed(0)} fps | Forward PBR + Sky + DOF`;
+      statsEl.textContent = `${smoothFps.toFixed(0)} fps | Deferred PBR + Sky + TAA + DOF`;
     }
 
     const sunAngle = ctx.elapsedTime * 0.3;
@@ -101,6 +124,12 @@ async function main(): Promise<void> {
     const vp = proj.multiply(view);
     const invVP = vp.invert();
     const camPos = cameraGO.position;
+
+    // Sub-pixel jitter so TAA actually has something to converge against.
+    const hi = (frameIndex % 16) + 1;
+    const jx = (halton(hi, 2) - 0.5) * (2 / ctx.width);
+    const jy = (halton(hi, 3) - 0.5) * (2 / ctx.height);
+    const jitVP = applyJitter(vp, jx, jy);
 
     const lightDir = new Vec3(Math.cos(sunAngle), -0.8, Math.sin(sunAngle)).normalize();
     const center = new Vec3(0, 1, 0);
@@ -126,13 +155,15 @@ async function main(): Promise<void> {
     ];
 
     geometryPass.setDrawItems(drawItems);
-    geometryPass.updateCamera(ctx, view, proj, vp, invVP, camPos, 0.1, 100);
+    geometryPass.updateCamera(ctx, view, proj, jitVP, invVP, camPos, 0.1, 100);
 
     atmospherePass.update(ctx, invVP, camPos, lightDir);
 
     lightingPass.updateCamera(ctx, view, proj, vp, invVP, camPos, 0.1, 100);
     lightingPass.updateLight(ctx, lightDir, { x: 1, y: 1, z: 1 }, 2.0, cascades, true, false);
     lightingPass.updateCloudShadow(ctx, 0, 0, 60);
+
+    taaPass.updateCamera(ctx, invVP, prevViewProj ?? vp);
 
     dofPass.updateParams(ctx, 30.0, 60.0, 6.0, 0.1, 100.0, 1.0);
 
@@ -159,7 +190,9 @@ async function main(): Promise<void> {
       hdr: skyOut.hdr,
     });
 
-    const dofOut = dofPass.addToGraph(graph, { hdr: lit.hdr, depth: gbuffer.depth });
+    const taaOut = taaPass.addToGraph(graph, { hdr: lit.hdr, depth: gbuffer.depth });
+
+    const dofOut = dofPass.addToGraph(graph, { hdr: taaOut.resolved, depth: gbuffer.depth });
 
     tonemapPass.addToGraph(graph, { hdr: dofOut.result, backbuffer: bb });
 
@@ -207,6 +240,8 @@ async function main(): Promise<void> {
     lastGraphData = { passes, textures: [...texMap.values()], edges };
     void graph.execute(compiled);
 
+    prevViewProj = vp;
+    frameIndex++;
     requestAnimationFrame(frame);
   }
 
