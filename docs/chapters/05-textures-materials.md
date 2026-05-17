@@ -380,7 +380,134 @@ struct CameraUniforms {
 
 Each `Material` subclass returns complete WGSL source from `getShaderCode()`, which may concatenate shared code with specific implementations. Reinventing this per material avoids the complexity of a full shader include system while keeping the shader source self-contained.
 
-### 5.7 Summary
+## 5.7 Shader Variants
+
+A `PbrMaterial` is configurable: any of its texture maps (`albedoMap`, `normalMap`, `merMap`) can be present or absent independently. That's eight possible combinations, but compiling eight separate shader files would be brittle and impossible to keep in sync. Instead, every material shader is **one file** with `#ifdef` guards around the optional bindings and sampling code; the geometry pass picks the right variant per draw by passing different `defines` to the shader compiler.
+
+The mechanism behind `#ifdef` — `ctx.createShaderModule(source, label, defines)` and the preprocessor that runs ahead of `#import` resolution — is described in [§2.7 Shader Variants](02-webgpu-fundamentals.md#shader-variants). This section covers how the material system actually drives it.
+
+### The Variant Mask
+
+Each `PbrMaterial` instance exposes a small bitmask describing which optional features are active for *this* material:
+
+```typescript
+// ── from src/renderer/materials/pbr_material.ts ──
+const HAS_ALBEDO_MAP = 1 << 0;
+const HAS_NORMAL_MAP = 1 << 1;
+const HAS_MER_MAP    = 1 << 2;
+
+get variantMask(): number {
+  let mask = 0;
+  if (this._albedoMap) mask |= HAS_ALBEDO_MAP;
+  if (this._normalMap) mask |= HAS_NORMAL_MAP;
+  if (this._merMap)    mask |= HAS_MER_MAP;
+  return mask;
+}
+```
+
+A material with all three texture maps reports `0b111 = 7`. A material with only an albedo map reports `0b001 = 1`. The mask is computed from the same `_*Map` fields that drive `getBindGroup()`, so it always reflects what the material is actually about to bind.
+
+### The Shader Guards
+
+The geometry shader uses the same three names as `#ifdef` guards, around both the **binding declarations** and the **sampling code**:
+
+```wgsl
+// ── from src/shaders/geometry.wgsl ──
+@group(2) @binding(0) var<uniform> material: MaterialUniforms;
+#ifdef HAS_ALBEDO_MAP
+@group(2) @binding(1) var albedo_map: texture_2d<f32>;
+#endif
+#ifdef HAS_NORMAL_MAP
+@group(2) @binding(2) var normal_map: texture_2d<f32>;
+#endif
+#ifdef HAS_MER_MAP
+@group(2) @binding(3) var mer_map   : texture_2d<f32>;
+#endif
+@group(2) @binding(4) var mat_samp  : sampler;
+
+// ...
+
+@fragment
+fn fs_main(in: VertexOutput) -> FragmentOutput {
+  let atlas_uv = fract(in.uv * material.uvTile) * material.uvScale + material.uvOffset;
+
+#ifdef HAS_ALBEDO_MAP
+  let albedo = textureSample(albedo_map, mat_samp, atlas_uv).rgb * material.albedo.rgb;
+#else
+  let albedo = material.albedo.rgb;
+#endif
+
+  // ...
+}
+```
+
+Guarding the binding declarations — not just the sampling code — is what makes the variant pay off. A variant compiled with `HAS_ALBEDO_MAP` undefined doesn't have an `albedo_map` binding at all; the bind group layout for that variant doesn't have to allocate a slot for it. The compiled shader is also strictly smaller, with no dead `textureSample` calls a driver would otherwise have to eliminate.
+
+### Wiring It Together
+
+The geometry pass ties shader variant, bind group layout, and pipeline together via a single cache key:
+
+```typescript
+// ── from src/renderer/render_graph/passes/geometry_pass.ts ──
+const variantMask = (item.material as any).variantMask ?? 0;
+enc.setPipeline(this._getPipeline(item.material, variantMask));
+
+// ...
+
+private _getPipeline(material: Material, variantMask: number): GPURenderPipeline {
+  const key = `${material.shaderId}:${variantMask}`;
+  let pipeline = this._pipelineCache.get(key);
+  if (pipeline) return pipeline;
+
+  const defines: Record<string, string> = {};
+  if (variantMask & 1) defines['HAS_ALBEDO_MAP'] = '1';
+  if (variantMask & 2) defines['HAS_NORMAL_MAP'] = '1';
+  if (variantMask & 4) defines['HAS_MER_MAP']    = '1';
+
+  const shaderModule = this._ctx.createShaderModule(
+    material.getShaderCode(MaterialPassType.Geometry, variantMask),
+    `GeometryShader[${key}]`,
+    defines,
+  );
+  pipeline = this._device.createRenderPipeline({
+    label: `GeometryPipeline[${key}]`,
+    layout: this._device.createPipelineLayout({
+      bindGroupLayouts: [
+        this._cameraBgl,
+        this._modelBgl,
+        material.getBindGroupLayout(this._device, variantMask),
+      ],
+    }),
+    // ... vertex, fragment, depth, primitive state ...
+  });
+  this._pipelineCache.set(key, pipeline);
+  return pipeline;
+}
+```
+
+Three things are keyed by the same `variantMask`:
+
+1. **The shader module.** `defines` is built from the mask bits and fed to `ctx.createShaderModule()`, which preprocesses the WGSL before passing it to WebGPU.
+2. **The bind group layout.** `material.getBindGroupLayout(device, variantMask)` returns a layout whose entries match the bindings actually present in this variant's compiled shader.
+3. **The pipeline cache key.** `shaderId:variantMask` ensures one compiled pipeline per (material type, feature combination). A scene with 100 PBR materials but only three unique masks ends up with three pipelines.
+
+WebGPU validates pipeline-layout/shader-binding compatibility at pipeline creation time, so keeping the layout and the shader in lockstep through the same mask is what makes the whole thing safe. A mismatch — for example, returning the all-textures layout while compiling a no-textures shader — would fail at `createRenderPipeline` immediately, not at draw time.
+
+### Why Not Just Always Bind All Textures?
+
+A reasonable alternative would be to always declare all three texture bindings and bind a 1×1 white placeholder when a map is absent. That avoids variants entirely, but at the cost of:
+
+- A bind group layout slot for every optional texture, whether or not it's used.
+- Extra `textureSample` calls and arithmetic on every fragment.
+- Less help from the driver, which can no longer specialise the shader to the actual binding set.
+
+Variants pay for these costs in pipeline-cache size rather than per-fragment work. For a small, well-defined set of feature flags (Crafty's PBR material has three, giving at most eight variants per pass type), that trade-off is comfortably the right one — variants are negligible to cache and meaningfully cheaper to execute. A material with dozens of independently-toggleable features would have to be more careful, since the cache size grows exponentially with the number of flags.
+
+### Same Mask Across Pass Types
+
+The variant mask isn't pass-specific — it's a property of the material instance and gets used by every pass that draws it. `GeometryPass`, `ForwardPass`, and `SkinnedGeometryPass` all consult `material.variantMask` and pass it to both `getShaderCode(passType, mask)` and `getBindGroupLayout(device, mask)`. The same opaque mesh drawn into the G-buffer and into a depth-only shadow map will compile two pipelines (one per pass type) but they share the same `HAS_ALBEDO_MAP / HAS_NORMAL_MAP / HAS_MER_MAP` settings, keyed by the same mask.
+
+## 5.8 Summary
 
 The material system decouples surface appearance from the renderer:
 

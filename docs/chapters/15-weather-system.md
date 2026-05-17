@@ -36,6 +36,7 @@ Each weather type carries up to five derived properties:
 Different biomes have different weather patterns — you will not see snow in the desert. The `BIOME_WEATHERS` table defines which weather types are valid for each biome:
 
 ```typescript
+// ── from crafty/game/weather_system.ts ──
 const BIOME_WEATHERS: Record<BiomeType, WeatherType[]> = {
   [BiomeType.None]:            [Sunny, Cloudy, Overcast, Foggy],
   [BiomeType.Desert]:          [Sunny, Cloudy],
@@ -51,6 +52,7 @@ Desert biomes never see rain, snow, or fog — the arid climate excludes anythin
 Each weather type also carries a **selection weight** — fair weather (Sunny, Cloudy) is more likely than precipitation, and light precipitation is more common than heavy:
 
 ```typescript
+// ── from crafty/game/weather_system.ts ──
 const WEATHER_WEIGHTS: Record<WeatherType, number> = {
   [WeatherType.Sunny]:       5,
   [WeatherType.Cloudy]:      4,
@@ -66,6 +68,7 @@ const WEATHER_WEIGHTS: Record<WeatherType, number> = {
 The `pickRandomWeather` function builds a cumulative distribution from the available weathers and their weights, then rolls a random number:
 
 ```typescript
+// ── from crafty/game/weather_system.ts ──
 export function pickRandomWeather(biome: BiomeType): WeatherType {
   const available = BIOME_WEATHERS[biome];
   const totalWeight = available.reduce((sum, w) => sum + WEATHER_WEIGHTS[w], 0);
@@ -83,6 +86,7 @@ export function pickRandomWeather(biome: BiomeType): WeatherType {
 Weather changes automatically over time. A per-frame timer counts down — when it reaches zero, a new weather state is chosen and the timer resets:
 
 ```typescript
+// ── from crafty/game/weather_system.ts ──
 export function getWeatherChangeInterval(): number {
   return 30 + Math.random() * 90;  // 30–120 seconds
 }
@@ -91,6 +95,7 @@ export function getWeatherChangeInterval(): number {
 In `main.ts`, the weather update runs every frame:
 
 ```typescript
+// ── from crafty/main.ts ──
 weatherTimer -= dt;
 if (weatherTimer <= 0) {
   currentWeather = pickRandomWeather(biome, currentWeather);
@@ -120,6 +125,7 @@ When the weather type changes, two things happen:
 Each weather type dictates a target cloud coverage that the renderer lerps toward:
 
 ```typescript
+// ── from crafty/game/weather_system.ts ──
 export function getWeatherCloudCoverage(weather: WeatherType): number {
   switch (weather) {
     case WeatherType.Sunny:      return 0.1;
@@ -139,6 +145,7 @@ Foggy targets a coverage > 1.0 — the cloud shader clamps this implicitly, so t
 In the frame loop this target is blended smoothly:
 
 ```typescript
+// ── from crafty/main.ts ──
 const targetCloudCoverage = getWeatherCloudCoverage(currentWeather);
 cloudCoverage += (targetCloudCoverage - cloudCoverage) * Math.min(1, 0.3 * dt);
 ```
@@ -150,6 +157,7 @@ This feeds into `CloudSettings.coverage`, which controls the density of the volu
 `Foggy` is the one weather type that needs more than just a coverage tweak — it also relocates the cloud volume down to ground level and thins the cloud density. Two small helpers in `weather_system.ts` provide these overrides:
 
 ```typescript
+// ── from crafty/game/weather_system.ts ──
 export function getWeatherCloudBounds(
   weather: WeatherType,
   biomeBounds: { cloudBase: number; cloudTop: number },
@@ -175,6 +183,7 @@ The density override is the more subtle piece. The standard cloud density (4.0) 
 Both overrides are interpolated in the same lerp as coverage:
 
 ```typescript
+// ── from crafty/main.ts ──
 const targetBounds = getWeatherCloudBounds(currentWeather, getBiomeCloudBounds(biome));
 cloudBase += (targetBounds.cloudBase - cloudBase) * Math.min(1, 0.3 * dt);
 cloudTop  += (targetBounds.cloudTop  - cloudTop)  * Math.min(1, 0.3 * dt);
@@ -193,6 +202,7 @@ This effect only reads as fog because the cloud pass runs in **overlay mode** (�
 Rain and snow are rendered by `ParticlePass` with separate configurations (`rainConfig` and `snowConfig` in `crafty/config/particle_configs.ts`). The weather system maps each weather type to an `EnvironmentEffect` and a spawn rate:
 
 ```typescript
+// ── from crafty/game/weather_system.ts ──
 export function getWeatherEnvironmentEffect(weather: WeatherType): EnvironmentEffect {
   switch (weather) {
     case WeatherType.LightRain:
@@ -220,6 +230,7 @@ export function getWeatherSpawnRate(weather: WeatherType): number {
 The `ParticlePass.setSpawnRate()` method (added to `src/renderer/render_graph/passes/particle_pass.ts`) allows changing the spawn rate at runtime without rebuilding the entire pass:
 
 ```typescript
+// ── from src/renderer/render_graph/passes/particle_pass.ts ──
 setSpawnRate(rate: number): void {
   this._config.emitter.spawnRate = rate;
 }
@@ -236,6 +247,7 @@ The weather system integrates at four points in the main loop (`crafty/main.ts`)
 1. **Initialization** — on startup, a random weather is chosen for the player's spawn biome.
 
 ```typescript
+// ── from crafty/main.ts ──
 const _initBiome = world.getBiomeAt(cameraGO.position.x, cameraGO.position.y, cameraGO.position.z);
 let currentWeather = pickRandomWeather(_initBiome);
 let weatherTimer = getWeatherChangeInterval();
@@ -248,6 +260,7 @@ let weatherTimer = getWeatherChangeInterval();
 4. **HUD update** — the weather name, current cloud coverage, and seconds until the next change are displayed in the debug overlay:
 
 ```typescript
+// ── from crafty/main.ts ──
 hud.weather.textContent = `${getWeatherName(currentWeather)}\nclouds: ${cloudCoverage.toFixed(2)}\nnext: ${weatherTimer.toFixed(0)}s`;
 ```
 
@@ -270,6 +283,7 @@ next: 47s
 The `hud.weather` element was added to the `HudElements` interface in `crafty/ui/hud.ts`:
 
 ```typescript
+// ── from crafty/ui/hud.ts ──
 export interface HudElements {
   fps: HTMLDivElement;
   stats: HTMLDivElement;
