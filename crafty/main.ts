@@ -44,7 +44,7 @@ import { createBlockInteractionState, setupBlockInteractionHandlers, updateBlock
 import { loadBlockColors, getBlockColor } from './game/block_colors.js';
 import { setupTouchControlsLazy, isTouchDevice } from './game/touch_controls.js';
 import { AudioManager } from './game/audio_manager.js';
-import { getWeatherCloudCoverage, getWeatherEnvironmentEffect, getWeatherSpawnRate, getWeatherName, pickRandomWeather, getWeatherChangeInterval, nextWeather } from './game/weather_system.js';
+import { getWeatherCloudCoverage, getWeatherCloudBounds, getWeatherCloudDensity, getWeatherEnvironmentEffect, getWeatherSpawnRate, getWeatherName, pickRandomWeather, getWeatherChangeInterval, nextWeather } from './game/weather_system.js';
 import { updateTorchFlicker, updateMagmaFlicker } from './game/lights.js';
 import { setupAnimalSpawning } from './game/animal_spawner.js';
 import { setupVillageGeneration } from './game/village_gen.js';
@@ -745,9 +745,11 @@ async function main(): Promise<void> {
   let currentWeather = pickRandomWeather(_initBiome);
   let weatherTimer = getWeatherChangeInterval();
   let cloudCoverage = getWeatherCloudCoverage(currentWeather);
-  const _initBounds = getBiomeCloudBounds(_initBiome);
+  const _initBiomeBounds = getBiomeCloudBounds(_initBiome);
+  const _initBounds = getWeatherCloudBounds(currentWeather, _initBiomeBounds);
   let cloudBase = _initBounds.cloudBase;
   let cloudTop  = _initBounds.cloudTop;
+  let cloudDensity = getWeatherCloudDensity(currentWeather) ?? 4.0;
 
   let cycleWeatherRequested = false;
   window.addEventListener('keydown', (e) => {
@@ -957,9 +959,11 @@ async function main(): Promise<void> {
 
     const targetCloudCoverage = getWeatherCloudCoverage(currentWeather);
     cloudCoverage += (targetCloudCoverage - cloudCoverage) * Math.min(1, 0.3 * dt);
-    const targetBounds = getBiomeCloudBounds(biome);
+    const targetBounds = getWeatherCloudBounds(currentWeather, getBiomeCloudBounds(biome));
     cloudBase += (targetBounds.cloudBase - cloudBase) * Math.min(1, 0.3 * dt);
     cloudTop  += (targetBounds.cloudTop  - cloudTop)  * Math.min(1, 0.3 * dt);
+    const targetCloudDensity = getWeatherCloudDensity(currentWeather) ?? 4.0;
+    cloudDensity += (targetCloudDensity - cloudDensity) * Math.min(1, 0.3 * dt);
 
     if (updateHud) {
       hud.fps.textContent = `${ctx.fps.toFixed(0)} fps`;
@@ -997,7 +1001,7 @@ async function main(): Promise<void> {
     const dayT = Math.max(0, elev);
     const cloudAmbient: [number, number, number] = [0.02 + 0.38 * dayT, 0.03 + 0.52 * dayT, 0.05 + 0.65 * dayT];
     const cloudSettings = {
-      cloudBase, cloudTop, coverage: cloudCoverage, density: 4.0,
+      cloudBase, cloudTop, coverage: cloudCoverage, density: cloudDensity,
       windOffset: [cloudWindX, cloudWindZ] as [number, number],
       anisotropy: 0.85, extinction: 0.25, ambientColor: cloudAmbient, exposure: 1.0
     };

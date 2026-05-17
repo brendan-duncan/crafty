@@ -8,16 +8,17 @@ export enum WeatherType {
   HeavyRain,
   LightSnow,
   HeavySnow,
+  Foggy,
 }
 
 const BIOME_WEATHERS: Record<BiomeType, WeatherType[]> = {
-  [BiomeType.None]:            [WeatherType.Clear, WeatherType.Cloudy, WeatherType.Overcast],
+  [BiomeType.None]:            [WeatherType.Clear, WeatherType.Cloudy, WeatherType.Overcast, WeatherType.Foggy],
   [BiomeType.Desert]:          [WeatherType.Clear, WeatherType.Cloudy],
-  [BiomeType.GrassyPlains]:    [WeatherType.Clear, WeatherType.Cloudy, WeatherType.Overcast, WeatherType.LightRain, WeatherType.HeavyRain],
-  [BiomeType.RockyMountains]:  [WeatherType.Clear, WeatherType.Cloudy, WeatherType.Overcast, WeatherType.LightRain, WeatherType.HeavyRain],
-  [BiomeType.SnowyPlains]:     [WeatherType.Clear, WeatherType.Cloudy, WeatherType.Overcast, WeatherType.LightSnow, WeatherType.HeavySnow],
-  [BiomeType.SnowyMountains]:  [WeatherType.Clear, WeatherType.Cloudy, WeatherType.Overcast, WeatherType.LightSnow, WeatherType.HeavySnow],
-  [BiomeType.Max]:             [WeatherType.Clear, WeatherType.Cloudy, WeatherType.Overcast],
+  [BiomeType.GrassyPlains]:    [WeatherType.Clear, WeatherType.Cloudy, WeatherType.Overcast, WeatherType.LightRain, WeatherType.HeavyRain, WeatherType.Foggy],
+  [BiomeType.RockyMountains]:  [WeatherType.Clear, WeatherType.Cloudy, WeatherType.Overcast, WeatherType.LightRain, WeatherType.HeavyRain, WeatherType.Foggy],
+  [BiomeType.SnowyPlains]:     [WeatherType.Clear, WeatherType.Cloudy, WeatherType.Overcast, WeatherType.LightSnow, WeatherType.HeavySnow, WeatherType.Foggy],
+  [BiomeType.SnowyMountains]:  [WeatherType.Clear, WeatherType.Cloudy, WeatherType.Overcast, WeatherType.LightSnow, WeatherType.HeavySnow, WeatherType.Foggy],
+  [BiomeType.Max]:             [WeatherType.Clear, WeatherType.Cloudy, WeatherType.Overcast, WeatherType.Foggy],
 };
 
 const WEATHER_WEIGHTS: Record<WeatherType, number> = {
@@ -28,6 +29,7 @@ const WEATHER_WEIGHTS: Record<WeatherType, number> = {
   [WeatherType.HeavyRain]:   1,
   [WeatherType.LightSnow]:   2,
   [WeatherType.HeavySnow]:   1,
+  [WeatherType.Foggy]:       2,
 };
 
 const WEATHER_NAMES: Record<WeatherType, string> = {
@@ -38,6 +40,7 @@ const WEATHER_NAMES: Record<WeatherType, string> = {
   [WeatherType.HeavyRain]:   'Heavy Rain',
   [WeatherType.LightSnow]:   'Light Snow',
   [WeatherType.HeavySnow]:   'Heavy Snow',
+  [WeatherType.Foggy]:       'Foggy',
 };
 
 export function getWeatherName(weather: WeatherType): string {
@@ -53,7 +56,37 @@ export function getWeatherCloudCoverage(weather: WeatherType): number {
     case WeatherType.HeavyRain:  return 1.1;
     case WeatherType.LightSnow:  return 0.8;
     case WeatherType.HeavySnow:  return 1.2;
+    case WeatherType.Foggy:      return 1.15;
   }
+}
+
+/**
+ * Per-weather cloud density override.  Most weather uses the global default
+ * (set by the game), but Foggy needs a much lower density so the player can
+ * see a useful distance while walking through ground-level cloud.
+ *
+ * Returns `null` when the weather doesn't override the global density.
+ */
+export function getWeatherCloudDensity(weather: WeatherType): number | null {
+  switch (weather) {
+    case WeatherType.Foggy: return 0.5;
+    default:                return null;
+  }
+}
+
+/**
+ * Per-weather cloud altitude override.  Most weather defers to the biome's
+ * cloud bounds; Foggy drops the base below ground so the cloud volume engulfs
+ * the player.
+ */
+export function getWeatherCloudBounds(
+  weather: WeatherType,
+  biomeBounds: { cloudBase: number; cloudTop: number },
+): { cloudBase: number; cloudTop: number } {
+  if (weather === WeatherType.Foggy) {
+    return { cloudBase: -10, cloudTop: 80 };
+  }
+  return biomeBounds;
 }
 
 export function getWeatherEnvironmentEffect(weather: WeatherType): EnvironmentEffect {
