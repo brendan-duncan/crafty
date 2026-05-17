@@ -61,7 +61,6 @@ export interface SSAOOutputs {
 export class SSAOPass extends Pass<SSAODeps, SSAOOutputs> {
   readonly name = 'SSAOPass';
 
-  private readonly _device: GPUDevice;
   private readonly _ssaoPipeline: GPURenderPipeline;
   private readonly _blurHPipeline: GPURenderPipeline;
   private readonly _blurVPipeline: GPURenderPipeline;
@@ -79,7 +78,6 @@ export class SSAOPass extends Pass<SSAODeps, SSAOOutputs> {
   private readonly _paramsScratch = new Float32Array(4);
 
   private constructor(
-    device: GPUDevice,
     ssaoPipeline: GPURenderPipeline,
     blurHPipeline: GPURenderPipeline,
     blurVPipeline: GPURenderPipeline,
@@ -94,7 +92,6 @@ export class SSAOPass extends Pass<SSAODeps, SSAOOutputs> {
     blurQuality: SsaoBlurQuality,
   ) {
     super();
-    this._device = device;
     this._ssaoPipeline = ssaoPipeline;
     this._blurHPipeline = blurHPipeline;
     this._blurVPipeline = blurVPipeline;
@@ -203,7 +200,6 @@ export class SSAOPass extends Pass<SSAODeps, SSAOOutputs> {
     });
 
     return new SSAOPass(
-      device,
       ssaoPipeline,
       blurHPipeline,
       blurVPipeline,
@@ -259,7 +255,7 @@ export class SSAOPass extends Pass<SSAODeps, SSAOOutputs> {
       b.read(deps.depth, 'sampled');
 
       b.setExecute((pctx, res) => {
-        const bg1 = this._device.createBindGroup({
+        const bg1 = res.getOrCreateBindGroup({
           label: 'SsaoBG1',
           layout: this._ssaoBgl1,
           entries: [
@@ -286,7 +282,7 @@ export class SSAOPass extends Pass<SSAODeps, SSAOOutputs> {
         b.read(deps.depth, 'sampled');
 
         b.setExecute((pctx, res) => {
-          const bg = this._device.createBindGroup({
+          const bg = res.getOrCreateBindGroup({
             label: 'SsaoBlurHBG',
             layout: this._blurBgl,
             entries: [
@@ -310,7 +306,7 @@ export class SSAOPass extends Pass<SSAODeps, SSAOOutputs> {
         b.read(deps.depth, 'sampled');
 
         b.setExecute((pctx, res) => {
-          const bg = this._device.createBindGroup({
+          const bg = res.getOrCreateBindGroup({
             label: 'SsaoBlurVBG',
             layout: this._blurBgl,
             entries: [
@@ -334,7 +330,7 @@ export class SSAOPass extends Pass<SSAODeps, SSAOOutputs> {
         b.read(deps.depth, 'sampled');
 
         b.setExecute((pctx, res) => {
-          const bg = this._device.createBindGroup({
+          const bg = res.getOrCreateBindGroup({
             label: 'SsaoBoxBlurBG',
             layout: this._blurBgl,
             entries: [

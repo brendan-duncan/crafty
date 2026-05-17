@@ -26,7 +26,6 @@ export interface TonemapDeps {
 export class TonemapPass extends Pass<TonemapDeps, void> {
   readonly name = 'TonemapPass';
 
-  private readonly _device: GPUDevice;
   private readonly _pipeline: GPURenderPipeline;
   private readonly _hdrBgl: GPUBindGroupLayout;
   private readonly _paramsBg: GPUBindGroup;
@@ -37,7 +36,6 @@ export class TonemapPass extends Pass<TonemapDeps, void> {
   private readonly _paramsU = new Uint32Array(this._paramsAB);
 
   private constructor(
-    device: GPUDevice,
     pipeline: GPURenderPipeline,
     hdrBgl: GPUBindGroupLayout,
     paramsBg: GPUBindGroup,
@@ -45,7 +43,6 @@ export class TonemapPass extends Pass<TonemapDeps, void> {
     sampler: GPUSampler,
   ) {
     super();
-    this._device = device;
     this._pipeline = pipeline;
     this._hdrBgl = hdrBgl;
     this._paramsBg = paramsBg;
@@ -101,7 +98,7 @@ export class TonemapPass extends Pass<TonemapDeps, void> {
       primitive: { topology: 'triangle-list' },
     });
 
-    return new TonemapPass(device, pipeline, hdrBgl, paramsBg, paramsBuf, sampler);
+    return new TonemapPass(pipeline, hdrBgl, paramsBg, paramsBuf, sampler);
   }
 
   addToGraph(graph: RenderGraph, deps: TonemapDeps): void {
@@ -113,7 +110,7 @@ export class TonemapPass extends Pass<TonemapDeps, void> {
         clearValue: [0, 0, 0, 1],
       });
       b.setExecute((pctx, res) => {
-        const hdrBg = this._device.createBindGroup({
+        const hdrBg = res.getOrCreateBindGroup({
           label: 'TonemapBG0',
           layout: this._hdrBgl,
           entries: [

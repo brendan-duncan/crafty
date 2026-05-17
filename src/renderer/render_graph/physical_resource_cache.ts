@@ -22,6 +22,11 @@ export class PhysicalResourceCache {
   private readonly _persistentBuffers = new Map<string, { buffer: GPUBuffer; descKey: string }>();
   /** Cache of texture views — built lazily, evicted when their owning texture is destroyed. */
   private readonly _viewCache = new WeakMap<GPUTexture, Map<string, GPUTextureView>>();
+  /** Stable numeric id for every GPU object, used in bind group cache keys. */
+  private readonly _gpuObjectIds = new WeakMap<object, number>();
+  private _nextGpuObjectId = 1;
+  /** Bind group cache: layout → (entries-key → GPUBindGroup). */
+  private readonly _bindGroupCache = new Map<GPUBindGroupLayout, Map<string, GPUBindGroup>>();
 
   constructor(device: GPUDevice) {
     this._device = device;
@@ -90,6 +95,52 @@ export class PhysicalResourceCache {
       }
     }
     this._liveTransients.length = 0;
+  }
+
+  /** Assign a stable numeric id to GPU objects for bind group cache keying. */
+  private _gpuObjectId(obj: object): number {
+    let id = this._gpuObjectIds.get(obj);
+    if (id === undefined) {
+      id = this._nextGpuObjectId++;
+      this._gpuObjectIds.set(obj, id);
+    }
+    return id;
+  }
+
+  private _bindGroupEntryKey(e: GPUBindGroupEntry): string {
+    const res = e.resource;
+    const b = e.binding;
+    if (res instanceof GPUBuffer) return `${b}:B${this._gpuObjectId(res)}`;
+    if (res instanceof GPUTextureView) return `${b}:V${this._gpuObjectId(res)}`;
+    if (res instanceof GPUSampler) return `${b}:S${this._gpuObjectId(res)}`;
+    if ('buffer' in res) {
+      const br = res as GPUBufferBinding;
+      return `${b}:B${this._gpuObjectId(br.buffer)}:${br.offset ?? 0}:${br.size ?? 0}`;
+    }
+    if ('sampler' in res) return `${b}:S${this._gpuObjectId((res as { sampler: GPUSampler }).sampler)}`;
+    if ('texture' in res) return `${b}:V${this._gpuObjectId((res as { texture: GPUTextureView }).texture)}`;
+    return `${b}:?`;
+  }
+
+  /**
+   * Get-or-create a bind group, cached by layout + entries. Subsequent calls
+   * with the same layout and identical GPU resources return the same object.
+   * The `label` in the descriptor is ignored for caching but forwarded to
+   * the first creation for debugging.
+   */
+  getOrCreateBindGroup(descriptor: GPUBindGroupDescriptor): GPUBindGroup {
+    let perLayout = this._bindGroupCache.get(descriptor.layout);
+    if (!perLayout) {
+      perLayout = new Map();
+      this._bindGroupCache.set(descriptor.layout, perLayout);
+    }
+    const key = Array.from(descriptor.entries, (e) => this._bindGroupEntryKey(e)).join('|');
+    let bg = perLayout.get(key);
+    if (!bg) {
+      bg = this._device.createBindGroup(descriptor);
+      perLayout.set(key, bg);
+    }
+    return bg;
   }
 
   /**
@@ -174,6 +225,7 @@ export class PhysicalResourceCache {
       pool.length = 0;
     }
     this._bufferPool.clear();
+    this._bindGroupCache.clear();
   }
 
   /** Destroy a single persistent resource by key. No-op if not present. */

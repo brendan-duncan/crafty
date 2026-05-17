@@ -25,7 +25,6 @@ export interface DofOutputs {
 export class DofPass extends Pass<DofDeps, DofOutputs> {
   readonly name = 'DofPass';
 
-  private readonly _device: GPUDevice;
   private readonly _bglPrefilter: GPUBindGroupLayout;
   private readonly _bglComp0: GPUBindGroupLayout;
   private readonly _bglComp1: GPUBindGroupLayout;
@@ -36,7 +35,6 @@ export class DofPass extends Pass<DofDeps, DofOutputs> {
   private readonly _scratch = new Float32Array(8);
 
   private constructor(
-    device: GPUDevice,
     bglPrefilter: GPUBindGroupLayout,
     bglComp0: GPUBindGroupLayout,
     bglComp1: GPUBindGroupLayout,
@@ -46,7 +44,6 @@ export class DofPass extends Pass<DofDeps, DofOutputs> {
     sampler: GPUSampler,
   ) {
     super();
-    this._device = device;
     this._bglPrefilter = bglPrefilter;
     this._bglComp0 = bglComp0;
     this._bglComp1 = bglComp1;
@@ -110,7 +107,7 @@ export class DofPass extends Pass<DofDeps, DofOutputs> {
       primitive: { topology: 'triangle-list' },
     });
 
-    return new DofPass(device, bglPrefilter, bglComp0, bglComp1,
+    return new DofPass(bglPrefilter, bglComp0, bglComp1,
       prefilterPipeline, compositePipeline, uniformBuffer, sampler);
   }
 
@@ -152,7 +149,7 @@ export class DofPass extends Pass<DofDeps, DofOutputs> {
       b.read(deps.hdr, 'sampled');
       b.read(deps.depth, 'sampled');
       b.setExecute((pctx, res) => {
-        const bg = this._device.createBindGroup({
+        const bg = res.getOrCreateBindGroup({
           layout: this._bglPrefilter,
           entries: [
             { binding: 0, resource: { buffer: this._uniformBuffer } },
@@ -174,7 +171,7 @@ export class DofPass extends Pass<DofDeps, DofOutputs> {
       b.read(deps.hdr, 'sampled');
       b.read(half, 'sampled');
       b.setExecute((pctx, res) => {
-        const bg0 = this._device.createBindGroup({
+        const bg0 = res.getOrCreateBindGroup({
           layout: this._bglComp0,
           entries: [
             { binding: 0, resource: { buffer: this._uniformBuffer } },
@@ -182,7 +179,7 @@ export class DofPass extends Pass<DofDeps, DofOutputs> {
             { binding: 3, resource: this._sampler },
           ],
         });
-        const bg1 = this._device.createBindGroup({
+        const bg1 = res.getOrCreateBindGroup({
           layout: this._bglComp1,
           entries: [{ binding: 0, resource: res.getTextureView(half) }],
         });

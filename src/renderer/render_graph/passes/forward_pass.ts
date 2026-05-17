@@ -497,10 +497,25 @@ export class ForwardPass extends Pass<ForwardDeps, ForwardOutputs> {
       b.setExecute((pctx, res) => {
         let externalShadowView: GPUTextureView | undefined;
         if (this._externalShadowHandle) {
-          const tex = res.getTexture(this._externalShadowHandle);
-          externalShadowView = tex.createView({ dimension: '2d-array' });
+          externalShadowView = res.getTextureView(this._externalShadowHandle, { dimension: '2d-array' });
         }
-        const lightingIblBindGroup = this._buildLightingIblBindGroup(iblTextures, externalShadowView);
+        const lightingIblBindGroup = res.getOrCreateBindGroup({
+          label: 'ForwardLightingIblBindGroup',
+          layout: this._lightingIblBGL,
+          entries: [
+            { binding: 0, resource: { buffer: this._lightingBuffer } },
+            { binding: 1, resource: { buffer: this._directionalLightBuffer } },
+            { binding: 2, resource: { buffer: this._pointLightsBuffer } },
+            { binding: 3, resource: { buffer: this._spotLightsBuffer } },
+            { binding: 4, resource: externalShadowView ?? this._shadowMapArrayView },
+            { binding: 5, resource: this._shadowSampler },
+            { binding: 6, resource: iblTextures?.irradianceView ?? this._defaultCubemapView },
+            { binding: 7, resource: iblTextures?.prefilteredView ?? this._defaultCubemapView },
+            { binding: 8, resource: iblTextures?.brdfLutView ?? this._defaultBrdfLutView },
+            { binding: 9, resource: this._iblSampler },
+            { binding: 10, resource: this._pointShadowCubeArrayView },
+          ],
+        });
 
         const enc = pctx.renderPassEncoder!;
         enc.setBindGroup(0, this._cameraBindGroup);
@@ -516,26 +531,6 @@ export class ForwardPass extends Pass<ForwardDeps, ForwardOutputs> {
     });
 
     return { output: outOutput, depth: outDepth };
-  }
-
-  private _buildLightingIblBindGroup(iblTextures?: IblTextures, externalShadowView?: GPUTextureView): GPUBindGroup {
-    return this._device.createBindGroup({
-      label: 'ForwardLightingIblBindGroup',
-      layout: this._lightingIblBGL,
-      entries: [
-        { binding: 0, resource: { buffer: this._lightingBuffer } },
-        { binding: 1, resource: { buffer: this._directionalLightBuffer } },
-        { binding: 2, resource: { buffer: this._pointLightsBuffer } },
-        { binding: 3, resource: { buffer: this._spotLightsBuffer } },
-        { binding: 4, resource: externalShadowView ?? this._shadowMapArrayView },
-        { binding: 5, resource: this._shadowSampler },
-        { binding: 6, resource: iblTextures?.irradianceView ?? this._defaultCubemapView },
-        { binding: 7, resource: iblTextures?.prefilteredView ?? this._defaultCubemapView },
-        { binding: 8, resource: iblTextures?.brdfLutView ?? this._defaultBrdfLutView },
-        { binding: 9, resource: this._iblSampler },
-        { binding: 10, resource: this._pointShadowCubeArrayView },
-      ],
-    });
   }
 
   private _drawItem(enc: GPURenderPassEncoder, item: ForwardDrawItem, transparent: boolean): void {

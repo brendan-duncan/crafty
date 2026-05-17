@@ -69,7 +69,6 @@ const LIGHT_BUFFER_DESC: BufferDesc = {
 export class DeferredLightingPass extends Pass<DeferredLightingDeps, DeferredLightingOutputs> {
   readonly name = 'DeferredLightingPass';
 
-  private readonly _device: GPUDevice;
   private readonly _pipeline: GPURenderPipeline;
   private readonly _sceneBgl: GPUBindGroupLayout;
   private readonly _gbufferBgl: GPUBindGroupLayout;
@@ -109,7 +108,6 @@ export class DeferredLightingPass extends Pass<DeferredLightingDeps, DeferredLig
   private _pendingCloudShadow: ArrayBuffer | null = null;
 
   private constructor(
-    device: GPUDevice,
     pipeline: GPURenderPipeline,
     sceneBgl: GPUBindGroupLayout,
     gbufferBgl: GPUBindGroupLayout,
@@ -130,7 +128,6 @@ export class DeferredLightingPass extends Pass<DeferredLightingDeps, DeferredLig
     defaultBrdfLutView: GPUTextureView,
   ) {
     super();
-    this._device = device;
     this._pipeline = pipeline;
     this._sceneBgl = sceneBgl;
     this._gbufferBgl = gbufferBgl;
@@ -262,7 +259,7 @@ export class DeferredLightingPass extends Pass<DeferredLightingDeps, DeferredLig
     });
 
     return new DeferredLightingPass(
-      device, pipeline,
+      pipeline,
       sceneBgl, gbufferBgl, aoBgl, iblBgl,
       comparisonSampler, linearSampler, aoSampler, ssgiSampler, iblSampler,
       defaultCloudShadow, defaultCloudShadowView,
@@ -415,9 +412,7 @@ export class DeferredLightingPass extends Pass<DeferredLightingDeps, DeferredLig
           }
         }
 
-        // Bind groups must be rebuilt per frame because virtual texture views
-        // can change frame to frame as the pool reuses textures.
-        const sceneBg = this._device.createBindGroup({
+        const sceneBg = res.getOrCreateBindGroup({
           layout: this._sceneBgl,
           entries: [
             { binding: 0, resource: { buffer: camBuf } },
@@ -430,7 +425,7 @@ export class DeferredLightingPass extends Pass<DeferredLightingDeps, DeferredLig
           ? res.getTextureView(deps.cloudShadow)
           : this._defaultCloudShadowView;
 
-        const gbufferBg = this._device.createBindGroup({
+        const gbufferBg = res.getOrCreateBindGroup({
           layout: this._gbufferBgl,
           entries: [
             { binding: 0, resource: res.getTextureView(deps.gbuffer.albedo) },
@@ -444,7 +439,7 @@ export class DeferredLightingPass extends Pass<DeferredLightingDeps, DeferredLig
         });
 
         const ssgiView = deps.ssgi ? res.getTextureView(deps.ssgi) : this._defaultSsgiView;
-        const aoBg = this._device.createBindGroup({
+        const aoBg = res.getOrCreateBindGroup({
           layout: this._aoBgl,
           entries: [
             { binding: 0, resource: res.getTextureView(deps.ao) },
@@ -454,7 +449,7 @@ export class DeferredLightingPass extends Pass<DeferredLightingDeps, DeferredLig
           ],
         });
 
-        const iblBg = this._device.createBindGroup({
+        const iblBg = res.getOrCreateBindGroup({
           layout: this._iblBgl,
           entries: [
             { binding: 0, resource: deps.iblTextures?.irradianceView ?? this._defaultIblView },

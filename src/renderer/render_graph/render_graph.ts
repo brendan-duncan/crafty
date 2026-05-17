@@ -395,10 +395,10 @@ export class RenderGraph {
     }
 
     const encoder = this.ctx.device.createCommandEncoder({ label: 'RenderGraph' });
+    const resolved = this._buildResolvedResources(compiled);
 
     for (const cp of compiled.passes) {
       const node = cp.node;
-      const resolved = this._buildResolvedResources(compiled);
 
       if (node.type === 'render') {
         const { colorAttachments, depthStencilAttachment } = this._buildRenderPassDescriptor(node, compiled);
@@ -631,6 +631,7 @@ export class RenderGraph {
         if (!buf) throw new Error(`[render-graph] no physical buffer for id=${h.id}`);
         return buf;
       },
+      getOrCreateBindGroup: (desc: GPUBindGroupDescriptor) => cache.getOrCreateBindGroup(desc),
     };
   }
 

@@ -53,6 +53,7 @@ export interface ResolvedResources {
   getTexture(handle: ResourceHandle): GPUTexture;
   getTextureView(handle: ResourceHandle, viewDesc?: GPUTextureViewDescriptor): GPUTextureView;
   getBuffer(handle: ResourceHandle): GPUBuffer;
+  getOrCreateBindGroup(descriptor: GPUBindGroupDescriptor): GPUBindGroup;
 }
 
 export type ExecuteFn = (ctx: PassContext, resources: ResolvedResources) => void;

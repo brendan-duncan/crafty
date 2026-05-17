@@ -41,7 +41,6 @@ export interface TAAOutputs {
 export class TAAPass extends Pass<TAADeps, TAAOutputs> {
   readonly name = 'TAAPass';
 
-  private readonly _device: GPUDevice;
   private readonly _pipeline: GPURenderPipeline;
   private readonly _textureBgl: GPUBindGroupLayout;
   private readonly _uniformBg: GPUBindGroup;
@@ -50,7 +49,6 @@ export class TAAPass extends Pass<TAADeps, TAAOutputs> {
   private readonly _scratch = new Float32Array(TAA_UNIFORM_SIZE / 4);
 
   private constructor(
-    device: GPUDevice,
     pipeline: GPURenderPipeline,
     textureBgl: GPUBindGroupLayout,
     uniformBg: GPUBindGroup,
@@ -58,7 +56,6 @@ export class TAAPass extends Pass<TAADeps, TAAOutputs> {
     sampler: GPUSampler,
   ) {
     super();
-    this._device = device;
     this._pipeline = pipeline;
     this._textureBgl = textureBgl;
     this._uniformBg = uniformBg;
@@ -109,7 +106,7 @@ export class TAAPass extends Pass<TAADeps, TAAOutputs> {
       primitive: { topology: 'triangle-list' },
     });
 
-    return new TAAPass(device, pipeline, textureBgl, uniformBg, uniformBuffer, sampler);
+    return new TAAPass(pipeline, textureBgl, uniformBg, uniformBuffer, sampler);
   }
 
   /** Upload reprojection matrices for the current frame. */
@@ -149,7 +146,7 @@ export class TAAPass extends Pass<TAADeps, TAAOutputs> {
       b.read(deps.depth, 'sampled');
 
       b.setExecute((pctx, res) => {
-        const textureBg = this._device.createBindGroup({
+        const textureBg = res.getOrCreateBindGroup({
           layout: this._textureBgl,
           entries: [
             { binding: 0, resource: res.getTextureView(deps.hdr) },
