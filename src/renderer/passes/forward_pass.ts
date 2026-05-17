@@ -14,7 +14,7 @@ import type { PointLight } from '../point_light.js';
 const CAMERA_UNIFORM_SIZE = 64 * 4 + 16 + 16;
 const MODEL_UNIFORM_SIZE = 128;
 const LIGHTING_UNIFORM_SIZE = 16;
-const DIRECTIONAL_LIGHT_SIZE = 128; // vec3 direction (16) + f32 intensity (4) + vec3 color (16) + u32 castShadows (4) + u32 shadowMapIndex (4) + vec3 _pad (16 aligned) + mat4x4 lightViewProj (64) = 128
+const DIRECTIONAL_LIGHT_SIZE = 368; // forward_pbr.wgsl DirectionalLight (4 cascade matrices)
 const POINT_LIGHT_SIZE = 48;
 const SPOT_LIGHT_SIZE = 128; // 13 floats + 1 u32 (castShadows) + 1 u32 (shadowMapIndex) + 1 u32 padding + 16 floats (viewProj) = 32 * 4 = 128
 const MAX_POINT_LIGHTS = 8;
@@ -491,31 +491,31 @@ export class ForwardPass extends RenderPass {
     lightingData[3] = 0;
     ctx.device.queue.writeBuffer(this._lightingBuffer, 0, lightingData);
 
-    // Update directional light (128 bytes = 32 floats)
+    // Update directional light (368 bytes — forward_pbr.wgsl DirectionalLight with 4 cascades)
     const dirBuffer = this._directionalScratch;
     const dirData = this._directionalScratchF;
     const dirDataU32 = this._directionalScratchU;
     dirData.fill(0);
-    // offset 0: direction vec3<f32> (aligned to 16)
     dirData[0] = directionalLight.direction.x;
     dirData[1] = directionalLight.direction.y;
     dirData[2] = directionalLight.direction.z;
-    // offset 12: intensity f32
     dirData[3] = directionalLight.intensity;
-    // offset 16: color vec3<f32> (aligned to 16)
     dirData[4] = directionalLight.color.x;
     dirData[5] = directionalLight.color.y;
     dirData[6] = directionalLight.color.z;
-    // offset 28: castShadows u32
     dirDataU32[7] = directionalLight.castShadows ? 1 : 0;
-    // offset 32: shadowMapIndex u32
-    dirDataU32[8] = 0; // shadowMapIndex (always 0 for directional light)
-    // offset 36-47: padding (dirData[9-11] are unused)
-    // offset 48-59: _pad vec3<u32> (vec3 requires 16-byte alignment, so it starts at 48)
-    // offset 60-63: padding before matrix
-    // offset 64-127: lightViewProj mat4x4<f32> (starts at index 16)
-    if (directionalLight.lightViewProj) {
-      dirData.set(directionalLight.lightViewProj.data, 16);
+    const cascades = directionalLight.cascades;
+    const cascadeCount = cascades ? Math.min(cascades.length, 4) : (directionalLight.lightViewProj ? 1 : 0);
+    dirDataU32[8] = cascadeCount;
+    if (cascades) {
+      for (let i = 0; i < cascadeCount; i++) {
+        const base = 12 + i * 20;
+        dirData.set(cascades[i].lightViewProj.data, base);
+        dirData[base + 16] = cascades[i].splitFar;
+      }
+    } else if (directionalLight.lightViewProj) {
+      dirData.set(directionalLight.lightViewProj.data, 12);
+      dirData[28] = 1e9;
     }
     ctx.device.queue.writeBuffer(this._directionalLightBuffer, 0, dirBuffer);
 

@@ -2,13 +2,14 @@ import { Mat4, Vec3 } from '../src/math/index.js';
 import { Mesh } from '../src/assets/mesh.js';
 import { CameraController } from '../src/engine/camera_controller.js';
 import { GameObject } from '../src/engine/game_object.js';
+import { Camera } from '../src/engine/components/camera.js';
 import { RenderContext } from '../src/renderer/render_context.js';
 import { PhysicalResourceCache, RenderGraph } from '../src/renderer/render_graph/index.js';
 import { PbrMaterial } from '../src/renderer/materials/pbr_material.js';
-import { GeometryPass, type DrawItem } from '../src/renderer/render_graph/passes/geometry_pass.js';
-import { DeferredLightingPass } from '../src/renderer/render_graph/passes/deferred_lighting_pass.js';
+import { ForwardPass, type ForwardDrawItem } from '../src/renderer/render_graph/passes/forward_pass.js';
 import { ShadowPass, type ShadowMeshDraw } from '../src/renderer/render_graph/passes/shadow_pass.js';
 import { TonemapPass } from '../src/renderer/render_graph/passes/tonemap_pass.js';
+import type { DirectionalLight } from '../src/renderer/directional_light.js';
 import type { CascadeData } from '../src/engine/components/directional_light.js';
 import { createRenderGraphViz } from '../src/renderer/render_graph/ui/render_graph_viz.js';
 import type { PassNodeData, TextureNodeData, GraphEdge, FullGraphData } from '../src/renderer/render_graph/ui/render_graph_viz.js';
@@ -35,15 +36,16 @@ async function main(): Promise<void> {
   const planeModel = Mat4.identity();
 
   const cameraGO = new GameObject({ name: 'Camera' });
-  cameraGO.position.set(0, 3, 6);
+  cameraGO.position.set(0, 3, -6);
+  const camera = cameraGO.addComponent(Camera.createPerspective(60, 0.1, 100, ctx.width / ctx.height));
+
   const cameraController = CameraController.create({
     yaw: Math.PI, pitch: 0.1, speed: 3, sensitivity: 0.002, pointerLock: false,
   });
   cameraController.attach(canvas);
 
   const shadowPass = ShadowPass.create(ctx);
-  const geometryPass = GeometryPass.create(ctx);
-  const lightingPass = DeferredLightingPass.create(ctx);
+  const forwardPass = ForwardPass.create(ctx);
   const tonemapPass = TonemapPass.create(ctx);
   tonemapPass.updateParams(ctx, 1.0, false, false);
 
@@ -79,39 +81,80 @@ async function main(): Promise<void> {
     }
   });
 
-  let smoothFps = 0;
-
   function frame(): void {
     ctx.update();
-    if (ctx.deltaTime > 0) {
-      smoothFps += (1 / ctx.deltaTime - smoothFps) * 0.1;
-      statsEl.textContent = `${smoothFps.toFixed(0)} fps | Forward PBR + Shadow`;
-    }
+    statsEl.textContent = `FPS: ${ctx.fps}`;
 
     const sunAngle = ctx.elapsedTime * 0.3;
+
+    camera.aspect = ctx.width / ctx.height;
     cameraController.update(cameraGO, ctx.deltaTime);
 
-    const aspect = ctx.width / ctx.height;
-    const proj = Mat4.perspective(60 * Math.PI / 180, aspect, 0.1, 100);
-    const view = Mat4.lookAt(cameraGO.position, new Vec3(0, 1, 0), new Vec3(0, 1, 0));
-    const vp = proj.multiply(view);
-    const invVP = vp.invert();
-    const camPos = cameraGO.position;
+    const view = camera.viewMatrix();
+    const proj = camera.projectionMatrix();
+    const viewProj = camera.viewProjectionMatrix();
+    const invViewProj = viewProj.invert();
+    const camPos = camera.position();
 
     const lightDir = new Vec3(Math.cos(sunAngle), -0.8, Math.sin(sunAngle)).normalize();
     const center = new Vec3(0, 1, 0);
-    const lightView = Mat4.lookAt(center.sub(lightDir), center, Vec3.UP);
-    const lightProj = Mat4.orthographic(-4, 4, -4, 4, -15, 15);
-    const lightVP = lightProj.multiply(lightView);
+    const farPlane = 100;
+    const splitFars = [5, 15, 40, farPlane];
 
-    const cascades: CascadeData[] = [{
-      lightViewProj: lightVP,
-      splitFar: 20,
-      depthRange: 30,
-      texelWorldSize: (4 - (-4)) / 2048,
-    }];
+    const shadowMapSize = 2048;
+    const cascades: CascadeData[] = splitFars.map((splitFar, i) => {
+      const nearSplit = i === 0 ? camera.near : splitFars[i - 1];
+      // Get camera frustum corners for this cascade's slice of the view
+      const savedNear = camera.near, savedFar = camera.far;
+      camera.near = nearSplit;
+      camera.far = splitFar;
+      const corners = camera.frustumCornersWorld();
+      camera.near = savedNear;
+      camera.far = savedFar;
 
-    const drawItems: DrawItem[] = [
+      const lv = Mat4.lookAt(center.sub(lightDir.scale(splitFar)), center, Vec3.UP);
+
+      // Sphere-fit radius from frustum corners
+      const centerWS = corners.reduce((a, b) => a.add(b), Vec3.ZERO).scale(1 / 8);
+      let radius = 0;
+      for (const c of corners) {
+        radius = Math.max(radius, c.sub(centerWS).length());
+      }
+      let texelWorldSize = (2 * radius) / shadowMapSize;
+      radius = Math.ceil(radius / texelWorldSize) * texelWorldSize;
+      radius *= shadowMapSize / (shadowMapSize - 2);
+      texelWorldSize = (2 * radius) / shadowMapSize;
+
+      // Z range in light-space from frustum corners, with padding
+      let minZ = Infinity, maxZ = -Infinity;
+      for (const c of corners) {
+        const lc = lv.transformPoint(c);
+        minZ = Math.min(minZ, lc.z);
+        maxZ = Math.max(maxZ, lc.z);
+      }
+      const zPadding = Math.min((maxZ - minZ) * 0.25, 64);
+      minZ -= zPadding;
+      maxZ += zPadding;
+
+      const lp = Mat4.orthographic(-radius, radius, -radius, radius, -maxZ, -minZ);
+
+      return {
+        lightViewProj: lp.multiply(lv),
+        splitFar,
+        depthRange: maxZ - minZ,
+        texelWorldSize,
+      };
+    });
+
+    const directionalLight: DirectionalLight = {
+      direction: lightDir,
+      intensity: 2.0,
+      color: new Vec3(1.0, 0.95, 0.9),
+      castShadows: true,
+      cascades,
+    };
+
+    const drawItems: ForwardDrawItem[] = [
       { mesh: sphereMesh, modelMatrix: sphereModel, normalMatrix: sphereModel.normalMatrix(), material: sphereMat },
       { mesh: planeMesh, modelMatrix: planeModel, normalMatrix: planeModel.normalMatrix(), material: planeMat },
     ];
@@ -121,35 +164,17 @@ async function main(): Promise<void> {
       { mesh: planeMesh, modelMatrix: planeModel },
     ];
 
-    geometryPass.setDrawItems(drawItems);
-    geometryPass.updateCamera(ctx, view, proj, vp, invVP, camPos, 0.1, 100);
-
-    lightingPass.updateCamera(ctx, view, proj, vp, invVP, camPos, 0.1, 100);
-    lightingPass.updateLight(ctx, lightDir, { x: 1, y: 1, z: 1 }, 2.0, cascades, true, false);
-    lightingPass.updateCloudShadow(ctx, 0, 0, 60);
+    forwardPass.setDrawItems(drawItems);
+    forwardPass.updateCamera(ctx, view, proj, viewProj, invViewProj, camPos, 0.1, 100);
+    forwardPass.updateLights(ctx, directionalLight, [], []);
 
     const graph = new RenderGraph(ctx, cache);
     const bb = graph.setBackbuffer('canvas');
 
     const shadow = shadowPass.addToGraph(graph, { cascades, drawItems: shadowItems });
-    const gbuffer = geometryPass.addToGraph(graph);
+    const { output } = forwardPass.addToGraph(graph, { shadowMapSource: shadow.shadowMap });
 
-    const aoW = Math.max(1, ctx.width >> 1);
-    const aoH = Math.max(1, ctx.height >> 1);
-    let aoHandle!: ReturnType<typeof graph.importPersistentTexture>;
-    graph.addPass('DummyAO', 'render', (b) => {
-      aoHandle = b.createTexture({ label: 'dummy.ao', format: 'r8unorm', width: aoW, height: aoH });
-      aoHandle = b.write(aoHandle, 'attachment', { loadOp: 'clear', storeOp: 'store', clearValue: [1, 0, 0, 1] });
-      b.setExecute(() => {});
-    });
-
-    const lit = lightingPass.addToGraph(graph, {
-      gbuffer,
-      shadowMap: shadow.shadowMap,
-      ao: aoHandle,
-    });
-
-    tonemapPass.addToGraph(graph, { hdr: lit.hdr, backbuffer: bb });
+    tonemapPass.addToGraph(graph, { hdr: output, backbuffer: bb });
 
     const compiled = graph.compile();
     const compiledNames = new Set(compiled.passes.map(cp => cp.node.name));

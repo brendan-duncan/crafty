@@ -122,7 +122,6 @@ async function main() {
   // Render loop
   async function render() {
     ctx.update();
-
     fpsElement.textContent = `FPS: ${ctx.fps}`;
 
     const backbufferView = ctx.backbufferView;

@@ -397,7 +397,7 @@ export class RenderContext {
       usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
       mipLevelCount: 1,
     });
-    const data = new Uint16Array([0x3800, 0x3800, 0x3800, 0x3C00]);
+    const data = new Uint16Array([0, 0, 0, 0]);
     for (let i = 0; i < 6; i++) {
       this.queue.writeTexture(
         { texture: tex, origin: { x: 0, y: 0, z: i } },

@@ -1,6 +1,10 @@
-var g=Object.defineProperty;var h=(m,a,n)=>a in m?g(m,a,{enumerable:!0,configurable:!0,writable:!0,value:n}):m[a]=n;var t=(m,a,n)=>h(m,typeof a!="symbol"?a+"":a,n);import{a as v,M as c}from"./material-CRno2p1N.js";const b=`// Forward PBR shader with multi-light support
+var g=Object.defineProperty;var h=(u,r,n)=>r in u?g(u,r,{enumerable:!0,configurable:!0,writable:!0,value:n}):u[r]=n;var t=(u,r,n)=>h(u,typeof r!="symbol"?r+"":r,n);import{a as v,M as c}from"./material-CyKVibdM.js";const w=`// Forward PBR shader with multi-light support
 // Supports: directional, point, spot lights with shadows
 // Materials: PBR with IBL, normal mapping, MER textures
+
+// Debug visualization: set to 1 to show shadow term (red=lit, black=shadowed),
+// 2 to show cascade index as color overlay, 0 for normal rendering.
+const DEBUG_SHADOW: u32 = 0u;
 
 const PI: f32 = 3.14159265358979323846;
 
@@ -60,9 +64,25 @@ struct DirectionalLight {
   intensity       : f32,
   color           : vec3<f32>,
   castShadows     : u32,
-  shadowMapIndex  : u32,
-  _pad            : vec3<u32>,
-  lightViewProj   : mat4x4<f32>,
+  cascadeCount    : u32,
+  _pad0           : u32,
+  _pad1           : u32,
+  lightViewProj0  : mat4x4<f32>,
+  splitFar0       : f32,
+  _pad_c0         : f32,
+  _pad_c0b        : vec2<f32>,
+  lightViewProj1  : mat4x4<f32>,
+  splitFar1       : f32,
+  _pad_c1         : f32,
+  _pad_c1b        : vec2<f32>,
+  lightViewProj2  : mat4x4<f32>,
+  splitFar2       : f32,
+  _pad_c2         : f32,
+  _pad_c2b        : vec2<f32>,
+  lightViewProj3  : mat4x4<f32>,
+  splitFar3       : f32,
+  _pad_c3         : f32,
+  _pad_c3b        : vec2<f32>,
 }
 
 struct LightingUniforms {
@@ -98,6 +118,7 @@ struct LightingUniforms {
 @group(3) @binding(10) var pointShadowCubeArray : texture_depth_cube_array;
 
 const IBL_MIP_LEVELS: f32 = 5.0;
+const SHADOW_MAP_SIZE: f32 = 2048.0;
 
 // Vertex input/output
 struct VertexInput {
@@ -163,13 +184,45 @@ fn geometry_smith(N: vec3<f32>, V: vec3<f32>, L: vec3<f32>, roughness: f32) -> f
   return ggx1 * ggx2;
 }
 
-// Shadow sampling for directional light
+fn cascade_lvp(index: u32) -> mat4x4<f32> {
+  if (index == 0u) { return directionalLight.lightViewProj0; }
+  if (index == 1u) { return directionalLight.lightViewProj1; }
+  if (index == 2u) { return directionalLight.lightViewProj2; }
+  return directionalLight.lightViewProj3;
+}
+
+fn cascade_split(index: u32) -> f32 {
+  if (index == 0u) { return directionalLight.splitFar0; }
+  if (index == 1u) { return directionalLight.splitFar1; }
+  if (index == 2u) { return directionalLight.splitFar2; }
+  return directionalLight.splitFar3;
+}
+
+fn select_cascade(view_depth: f32) -> u32 {
+  var cascade_index = directionalLight.cascadeCount - 1u;
+  for (var i = 0u; i < directionalLight.cascadeCount; i++) {
+    if (view_depth <= cascade_split(i)) {
+      cascade_index = i;
+      break;
+    }
+  }
+  return cascade_index;
+}
+
+// Shadow sampling for directional light with cascade selection
 fn sample_shadow(world_pos: vec3<f32>) -> f32 {
   if (directionalLight.castShadows == 0u) {
     return 1.0;
   }
 
-  let light_space = directionalLight.lightViewProj * vec4<f32>(world_pos, 1.0);
+  // Compute view-space depth for cascade selection
+  let view_pos = camera.view * vec4<f32>(world_pos, 1.0);
+  let view_depth = -view_pos.z;
+
+  let cascade_index = select_cascade(view_depth);
+
+  let lightVP = cascade_lvp(cascade_index);
+  let light_space = lightVP * vec4<f32>(world_pos, 1.0);
   var shadow_coord = light_space.xyz / light_space.w;
   shadow_coord = vec3<f32>(shadow_coord.xy * 0.5 + 0.5, shadow_coord.z);
   shadow_coord.y = 1.0 - shadow_coord.y;
@@ -180,10 +233,20 @@ fn sample_shadow(world_pos: vec3<f32>) -> f32 {
     return 1.0;
   }
 
-  // Use slope-based bias to prevent shadow acne
-  let bias = 0.002;
-  let arrayIndex = i32(directionalLight.shadowMapIndex);
-  return textureSampleCompareLevel(shadowMapArray, shadowSampler, shadow_coord.xy, arrayIndex, shadow_coord.z - bias);
+  let bias = 0.001;
+  let arrayIndex = i32(cascade_index);
+  let texelSize = 1.0 / SHADOW_MAP_SIZE;
+  let offsets = array<vec2<f32>, 4>(
+    vec2<f32>(-0.5, -0.5) * texelSize,
+    vec2<f32>( 0.5, -0.5) * texelSize,
+    vec2<f32>(-0.5,  0.5) * texelSize,
+    vec2<f32>( 0.5,  0.5) * texelSize,
+  );
+  var shadow = 0.0;
+  for (var i = 0u; i < 4u; i++) {
+    shadow += textureSampleCompareLevel(shadowMapArray, shadowSampler, shadow_coord.xy + offsets[i], arrayIndex, shadow_coord.z - bias);
+  }
+  return shadow * 0.25;
 }
 
 // Shadow sampling for spot light
@@ -386,9 +449,30 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
   let emissive = albedo * emission * 2.0;
   let final_color = lit_color + emissive;
 
+  if (DEBUG_SHADOW == 1u) {
+    let view_pos = camera.view * vec4<f32>(in.world_pos, 1.0);
+    let view_depth = -view_pos.z;
+    let shadow = sample_shadow(in.world_pos);
+    let cascade = select_cascade(view_depth);
+    // Show shadow term in red, cascade index in green/blue
+    return vec4<f32>(shadow, 0.0, f32(cascade) / 4.0, 1.0);
+  }
+  if (DEBUG_SHADOW == 2u) {
+    let view_pos = camera.view * vec4<f32>(in.world_pos, 1.0);
+    let view_depth = -view_pos.z;
+    let cascade = select_cascade(view_depth);
+    let colors = array<vec3<f32>, 4>(
+      vec3<f32>(1.0, 0.0, 0.0),  // cascade 0 = red
+      vec3<f32>(0.0, 1.0, 0.0),  // cascade 1 = green
+      vec3<f32>(0.0, 0.0, 1.0),  // cascade 2 = blue
+      vec3<f32>(1.0, 1.0, 0.0),  // cascade 3 = yellow
+    );
+    return vec4<f32>(mix(final_color, colors[cascade], 0.5), alpha);
+  }
+
   return vec4<f32>(final_color, alpha);
 }
-`,w=`// GBuffer fill pass — writes albedo+roughness and normal+metallic.
+`,b=`// GBuffer fill pass — writes albedo+roughness and normal+metallic.
 // Group 2 texture maps are optional; the material binds 1×1 fallbacks when unset.
 
 struct CameraUniforms {
@@ -603,4 +687,4 @@ fn fs_main(in: VertexOutput) -> FragmentOutput {
   out.normal_metallic  = vec4<f32>(mapped_N * 0.5 + 0.5, metallic);
   return out;
 }
-`,_=48,r=class r extends v{constructor(n={}){super();t(this,"shaderId","pbr");t(this,"albedo");t(this,"roughness");t(this,"metallic");t(this,"uvOffset");t(this,"uvScale");t(this,"uvTile");t(this,"_albedoMap");t(this,"_normalMap");t(this,"_merMap");t(this,"_uniformBuffer",null);t(this,"_uniformDevice",null);t(this,"_bindGroup",null);t(this,"_bindGroupAlbedo");t(this,"_bindGroupNormal");t(this,"_bindGroupMer");t(this,"_dirty",!0);t(this,"_scratch",new Float32Array(_/4));this.albedo=n.albedo??[1,1,1,1],this.roughness=n.roughness??.5,this.metallic=n.metallic??0,this.uvOffset=n.uvOffset,this.uvScale=n.uvScale,this.uvTile=n.uvTile,this._albedoMap=n.albedoMap,this._normalMap=n.normalMap,this._merMap=n.merMap,this.transparent=n.transparent??!1}get albedoMap(){return this._albedoMap}set albedoMap(n){n!==this._albedoMap&&(this._albedoMap=n,this._bindGroup=null)}get normalMap(){return this._normalMap}set normalMap(n){n!==this._normalMap&&(this._normalMap=n,this._bindGroup=null)}get merMap(){return this._merMap}set merMap(n){n!==this._merMap&&(this._merMap=n,this._bindGroup=null)}markDirty(){this._dirty=!0}getShaderCode(n){switch(n){case c.Forward:return b;case c.Geometry:return w;case c.SkinnedGeometry:return x}}getBindGroupLayout(n){let e=r._layoutByDevice.get(n);return e||(e=n.createBindGroupLayout({label:"PbrMaterialBGL",entries:[{binding:0,visibility:GPUShaderStage.VERTEX|GPUShaderStage.FRAGMENT,buffer:{type:"uniform"}},{binding:1,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:2,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:3,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:4,visibility:GPUShaderStage.FRAGMENT,sampler:{type:"filtering"}}]}),r._layoutByDevice.set(n,e)),e}getBindGroup(n){var i,o,d,f;if(this._bindGroup&&this._bindGroupAlbedo===this._albedoMap&&this._bindGroupNormal===this._normalMap&&this._bindGroupMer===this._merMap)return this._bindGroup;(!this._uniformBuffer||this._uniformDevice!==n)&&((i=this._uniformBuffer)==null||i.destroy(),this._uniformBuffer=n.createBuffer({label:"PbrMaterialUniform",size:_,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST}),this._uniformDevice=n,this._dirty=!0);const e=r._getSampler(n),l=((o=this._albedoMap)==null?void 0:o.view)??r._getWhite(n),s=((d=this._normalMap)==null?void 0:d.view)??r._getFlatNormal(n),u=((f=this._merMap)==null?void 0:f.view)??r._getMerDefault(n);return this._bindGroup=n.createBindGroup({label:"PbrMaterialBG",layout:this.getBindGroupLayout(n),entries:[{binding:0,resource:{buffer:this._uniformBuffer}},{binding:1,resource:l},{binding:2,resource:s},{binding:3,resource:u},{binding:4,resource:e}]}),this._bindGroupAlbedo=this._albedoMap,this._bindGroupNormal=this._normalMap,this._bindGroupMer=this._merMap,this._bindGroup}update(n){var l,s,u,i,o,d;if(!this._dirty||!this._uniformBuffer)return;const e=this._scratch;e[0]=this.albedo[0],e[1]=this.albedo[1],e[2]=this.albedo[2],e[3]=this.albedo[3],e[4]=this.roughness,e[5]=this.metallic,e[6]=((l=this.uvOffset)==null?void 0:l[0])??0,e[7]=((s=this.uvOffset)==null?void 0:s[1])??0,e[8]=((u=this.uvScale)==null?void 0:u[0])??1,e[9]=((i=this.uvScale)==null?void 0:i[1])??1,e[10]=((o=this.uvTile)==null?void 0:o[0])??1,e[11]=((d=this.uvTile)==null?void 0:d[1])??1,n.writeBuffer(this._uniformBuffer,0,e.buffer),this._dirty=!1}destroy(){var n;(n=this._uniformBuffer)==null||n.destroy(),this._uniformBuffer=null,this._uniformDevice=null,this._bindGroup=null}static _getSampler(n){let e=r._samplerByDevice.get(n);return e||(e=n.createSampler({label:"PbrMaterialSampler",magFilter:"linear",minFilter:"linear",addressModeU:"repeat",addressModeV:"repeat"}),r._samplerByDevice.set(n,e)),e}static _make1x1View(n,e,l,s,u,i){const o=n.createTexture({label:e,size:{width:1,height:1},format:"rgba8unorm",usage:GPUTextureUsage.TEXTURE_BINDING|GPUTextureUsage.COPY_DST});return n.queue.writeTexture({texture:o},new Uint8Array([l,s,u,i]),{bytesPerRow:4},{width:1,height:1}),o.createView()}static _getWhite(n){let e=r._whiteByDevice.get(n);return e||(e=r._make1x1View(n,"PbrFallbackWhite",255,255,255,255),r._whiteByDevice.set(n,e)),e}static _getFlatNormal(n){let e=r._flatNormalByDevice.get(n);return e||(e=r._make1x1View(n,"PbrFallbackFlatNormal",128,128,255,255),r._flatNormalByDevice.set(n,e)),e}static _getMerDefault(n){let e=r._merDefaultByDevice.get(n);return e||(e=r._make1x1View(n,"PbrFallbackMer",255,0,255,255),r._merDefaultByDevice.set(n,e)),e}};t(r,"_layoutByDevice",new WeakMap),t(r,"_samplerByDevice",new WeakMap),t(r,"_whiteByDevice",new WeakMap),t(r,"_flatNormalByDevice",new WeakMap),t(r,"_merDefaultByDevice",new WeakMap);let p=r;export{p as P};
+`,_=48,a=class a extends v{constructor(n={}){super();t(this,"shaderId","pbr");t(this,"albedo");t(this,"roughness");t(this,"metallic");t(this,"uvOffset");t(this,"uvScale");t(this,"uvTile");t(this,"_albedoMap");t(this,"_normalMap");t(this,"_merMap");t(this,"_uniformBuffer",null);t(this,"_uniformDevice",null);t(this,"_bindGroup",null);t(this,"_bindGroupAlbedo");t(this,"_bindGroupNormal");t(this,"_bindGroupMer");t(this,"_dirty",!0);t(this,"_scratch",new Float32Array(_/4));this.albedo=n.albedo??[1,1,1,1],this.roughness=n.roughness??.5,this.metallic=n.metallic??0,this.uvOffset=n.uvOffset,this.uvScale=n.uvScale,this.uvTile=n.uvTile,this._albedoMap=n.albedoMap,this._normalMap=n.normalMap,this._merMap=n.merMap,this.transparent=n.transparent??!1}get albedoMap(){return this._albedoMap}set albedoMap(n){n!==this._albedoMap&&(this._albedoMap=n,this._bindGroup=null)}get normalMap(){return this._normalMap}set normalMap(n){n!==this._normalMap&&(this._normalMap=n,this._bindGroup=null)}get merMap(){return this._merMap}set merMap(n){n!==this._merMap&&(this._merMap=n,this._bindGroup=null)}markDirty(){this._dirty=!0}getShaderCode(n){switch(n){case c.Forward:return w;case c.Geometry:return b;case c.SkinnedGeometry:return x}}getBindGroupLayout(n){let e=a._layoutByDevice.get(n);return e||(e=n.createBindGroupLayout({label:"PbrMaterialBGL",entries:[{binding:0,visibility:GPUShaderStage.VERTEX|GPUShaderStage.FRAGMENT,buffer:{type:"uniform"}},{binding:1,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:2,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:3,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:"float"}},{binding:4,visibility:GPUShaderStage.FRAGMENT,sampler:{type:"filtering"}}]}),a._layoutByDevice.set(n,e)),e}getBindGroup(n){var i,o,m,f;if(this._bindGroup&&this._bindGroupAlbedo===this._albedoMap&&this._bindGroupNormal===this._normalMap&&this._bindGroupMer===this._merMap)return this._bindGroup;(!this._uniformBuffer||this._uniformDevice!==n)&&((i=this._uniformBuffer)==null||i.destroy(),this._uniformBuffer=n.createBuffer({label:"PbrMaterialUniform",size:_,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST}),this._uniformDevice=n,this._dirty=!0);const e=a._getSampler(n),l=((o=this._albedoMap)==null?void 0:o.view)??a._getWhite(n),s=((m=this._normalMap)==null?void 0:m.view)??a._getFlatNormal(n),d=((f=this._merMap)==null?void 0:f.view)??a._getMerDefault(n);return this._bindGroup=n.createBindGroup({label:"PbrMaterialBG",layout:this.getBindGroupLayout(n),entries:[{binding:0,resource:{buffer:this._uniformBuffer}},{binding:1,resource:l},{binding:2,resource:s},{binding:3,resource:d},{binding:4,resource:e}]}),this._bindGroupAlbedo=this._albedoMap,this._bindGroupNormal=this._normalMap,this._bindGroupMer=this._merMap,this._bindGroup}update(n){var l,s,d,i,o,m;if(!this._dirty||!this._uniformBuffer)return;const e=this._scratch;e[0]=this.albedo[0],e[1]=this.albedo[1],e[2]=this.albedo[2],e[3]=this.albedo[3],e[4]=this.roughness,e[5]=this.metallic,e[6]=((l=this.uvOffset)==null?void 0:l[0])??0,e[7]=((s=this.uvOffset)==null?void 0:s[1])??0,e[8]=((d=this.uvScale)==null?void 0:d[0])??1,e[9]=((i=this.uvScale)==null?void 0:i[1])??1,e[10]=((o=this.uvTile)==null?void 0:o[0])??1,e[11]=((m=this.uvTile)==null?void 0:m[1])??1,n.writeBuffer(this._uniformBuffer,0,e.buffer),this._dirty=!1}destroy(){var n;(n=this._uniformBuffer)==null||n.destroy(),this._uniformBuffer=null,this._uniformDevice=null,this._bindGroup=null}static _getSampler(n){let e=a._samplerByDevice.get(n);return e||(e=n.createSampler({label:"PbrMaterialSampler",magFilter:"linear",minFilter:"linear",addressModeU:"repeat",addressModeV:"repeat"}),a._samplerByDevice.set(n,e)),e}static _make1x1View(n,e,l,s,d,i){const o=n.createTexture({label:e,size:{width:1,height:1},format:"rgba8unorm",usage:GPUTextureUsage.TEXTURE_BINDING|GPUTextureUsage.COPY_DST});return n.queue.writeTexture({texture:o},new Uint8Array([l,s,d,i]),{bytesPerRow:4},{width:1,height:1}),o.createView()}static _getWhite(n){let e=a._whiteByDevice.get(n);return e||(e=a._make1x1View(n,"PbrFallbackWhite",255,255,255,255),a._whiteByDevice.set(n,e)),e}static _getFlatNormal(n){let e=a._flatNormalByDevice.get(n);return e||(e=a._make1x1View(n,"PbrFallbackFlatNormal",128,128,255,255),a._flatNormalByDevice.set(n,e)),e}static _getMerDefault(n){let e=a._merDefaultByDevice.get(n);return e||(e=a._make1x1View(n,"PbrFallbackMer",255,0,255,255),a._merDefaultByDevice.set(n,e)),e}};t(a,"_layoutByDevice",new WeakMap),t(a,"_samplerByDevice",new WeakMap),t(a,"_whiteByDevice",new WeakMap),t(a,"_flatNormalByDevice",new WeakMap),t(a,"_merDefaultByDevice",new WeakMap);let p=a;export{p as P};

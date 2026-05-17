@@ -2,6 +2,10 @@
 // Supports: directional, point, spot lights with shadows
 // Materials: PBR with IBL, normal mapping, MER textures
 
+// Debug visualization: set to 1 to show shadow term (red=lit, black=shadowed),
+// 2 to show cascade index as color overlay, 0 for normal rendering.
+const DEBUG_SHADOW: u32 = 0u;
+
 const PI: f32 = 3.14159265358979323846;
 
 // Maximum lights supported
@@ -60,9 +64,25 @@ struct DirectionalLight {
   intensity       : f32,
   color           : vec3<f32>,
   castShadows     : u32,
-  shadowMapIndex  : u32,
-  _pad            : vec3<u32>,
-  lightViewProj   : mat4x4<f32>,
+  cascadeCount    : u32,
+  _pad0           : u32,
+  _pad1           : u32,
+  lightViewProj0  : mat4x4<f32>,
+  splitFar0       : f32,
+  _pad_c0         : f32,
+  _pad_c0b        : vec2<f32>,
+  lightViewProj1  : mat4x4<f32>,
+  splitFar1       : f32,
+  _pad_c1         : f32,
+  _pad_c1b        : vec2<f32>,
+  lightViewProj2  : mat4x4<f32>,
+  splitFar2       : f32,
+  _pad_c2         : f32,
+  _pad_c2b        : vec2<f32>,
+  lightViewProj3  : mat4x4<f32>,
+  splitFar3       : f32,
+  _pad_c3         : f32,
+  _pad_c3b        : vec2<f32>,
 }
 
 struct LightingUniforms {
@@ -98,6 +118,7 @@ struct LightingUniforms {
 @group(3) @binding(10) var pointShadowCubeArray : texture_depth_cube_array;
 
 const IBL_MIP_LEVELS: f32 = 5.0;
+const SHADOW_MAP_SIZE: f32 = 2048.0;
 
 // Vertex input/output
 struct VertexInput {
@@ -163,13 +184,45 @@ fn geometry_smith(N: vec3<f32>, V: vec3<f32>, L: vec3<f32>, roughness: f32) -> f
   return ggx1 * ggx2;
 }
 
-// Shadow sampling for directional light
+fn cascade_lvp(index: u32) -> mat4x4<f32> {
+  if (index == 0u) { return directionalLight.lightViewProj0; }
+  if (index == 1u) { return directionalLight.lightViewProj1; }
+  if (index == 2u) { return directionalLight.lightViewProj2; }
+  return directionalLight.lightViewProj3;
+}
+
+fn cascade_split(index: u32) -> f32 {
+  if (index == 0u) { return directionalLight.splitFar0; }
+  if (index == 1u) { return directionalLight.splitFar1; }
+  if (index == 2u) { return directionalLight.splitFar2; }
+  return directionalLight.splitFar3;
+}
+
+fn select_cascade(view_depth: f32) -> u32 {
+  var cascade_index = directionalLight.cascadeCount - 1u;
+  for (var i = 0u; i < directionalLight.cascadeCount; i++) {
+    if (view_depth <= cascade_split(i)) {
+      cascade_index = i;
+      break;
+    }
+  }
+  return cascade_index;
+}
+
+// Shadow sampling for directional light with cascade selection
 fn sample_shadow(world_pos: vec3<f32>) -> f32 {
   if (directionalLight.castShadows == 0u) {
     return 1.0;
   }
 
-  let light_space = directionalLight.lightViewProj * vec4<f32>(world_pos, 1.0);
+  // Compute view-space depth for cascade selection
+  let view_pos = camera.view * vec4<f32>(world_pos, 1.0);
+  let view_depth = -view_pos.z;
+
+  let cascade_index = select_cascade(view_depth);
+
+  let lightVP = cascade_lvp(cascade_index);
+  let light_space = lightVP * vec4<f32>(world_pos, 1.0);
   var shadow_coord = light_space.xyz / light_space.w;
   shadow_coord = vec3<f32>(shadow_coord.xy * 0.5 + 0.5, shadow_coord.z);
   shadow_coord.y = 1.0 - shadow_coord.y;
@@ -180,10 +233,20 @@ fn sample_shadow(world_pos: vec3<f32>) -> f32 {
     return 1.0;
   }
 
-  // Use slope-based bias to prevent shadow acne
-  let bias = 0.002;
-  let arrayIndex = i32(directionalLight.shadowMapIndex);
-  return textureSampleCompareLevel(shadowMapArray, shadowSampler, shadow_coord.xy, arrayIndex, shadow_coord.z - bias);
+  let bias = 0.001;
+  let arrayIndex = i32(cascade_index);
+  let texelSize = 1.0 / SHADOW_MAP_SIZE;
+  let offsets = array<vec2<f32>, 4>(
+    vec2<f32>(-0.5, -0.5) * texelSize,
+    vec2<f32>( 0.5, -0.5) * texelSize,
+    vec2<f32>(-0.5,  0.5) * texelSize,
+    vec2<f32>( 0.5,  0.5) * texelSize,
+  );
+  var shadow = 0.0;
+  for (var i = 0u; i < 4u; i++) {
+    shadow += textureSampleCompareLevel(shadowMapArray, shadowSampler, shadow_coord.xy + offsets[i], arrayIndex, shadow_coord.z - bias);
+  }
+  return shadow * 0.25;
 }
 
 // Shadow sampling for spot light
@@ -385,6 +448,27 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
   let lit_color = calculate_pbr_lighting(albedo, N, V, in.world_pos, roughness, metallic);
   let emissive = albedo * emission * 2.0;
   let final_color = lit_color + emissive;
+
+  if (DEBUG_SHADOW == 1u) {
+    let view_pos = camera.view * vec4<f32>(in.world_pos, 1.0);
+    let view_depth = -view_pos.z;
+    let shadow = sample_shadow(in.world_pos);
+    let cascade = select_cascade(view_depth);
+    // Show shadow term in red, cascade index in green/blue
+    return vec4<f32>(shadow, 0.0, f32(cascade) / 4.0, 1.0);
+  }
+  if (DEBUG_SHADOW == 2u) {
+    let view_pos = camera.view * vec4<f32>(in.world_pos, 1.0);
+    let view_depth = -view_pos.z;
+    let cascade = select_cascade(view_depth);
+    let colors = array<vec3<f32>, 4>(
+      vec3<f32>(1.0, 0.0, 0.0),  // cascade 0 = red
+      vec3<f32>(0.0, 1.0, 0.0),  // cascade 1 = green
+      vec3<f32>(0.0, 0.0, 1.0),  // cascade 2 = blue
+      vec3<f32>(1.0, 1.0, 0.0),  // cascade 3 = yellow
+    );
+    return vec4<f32>(mix(final_color, colors[cascade], 0.5), alpha);
+  }
 
   return vec4<f32>(final_color, alpha);
 }
