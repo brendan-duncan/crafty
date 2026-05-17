@@ -44,7 +44,7 @@ import { createBlockInteractionState, setupBlockInteractionHandlers, updateBlock
 import { loadBlockColors, getBlockColor } from './game/block_colors.js';
 import { setupTouchControlsLazy, isTouchDevice } from './game/touch_controls.js';
 import { AudioManager } from './game/audio_manager.js';
-import { getWeatherCloudCoverage, getWeatherCloudBounds, getWeatherCloudDensity, getWeatherEnvironmentEffect, getWeatherSpawnRate, getWeatherName, pickRandomWeather, getWeatherChangeInterval, nextWeather } from './game/weather_system.js';
+import { getWeatherCloudCoverage, getWeatherCloudBounds, getWeatherCloudDensity, getWeatherCloudAmbientWhiten, getWeatherEnvironmentEffect, getWeatherSpawnRate, getWeatherName, pickRandomWeather, getWeatherChangeInterval, nextWeather } from './game/weather_system.js';
 import { updateTorchFlicker, updateMagmaFlicker } from './game/lights.js';
 import { setupAnimalSpawning } from './game/animal_spawner.js';
 import { setupVillageGeneration } from './game/village_gen.js';
@@ -999,7 +999,16 @@ async function main(): Promise<void> {
     const blockShadowEnabled = sun.intensity > 0;
 
     const dayT = Math.max(0, elev);
-    const cloudAmbient: [number, number, number] = [0.02 + 0.38 * dayT, 0.03 + 0.52 * dayT, 0.05 + 0.65 * dayT];
+    const baseAmbient: [number, number, number] = [0.02 + 0.38 * dayT, 0.03 + 0.52 * dayT, 0.05 + 0.65 * dayT];
+    // Fog weathers pull each channel toward the brightest one so the volume
+    // reads as white fog instead of bluish-gray cloud when seen from inside.
+    const whiten = getWeatherCloudAmbientWhiten(currentWeather);
+    const peak = Math.max(baseAmbient[0], baseAmbient[1], baseAmbient[2]);
+    const cloudAmbient: [number, number, number] = [
+      baseAmbient[0] + (peak - baseAmbient[0]) * whiten,
+      baseAmbient[1] + (peak - baseAmbient[1]) * whiten,
+      baseAmbient[2] + (peak - baseAmbient[2]) * whiten,
+    ];
     const cloudSettings = {
       cloudBase, cloudTop, coverage: cloudCoverage, density: cloudDensity,
       windOffset: [cloudWindX, cloudWindZ] as [number, number],

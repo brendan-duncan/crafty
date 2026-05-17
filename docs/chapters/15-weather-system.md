@@ -8,7 +8,7 @@ Weather is what makes a landscape feel alive. A static blue sky is technically c
 
 ![Seven weather types with their cloud-coverage targets and selection weights, plus the timer-driven random transition loop](../illustrations/16-weather-state-machine.svg)
 
-The `WeatherType` enum in `crafty/game/weather_system.ts` defines eight weather states:
+The `WeatherType` enum in `crafty/game/weather_system.ts` defines nine weather states:
 
 | Weather | Visual appearance | Precipitation |
 |---------|------------------|---------------|
@@ -19,15 +19,17 @@ The `WeatherType` enum in `crafty/game/weather_system.ts` defines eight weather 
 | `HeavyRain` | Overcast with heavy rain | Rain (high rate) |
 | `LightSnow` | Cloudy with light snow | Snow (low rate) |
 | `HeavySnow` | Overcast with heavy snow | Snow (high rate) |
-| `Foggy` | Ground-hugging cloud the player walks through | None |
+| `LightFog` | Thin ground-hugging cloud the player walks through | None |
+| `HeavyFog` | Dense ground-hugging cloud, severely reduced visibility | None |
 
-Each weather type carries up to five derived properties:
+Each weather type carries up to six derived properties:
 
 - **Cloud coverage** — a `[0, 1]+` target that the visual cloud density lerps toward (see §16.4).
 - **Environment effect** — maps to `EnvironmentEffect.None / Rain / Snow`, which controls whether the particle system is active.
 - **Spawn rate** — the per-second particle spawn rate used when rain or snow is active (see §16.5).
-- **Cloud bounds override** — most weather defers to the biome's `cloudBase` / `cloudTop`; `Foggy` overrides these to drop the cloud volume to ground level (see §15.4.1).
-- **Cloud density override** — most weather uses the global default (`4.0`); `Foggy` reduces this so the player can see a useful distance while standing inside the cloud volume.
+- **Cloud bounds override** — most weather defers to the biome's `cloudBase` / `cloudTop`; the fog weathers (`LightFog`, `HeavyFog`) override these to drop the cloud volume to ground level (see §15.4.1).
+- **Cloud density override** — most weather uses the global default (`4.0`); the fog weathers reduce this so the player can see a useful distance while standing inside the cloud volume.
+- **Cloud ambient whitening** — fog weathers pull the bluish cloud ambient toward neutral so the volume reads as white fog from inside, instead of gray cloud (see §15.4.2).
 
 ## 15.2 Biome Weather Tables
 
@@ -38,16 +40,16 @@ Different biomes have different weather patterns — you will not see snow in th
 ```typescript
 // ── from crafty/game/weather_system.ts ──
 const BIOME_WEATHERS: Record<BiomeType, WeatherType[]> = {
-  [BiomeType.None]:            [Sunny, Cloudy, Overcast, Foggy],
+  [BiomeType.None]:            [Sunny, Cloudy, Overcast, LightFog, HeavyFog],
   [BiomeType.Desert]:          [Sunny, Cloudy],
-  [BiomeType.GrassyPlains]:    [Sunny, Cloudy, Overcast, LightRain, HeavyRain, Foggy],
-  [BiomeType.RockyMountains]:  [Sunny, Cloudy, Overcast, LightRain, HeavyRain, Foggy],
-  [BiomeType.SnowyPlains]:     [Sunny, Cloudy, Overcast, LightSnow, HeavySnow, Foggy],
-  [BiomeType.SnowyMountains]:  [Sunny, Cloudy, Overcast, LightSnow, HeavySnow, Foggy],
+  [BiomeType.GrassyPlains]:    [Sunny, Cloudy, Overcast, LightRain, HeavyRain, LightFog, HeavyFog],
+  [BiomeType.RockyMountains]:  [Sunny, Cloudy, Overcast, LightRain, HeavyRain, LightFog, HeavyFog],
+  [BiomeType.SnowyPlains]:     [Sunny, Cloudy, Overcast, LightSnow, HeavySnow, LightFog, HeavyFog],
+  [BiomeType.SnowyMountains]:  [Sunny, Cloudy, Overcast, LightSnow, HeavySnow, LightFog, HeavyFog],
 };
 ```
 
-Desert biomes never see rain, snow, or fog — the arid climate excludes anything that needs sustained moisture. Grassy plains and rocky mountains cycle through fair weather and rain. Snowy biomes get snow instead of rain. Every non-desert biome can roll into `Foggy`.
+Desert biomes never see rain, snow, or fog — the arid climate excludes anything that needs sustained moisture. Grassy plains and rocky mountains cycle through fair weather and rain. Snowy biomes get snow instead of rain. Every non-desert biome can roll into either fog weather; `LightFog` and `HeavyFog` always travel together, so any biome that can be foggy can be foggy at either intensity.
 
 Each weather type also carries a **selection weight** — fair weather (Sunny, Cloudy) is more likely than precipitation, and light precipitation is more common than heavy:
 
@@ -61,7 +63,8 @@ const WEATHER_WEIGHTS: Record<WeatherType, number> = {
   [WeatherType.HeavyRain]:   1,
   [WeatherType.LightSnow]:   2,
   [WeatherType.HeavySnow]:   1,
-  [WeatherType.Foggy]:       2,
+  [WeatherType.LightFog]:    2,
+  [WeatherType.HeavyFog]:    2,
 };
 ```
 
@@ -129,18 +132,19 @@ Each weather type dictates a target cloud coverage that the renderer lerps towar
 export function getWeatherCloudCoverage(weather: WeatherType): number {
   switch (weather) {
     case WeatherType.Sunny:      return 0.1;
-    case WeatherType.Cloudy:     return 0.55;
-    case WeatherType.Overcast:   return 0.9;
-    case WeatherType.LightRain:  return 0.7;
-    case WeatherType.HeavyRain:  return 0.9;
+    case WeatherType.Cloudy:     return 0.85;
+    case WeatherType.Overcast:   return 1.1;
+    case WeatherType.LightRain:  return 0.95;
+    case WeatherType.HeavyRain:  return 1.1;
     case WeatherType.LightSnow:  return 0.8;
-    case WeatherType.HeavySnow:  return 0.95;
-    case WeatherType.Foggy:      return 1.15;
+    case WeatherType.HeavySnow:  return 1.2;
+    case WeatherType.LightFog:   return 0.8;
+    case WeatherType.HeavyFog:   return 1.15;
   }
 }
 ```
 
-Foggy targets a coverage > 1.0 — the cloud shader clamps this implicitly, so the entire fog slab fills with cloud rather than the patchy holes you get at sub-1.0 coverage.
+`HeavyFog` targets a coverage > 1.0 — the cloud shader clamps this implicitly, so the entire fog slab fills with cloud rather than the patchy holes you get at sub-1.0 coverage. `LightFog` deliberately stays under 1.0, leaving the fog patchier and thinner so the player still gets glimpses of clearer air between drifts of cloud.
 
 In the frame loop this target is blended smoothly:
 
@@ -154,7 +158,7 @@ This feeds into `CloudSettings.coverage`, which controls the density of the volu
 
 ### 15.4.1 Fog: Cloud Bounds and Density Overrides
 
-`Foggy` is the one weather type that needs more than just a coverage tweak — it also relocates the cloud volume down to ground level and thins the cloud density. Two small helpers in `weather_system.ts` provide these overrides:
+The fog weathers (`LightFog` and `HeavyFog`) need more than just a coverage tweak — they also relocate the cloud volume down to ground level and thin the cloud density. Two small helpers in `weather_system.ts` provide these overrides:
 
 ```typescript
 // ── from crafty/game/weather_system.ts ──
@@ -162,7 +166,7 @@ export function getWeatherCloudBounds(
   weather: WeatherType,
   biomeBounds: { cloudBase: number; cloudTop: number },
 ): { cloudBase: number; cloudTop: number } {
-  if (weather === WeatherType.Foggy) {
+  if (weather === WeatherType.LightFog || weather === WeatherType.HeavyFog) {
     return { cloudBase: -10, cloudTop: 80 };
   }
   return biomeBounds;
@@ -170,17 +174,18 @@ export function getWeatherCloudBounds(
 
 export function getWeatherCloudDensity(weather: WeatherType): number | null {
   switch (weather) {
-    case WeatherType.Foggy: return 0.5;
-    default:                return null;  // use the global default
+    case WeatherType.LightFog: return 0.2;
+    case WeatherType.HeavyFog: return 0.5;
+    default:                   return null;  // use the global default
   }
 }
 ```
 
-The `cloudBase: -10` is below any terrain in the world, so the player is always inside the cloud volume while Foggy is active. The `cloudTop: 80` extends well above typical play altitudes but lets very tall mountains poke above the fog. Both values fall back to the biome's own `cloudBase` / `cloudTop` in every other weather state.
+The `cloudBase: -10` is below any terrain in the world, so the player is always inside the cloud volume while a fog weather is active. The `cloudTop: 80` extends well above typical play altitudes but lets very tall mountains poke above the fog. Both fog types share these bounds — what distinguishes them is the density override.
 
-The density override is the more subtle piece. The standard cloud density (4.0) is tuned for sky-high clouds that the player only marches through when looking up — fully opaque inside, but rarely sampled across more than a few units of optical depth. At ground level the player would be marching through the full slab, which at density 4.0 would render as solid white. Foggy drops the density to 0.5, giving roughly 20 m of useful visibility — enough to feel disorienting without being unplayable.
+The density override is the more subtle piece. The standard cloud density (4.0) is tuned for sky-high clouds that the player only marches through when looking up — fully opaque inside, but rarely sampled across more than a few units of optical depth. At ground level the player would be marching through the full slab, which at density 4.0 would render as solid white. `HeavyFog` drops the density to 0.5 for severely reduced visibility, while `LightFog` drops it further to 0.2 — a noticeable haze with significantly longer view distance, so distant landmarks remain visible through the fog.
 
-Both overrides are interpolated in the same lerp as coverage:
+Both overrides are interpolated in the same lerp as coverage, so transitions in and out of fog (and between `LightFog` and `HeavyFog`) aren't instant — the cloud layer visibly descends or thickens over a few seconds:
 
 ```typescript
 // ── from crafty/main.ts ──
@@ -191,9 +196,38 @@ const targetCloudDensity = getWeatherCloudDensity(currentWeather) ?? 4.0;
 cloudDensity += (targetCloudDensity - cloudDensity) * Math.min(1, 0.3 * dt);
 ```
 
-So transitions in and out of Foggy aren't instant — the cloud layer visibly descends, thickens, and engulfs the player over a few seconds.
-
 This effect only reads as fog because the cloud pass runs in **overlay mode** (§10.x): premultiplied-alpha cloud color blended over the lit HDR, so clouds occlude geometry between the camera and the gbuffer depth. Without that, the cloud volume would still exist mathematically but lighting would write geometry on top of it, and fog would only be visible against the sky.
+
+### 15.4.2 Fog: Ambient Whitening
+
+When you stand inside a fog volume, the sun term is mostly self-shadowed away — most rays through the cloud are blocked by the cloud itself before any direct sun energy contributes. The visible color is then dominated by the **ambient term**, which by default is the sky-tinted `cloudAmbient` color. At noon that ambient is roughly `(0.40, 0.55, 0.70)` — distinctly bluish-gray. The result: fog reads as gray cloud, not as the bright white haze a player expects.
+
+The fix is a small per-weather whitening factor that pulls each channel of the ambient up to the brightest channel:
+
+```typescript
+// ── from crafty/game/weather_system.ts ──
+export function getWeatherCloudAmbientWhiten(weather: WeatherType): number {
+  switch (weather) {
+    case WeatherType.LightFog: return 0.5;
+    case WeatherType.HeavyFog: return 0.85;
+    default:                   return 0;
+  }
+}
+```
+
+```typescript
+// ── from crafty/main.ts ──
+const baseAmbient: [number, number, number] = [0.02 + 0.38 * dayT, 0.03 + 0.52 * dayT, 0.05 + 0.65 * dayT];
+const whiten = getWeatherCloudAmbientWhiten(currentWeather);
+const peak = Math.max(baseAmbient[0], baseAmbient[1], baseAmbient[2]);
+const cloudAmbient: [number, number, number] = [
+  baseAmbient[0] + (peak - baseAmbient[0]) * whiten,
+  baseAmbient[1] + (peak - baseAmbient[1]) * whiten,
+  baseAmbient[2] + (peak - baseAmbient[2]) * whiten,
+];
+```
+
+Pulling toward the brightest channel (rather than toward `1.0`) preserves the day/night brightness curve — at noon `(0.40, 0.55, 0.70)` becomes about `(0.55, 0.625, 0.70)` for `LightFog` and `(0.655, 0.6775, 0.70)` for `HeavyFog`, distinctly whiter. At night, when all three channels are near zero, the lerp does almost nothing, so fog stays dark and atmospheric instead of glowing white. The whitening factor is **not** lerped during transitions; it's evaluated each frame from `currentWeather`. The visual smoothing comes from the cloud-coverage/density lerp that already runs in the same frame block.
 
 ## 15.5 Precipitation Control
 
@@ -298,10 +332,11 @@ export interface HudElements {
 
 The weather system provides dynamic environmental variation:
 
-- **Eight weather types**: Sunny through HeavySnow plus Foggy, with biome-specific weather tables
+- **Nine weather types**: Sunny through HeavySnow plus LightFog and HeavyFog, with biome-specific weather tables
 - **Timer-driven transitions**: Random intervals (30–120 s) with weighted selection per biome
 - **Cloud coverage**: Interpolated target values drive cloud density changes
-- **Cloud bounds / density overrides**: Foggy drops the cloud volume to ground level and thins it to walkable visibility
+- **Cloud bounds / density overrides**: Both fog weathers drop the cloud volume to ground level; `HeavyFog` thins density to 0.5 (severely reduced visibility) and `LightFog` to 0.2 (light haze)
+- **Cloud ambient whitening**: Fog weathers pull the bluish cloud ambient toward neutral so the volume reads as white fog from inside instead of gray cloud
 - **Precipitation control**: `EnvironmentEffect` (None/Rain/Snow) with dynamic spawn rates
 - **Debug overlay**: Current weather type displayed in the HUD
 
