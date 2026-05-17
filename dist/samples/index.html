@@ -1,39 +1,363 @@
 <html>
-    <head>
-        <title>Crafty</title>
-        <link rel="icon" type="image/svg+xml" href="favicon.svg">
-        <style>
-            a {
-                color: rgb(195, 195, 224);
-                text-decoration: none;
-            }
-            a:hover {
-                text-decoration: underline;
-            }
-            br {
-                margin-bottom: 20px;
-            }
-        </style>
-    </head>
-    <body style="margin-left: 100px; font-family: sans-serif; background-color: #202020; color: white; margin-top: 50px;">
-        <span><img src="../assets/favicon-Bjfj1BJY.svg" width="128"> <span style="margin-left: 20px;font-size: 48px;">Crafty</span></span>
-        <h3>
-        Samples:<br>
-        <ul>
-         <li><a href="forward_test.html">Forward Test</a></li>
-         <li><a href="cascade_shadow_test.html">Cascade Shadow Test</a></li>
-         <li><a href="cloud_test.html">Cloud Test</a></li>
-         <li><a href="procedural_test.html">Procedural Test</a></li>
-         <li><a href="terraforming_test.html">Terraforming (Marching Cubes)</a></li>
-         <li><a href="animal_test.html">Animal Display</a></li>
-         <li><a href="rg_procedural.html">RG: Simple Procedural</a></li>
-         <li><a href="rg_forward.html">RG: Forward + Directional</a></li>
-         <li><a href="rg_forward_cascade_shadow.html">RG: Forward + Shadows</a></li>
-         <li><a href="rg_deferred.html">RG: Deferred + Shadows</a></li>
-         <li><a href="rg_sky_dof.html">RG: Forward + Sky + Shadows + DOF</a></li>
-         <li><a href="rg_full.html">RG: Full Post-Processing</a></li>
-         <li><a href="engine_test_rg.html">Engine Test (Render Graph)</a></li>
-        </ul>
-        </h3>
-    </body>
+<head>
+    <title>Crafty</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg:        #0f0f12;
+            --panel:     #16161c;
+            --border:    #2a2a38;
+            --accent:    #5ef0c8;
+            --accent2:   #8f6fff;
+            --text:      #d4d4e8;
+            --muted:     #555570;
+            --hover:     #1f1f2e;
+            --active-bg: #1a2535;
+            --sidebar-w: 260px;
+            --header-h:  52px;
+        }
+
+        html, body { height: 100%; overflow: hidden; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Rajdhani', sans-serif;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── Header ─────────────────────────────────────────── */
+        header {
+            height: var(--header-h);
+            background: var(--panel);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            gap: 14px;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 10;
+        }
+
+        header img { width: 28px; height: 28px; opacity: 0.9; }
+
+        header .wordmark {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 20px;
+            letter-spacing: 0.12em;
+            color: var(--accent);
+            text-shadow: 0 0 18px rgba(94,240,200,0.35);
+        }
+
+        header .sep {
+            width: 1px;
+            height: 22px;
+            background: var(--border);
+            margin: 0 6px;
+        }
+
+        header .sample-label {
+            font-size: 13px;
+            color: var(--muted);
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        header .current-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+            letter-spacing: 0.04em;
+            transition: color 0.2s;
+        }
+
+        header .open-btn {
+            margin-left: auto;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 0.1em;
+            color: var(--muted);
+            background: none;
+            border: 1px solid var(--border);
+            padding: 5px 12px;
+            cursor: pointer;
+            border-radius: 3px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.15s, border-color 0.15s;
+        }
+        header .open-btn:hover { color: var(--accent); border-color: var(--accent); }
+        header .open-btn svg { width: 11px; height: 11px; }
+
+        /* ── Body layout ─────────────────────────────────────── */
+        .layout {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* ── Sidebar ─────────────────────────────────────────── */
+        aside {
+            width: var(--sidebar-w);
+            background: var(--panel);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .sidebar-section {
+            padding: 14px 16px 8px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 0.14em;
+            color: var(--muted);
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--border);
+        }
+
+        nav {
+            overflow-y: auto;
+            flex: 1;
+            padding: 6px 0;
+        }
+
+        nav::-webkit-scrollbar { width: 4px; }
+        nav::-webkit-scrollbar-track { background: transparent; }
+        nav::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+        /* group labels */
+        .group-label {
+            padding: 10px 16px 4px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 9px;
+            letter-spacing: 0.16em;
+            color: var(--muted);
+            text-transform: uppercase;
+            opacity: 0.6;
+        }
+
+        .sample-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 16px;
+            cursor: pointer;
+            border-left: 2px solid transparent;
+            transition: background 0.12s, border-color 0.12s;
+            user-select: none;
+        }
+
+        .sample-item:hover { background: var(--hover); }
+
+        .sample-item.active {
+            background: var(--active-bg);
+            border-left-color: var(--accent);
+        }
+
+        .sample-item .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--border);
+            flex-shrink: 0;
+            transition: background 0.12s;
+        }
+        .sample-item.active .dot { background: var(--accent); box-shadow: 0 0 6px rgba(94,240,200,0.6); }
+        .sample-item:hover .dot  { background: var(--accent2); }
+
+        .sample-item span {
+            font-size: 13.5px;
+            font-weight: 400;
+            color: var(--text);
+            letter-spacing: 0.02em;
+            line-height: 1.3;
+        }
+        .sample-item.active span { color: #fff; font-weight: 600; }
+
+        /* ── iframe area ─────────────────────────────────────── */
+        .viewer {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            background: #000;
+        }
+
+        iframe {
+            flex: 1;
+            border: none;
+            width: 100%;
+            height: 100%;
+        }
+
+        .placeholder {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            pointer-events: none;
+            opacity: 1;
+            transition: opacity 0.3s;
+        }
+        .placeholder.hidden { opacity: 0; }
+
+        .placeholder .big-icon {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 64px;
+            color: var(--border);
+            line-height: 1;
+        }
+        .placeholder p {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 12px;
+            letter-spacing: 0.12em;
+            color: var(--muted);
+            text-transform: uppercase;
+        }
+
+
+
+        /* ── loading bar ─────────────────────────────────────── */
+        .load-bar {
+            position: absolute;
+            top: 0; left: 0;
+            height: 2px;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent2), var(--accent));
+            box-shadow: 0 0 8px rgba(94,240,200,0.6);
+            transition: width 0.25s ease, opacity 0.3s;
+            opacity: 0;
+            z-index: 20;
+        }
+        .load-bar.running { opacity: 1; }
+    </style>
+</head>
+<body>
+
+<header>
+    <img src="../assets/favicon-Bjfj1BJY.svg" alt="Crafty">
+    <span class="wordmark">CRAFTY</span>
+    <div class="sep"></div>
+    <span class="sample-label">Sample&nbsp;</span>
+    <span class="current-title" id="currentTitle">— none selected —</span>
+    <a class="open-btn" id="openBtn" href="#" target="_blank" title="Open in new tab">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M5 2H2v8h8V7M7 1h4m0 0v4m0-4L5.5 6.5"/>
+        </svg>
+        OPEN
+    </a>
+</header>
+
+<div class="layout">
+    <aside>
+        <div class="sidebar-section">Samples</div>
+        <nav id="nav"></nav>
+    </aside>
+
+    <div class="viewer">
+        <div class="load-bar" id="loadBar"></div>
+        <div class="placeholder" id="placeholder">
+            <div class="big-icon">X</div>
+            <p>Select a sample to preview</p>
+        </div>
+        <iframe id="frame" src="about:blank"></iframe>
+    </div>
+</div>
+
+<script>
+    const samples = [
+        { group: 'Core Tests', items: [
+            { label: 'Forward Test',              href: 'forward_test.html' },
+            { label: 'Cascade Shadow Test',       href: 'cascade_shadow_test.html' },
+            { label: 'Cloud Test',                href: 'cloud_test.html' },
+            { label: 'Procedural Test',           href: 'procedural_test.html' },
+            { label: 'Terraforming (Marching Cubes)', href: 'terraforming_test.html' },
+            { label: 'Animal Display',            href: 'animal_test.html' },
+        ]},
+        { group: 'Render Graph', items: [
+            { label: 'RG: Simple Procedural',     href: 'rg_procedural.html' },
+            { label: 'RG: Forward + Directional', href: 'rg_forward.html' },
+            { label: 'RG: Forward + Shadows',     href: 'rg_forward_cascade_shadow.html' },
+            { label: 'RG: Deferred + Shadows',    href: 'rg_deferred.html' },
+            { label: 'RG: Forward + Sky + Shadows + DOF', href: 'rg_sky_dof.html' },
+            { label: 'RG: Full Post-Processing',  href: 'rg_full.html' },
+            { label: 'Engine Test (Render Graph)', href: 'engine_test_rg.html' },
+        ]},
+    ];
+
+    const nav         = document.getElementById('nav');
+    const frame       = document.getElementById('frame');
+    const placeholder = document.getElementById('placeholder');
+    const currentTitle = document.getElementById('currentTitle');
+    const openBtn     = document.getElementById('openBtn');
+    const loadBar     = document.getElementById('loadBar');
+
+    let activeEl = null;
+    let loadTimer = null;
+
+    function animateLoad() {
+        loadBar.style.width = '0%';
+        loadBar.classList.add('running');
+        clearTimeout(loadTimer);
+        // quick ramp to 80, then wait for iframe load event to finish
+        setTimeout(() => { loadBar.style.width = '75%'; }, 50);
+    }
+
+    function finishLoad() {
+        loadBar.style.width = '100%';
+        loadTimer = setTimeout(() => {
+            loadBar.classList.remove('running');
+            loadBar.style.width = '0%';
+        }, 400);
+    }
+
+    frame.addEventListener('load', () => {
+        if (frame.src !== 'about:blank') finishLoad();
+    });
+
+    function selectSample(href, label, el) {
+        if (activeEl === el) return;
+        if (activeEl) activeEl.classList.remove('active');
+        el.classList.add('active');
+        activeEl = el;
+
+        currentTitle.textContent = label;
+        openBtn.href = href;
+
+        placeholder.classList.add('hidden');
+        animateLoad();
+        frame.src = href;
+    }
+
+    // Build sidebar
+    samples.forEach(group => {
+        const glabel = document.createElement('div');
+        glabel.className = 'group-label';
+        glabel.textContent = group.group;
+        nav.appendChild(glabel);
+
+        group.items.forEach(s => {
+            const item = document.createElement('div');
+            item.className = 'sample-item';
+            item.innerHTML = `<span class="dot"></span><span>${s.label}</span>`;
+            item.addEventListener('click', () => selectSample(s.href, s.label, item));
+            nav.appendChild(item);
+        });
+    });
+</script>
+</body>
 </html>
