@@ -2,7 +2,7 @@ import { Vec3 } from '../../../src/math/index.js';
 import { Quaternion } from '../../../src/math/quaternion.js';
 import { Component } from '../../../src/engine/component.js';
 import { NPCEntity } from '../npc_entity.js';
-import type { World } from '../../../src/block/world.js';
+import type { BlockWorld } from '../../../src/block/world.js';
 import { BlockType } from '../../../src/block/block_type.js';
 
 type DuckState = 'idle' | 'wander' | 'flee';
@@ -13,13 +13,13 @@ const _Y_AXIS = new Vec3(0, 1, 0);
  * Simple wandering NPC behavior for duck GameObjects.
  *
  * Implements a three-state machine (idle → wander → flee) plus gravity,
- * water-surface flotation against the {@link World}, head-bob animation on a
+ * water-surface flotation against the {@link BlockWorld}, head-bob animation on a
  * 'Duck.Head' child GameObject, and yaw rotation based on movement direction.
  * The owning GameObject's mesh is drawn through a {@link MeshRenderer}; this
  * component only drives the transform, not rendering.
  */
 export class DuckAI extends Component {
-  private _world: World;
+  private _world: BlockWorld;
   private _state: DuckState = 'idle';
   private _timer = 0;
   private _targetX = 0;
@@ -34,9 +34,9 @@ export class DuckAI extends Component {
   private _bobPhase: number;
 
   /**
-   * @param world - World used for ground/water sampling.
+   * @param world - BlockWorld used for ground/water sampling.
    */
-  constructor(world: World) {
+  constructor(world: BlockWorld) {
     super();
     this._world = world;
     this._timer = 1 + Math.random() * 4;

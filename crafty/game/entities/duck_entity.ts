@@ -1,6 +1,6 @@
 import { GameObject, Scene, MeshRenderer } from '../../../src/engine/index.js';
 import { PbrMaterial } from '../../../src/renderer/materials/pbr_material.js';
-import { World, BiomeType, BlockType } from '../../../src/block/index.js';
+import { BlockWorld, BiomeType, BlockType } from '../../../src/block/index.js';
 import { Mesh } from '../../../src/assets/mesh.js';
 import { NPCEntity } from '../npc_entity.js';
 import { DuckAI } from '../components/duck_ai.js';
@@ -26,7 +26,7 @@ export class Duck extends NPCEntity {
     return { body: Duck._body!, head: Duck._head!, bill: Duck._bill! };
   }
 
-  static spawn(wx: number, wz: number, world: World, scene: Scene): Duck | null {
+  static spawn(wx: number, wz: number, world: BlockWorld, scene: Scene): Duck | null {
     const topY = world.getTopBlockY(wx, wz, 200);
     if (topY <= 0) return null;
     const biome = world.getBiomeAt(wx, topY, wz);
@@ -58,7 +58,7 @@ export class Duck extends NPCEntity {
     return duck;
   }
 
-  constructor(world: World, scene: Scene) {
+  constructor(world: BlockWorld, scene: Scene) {
     super('Duck', world, scene);
   }
 }
@@ -76,7 +76,7 @@ export class Duckling extends NPCEntity {
     }
   }
 
-  static spawn(parentDuck: Duck, world: World, scene: Scene): Duckling | null {
+  static spawn(parentDuck: Duck, world: BlockWorld, scene: Scene): Duckling | null {
     const angle = Math.random() * Math.PI * 2;
     const dist = 0.5 + Math.random() * 1.0;
     const wx = parentDuck.position.x + Math.cos(angle) * dist;
@@ -112,7 +112,7 @@ export class Duckling extends NPCEntity {
     return duckling;
   }
 
-  constructor(world: World, scene: Scene) {
+  constructor(world: BlockWorld, scene: Scene) {
     super('Duckling', world, scene);
   }
 }

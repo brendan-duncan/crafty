@@ -1,6 +1,6 @@
 import { Quaternion, Vec3 } from '../math/index.js';
 import type { GameObject } from './game_object.js';
-import type { World } from '../block/world.js';
+import type { BlockWorld } from '../block/world.js';
 import { BlockType, isBlockWater, isBlockProp } from '../block/block_type.js';
 import { blockTypeToSurface } from './audio_surface.js';
 import type { SurfaceGroup } from './audio_surface.js';
@@ -25,7 +25,7 @@ const EYE_HEIGHT     =   1.62;  // camera above feet
  *
  * Handles WASD movement, mouse-look (with pointer lock), jumping with coyote
  * time, sprint/sneak speed modifiers, and AABB-vs-blocks collision against
- * the {@link World}. Includes water detection so the player swims (Space rises,
+ * the {@link BlockWorld}. Includes water detection so the player swims (Space rises,
  * reduced gravity) when chest-deep in a water block. Call {@link PlayerController.attach}
  * once with a canvas, then {@link PlayerController.update} with the eye GameObject
  * each frame.
@@ -76,7 +76,7 @@ export class PlayerController {
   private _coyoteFrames = 0;
   private _keys         = new Set<string>();
   private _canvas   : HTMLCanvasElement | null = null;
-  private _world    : World;
+  private _world    : BlockWorld;
 
   private readonly _onMouseMove: (e: MouseEvent) => void;
   private readonly _onKeyDown  : (e: KeyboardEvent) => void;
@@ -85,11 +85,11 @@ export class PlayerController {
   private readonly _onBlur     : () => void;
 
   /**
-   * @param world - World used for collision and water sampling.
+   * @param world - BlockWorld used for collision and water sampling.
    * @param yaw - Initial yaw in radians.
    * @param pitch - Initial pitch in radians.
    */
-  constructor(world: World, yaw = Math.PI, pitch = 0.1) {
+  constructor(world: BlockWorld, yaw = Math.PI, pitch = 0.1) {
     this._world = world;
     this.yaw    = yaw;
     this.pitch  = pitch;

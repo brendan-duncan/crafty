@@ -30,7 +30,7 @@ export interface RaycastResult {
  * `chunksPerFrame` per call, sorted by distance to the player. Generation uses
  * a cached 128x128 hydraulic erosion displacement field per region.
  */
-export class World {
+export class BlockWorld {
   /** Hard cap on the number of resident chunks. */
   static readonly MAX_CHUNKS = 2048;
 
@@ -122,7 +122,7 @@ export class World {
    * @param wz - world Z
    */
   getChunk(wx: number, wy: number, wz: number): Chunk | undefined {
-    return this._chunks.get(World._key(World._cx(wx), World._cy(wy), World._cz(wz)));
+    return this._chunks.get(BlockWorld._key(BlockWorld._cx(wx), BlockWorld._cy(wy), BlockWorld._cz(wz)));
   }
 
   /**
@@ -167,7 +167,7 @@ export class World {
     let chunk = this.getChunk(wx, wy, wz);
     if (!chunk) {
       // Create chunk if it doesn't exist
-      const cx = World._cx(wx), cy = World._cy(wy), cz = World._cz(wz);
+      const cx = BlockWorld._cx(wx), cy = BlockWorld._cy(wy), cz = BlockWorld._cz(wz);
       chunk = new Chunk(cx * Chunk.CHUNK_WIDTH, cy * Chunk.CHUNK_HEIGHT, cz * Chunk.CHUNK_DEPTH);
       this._insertChunk(chunk);
     }
@@ -328,7 +328,7 @@ export class World {
 
     let targetChunk = this.getChunk(newX, newY, newZ);
     if (!targetChunk) {
-      const cx = World._cx(newX), cy = World._cy(newY), cz = World._cz(newZ);
+      const cx = BlockWorld._cx(newX), cy = BlockWorld._cy(newY), cz = BlockWorld._cz(newZ);
       targetChunk = new Chunk(cx * Chunk.CHUNK_WIDTH, cy * Chunk.CHUNK_HEIGHT, cz * Chunk.CHUNK_DEPTH);
       this._insertChunk(targetChunk);
     }
@@ -404,10 +404,10 @@ export class World {
    * @param chunk - chunk to delete
    */
   deleteChunk(chunk: Chunk): void {
-    const cx = World._cx(chunk.globalPosition.x);
-    const cy = World._cy(chunk.globalPosition.y);
-    const cz = World._cz(chunk.globalPosition.z);
-    const key = World._key(cx, cy, cz);
+    const cx = BlockWorld._cx(chunk.globalPosition.x);
+    const cy = BlockWorld._cy(chunk.globalPosition.y);
+    const cz = BlockWorld._cz(chunk.globalPosition.z);
+    const key = BlockWorld._key(cx, cy, cz);
     this._chunks.delete(key);
     this._generated.delete(key);
     chunk.isDeleted = true;
@@ -438,7 +438,7 @@ export class World {
       if (!above) {
         break;
       }
-      const nx = World._cx(wx), nz = World._cz(wz);
+      const nx = BlockWorld._cx(wx), nz = BlockWorld._cz(wz);
       const rx = nx * Chunk.CHUNK_WIDTH - above.globalPosition.x;
       const rz = nz * Chunk.CHUNK_DEPTH - above.globalPosition.z;
       if (above.waterBlocks > 0 && isBlockWater(above.getBlock(rx, 0, rz))) {
@@ -498,10 +498,10 @@ export class World {
   }
 
   private _insertChunk(chunk: Chunk): void {
-    const cx = World._cx(chunk.globalPosition.x);
-    const cy = World._cy(chunk.globalPosition.y);
-    const cz = World._cz(chunk.globalPosition.z);
-    this._chunks.set(World._key(cx, cy, cz), chunk);
+    const cx = BlockWorld._cx(chunk.globalPosition.x);
+    const cy = BlockWorld._cy(chunk.globalPosition.y);
+    const cz = BlockWorld._cz(chunk.globalPosition.z);
+    this._chunks.set(BlockWorld._key(cx, cy, cz), chunk);
     chunk.isDeleted = false;
   }
 
@@ -516,26 +516,26 @@ export class World {
 
   private _gatherNeighbors(cx: number, cy: number, cz: number): ChunkNeighbors {
     const n = this._neighborScratch;
-    n.negX = this._chunks.get(World._key(cx - 1, cy,     cz    ))?.blocks;
-    n.posX = this._chunks.get(World._key(cx + 1, cy,     cz    ))?.blocks;
-    n.negY = this._chunks.get(World._key(cx,     cy - 1, cz    ))?.blocks;
-    n.posY = this._chunks.get(World._key(cx,     cy + 1, cz    ))?.blocks;
-    n.negZ = this._chunks.get(World._key(cx,     cy,     cz - 1))?.blocks;
-    n.posZ = this._chunks.get(World._key(cx,     cy,     cz + 1))?.blocks;
+    n.negX = this._chunks.get(BlockWorld._key(cx - 1, cy,     cz    ))?.blocks;
+    n.posX = this._chunks.get(BlockWorld._key(cx + 1, cy,     cz    ))?.blocks;
+    n.negY = this._chunks.get(BlockWorld._key(cx,     cy - 1, cz    ))?.blocks;
+    n.posY = this._chunks.get(BlockWorld._key(cx,     cy + 1, cz    ))?.blocks;
+    n.negZ = this._chunks.get(BlockWorld._key(cx,     cy,     cz - 1))?.blocks;
+    n.posZ = this._chunks.get(BlockWorld._key(cx,     cy,     cz + 1))?.blocks;
     return n;
   }
 
   private _remeshSingleNeighbor(cx: number, cy: number, cz: number): void {
-    const neighbor = this._chunks.get(World._key(cx, cy, cz));
+    const neighbor = this._chunks.get(BlockWorld._key(cx, cy, cz));
     if (neighbor) {
       this.onChunkUpdated?.(neighbor, neighbor.generateVertices(this._gatherNeighbors(cx, cy, cz)));
     }
   }
 
   private _updateChunk(chunk: Chunk, rx?: number, ry?: number, rz?: number): void {
-    const cx = World._cx(chunk.globalPosition.x);
-    const cy = World._cy(chunk.globalPosition.y);
-    const cz = World._cz(chunk.globalPosition.z);
+    const cx = BlockWorld._cx(chunk.globalPosition.x);
+    const cy = BlockWorld._cy(chunk.globalPosition.y);
+    const cz = BlockWorld._cz(chunk.globalPosition.z);
 
     // Batching mode: defer the (expensive) re-mesh; collect chunks instead.
     if (this._dirtyChunks) {
@@ -545,7 +545,7 @@ export class World {
       }
       const W = Chunk.CHUNK_WIDTH, H = Chunk.CHUNK_HEIGHT, D = Chunk.CHUNK_DEPTH;
       const addNeighbor = (ncx: number, ncy: number, ncz: number) => {
-        const n = this._chunks.get(World._key(ncx, ncy, ncz));
+        const n = this._chunks.get(BlockWorld._key(ncx, ncy, ncz));
         if (n) {
           this._dirtyChunks!.add(n);
         }
@@ -585,7 +585,7 @@ export class World {
   }
 
   private _createNearbyChunks(playerPos: Vec3): void {
-    const cpx = World._cx(playerPos.x), cpy = World._cy(playerPos.y), cpz = World._cz(playerPos.z);
+    const cpx = BlockWorld._cx(playerPos.x), cpy = BlockWorld._cy(playerPos.y), cpz = BlockWorld._cz(playerPos.z);
     const rdH = this.renderDistanceH;
     const rdV = this.renderDistanceV;
     const rdH2 = rdH * rdH;
@@ -615,7 +615,7 @@ export class World {
         }
         for (let dy = -rdV; dy <= rdV; dy++) {
           const cx = cpx + dx, cy = cpy + dy, cz = cpz + dz;
-          if (this._generated.has(World._key(cx, cy, cz))) {
+          if (this._generated.has(BlockWorld._key(cx, cy, cz))) {
             continue;
           }
           pending++;
@@ -637,7 +637,7 @@ export class World {
       }
     }
     this.pendingChunks = pending;
-    if (this._chunks.size >= World.MAX_CHUNKS) {
+    if (this._chunks.size >= BlockWorld.MAX_CHUNKS) {
       return;
     }
     // Create the selected chunks, nearest first. With small N (default 2)
@@ -652,7 +652,7 @@ export class World {
       if (bestIdx < 0 || bestD2 === Infinity) {
         break;
       }
-      if (this._chunks.size >= World.MAX_CHUNKS) {
+      if (this._chunks.size >= BlockWorld.MAX_CHUNKS) {
         break;
       }
       const cx = this._scratchTopXYZ![bestIdx * 3];
@@ -672,15 +672,15 @@ export class World {
   private readonly _scratchDirtyChunks = new Set<Chunk>();
 
   private _removeDistantChunks(playerPos: Vec3): void {
-    const cpx = World._cx(playerPos.x), cpy = World._cy(playerPos.y), cpz = World._cz(playerPos.z);
+    const cpx = BlockWorld._cx(playerPos.x), cpy = BlockWorld._cy(playerPos.y), cpz = BlockWorld._cz(playerPos.z);
     const rdH = this.renderDistanceH + 1;
     const rdV = this.renderDistanceV + 1;
     const toDelete = this._scratchToDelete;
     toDelete.length = 0;
     for (const chunk of this._chunks.values()) {
-      const cx = World._cx(chunk.globalPosition.x);
-      const cy = World._cy(chunk.globalPosition.y);
-      const cz = World._cz(chunk.globalPosition.z);
+      const cx = BlockWorld._cx(chunk.globalPosition.x);
+      const cy = BlockWorld._cy(chunk.globalPosition.y);
+      const cz = BlockWorld._cz(chunk.globalPosition.z);
       const dx = cx - cpx, dy = cy - cpy, dz = cz - cpz;
       if (dx * dx + dz * dz > rdH * rdH || Math.abs(dy) > rdV) {
         toDelete.push(chunk);
@@ -693,7 +693,7 @@ export class World {
   }
 
   private _createChunkAt(cx: number, cy: number, cz: number): void {
-    const key = World._key(cx, cy, cz);
+    const key = BlockWorld._key(cx, cy, cz);
     this._generated.add(key);
     const chunk = new Chunk(
       cx * Chunk.CHUNK_WIDTH,
@@ -742,7 +742,7 @@ export class World {
     for (let cx = cMinX; cx <= cMaxX; cx++) {
       for (let cy = cMinY; cy <= cMaxY; cy++) {
         for (let cz = cMinZ; cz <= cMaxZ; cz++) {
-          const chunk = this._chunks.get(World._key(cx, cy, cz));
+          const chunk = this._chunks.get(BlockWorld._key(cx, cy, cz));
           if (!chunk || chunk.waterBlocks === 0) {
             continue;
           }
@@ -788,9 +788,9 @@ export class World {
 
     // Re-mesh each touched chunk exactly once.
     for (const chunk of dirty) {
-      const cx = World._cx(chunk.globalPosition.x);
-      const cy = World._cy(chunk.globalPosition.y);
-      const cz = World._cz(chunk.globalPosition.z);
+      const cx = BlockWorld._cx(chunk.globalPosition.x);
+      const cy = BlockWorld._cy(chunk.globalPosition.y);
+      const cz = BlockWorld._cz(chunk.globalPosition.z);
       this.onChunkUpdated?.(chunk, chunk.generateVertices(this._gatherNeighbors(cx, cy, cz)));
     }
     dirty.clear();

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { halton } from '../../crafty/utils.js';
+import { halton } from '../../src/math/random.js';
 
 describe('halton', () => {
   describe('sequence generation', () => {

@@ -11,4 +11,4 @@ export {
   perlinTurbulenceNoise3,
   perlinNoise3WrapNonpow2,
 } from './noise.js';
-export { Random } from './random.js';
+export { Random, halton } from './random.js';

@@ -1,4 +1,4 @@
-import { World, BlockType, BiomeType, isBlockWater } from '../../src/block/index.js';
+import { BlockWorld, BlockType, BiomeType, isBlockWater } from '../../src/block/index.js';
 import type { Chunk, ChunkMesh } from '../../src/block/index.js';
 import { Random } from '../../src/math/index.js';
 
@@ -41,7 +41,7 @@ const _ROOF: number[][] = [
   [3,3,3,3,3,3,3],
 ];
 
-function _placeHouse(cx: number, groundY: number, cz: number, world: World): void {
+function _placeHouse(cx: number, groundY: number, cz: number, world: BlockWorld): void {
   for (let dz = 0; dz < 5; dz++) {
     for (let dx = 0; dx < 7; dx++) {
       const topY = world.getTopBlockY(cx + dx, cz + dz, 200);
@@ -73,7 +73,7 @@ function _placeHouse(cx: number, groundY: number, cz: number, world: World): voi
   }
 }
 
-function _hasWaterUnderColumn(world: World, baseX: number, baseZ: number, refY: number): boolean {
+function _hasWaterUnderColumn(world: BlockWorld, baseX: number, baseZ: number, refY: number): boolean {
   for (let dx = 4; dx <= 12; dx += 4) {
     for (let dz = 4; dz <= 12; dz += 4) {
       const block = world.getBlockType(baseX + dx, refY - 1, baseZ + dz);
@@ -85,7 +85,7 @@ function _hasWaterUnderColumn(world: World, baseX: number, baseZ: number, refY: 
   return false;
 }
 
-function _isHouseFootprintFlat(world: World, hx: number, hz: number, refY: number, tolerance: number): boolean {
+function _isHouseFootprintFlat(world: BlockWorld, hx: number, hz: number, refY: number, tolerance: number): boolean {
   for (let dx = 0; dx < 7; dx++) {
     for (let dz = 0; dz < 5; dz++) {
       const y = world.getTopBlockY(hx + dx, hz + dz, 200);
@@ -97,7 +97,7 @@ function _isHouseFootprintFlat(world: World, hx: number, hz: number, refY: numbe
   return true;
 }
 
-function _hasWaterUnderHouse(world: World, hx: number, hy: number, hz: number): boolean {
+function _hasWaterUnderHouse(world: BlockWorld, hx: number, hy: number, hz: number): boolean {
   for (let dx = -1; dx <= 1; dx++) {
     for (let dz = -1; dz <= 1; dz++) {
       const block = world.getBlockType(hx + dx * 2, hy - 1, hz + dz * 2);
@@ -109,7 +109,7 @@ function _hasWaterUnderHouse(world: World, hx: number, hy: number, hz: number): 
   return false;
 }
 
-/*function _isFlatEnough(world: World, baseX: number, baseZ: number, refY: number): boolean {
+/*function _isFlatEnough(world: BlockWorld, baseX: number, baseZ: number, refY: number): boolean {
   for (let dx = 0; dx < CHUNK_SIZE; dx += 4) {
     for (let dz = 0; dz < CHUNK_SIZE; dz += 4) {
       const y = world.getTopBlockY(baseX + dx, baseZ + dz, 200);
@@ -130,7 +130,7 @@ function _chunkSeed(worldSeed: number, cx: number, cz: number): number {
   return n;
 }
 
-export function setupVillageGeneration(world: World): void {
+export function setupVillageGeneration(world: BlockWorld): void {
   const processedColumns = new Set<string>();
 
   const prev = world.onChunkAdded;

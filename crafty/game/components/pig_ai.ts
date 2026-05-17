@@ -1,7 +1,7 @@
 import { Vec3 } from '../../../src/math/index.js';
 import { Quaternion } from '../../../src/math/quaternion.js';
 import { Component } from '../../../src/engine/component.js';
-import type { World } from '../../../src/block/world.js';
+import type { BlockWorld } from '../../../src/block/world.js';
 import { NPCEntity } from '../npc_entity.js';
 
 type PigState = 'idle' | 'wander';
@@ -17,7 +17,7 @@ const _Y_AXIS = new Vec3(0, 1, 0);
  * from the player.
  */
 export class PigAI extends Component {
-  private _world: World;
+  private _world: BlockWorld;
   private _state: PigState = 'idle';
   private _timer = 0;
   private _targetX = 0;
@@ -30,7 +30,7 @@ export class PigAI extends Component {
   private _headBaseY = 0;
   private _bobPhase: number;
 
-  constructor(world: World) {
+  constructor(world: BlockWorld) {
     super();
     this._world = world;
     this._timer = 1 + Math.random() * 5;

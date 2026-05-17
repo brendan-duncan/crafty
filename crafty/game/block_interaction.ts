@@ -1,5 +1,5 @@
 import { Vec3 } from '../../src/math/index.js';
-import { BlockType, World } from '../../src/block/index.js';
+import { BlockType, BlockWorld } from '../../src/block/index.js';
 import { isBlockProp, blockHardness } from '../../src/block/block_type.js';
 import { addTorchLight, removeTorchLight, addMagmaLight, removeMagmaLight } from './lights.js';
 import type { Scene } from '../../src/engine/index.js';
@@ -75,7 +75,7 @@ export function createBlockInteractionState(): BlockInteractionState {
 /**
  * Completes a progressive break: removes the block, handles light/prop cascade.
  */
-export function completeBreak(state: BlockInteractionState, world: World, scene: Scene): void {
+export function completeBreak(state: BlockInteractionState, world: BlockWorld, scene: Scene): void {
   const tx = state.breakingBlock!.x, ty = state.breakingBlock!.y, tz = state.breakingBlock!.z;
   const minedType = world.getBlockType(tx, ty, tz);
   if (minedType === BlockType.TORCH) {
@@ -108,7 +108,7 @@ export function doBlockAction(
   button: number,
   time: number,
   state: BlockInteractionState,
-  world: World,
+  world: BlockWorld,
   getSelectedBlock: () => BlockType,
   scene: Scene,
 ): void {
@@ -164,7 +164,7 @@ export function doBlockAction(
  */
 export function applyRemoteBlockEdit(
   edit: LocalBlockEdit,
-  world: World,
+  world: BlockWorld,
   scene: Scene,
 ): void {
   if (edit.kind === 'break') {
@@ -198,7 +198,7 @@ export function applyRemoteBlockEdit(
 export function setupBlockInteractionHandlers(
   canvas: HTMLCanvasElement,
   state: BlockInteractionState,
-  world: World,
+  world: BlockWorld,
   getSelectedBlock: () => BlockType,
   scene: Scene,
 ): void {
@@ -234,7 +234,7 @@ export function updateBlockInteraction(
   dt: number,
   time: number,
   state: BlockInteractionState,
-  world: World,
+  world: BlockWorld,
   getSelectedBlock: () => BlockType,
   scene: Scene,
 ): void {

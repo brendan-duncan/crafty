@@ -1,6 +1,6 @@
 import { GameObject, Scene, MeshRenderer } from '../../../src/engine/index.js';
 import { PbrMaterial } from '../../../src/renderer/materials/pbr_material.js';
-import { World, BiomeType } from '../../../src/block/index.js';
+import { BlockWorld, BiomeType } from '../../../src/block/index.js';
 import { Mesh } from '../../../src/assets/mesh.js';
 import { NPCEntity } from '../npc_entity.js';
 import { PigAI } from '../components/pig_ai.js';
@@ -29,7 +29,7 @@ export class Pig extends NPCEntity {
     }
   }
 
-  static spawn(wx: number, wz: number, world: World, scene: Scene, isBaby = false): Pig | null {
+  static spawn(wx: number, wz: number, world: BlockWorld, scene: Scene, isBaby = false): Pig | null {
     const topY = world.getTopBlockY(wx, wz, 200);
     if (topY <= 0) return null;
     const biome = world.getBiomeAt(wx, topY, wz);
@@ -64,7 +64,7 @@ export class Pig extends NPCEntity {
     return pig;
   }
 
-  constructor(world: World, scene: Scene) {
+  constructor(world: BlockWorld, scene: Scene) {
     super('Pig', world, scene);
   }
 }

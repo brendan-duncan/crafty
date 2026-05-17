@@ -1,4 +1,4 @@
-import { World } from '../../src/block/index.js';
+import { BlockWorld } from '../../src/block/index.js';
 import type { Chunk, ChunkMesh } from '../../src/block/index.js';
 import type { Scene } from '../../src/engine/index.js';
 import { Duck, Duckling } from './entities/duck_entity.js';
@@ -15,7 +15,7 @@ const DUCKLING_CHANCE = 0.25;
 const DUCKLING_COUNT  = 5;
 const BABY_PIG_CHANCE = 0.25;
 
-export function setupAnimalSpawning(world: World, scene: Scene): void {
+export function setupAnimalSpawning(world: BlockWorld, scene: Scene): void {
   const processedColumns = new Set<string>();
 
   const prev = world.onChunkAdded;
@@ -34,7 +34,7 @@ export function setupAnimalSpawning(world: World, scene: Scene): void {
   };
 }
 
-function _spawnInColumn(cx: number, cz: number, world: World, scene: Scene): void {
+function _spawnInColumn(cx: number, cz: number, world: BlockWorld, scene: Scene): void {
   const baseX = cx * CHUNK_SIZE;
   const baseZ = cz * CHUNK_SIZE;
 

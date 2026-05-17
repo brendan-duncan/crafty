@@ -1,5 +1,5 @@
 import type { PlayerController, CameraController } from '../../src/engine/index.js';
-import type { World, BlockType } from '../../src/block/index.js';
+import type { BlockWorld, BlockType } from '../../src/block/index.js';
 import type { Scene } from '../../src/engine/index.js';
 import type { BlockInteractionState } from './block_interaction.js';
 import { doBlockAction } from './block_interaction.js';
@@ -105,8 +105,8 @@ export interface TouchControlsOptions {
   camera?: CameraController;
   /** Returns the active controller — called every frame so mode toggles work transparently. */
   getActive?: () => 'player' | 'camera';
-  /** World, scene, hotbar callback for mine/place. Required for action buttons to work. */
-  world?: World;
+  /** BlockWorld, scene, hotbar callback for mine/place. Required for action buttons to work. */
+  world?: BlockWorld;
   scene?: Scene;
   blockInteraction?: BlockInteractionState;
   getSelectedBlock?: () => BlockType;

@@ -2,7 +2,7 @@ import { Vec3 } from '../../../src/math/index.js';
 import { Quaternion } from '../../../src/math/quaternion.js';
 import { Component } from '../../../src/engine/component.js';
 import { Bee } from '../entities/bee_entity.js';
-import type { World } from '../../../src/block/world.js';
+import type { BlockWorld } from '../../../src/block/world.js';
 import type { GameObject } from '../../../src/engine/game_object.js';
 import { NPCEntity } from '../npc_entity.js';
 
@@ -21,7 +21,7 @@ const FLOWER_DETECT_RADIUS_SQ = 36;  // 6²
  * 'Bee.WingR' child GameObjects.
  */
 export class BeeAI extends Component {
-  private _world: World;
+  private _world: BlockWorld;
   private _state: BeeState = 'idle';
   private _timer = 0;
   private _targetX = 0;
@@ -40,7 +40,7 @@ export class BeeAI extends Component {
   private _wingR: GameObject | null = null;
   private _wingPhase: number;
 
-  constructor(world: World) {
+  constructor(world: BlockWorld) {
     super();
     this._world = world;
     this._flightAltitude = 2.5 + Math.random() * 1.5;

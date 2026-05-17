@@ -22,25 +22,6 @@ import { computeIblGpu } from '../src/assets/ibl.js';
 import type { IblTextures } from '../src/assets/ibl.js';
 import type { DrawItem } from '../src/renderer/passes/geometry_pass.js';
 
-function halton(index: number, base: number): number {
-  let result = 0, f = 1;
-  while (index > 0) {
-    f /= base; 
-    result += f * (index % base); 
-    index = Math.floor(index / base); 
-  }
-  return result;
-}
-
-function applyJitter(vp: Mat4, jx: number, jy: number): Mat4 {
-  const m = vp.clone();
-  for (let c = 0; c < 4; c++) {
-    m.data[c * 4 + 0] += jx * m.data[c * 4 + 3];
-    m.data[c * 4 + 1] += jy * m.data[c * 4 + 3];
-  }
-  return m;
-}
-
 // Injects a fixed overlay panel with labeled toggle buttons.
 // onChange is called with the key after the value has already been flipped.
 function createControlPanel(
@@ -253,7 +234,6 @@ async function main() {
   let pointSpotShadowPass: PointSpotShadowPass | null = null;
   let pointSpotLightPass: PointSpotLightPass  | null = null;
   let graph: RenderGraph;
-  let prevViewProj: Mat4 | null = null;
 
   const fireConfig: ParticleGraphConfig = {
     emitter: {
@@ -438,7 +418,6 @@ async function main() {
     graph.addPass(compositePass);
 
     camera.aspect = ctx.width / ctx.height;
-    prevViewProj = null;
   }
 
   buildRenderTargets();
@@ -526,7 +505,6 @@ async function main() {
 
   let smoothFps = 0;
   let angle = 0;
-  let frameIndex = 0;
 
   function frame() {
     ctx.update();
@@ -552,12 +530,8 @@ async function main() {
     }
     scene.update(ctx.deltaTime);
 
-    const hi = (frameIndex % 16) + 1;
-    const jx = (halton(hi, 2) - 0.5) * (2 / ctx.width);
-    const jy = (halton(hi, 3) - 0.5) * (2 / ctx.height);
-
     const vp = camera.viewProjectionMatrix();
-    const jitVP = applyJitter(vp, jx, jy);
+    const jitVP = taaPass.jitter(ctx, vp);
     const view = camera.viewMatrix();
     const proj = camera.projectionMatrix();
     const invVP = vp.invert();
@@ -626,7 +600,7 @@ async function main() {
     ssaoPass.updateCamera(ctx, view, proj, invProj);
     ssaoPass.updateParams(ctx, 1.0, 0.005, effects.ssao ? 2.0 : 0.0);
     ssgiPass?.updateSettings({ strength: effects.ssgi ? 1.0 : 0.0 });
-    ssgiPass?.updateCamera(ctx, view, proj, invProj, invVP, prevViewProj ?? vp, camPos);
+    ssgiPass?.updateCamera(ctx, view, proj, invProj, invVP, taaPass.prevViewProj ?? vp, camPos);
     compositePass.updateParams(ctx, false, 0, effects.aces, effects.ao_dbg, effects.hdr);
     compositePass.updateStars(ctx, invVP, camPos, new Vec3(0, 1, 0));
 
@@ -650,10 +624,7 @@ async function main() {
     }
 
     autoExposurePass?.update(ctx);
-    taaPass.updateCamera(ctx, invVP, prevViewProj ?? vp);
-
-    prevViewProj = vp;
-    frameIndex++;
+    taaPass.updateCamera(ctx, invVP, vp);
 
     graph.execute(ctx);
     requestAnimationFrame(frame);

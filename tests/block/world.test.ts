@@ -1,30 +1,30 @@
 import { describe, it, expect } from 'vitest';
 import { Vec3 } from '../../src/math/vec3.js';
-import { World } from '../../src/block/world.js';
+import { BlockWorld } from '../../src/block/world.js';
 import { BlockType } from '../../src/block/block_type.js';
 
-describe('World', () => {
+describe('BlockWorld', () => {
   describe('normalizeChunkPosition', () => {
     it('should return (0,0,0) for origin', () => {
-      expect(World.normalizeChunkPosition(0, 0, 0)).toEqual([0, 0, 0]);
+      expect(BlockWorld.normalizeChunkPosition(0, 0, 0)).toEqual([0, 0, 0]);
     });
 
     it('should return (1,0,0) for x=16', () => {
-      expect(World.normalizeChunkPosition(16, 0, 0)).toEqual([1, 0, 0]);
+      expect(BlockWorld.normalizeChunkPosition(16, 0, 0)).toEqual([1, 0, 0]);
     });
 
     it('should return (-1,0,0) for x=-1', () => {
-      expect(World.normalizeChunkPosition(-1, 0, 0)).toEqual([-1, 0, 0]);
+      expect(BlockWorld.normalizeChunkPosition(-1, 0, 0)).toEqual([-1, 0, 0]);
     });
 
     it('should return (0,1,0) for y=16', () => {
-      expect(World.normalizeChunkPosition(0, 16, 0)).toEqual([0, 1, 0]);
+      expect(BlockWorld.normalizeChunkPosition(0, 16, 0)).toEqual([0, 1, 0]);
     });
 
     it('should truncate negative values correctly', () => {
-      expect(World.normalizeChunkPosition(-16, 0, 0)).toEqual([-1, 0, 0]);
-      expect(World.normalizeChunkPosition(-17, 0, 0)).toEqual([-2, 0, 0]);
-      expect(World.normalizeChunkPosition(-15, 0, 0)).toEqual([-1, 0, 0]);
+      expect(BlockWorld.normalizeChunkPosition(-16, 0, 0)).toEqual([-1, 0, 0]);
+      expect(BlockWorld.normalizeChunkPosition(-17, 0, 0)).toEqual([-2, 0, 0]);
+      expect(BlockWorld.normalizeChunkPosition(-15, 0, 0)).toEqual([-1, 0, 0]);
     });
   });
 
@@ -35,7 +35,7 @@ describe('World', () => {
     const dirY = new Vec3(0.01, -1, 0.01).normalize();
 
     it('should hit a block placed directly in front', () => {
-      const world = new World(0);
+      const world = new BlockWorld(0);
       world.setBlockType(5, 5, 5, BlockType.STONE);
       const result = world.getBlockByRay(new Vec3(1, 5, 5), dirX, 20);
       expect(result).not.toBeNull();
@@ -46,7 +46,7 @@ describe('World', () => {
     });
 
     it('should pass through water and hit solid behind it', () => {
-      const world = new World(0);
+      const world = new BlockWorld(0);
       world.setBlockType(5, 5, 5, BlockType.WATER);
       world.setBlockType(7, 5, 5, BlockType.STONE);
       const result = world.getBlockByRay(new Vec3(1, 5, 5), dirX, 20);
@@ -56,13 +56,13 @@ describe('World', () => {
     });
 
     it('should return null when no block is hit', () => {
-      const world = new World(0);
+      const world = new BlockWorld(0);
       const result = world.getBlockByRay(new Vec3(0, 0, 0), dirX, 10);
       expect(result).toBeNull();
     });
 
     it('should return correct face normal for +X entry', () => {
-      const world = new World(0);
+      const world = new BlockWorld(0);
       world.setBlockType(5, 5, 5, BlockType.STONE);
       const result = world.getBlockByRay(new Vec3(1, 5, 5), dirX, 20);
       expect(result).not.toBeNull();
@@ -73,7 +73,7 @@ describe('World', () => {
     });
 
     it('should hit from above with correct face normal', () => {
-      const world = new World(0);
+      const world = new BlockWorld(0);
       world.setBlockType(5, 5, 5, BlockType.STONE);
       const result = world.getBlockByRay(new Vec3(5, 10, 5), dirY, 20);
       expect(result).not.toBeNull();
@@ -82,7 +82,7 @@ describe('World', () => {
     });
 
     it('should keep the chunk reference on hit', () => {
-      const world = new World(0);
+      const world = new BlockWorld(0);
       world.setBlockType(5, 5, 5, BlockType.STONE);
       const result = world.getBlockByRay(new Vec3(1, 5, 5), dirX, 20);
       expect(result!.chunk).toBeDefined();
@@ -90,7 +90,7 @@ describe('World', () => {
     });
 
     it('should set relativePosition within chunk', () => {
-      const world = new World(0);
+      const world = new BlockWorld(0);
       world.setBlockType(5, 5, 5, BlockType.STONE);
       const result = world.getBlockByRay(new Vec3(1, 5, 5), dirX, 20);
       expect(result!.relativePosition.x).toBe(5);
@@ -99,7 +99,7 @@ describe('World', () => {
     });
 
     it('should return null when ray goes through air below world', () => {
-      const world = new World(0);
+      const world = new BlockWorld(0);
       const result = world.getBlockByRay(new Vec3(0, -10, 0), new Vec3(0.01, -1, 0.01), 10);
       expect(result).toBeNull();
     });
@@ -107,12 +107,12 @@ describe('World', () => {
 
   describe('getTopBlockY', () => {
     it('should return 0 for empty world', () => {
-      const world = new World(0);
+      const world = new BlockWorld(0);
       expect(world.getTopBlockY(0, 0, 100)).toBe(0);
     });
 
     it('should find block in default chunk', () => {
-      const world = new World(0);
+      const world = new BlockWorld(0);
       world.setBlockType(5, 5, 5, BlockType.STONE);
       expect(world.getTopBlockY(5, 5, 100)).toBe(6);
     });
@@ -120,13 +120,13 @@ describe('World', () => {
 
   describe('getChunk / chunkExists', () => {
     it('should return undefined for unloaded world', () => {
-      const world = new World(0);
+      const world = new BlockWorld(0);
       expect(world.getChunk(0, 0, 0)).toBeUndefined();
       expect(world.chunkExists(0, 0, 0)).toBe(false);
     });
 
     it('should find chunk after setting a block', () => {
-      const world = new World(0);
+      const world = new BlockWorld(0);
       world.setBlockType(0, 0, 0, BlockType.STONE);
       expect(world.chunkExists(0, 0, 0)).toBe(true);
     });
@@ -134,20 +134,20 @@ describe('World', () => {
 
   describe('setBlockType', () => {
     it('should set and retrieve a block', () => {
-      const world = new World(0);
+      const world = new BlockWorld(0);
       world.setBlockType(3, 4, 5, BlockType.DIRT);
       expect(world.getBlockType(3, 4, 5)).toBe(BlockType.DIRT);
     });
 
     it('should return NONE for unset positions', () => {
-      const world = new World(0);
+      const world = new BlockWorld(0);
       expect(world.getBlockType(100, 100, 100)).toBe(BlockType.NONE);
     });
   });
 
   describe('addBlock', () => {
     it('should place a block adjacent to an existing block', () => {
-      const world = new World(0);
+      const world = new BlockWorld(0);
       world.setBlockType(5, 5, 5, BlockType.STONE);
       const result = world.addBlock(5, 5, 5, 1, 0, 0, BlockType.DIRT);
       expect(result).toBe(true);
@@ -155,7 +155,7 @@ describe('World', () => {
     });
 
     it('should not place a block in occupied space', () => {
-      const world = new World(0);
+      const world = new BlockWorld(0);
       world.setBlockType(5, 5, 5, BlockType.STONE);
       world.setBlockType(6, 5, 5, BlockType.STONE);
       const result = world.addBlock(5, 5, 5, 1, 0, 0, BlockType.DIRT);
@@ -164,7 +164,7 @@ describe('World', () => {
     });
 
     it('should refuse NONE block type', () => {
-      const world = new World(0);
+      const world = new BlockWorld(0);
       world.setBlockType(5, 5, 5, BlockType.STONE);
       const result = world.addBlock(5, 5, 5, 1, 0, 0, BlockType.NONE);
       expect(result).toBe(false);
@@ -173,7 +173,7 @@ describe('World', () => {
 
   describe('mineBlock', () => {
     it('should set block to air', () => {
-      const world = new World(0);
+      const world = new BlockWorld(0);
       world.setBlockType(5, 5, 5, BlockType.STONE);
       world.mineBlock(5, 5, 5);
       expect(world.getBlockType(5, 5, 5)).toBe(BlockType.NONE);

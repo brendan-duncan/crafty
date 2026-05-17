@@ -1,6 +1,6 @@
 import { GameObject, Scene, MeshRenderer } from '../../../src/engine/index.js';
 import { PbrMaterial } from '../../../src/renderer/materials/pbr_material.js';
-import { World, BiomeType, BlockType } from '../../../src/block/index.js';
+import { BlockWorld, BiomeType, BlockType } from '../../../src/block/index.js';
 import { Mesh } from '../../../src/assets/mesh.js';
 import { NPCEntity } from '../npc_entity.js';
 import { BeeAI } from '../components/bee_ai.js';
@@ -31,7 +31,7 @@ export class Bee extends NPCEntity {
     }
   }
 
-  static spawn(wx: number, wz: number, world: World, scene: Scene): Bee | null {
+  static spawn(wx: number, wz: number, world: BlockWorld, scene: Scene): Bee | null {
     const topY = world.getTopBlockY(wx, wz, 200);
     if (topY <= 0) return null;
     const biome = world.getBiomeAt(wx, topY, wz);
@@ -95,7 +95,7 @@ export class Bee extends NPCEntity {
     return bee;
   }
 
-  constructor(world: World, scene: Scene) {
+  constructor(world: BlockWorld, scene: Scene) {
     super('Bee', world, scene);
   }
 }

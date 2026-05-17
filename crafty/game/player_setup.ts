@@ -1,6 +1,6 @@
 import { GameObject, Camera, CameraController, PlayerController, Scene, SpotLight } from '../../src/engine/index.js';
 import { Vec3 } from '../../src/math/index.js';
-import type { World } from '../../src/block/index.js';
+import type { BlockWorld } from '../../src/block/index.js';
 
 export interface PlayerSetup {
   cameraGO: GameObject;
@@ -21,7 +21,7 @@ export interface PlayerSetup {
 export function setupPlayer(
   canvas: HTMLCanvasElement,
   scene: Scene,
-  world: World,
+  world: BlockWorld,
   canvasWidth: number,
   canvasHeight: number,
   flashlightTexture: GPUTexture,

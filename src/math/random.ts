@@ -82,3 +82,23 @@ export class Random extends Uint32Array {
     return value * ((max ?? 1) - min) + min;
   }
 }
+
+/**
+ * Halton low-discrepancy sequence. Returns the `index`-th element of the
+ * sequence in base `base`, in the half-open interval [0, 1).
+ *
+ * Useful for sub-pixel jitter offsets (typically base 2 for x, base 3 for y).
+ *
+ * @param index - 1-based-ish index; passing 0 returns 0. Typical TAA usage
+ *                offsets by 1 so the first sample is non-zero.
+ * @param base - Prime base; 2 and 3 are the standard pair for 2D distributions.
+ */
+export function halton(index: number, base: number): number {
+  let result = 0, f = 1;
+  while (index > 0) {
+    f /= base;
+    result += f * (index % base);
+    index = Math.floor(index / base);
+  }
+  return result;
+}

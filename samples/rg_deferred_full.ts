@@ -29,25 +29,6 @@ import type { CascadeData } from '../src/engine/components/directional_light.js'
 import { createRenderGraphViz } from '../src/renderer/render_graph/ui/render_graph_viz.js';
 import type { PassNodeData, TextureNodeData, GraphEdge, FullGraphData } from '../src/renderer/render_graph/ui/render_graph_viz.js';
 
-function halton(index: number, base: number): number {
-  let result = 0, f = 1;
-  while (index > 0) {
-    f /= base;
-    result += f * (index % base);
-    index = Math.floor(index / base);
-  }
-  return result;
-}
-
-function applyJitter(vp: Mat4, jx: number, jy: number): Mat4 {
-  const m = vp.clone();
-  for (let c = 0; c < 4; c++) {
-    m.data[c * 4 + 0] += jx * m.data[c * 4 + 3];
-    m.data[c * 4 + 1] += jy * m.data[c * 4 + 3];
-  }
-  return m;
-}
-
 async function main(): Promise<void> {
   const canvas = document.getElementById('canvas') as HTMLCanvasElement;
   const statsEl = document.getElementById('stats') as HTMLDivElement;
@@ -161,8 +142,6 @@ async function main(): Promise<void> {
     }
   });
 
-  let frameIndex = 0;
-  let prevViewProj: Mat4 | null = null;
 
   function frame(): void {
     ctx.update();
@@ -181,10 +160,7 @@ async function main(): Promise<void> {
     const camPos = camera.position();
 
     // Sub-pixel jitter so TAA has something to converge against.
-    const hi = (frameIndex % 16) + 1;
-    const jx = (halton(hi, 2) - 0.5) * (2 / ctx.width);
-    const jy = (halton(hi, 3) - 0.5) * (2 / ctx.height);
-    const jitViewProj = applyJitter(viewProj, jx, jy);
+    const jitViewProj = taaPass.jitter(ctx, viewProj);
 
     const lightDir = new Vec3(Math.cos(sunAngle), -0.8, Math.sin(sunAngle)).normalize();
     const center = new Vec3(0, 1, 0);
@@ -301,7 +277,7 @@ async function main(): Promise<void> {
     pointSpotLightPass.updateLights(ctx, enginePointLights, engineSpotLights);
 
     skyPass.updateCamera(ctx, invViewProj, camPos);
-    taaPass.updateCamera(ctx, invViewProj, prevViewProj ?? viewProj);
+    taaPass.updateCamera(ctx, invViewProj, viewProj);
     dofPass.updateParams(ctx, 8.0, 4.0, 4.0, 0.1, 100.0, 1.0);
 
     // Forward pass for transparents — same camera as the deferred path, no
@@ -402,8 +378,6 @@ async function main(): Promise<void> {
     lastGraphData = { passes, textures: [...texMap.values()], edges };
     void graph.execute(compiled);
 
-    prevViewProj = viewProj;
-    frameIndex++;
     requestAnimationFrame(frame);
   }
 

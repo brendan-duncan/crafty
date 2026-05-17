@@ -17,7 +17,7 @@ import type { IblTextures } from '../src/assets/ibl.js';
 import { Texture } from '../src/assets/texture.js';
 import { parseHdr, createHdrTexture } from '../src/assets/hdr_loader.js';
 import { BlockTexture } from '../src/assets/block_texture.js';
-import { World, BiomeType, BlockType, EnvironmentEffect, getBiomeCloudBounds, isBlockWater } from '../src/block/index.js';
+import { BlockWorld, BiomeType, BlockType, EnvironmentEffect, getBiomeCloudBounds, isBlockWater } from '../src/block/index.js';
 import type { Chunk, ChunkMesh } from '../src/block/index.js';
 import type { DrawItem } from '../src/renderer/passes/geometry_pass.js';
 import { NPCEntity } from './game/npc_entity.js';
@@ -63,8 +63,6 @@ import { DEFAULT_EFFECTS } from './config/effect_settings.js';
 import { buildRenderTargets } from './renderer_setup.js';
 import type { RenderPasses } from './renderer_setup.js';
 
-// Utils
-import { halton, applyJitter } from './utils.js';
 
 async function main(): Promise<void> {
   // Block Ctrl+W / Cmd+W from closing the tab
@@ -143,7 +141,7 @@ async function main(): Promise<void> {
 
   // Create world and scene
   const worldSeed = welcome?.seed ?? savedWorld?.seed ?? 13;
-  const world = new World(worldSeed);
+  const world = new BlockWorld(worldSeed);
   if (isTouchDevice()) {
     world.renderDistanceH = 4;
     world.renderDistanceV = 3;
@@ -720,7 +718,6 @@ async function main(): Promise<void> {
   let lastHudUpdate = -Infinity;
   let sunAngle = welcome?.sunAngle ?? savedWorld?.sunAngle ?? Math.PI * 0.3;
   let waterTime = 0;
-  let frameIndex = 0;
   let cloudWindX = 0;
   let cloudWindZ = 0;
   const _initBiome = world.getBiomeAt(cameraGO.position.x, cameraGO.position.y, cameraGO.position.z);
@@ -942,11 +939,8 @@ async function main(): Promise<void> {
       hud.pos.textContent = `X: ${camPos.x.toFixed(1)}  Y: ${camPos.y.toFixed(1)}  Z: ${camPos.z.toFixed(1)}`;
     }
 
-    const hi = (frameIndex % 16) + 1;
-    const jx = (halton(hi, 2) - 0.5) * (2 / ctx.width);
-    const jy = (halton(hi, 3) - 0.5) * (2 / ctx.height);
     const vp = camera.viewProjectionMatrix();
-    const jitVP = applyJitter(vp, jx, jy);
+    const jitVP = passes.taaPass!.jitter(ctx, vp);
     const view = camera.viewMatrix();
     const proj = camera.projectionMatrix();
     const invVP = vp.invert();
@@ -1004,7 +998,7 @@ async function main(): Promise<void> {
     passes.ssgiPass!.enabled = effects.ssgi;
     passes.ssgiPass!.updateSettings({ strength: effects.ssgi ? 1.0 : 0.0 });
     if (effects.ssgi) {
-      passes.ssgiPass!.updateCamera(ctx, view, proj, invProj, invVP, passes.prevViewProj ?? vp, camPos);
+      passes.ssgiPass!.updateCamera(ctx, view, proj, invProj, invVP, passes.taaPass!.prevViewProj ?? vp, camPos);
     }
 
     const cosPitch = Math.cos(player.pitch);
@@ -1045,7 +1039,7 @@ async function main(): Promise<void> {
     passes.compositePass!.updateParams(ctx, isUnderwater, waterTime, effects.aces, effects.ao_dbg, effects.hdr);
     passes.compositePass!.updateStars(ctx, invVP, camPos, sunDir);
     passes.autoExposurePass!.update(ctx);
-    passes.taaPass!.updateCamera(ctx, invVP, passes.prevViewProj ?? vp);
+    passes.taaPass!.updateCamera(ctx, invVP, vp);
 
     if (remotePlayers.size > 0) {
       for (const [pid, rp] of remotePlayers) {
@@ -1056,9 +1050,6 @@ async function main(): Promise<void> {
       }
       labelLayer.update(vp, camPos, canvas.clientWidth, canvas.clientHeight, _labelAnchors);
     }
-
-    passes.prevViewProj = vp;
-    frameIndex++;
 
     await passes.graph!.execute(ctx);
     await ctx.popPassErrorScope('frame');

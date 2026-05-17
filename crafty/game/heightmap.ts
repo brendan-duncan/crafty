@@ -1,4 +1,4 @@
-import type { World } from '../../src/block/index.js';
+import type { BlockWorld } from '../../src/block/index.js';
 
 const HM_RES = 128;
 const HM_EXTENT = 40.0;  // half-size in blocks
@@ -20,7 +20,7 @@ export class HeightmapManager {
   private _camX = NaN;
   private _camZ = NaN;
 
-  update(cx: number, cz: number, world: World): void {
+  update(cx: number, cz: number, world: BlockWorld): void {
     if (Math.abs(cx - this._camX) < 2 && Math.abs(cz - this._camZ) < 2) {
       return;
     }

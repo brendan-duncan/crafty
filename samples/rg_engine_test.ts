@@ -59,26 +59,6 @@ import { BloomPass } from '../src/renderer/render_graph/passes/bloom_pass.js';
 import { AutoExposurePass } from '../src/renderer/render_graph/passes/auto_exposure_pass.js';
 import { CompositePass } from '../src/renderer/render_graph/passes/composite_pass.js';
 
-// Halton sequence for TAA jitter.
-function halton(index: number, base: number): number {
-  let result = 0, f = 1;
-  while (index > 0) {
-    f /= base;
-    result += f * (index % base);
-    index = Math.floor(index / base);
-  }
-  return result;
-}
-
-function applyJitter(vp: Mat4, jx: number, jy: number): Mat4 {
-  const m = vp.clone();
-  for (let c = 0; c < 4; c++) {
-    m.data[c * 4 + 0] += jx * m.data[c * 4 + 3];
-    m.data[c * 4 + 1] += jy * m.data[c * 4 + 3];
-  }
-  return m;
-}
-
 function createControlPanel(effects: Record<string, boolean>): HTMLDivElement {
   const panel = document.createElement('div');
   panel.style.cssText = [
@@ -372,8 +352,6 @@ async function main(): Promise<void> {
   // ── Frame loop ────────────────────────────────────────────────────────────
   let smoothFps = 0;
   let angle = 0;
-  let frameIndex = 0;
-  let prevViewProj: Mat4 | null = null;
   let loggedPasses = '';
 
   function frame(): void {
@@ -395,13 +373,9 @@ async function main(): Promise<void> {
     sun.direction.set(Math.cos(sunAngle), -0.8, Math.sin(sunAngle));
     scene.update(ctx.deltaTime);
 
-    // Camera matrices (with Halton jitter for TAA).
-    const hi = (frameIndex % 16) + 1;
-    const jx = effects.taa ? (halton(hi, 2) - 0.5) * (2 / ctx.width) : 0;
-    const jy = effects.taa ? (halton(hi, 3) - 0.5) * (2 / ctx.height) : 0;
-
+    // Camera matrices (optionally Halton-jittered for TAA).
     const vp = camera.viewProjectionMatrix();
-    const jitVP = applyJitter(vp, jx, jy);
+    const jitVP = effects.taa ? taaPass.jitter(ctx, vp) : vp;
     const view = camera.viewMatrix();
     const proj = camera.projectionMatrix();
     const invVP = vp.invert();
@@ -464,7 +438,7 @@ async function main(): Promise<void> {
     ssaoPass.updateCamera(ctx, view, proj, invProj);
     ssaoPass.updateParams(ctx, 1.0, 0.005, effects.ssao ? 2.0 : 0.0);
     ssgiPass.updateSettings({ strength: effects.ssgi ? 1.0 : 0.0 });
-    ssgiPass.updateCamera(ctx, view, proj, invProj, invVP, prevViewProj ?? vp, camPos);
+    ssgiPass.updateCamera(ctx, view, proj, invProj, invVP, taaPass.prevViewProj ?? vp, camPos);
 
     firePass.update(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far, fireEmitterGO.localToWorld());
     sparksPass.update(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far, sparksEmitterGO.localToWorld());
@@ -473,7 +447,7 @@ async function main(): Promise<void> {
     const snowMat = new Mat4([1,0,0,0, 0,1,0,0, 0,0,1,0, camPos.x, camPos.y + 8, camPos.z, 1]);
     snowPass.update(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far, snowMat);
 
-    taaPass.updateCamera(ctx, invVP, prevViewProj ?? vp);
+    taaPass.updateCamera(ctx, invVP, vp);
     autoExposurePass.update(ctx);
     compositePass.updateParams(ctx, false, 0, true, false, ctx.hdr);
     compositePass.updateStars(ctx, invVP, camPos, new Vec3(0, 1, 0));
@@ -626,8 +600,6 @@ async function main(): Promise<void> {
     lastGraphData = { passes, textures: [...texMap.values()], edges };
     void graph.execute(compiled);
 
-    prevViewProj = vp;
-    frameIndex++;
     requestAnimationFrame(frame);
   }
 

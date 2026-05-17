@@ -11,9 +11,8 @@ import type { IblTextures } from '../src/assets/ibl.js';
 import type { CloudNoiseTextures } from '../src/assets/cloud_noise.js';
 import type { BlockTexture } from '../src/assets/block_texture.js';
 import type { Texture } from '../src/assets/texture.js';
-import type { World, Chunk, ChunkMesh } from '../src/block/index.js';
+import type { BlockWorld, Chunk, ChunkMesh } from '../src/block/index.js';
 import { EnvironmentEffect } from '../src/block/index.js';
-import type { Mat4 } from '../src/math/index.js';
 import { rainConfig, snowConfig, blockBreakConfig, explosionConfig } from './config/particle_configs.js';
 
 export interface RenderPasses {
@@ -42,7 +41,6 @@ export interface RenderPasses {
   autoExposurePass: AutoExposurePass;
   compositePass: CompositePass;
   graph: RenderGraph;
-  prevViewProj: Mat4 | null;
   currentWeatherEffect: EnvironmentEffect;
 }
 
@@ -56,7 +54,7 @@ export async function buildRenderTargets(
   gradientTexture: Texture,
   iblTextures: IblTextures,
   cloudNoises: CloudNoiseTextures,
-  world: World,
+  world: BlockWorld,
   chunkMeshCache: Map<Chunk, ChunkMesh>,
 ): Promise<RenderPasses> {
   // Note: We don't explicitly destroy old passes here because:
@@ -261,7 +259,6 @@ export async function buildRenderTargets(
     autoExposurePass,
     compositePass,
     graph,
-    prevViewProj: null,
     currentWeatherEffect,
   };
 }

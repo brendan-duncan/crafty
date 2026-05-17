@@ -1,4 +1,4 @@
-var J=Object.defineProperty;var K=(c,g,n)=>g in c?J(c,g,{enumerable:!0,configurable:!0,writable:!0,value:n}):c[g]=n;var t=(c,g,n)=>K(c,typeof g!="symbol"?g+"":g,n);import{R as Q}from"./render_context-BthAW2-F.js";import{G as e1,C as n1,M as i1,V as E,d as r1}from"./mesh-DHbY3nZ_.js";import{R as t1}from"./render_pass-BouxMEb8.js";import{C as s1}from"./camera-C4m3KvF5.js";const o1=`const PERM: array<i32, 256> = array<i32, 256>(
+var J=Object.defineProperty;var K=(c,g,n)=>g in c?J(c,g,{enumerable:!0,configurable:!0,writable:!0,value:n}):c[g]=n;var t=(c,g,n)=>K(c,typeof g!="symbol"?g+"":g,n);import{R as Q}from"./render_context-BthAW2-F.js";import{G as e1,C as n1,M as i1,V as E,d as r1}from"./mesh-HH-ZmNsE.js";import{R as t1}from"./render_pass-BouxMEb8.js";import{C as s1}from"./camera-TNSW8Yor.js";const o1=`const PERM: array<i32, 256> = array<i32, 256>(
   151, 160, 137, 91, 90, 15,
   131, 13, 201, 95, 96, 53, 194, 233, 7, 225,
   140, 36, 103, 30, 69, 142, 8, 99, 37, 240, 21, 10, 23,

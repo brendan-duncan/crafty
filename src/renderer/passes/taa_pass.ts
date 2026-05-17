@@ -3,11 +3,22 @@ import type { RenderContext } from '../render_context.js';
 import type { DeferredLightingPass } from './deferred_lighting_pass.js';
 import type { GBuffer } from '../gbuffer.js';
 import type { Mat4 } from '../../math/mat4.js';
+import { halton } from '../../math/random.js';
 import { HDR_FORMAT } from './deferred_lighting_pass.js';
 import taaWgsl from '../../shaders/taa.wgsl?raw';
 
 // invViewProj (mat4) + prevViewProj (mat4) = 128 bytes
 const TAA_UNIFORM_SIZE = 128;
+
+/** Sub-pixel NDC jitter folded into the x/y rows of a viewProj matrix. */
+function _applyJitter(vp: Mat4, jx: number, jy: number): Mat4 {
+  const m = vp.clone();
+  for (let c = 0; c < 4; c++) {
+    m.data[c * 4 + 0] += jx * m.data[c * 4 + 3];
+    m.data[c * 4 + 1] += jy * m.data[c * 4 + 3];
+  }
+  return m;
+}
 
 /**
  * Temporal anti-aliasing pass. Reprojects the previous-frame history into the
@@ -35,6 +46,11 @@ export class TAAPass extends RenderPass {
   private readonly _width: number;
   private readonly _height: number;
   private readonly _scratch = new Float32Array(TAA_UNIFORM_SIZE / 4);
+
+  /** Halton sample count before the jitter sequence repeats. */
+  sampleCount = 16;
+  private _frameIndex = 0;
+  private _prevViewProj: Mat4 | null = null;
 
   /** View of the history texture, useful for debugging or external consumers. */
   get historyView(): GPUTextureView { return this._historyView; }
@@ -161,11 +177,47 @@ export class TAAPass extends RenderPass {
    * @param invViewProj Inverse view*proj for the current (jittered) frame.
    * @param prevViewProj Previous frame's view*proj used for reprojection.
    */
-  updateCamera(ctx: RenderContext, invViewProj: Mat4, prevViewProj: Mat4): void {
+  /** Previous frame's un-jittered viewProj (for SSGI reprojection etc.), or null until the first {@link updateCamera}. */
+  get prevViewProj(): Mat4 | null {
+    return this._prevViewProj;
+  }
+
+  /**
+   * Returns a sub-pixel jittered viewProj for this frame's vertex passes.
+   * Pure: does not mutate state — that happens in {@link updateCamera}.
+   */
+  jitter(ctx: RenderContext, viewProj: Mat4): Mat4 {
+    const hi = (this._frameIndex % this.sampleCount) + 1;
+    const jx = (halton(hi, 2) - 0.5) * (2 / ctx.width);
+    const jy = (halton(hi, 3) - 0.5) * (2 / ctx.height);
+    return _applyJitter(viewProj, jx, jy);
+  }
+
+  /**
+   * Upload reprojection uniforms and advance jitter state for next frame.
+   *
+   * `viewProj` is the current frame's un-jittered VP. The pass writes
+   * `prevViewProj ?? viewProj` to the TAA uniform (so the first frame reprojects
+   * from itself, no ghosting), then stores `viewProj` as next frame's previous
+   * and bumps the Halton index.
+   *
+   * Call **after** any other pass that reads {@link prevViewProj}
+   * (e.g. `SSGIPass.updateCamera`) — this call mutates internal state.
+   */
+  updateCamera(ctx: RenderContext, invViewProj: Mat4, viewProj: Mat4): void {
+    const prev = this._prevViewProj ?? viewProj;
     const data = this._scratch;
     data.set(invViewProj.data,  0);
-    data.set(prevViewProj.data, 16);
+    data.set(prev.data, 16);
     ctx.queue.writeBuffer(this._uniformBuffer, 0, data.buffer as ArrayBuffer);
+    this._prevViewProj = viewProj;
+    this._frameIndex++;
+  }
+
+  /** Clears jitter history so the next frame reprojects from itself. */
+  resetJitter(): void {
+    this._frameIndex = 0;
+    this._prevViewProj = null;
   }
 
   /**

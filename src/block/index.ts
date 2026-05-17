@@ -29,5 +29,5 @@ export {
 } from './block_type.js';
 export { Chunk } from './chunk.js';
 export type { ChunkMesh } from './chunk.js';
-export { World } from './world.js';
+export { BlockWorld } from './world.js';
 export type { RaycastResult } from './world.js';

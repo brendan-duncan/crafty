@@ -6,7 +6,7 @@ import { MeshRenderer } from '../../../src/engine/components/mesh_renderer.js';
 import { PbrMaterial } from '../../../src/renderer/materials/pbr_material.js';
 import { NPCEntity } from '../npc_entity.js';
 import { Creeper } from '../entities/creeper_entity.js';
-import type { World } from '../../../src/block/world.js';
+import type { BlockWorld } from '../../../src/block/world.js';
 
 type CreeperState = 'idle' | 'wander' | 'chase' | 'detonate';
 
@@ -24,7 +24,7 @@ const CREEPER_GREEN: [number, number, number, number] = [0.37, 0.82, 0.22, 1];
 const FLASH_WHITE: [number, number, number, number] = [0.95, 0.45, 0.45, 1];
 
 export class CreeperAI extends Component {
-  private _world: World;
+  private _world: BlockWorld;
   private _scene: Scene;
   private _state: CreeperState = 'idle';
   private _timer = 0;
@@ -38,7 +38,7 @@ export class CreeperAI extends Component {
   private _flashToggle = false;
   private _flashAccum = 0;
 
-  constructor(world: World, scene: Scene) {
+  constructor(world: BlockWorld, scene: Scene) {
     super();
     this._world = world;
     this._scene = scene;

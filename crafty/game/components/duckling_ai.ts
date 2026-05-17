@@ -2,7 +2,7 @@ import { Vec3 } from '../../../src/math/index.js';
 import { Quaternion } from '../../../src/math/quaternion.js';
 import { Component } from '../../../src/engine/component.js';
 import type { GameObject } from '../../../src/engine/game_object.js';
-import type { World } from '../../../src/block/world.js';
+import type { BlockWorld } from '../../../src/block/world.js';
 import { NPCEntity } from '../npc_entity.js';
 
 const _Y_AXIS = new Vec3(0, 1, 0);
@@ -19,7 +19,7 @@ const _Y_AXIS = new Vec3(0, 1, 0);
  */
 export class DucklingAI extends Component {
   private _parent: GameObject;
-  private _world: World;
+  private _world: BlockWorld;
   private _velY = 0;
   private _yaw = 0;
 
@@ -31,7 +31,7 @@ export class DucklingAI extends Component {
   private _offsetAngle: number;
   private _followDist: number;
 
-  constructor(parent: GameObject, world: World) {
+  constructor(parent: GameObject, world: BlockWorld) {
     super();
     this._parent = parent;
     this._world = world;
