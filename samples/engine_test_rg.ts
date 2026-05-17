@@ -122,7 +122,7 @@ async function main(): Promise<void> {
   const iblTextures: IblTextures = await computeIblGpu(device, skyTexture.gpuTexture);
   const cloudNoises: CloudNoiseTextures = createCloudNoiseTextures(device);
   const cloudSettings: CloudSettings = {
-    cloudBase: 1, cloudTop: 10, coverage: 0.75, density: 3.0,
+    cloudBase: 10, cloudTop: 100, coverage: 0.75, density: 3.0,
     windOffset: [0, 0], anisotropy: 0.85, extinction: 0.25,
     ambientColor: [0.6, 0.7, 0.9], exposure: 0.2,
   };
@@ -316,7 +316,7 @@ async function main(): Promise<void> {
   const compositePass = CompositePass.create(ctx);
 
   // ── UI ────────────────────────────────────────────────────────────────────
-  const effects = { ssao: true, ssgi: true, dof: true, bloom: true, taa: true, clouds: false, weather: false, lights: true };
+  const effects = { ssao: true, ssgi: true, dof: true, bloom: true, taa: true, clouds: false, weather: true, lights: true };
   createControlPanel(effects);
 
   const hint = document.createElement('div');

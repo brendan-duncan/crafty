@@ -13,11 +13,10 @@ import foxUrl         from '../assets/fox.glb?url';
 import { Mat4, Vec3, Quaternion } from '../src/math/index.js';
 import { GameObject, Scene, Camera, DirectionalLight, MeshRenderer, CameraController, AnimatedModel, PointLight, SpotLight } from '../src/engine/index.js';
 import { PbrMaterial } from '../src/renderer/materials/pbr_material.js';
-import { RenderContext, RenderGraph, GBuffer, ShadowPass, SkyTexturePass, GeometryPass, SkinnedGeometryPass, DeferredLightingPass, TAAPass, SSAOPass, SSGIPass, DofPass, BloomPass, CompositePass, DebugLightPass, ParticlePass, CloudPass, CloudShadowPass, AutoExposurePass, PointSpotShadowPass, PointSpotLightPass } from '../src/renderer/index.js';
-import type { CloudSettings } from '../src/renderer/index.js';
+import { RenderContext, RenderGraph, GBuffer, ShadowPass, SkyTexturePass, GeometryPass, SkinnedGeometryPass, DeferredLightingPass, TAAPass, SSAOPass, SSGIPass, DofPass, BloomPass, CompositePass, DebugLightPass, ParticlePass, AutoExposurePass, PointSpotShadowPass, PointSpotLightPass } from '../src/renderer/index.js';
 import type { ParticleGraphConfig } from '../src/particles/index.js';
-import { Mesh, BlockTexture, GltfLoader, createCloudNoiseTextures } from '../src/assets/index.js';
-import type { GltfModel, CloudNoiseTextures } from '../src/assets/index.js';
+import { Mesh, BlockTexture, GltfLoader } from '../src/assets/index.js';
+import type { GltfModel } from '../src/assets/index.js';
 import { parseHdr, createHdrTexture } from '../src/assets/hdr_loader.js';
 import { computeIblGpu } from '../src/assets/ibl.js';
 import type { IblTextures } from '../src/assets/ibl.js';
@@ -105,21 +104,6 @@ async function main() {
   const skyHdr    = parseHdr(await (await fetch(belfastUrl)).arrayBuffer());
   let skyTexture = await createHdrTexture(device, skyHdr);
   let iblTextures: IblTextures = await computeIblGpu(device, skyTexture.gpuTexture);
-
-  const cloudNoises: CloudNoiseTextures = createCloudNoiseTextures(device);
-  const cloudSettings: CloudSettings = {
-    cloudBase   : 1,
-    cloudTop    : 10,
-    coverage    : 0.75,
-    density     : 3.0,
-    windOffset  : [0, 0],
-    anisotropy  : 0.85,
-    extinction  : 0.25,
-    ambientColor: [0.6, 0.7, 0.9],
-    exposure    : 0.2,
-  };
-  const cloudWindSpeed = 0.03;
-  const cloudWindDir: [number, number] = [1, 0.3];
 
   const blockTex = await BlockTexture.load(device, colorAtlasUrl, normalAtlasUrl, merAtlasUrl, heightAtlasUrl);
   const coneMesh = Mesh.createCone(device, 0.25, 0.6, 16);
@@ -244,7 +228,7 @@ async function main() {
   cameraController.attach(canvas);
 
   // --- Effect toggles ---
-  const effects = { ssao: true, ssgi: true, shadows: true, dof: true, bloom: true, aces: true, ao_dbg: false, shd_dbg: false, hdr: true, clouds: false };
+  const effects = { ssao: true, ssgi: true, shadows: true, dof: true, bloom: true, aces: true, ao_dbg: false, shd_dbg: false, hdr: true };
 
   // --- Renderer ---
   const shadowPass = ShadowPass.create(ctx, 3);
@@ -253,8 +237,6 @@ async function main() {
   let geometryPass: GeometryPass;
   let ssaoPass: SSAOPass;
   let skyPass: SkyTexturePass | null = null;
-  let cloudShadowPass: CloudShadowPass | null = null;
-  let cloudPass: CloudPass | null = null;
   let lightingPass: DeferredLightingPass;
   let taaPass: TAAPass;
   let dofPass: DofPass | null = null;
@@ -363,10 +345,6 @@ async function main() {
     ssaoPass?.destroy();
     skyPass?.destroy();
     skyPass = null;
-    cloudShadowPass?.destroy();
-    cloudShadowPass = null;
-    cloudPass?.destroy();
-    cloudPass = null;
     lightingPass?.destroy();
     pointSpotShadowPass?.destroy();
     pointSpotShadowPass = null;
@@ -400,26 +378,14 @@ async function main() {
     sparksPass = ParticlePass.create(ctx, sparksConfig, gbuffer);
     // rain is created after lightingPass so we can pass its hdrView; defer below
     ssaoPass = SSAOPass.create(ctx, gbuffer);
-    if (effects.clouds) {
-      cloudShadowPass = CloudShadowPass.create(ctx, cloudNoises);
-      lightingPass = DeferredLightingPass.create(ctx, {
-        gbuffer,
-        shadowPass,
-        aoView: ssaoPass.aoView,
-        cloudShadowView: cloudShadowPass.shadowView,
-        iblTextures
-      });
-      cloudPass       = CloudPass.create(ctx, lightingPass.outputView, gbuffer.depthView, cloudNoises);
-    } else {
-      lightingPass = DeferredLightingPass.create(ctx, {
-        gbuffer,
-        shadowPass,
-        aoView: ssaoPass.aoView,
-        cloudShadowView: undefined,
-        iblTextures
-      });
-      skyPass = SkyTexturePass.create(ctx, lightingPass.outputView, skyTexture);
-    }
+    lightingPass = DeferredLightingPass.create(ctx, {
+      gbuffer,
+      shadowPass,
+      aoView: ssaoPass.aoView,
+      cloudShadowView: undefined,
+      iblTextures
+    });
+    skyPass = SkyTexturePass.create(ctx, lightingPass.outputView, skyTexture);
     pointSpotShadowPass = PointSpotShadowPass.create(ctx);
     pointSpotLightPass  = PointSpotLightPass.create(ctx, gbuffer, pointSpotShadowPass, lightingPass.outputView);
 
@@ -459,9 +425,7 @@ async function main() {
     graph.addPass(sparksPass);
     graph.addPass(ssaoPass);
     graph.addPass(ssgiPass!);
-    if (cloudShadowPass) graph.addPass(cloudShadowPass);
-    if (cloudPass)       graph.addPass(cloudPass);
-    if (skyPass)         graph.addPass(skyPass);
+    if (skyPass) graph.addPass(skyPass);
     graph.addPass(lightingPass);
     graph.addPass(pointSpotLightPass);
     graph.addPass(rainPass);
@@ -624,16 +588,7 @@ async function main() {
     pointSpotLightPass?.updateCamera(ctx, view, proj, vp, invVP, camPos, camera.near, camera.far);
     pointSpotLightPass?.updateLights(ctx, pointLights, spotLights);
 
-    if (effects.clouds) {
-      cloudSettings.windOffset[0] += cloudWindSpeed * cloudWindDir[0] * ctx.deltaTime;
-      cloudSettings.windOffset[1] += cloudWindSpeed * cloudWindDir[1] * ctx.deltaTime;
-      cloudShadowPass?.update(ctx, cloudSettings, [0, 0], 60);
-      cloudPass?.updateCamera(ctx, invVP, camPos, camera.near, camera.far);
-      if (sun) cloudPass?.updateLight(ctx, sun.direction, sun.color, sun.intensity);
-      cloudPass?.updateSettings(ctx, cloudSettings);
-    } else {
-      skyPass?.updateCamera(ctx, invVP, camPos);
-    }
+    skyPass?.updateCamera(ctx, invVP, camPos);
 
     geometryPass.setDrawItems(drawItems);
     geometryPass.updateCamera(ctx, view, proj, jitVP, invVP, camPos, camera.near, camera.far);
@@ -668,8 +623,6 @@ async function main() {
     } else {
       lightingPass.updateLight(ctx, new Vec3(0, -1, 0), Vec3.one(), 0, [], false, false);
     }
-    lightingPass.updateCloudShadow(ctx, 0, 0, 60);
-
     ssaoPass.updateCamera(ctx, view, proj, invProj);
     ssaoPass.updateParams(ctx, 1.0, 0.005, effects.ssao ? 2.0 : 0.0);
     ssgiPass?.updateSettings({ strength: effects.ssgi ? 1.0 : 0.0 });

@@ -35,6 +35,8 @@ export class RenderContext {
   /** Total frames rendered since creation. Incremented every frame by {@link update}. */
   frameCount = 0;
   /** Smoothed frames-per-second (EMA with alpha 0.1). Updated every frame by {@link update}. */
+  framesPerSecond = 0;
+  /** Frames-per-second clamped to an integer. Updated every frame by {@link update}. */
   fps = 0;
 
   readonly #startTime = performance.now();
@@ -72,7 +74,7 @@ export class RenderContext {
   /**
    * Call each frame to detect canvas resizes and update the backbuffer depth texture accordingly.
    *
-   * Also updates {@link deltaTime}, {@link elapsedTime}, {@link frameCount} and {@link fps}.
+   * Also updates {@link deltaTime}, {@link elapsedTime}, {@link frameCount}, {@link framesPerSecond} and {@link fps}.
    * 
    * @returns true if a resize was detected and handled, false otherwise.
    */
@@ -86,7 +88,8 @@ export class RenderContext {
     // Frame counter & FPS (exponential moving average)
     this.frameCount++;
     const instFps = this.deltaTime > 0 ? 1 / this.deltaTime : 0;
-    this.fps += (instFps - this.fps) * 0.1;
+    this.framesPerSecond += (instFps - this.framesPerSecond) * 0.1;
+    this.fps = Math.round(this.framesPerSecond);
 
     // Invalidate backbuffer view to ensure it's recreated for the new texture after a resize.
     this._backbufferView = null;
