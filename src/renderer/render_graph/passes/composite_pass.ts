@@ -64,7 +64,6 @@ export class CompositePass extends Pass<CompositeDeps, void> {
   heightCurve = 1.0;
   fogColor: [number, number, number] = [1.0, 1.0, 1.0];
 
-  private readonly _device: GPUDevice;
   private readonly _pipeline: GPURenderPipeline;
   private readonly _texturesBgl: GPUBindGroupLayout;
   private readonly _bufBgl: GPUBindGroupLayout;
@@ -78,7 +77,6 @@ export class CompositePass extends Pass<CompositeDeps, void> {
   private readonly _starScratch = new Float32Array(STAR_UNI_SIZE / 4);
 
   private constructor(
-    device: GPUDevice,
     pipeline: GPURenderPipeline,
     texturesBgl: GPUBindGroupLayout,
     bufBgl: GPUBindGroupLayout,
@@ -88,7 +86,6 @@ export class CompositePass extends Pass<CompositeDeps, void> {
     sampler: GPUSampler,
   ) {
     super();
-    this._device = device;
     this._pipeline = pipeline;
     this._texturesBgl = texturesBgl;
     this._bufBgl = bufBgl;
@@ -149,7 +146,7 @@ export class CompositePass extends Pass<CompositeDeps, void> {
     // The bind group for params/stars/exposure is rebuilt each frame inside
     // setExecute, since the exposure buffer comes from a virtual handle whose
     // physical resource may differ from frame to frame.
-    return new CompositePass(device, pipeline, texturesBgl, bufBgl, paramsBgl, paramsBuf, starBuf, sampler);
+    return new CompositePass(pipeline, texturesBgl, bufBgl, paramsBgl, paramsBuf, starBuf, sampler);
   }
 
   /** Pack fog/underwater/tonemap parameters into the GPU uniform buffer. */
@@ -217,7 +214,7 @@ export class CompositePass extends Pass<CompositeDeps, void> {
       });
 
       b.setExecute((pctx, res) => {
-        const bg0 = this._device.createBindGroup({
+        const bg0 = res.getOrCreateBindGroup({
           label: 'CompositeBG0',
           layout: this._texturesBgl,
           entries: [
@@ -227,7 +224,7 @@ export class CompositePass extends Pass<CompositeDeps, void> {
             { binding: 3, resource: this._sampler },
           ],
         });
-        const bg1 = this._device.createBindGroup({
+        const bg1 = res.getOrCreateBindGroup({
           label: 'CompositeBG1',
           layout: this._bufBgl,
           entries: [
@@ -235,7 +232,7 @@ export class CompositePass extends Pass<CompositeDeps, void> {
             { binding: 1, resource: { buffer: res.getBuffer(deps.lightBuffer) } },
           ],
         });
-        const bg2 = this._device.createBindGroup({
+        const bg2 = res.getOrCreateBindGroup({
           label: 'CompositeBG2',
           layout: this._paramsBgl,
           entries: [

@@ -59,7 +59,6 @@ export interface SSGIOutputs {
 export class SSGIPass extends Pass<SSGIDeps, SSGIOutputs> {
   readonly name = 'SSGIPass';
 
-  private readonly _device: GPUDevice;
   private readonly _uniformBuffer: GPUBuffer;
   private readonly _noiseTex: GPUTexture;
   private readonly _noiseView: GPUTextureView;
@@ -76,7 +75,6 @@ export class SSGIPass extends Pass<SSGIDeps, SSGIOutputs> {
   private readonly _scratchU32 = new Uint32Array(this._scratch.buffer);
 
   private constructor(
-    device: GPUDevice,
     uniformBuffer: GPUBuffer,
     noiseTex: GPUTexture,
     noiseView: GPUTextureView,
@@ -88,7 +86,6 @@ export class SSGIPass extends Pass<SSGIDeps, SSGIOutputs> {
     sampler: GPUSampler,
   ) {
     super();
-    this._device = device;
     this._uniformBuffer = uniformBuffer;
     this._noiseTex = noiseTex;
     this._noiseView = noiseView;
@@ -174,7 +171,7 @@ export class SSGIPass extends Pass<SSGIDeps, SSGIOutputs> {
     });
 
     return new SSGIPass(
-      device, uniformBuffer, noiseTex, noiseTex.createView(),
+      uniformBuffer, noiseTex, noiseTex.createView(),
       ssgiPipeline, temporalPipeline,
       ssgiTexBgl, tempTexBgl,
       uniformBg, sampler,
@@ -228,7 +225,7 @@ export class SSGIPass extends Pass<SSGIDeps, SSGIOutputs> {
       b.read(deps.normal, 'sampled');
       b.read(deps.prevRadiance, 'sampled');
       b.setExecute((pctx, res) => {
-        const bg = this._device.createBindGroup({
+        const bg = res.getOrCreateBindGroup({
           layout: this._ssgiTexBgl,
           entries: [
             { binding: 0, resource: res.getTextureView(deps.depth) },
@@ -258,7 +255,7 @@ export class SSGIPass extends Pass<SSGIDeps, SSGIOutputs> {
       b.read(history, 'sampled');
       b.read(deps.depth, 'sampled');
       b.setExecute((pctx, res) => {
-        const bg = this._device.createBindGroup({
+        const bg = res.getOrCreateBindGroup({
           layout: this._tempTexBgl,
           entries: [
             { binding: 0, resource: res.getTextureView(raw) },

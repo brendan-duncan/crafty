@@ -38,7 +38,6 @@ export interface PointSpotLightOutputs {
 export class PointSpotLightPass extends Pass<PointSpotLightDeps, PointSpotLightOutputs> {
   readonly name = 'PointSpotLightPass';
 
-  private readonly _device: GPUDevice;
   private readonly _pipeline: GPURenderPipeline;
   private readonly _cameraBg: GPUBindGroup;
   private readonly _lightBg: GPUBindGroup;
@@ -62,7 +61,6 @@ export class PointSpotLightPass extends Pass<PointSpotLightDeps, PointSpotLightO
   private readonly _spotI32 = new Int32Array(this._spotBuf);
 
   private constructor(
-    device: GPUDevice,
     pipeline: GPURenderPipeline,
     cameraBg: GPUBindGroup,
     lightBg: GPUBindGroup,
@@ -77,7 +75,6 @@ export class PointSpotLightPass extends Pass<PointSpotLightDeps, PointSpotLightO
     projSampler: GPUSampler,
   ) {
     super();
-    this._device = device;
     this._pipeline = pipeline;
     this._cameraBg = cameraBg;
     this._lightBg = lightBg;
@@ -192,7 +189,7 @@ export class PointSpotLightPass extends Pass<PointSpotLightDeps, PointSpotLightO
     });
 
     return new PointSpotLightPass(
-      device, pipeline, cameraBg, lightBg, gbufferBgl, shadowBgl,
+      pipeline, cameraBg, lightBg, gbufferBgl, shadowBgl,
       cameraBuffer, lightCountsBuffer, pointBuffer, spotBuffer,
       linearSampler, vsmSampler, projSampler,
     );
@@ -285,7 +282,7 @@ export class PointSpotLightPass extends Pass<PointSpotLightDeps, PointSpotLightO
       b.read(deps.projTex, 'sampled');
 
       b.setExecute((pctx, res) => {
-        const gbufferBg = this._device.createBindGroup({
+        const gbufferBg = res.getOrCreateBindGroup({
           layout: this._gbufferBgl,
           entries: [
             { binding: 0, resource: res.getTextureView(deps.gbuffer.albedo) },
@@ -294,7 +291,7 @@ export class PointSpotLightPass extends Pass<PointSpotLightDeps, PointSpotLightO
             { binding: 3, resource: this._linearSampler },
           ],
         });
-        const shadowBg = this._device.createBindGroup({
+        const shadowBg = res.getOrCreateBindGroup({
           layout: this._shadowBgl,
           entries: [
             { binding: 0, resource: res.getTextureView(deps.pointVsm, { dimension: 'cube-array', arrayLayerCount: MAX_SHADOW_POINT_LIGHTS * 6 }) },

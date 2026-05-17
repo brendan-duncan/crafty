@@ -188,7 +188,7 @@ export class AutoExposurePass extends Pass<AutoExposureDeps, AutoExposureOutputs
         }
 
         const hdrTex = res.getTexture(deps.hdr);
-        const bg = this._device.createBindGroup({
+        const bg = res.getOrCreateBindGroup({
           label: 'AutoExposureBG',
           layout: this._bgl,
           entries: [

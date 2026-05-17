@@ -253,7 +253,7 @@ export class WaterPass extends Pass<WaterDeps, void> {
       b.write(deps.hdr, 'attachment', { loadOp: 'load', storeOp: 'store' });
 
       b.setExecute((pctx, res) => {
-        const sceneBG = this._device.createBindGroup({
+        const sceneBG = res.getOrCreateBindGroup({
           label: 'WaterSceneBG',
           layout: this._sceneBGL,
           entries: [

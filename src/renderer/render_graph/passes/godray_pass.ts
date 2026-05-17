@@ -26,7 +26,6 @@ export class GodrayPass extends Pass<GodrayDeps, void> {
   fogCurve = 2.0;
   maxSteps = 16;
 
-  private readonly _device: GPUDevice;
   private readonly _marchPipeline: GPURenderPipeline;
   private readonly _blurHPipeline: GPURenderPipeline;
   private readonly _blurVPipeline: GPURenderPipeline;
@@ -52,7 +51,6 @@ export class GodrayPass extends Pass<GodrayDeps, void> {
   private readonly _densityScratch = new Float32Array(8);
 
   private constructor(
-    device: GPUDevice,
     marchPipeline: GPURenderPipeline,
     blurHPipeline: GPURenderPipeline,
     blurVPipeline: GPURenderPipeline,
@@ -71,7 +69,6 @@ export class GodrayPass extends Pass<GodrayDeps, void> {
     cloudNoises: CloudNoiseTextures,
   ) {
     super();
-    this._device = device;
     this._marchPipeline = marchPipeline;
     this._blurHPipeline = blurHPipeline;
     this._blurVPipeline = blurVPipeline;
@@ -235,7 +232,6 @@ export class GodrayPass extends Pass<GodrayDeps, void> {
     });
 
     return new GodrayPass(
-      device,
       marchPipeline, blurHPipeline, blurVPipeline, compositePipeline,
       marchParamsBuf, blurHParamsBuf, blurVParamsBuf, compParamsBuf,
       cloudDensityBuf,
@@ -289,7 +285,7 @@ export class GodrayPass extends Pass<GodrayDeps, void> {
       b.read(deps.lightBuffer, 'uniform');
 
       b.setExecute((pctx, res) => {
-        const bg = this._device.createBindGroup({
+        const bg = res.getOrCreateBindGroup({
           label: 'GodrayMarchBG',
           layout: this._bglMarch,
           entries: [
@@ -320,7 +316,7 @@ export class GodrayPass extends Pass<GodrayDeps, void> {
       b.read(deps.depth, 'sampled');
 
       b.setExecute((pctx, res) => {
-        const bg = this._device.createBindGroup({
+        const bg = res.getOrCreateBindGroup({
           label: 'GodrayBlurHBG',
           layout: this._bglBlur,
           entries: [
@@ -344,7 +340,7 @@ export class GodrayPass extends Pass<GodrayDeps, void> {
       b.read(deps.depth, 'sampled');
 
       b.setExecute((pctx, res) => {
-        const bg = this._device.createBindGroup({
+        const bg = res.getOrCreateBindGroup({
           label: 'GodrayBlurVBG',
           layout: this._bglBlur,
           entries: [
@@ -369,7 +365,7 @@ export class GodrayPass extends Pass<GodrayDeps, void> {
       b.read(deps.lightBuffer, 'uniform');
 
       b.setExecute((pctx, res) => {
-        const bg = this._device.createBindGroup({
+        const bg = res.getOrCreateBindGroup({
           label: 'GodrayCompositeBG',
           layout: this._bglComposite,
           entries: [

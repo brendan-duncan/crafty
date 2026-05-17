@@ -110,15 +110,25 @@ export class PhysicalResourceCache {
   private _bindGroupEntryKey(e: GPUBindGroupEntry): string {
     const res = e.resource;
     const b = e.binding;
-    if (res instanceof GPUBuffer) return `${b}:B${this._gpuObjectId(res)}`;
-    if (res instanceof GPUTextureView) return `${b}:V${this._gpuObjectId(res)}`;
-    if (res instanceof GPUSampler) return `${b}:S${this._gpuObjectId(res)}`;
+    if (res instanceof GPUBuffer) {
+      return `${b}:B${this._gpuObjectId(res)}`;
+    }
+    if (res instanceof GPUTextureView) {
+      return `${b}:V${this._gpuObjectId(res)}`;
+    }
+    if (res instanceof GPUSampler) {
+      return `${b}:S${this._gpuObjectId(res)}`;
+    }
     if ('buffer' in res) {
       const br = res as GPUBufferBinding;
       return `${b}:B${this._gpuObjectId(br.buffer)}:${br.offset ?? 0}:${br.size ?? 0}`;
     }
-    if ('sampler' in res) return `${b}:S${this._gpuObjectId((res as { sampler: GPUSampler }).sampler)}`;
-    if ('texture' in res) return `${b}:V${this._gpuObjectId((res as { texture: GPUTextureView }).texture)}`;
+    if ('sampler' in res) {
+      return `${b}:S${this._gpuObjectId((res as { sampler: GPUSampler }).sampler)}`;
+    }
+    if ('texture' in res) {
+      return `${b}:V${this._gpuObjectId((res as { texture: GPUTextureView }).texture)}`;
+    }
     return `${b}:?`;
   }
 
